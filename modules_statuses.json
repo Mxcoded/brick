@@ -1,5 +1,6 @@
 {
     "Staff": true,
     "Event": true,
-    "Banquet": true
+    "Banquet": true,
+    "Maintenance": true
 }
