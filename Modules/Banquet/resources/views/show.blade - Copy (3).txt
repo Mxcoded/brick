@@ -1,0 +1,32 @@
+@extends('banquet::layouts.master')
+
+@section('content')
+<div class="container">
+    <h2>Edit Banquet Event Order</h2>
+    <form action="{{ route('banquets.update', $banquet->id) }}" method="POST">
+        @csrf
+        @method('PUT')
+        
+        @include('banquet::partials._customer_info_form', ['data' => $banquet])
+        
+        @include('banquet::partials._event_info_form', ['data' => $banquet])
+        
+        @include('banquet::partials._location_time_form', ['locations' => $banquet->locations])
+        
+        @include('banquet::partials._menu_selection_form', ['menu' => $banquet->menuItems])
+        
+        <button type="submit" class="btn btn-primary">Update</button>
+    </form>
+</div>
+@endsection
+@section('scripts')
+        <!-- At the end of <body> -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        flatpickr('#event_dates', {
+            mode: 'multiple',
+            dateFormat: 'Y-m-d',
+            defaultDate: @json(isset($banquet) ? json_decode($banquet->event_dates) : []),
+        });
+    </script>
+@endsection

@@ -1,0 +1,32 @@
+@extends('banquet::layouts.master') <!-- Extend your main layout file -->
+
+
+@section('content')
+    <form action="{{ isset($order) ? route('banquet.update', $order->id) : route('banquet.store') }}"
+        method="POST">
+        @csrf
+        @if (isset($order))
+            @method('PUT')
+        @endif
+
+        @include('banquet::partials.customer-event-info')
+
+        <div id="event-days">
+            @if (old('days'))
+                @foreach (old('days') as $index => $day)
+                    @include('banquet::partials.event-day', ['index' => $index, 'day' => (object) $day])
+                @endforeach
+            @elseif(isset($order) && $order->days->count())
+                @foreach ($order->days as $index => $day)
+                    @include('banquet::partials.event-day', ['index' => $index, 'day' => $day])
+                @endforeach
+            @else
+                @include('banquet::partials.event-day', ['index' => 0])
+            @endif
+        </div>
+
+        @include('banquet::partials.payment-details')
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+@endsection

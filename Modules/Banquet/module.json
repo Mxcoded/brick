@@ -1,0 +1,11 @@
+{
+    "name": "Banquet",
+    "alias": "banquet",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Banquet\\Providers\\BanquetServiceProvider"
+    ],
+    "files": []
+}

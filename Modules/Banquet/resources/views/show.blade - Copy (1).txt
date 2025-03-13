@@ -1,0 +1,183 @@
+@extends('banquet::layouts.master') 
+
+@section('content')
+<div class="container">
+    <h2>Banquet Event Order Details</h2>
+    
+    <div class="card">
+        <div class="card-body">
+            <h4>Customer Information</h4>
+            <p><strong>Order No:</strong> {{ $banquet->order_number }}</p>
+            <p><strong>Primary Contact:</strong> {{ $banquet->primary_contact }}</p>
+            <p><strong>Customer Name:</strong> {{ $banquet->customer_name }}</p>
+            <p><strong>Contact Person:</strong> {{ $banquet->contact_person }}</p>
+            <p><strong>Phone:</strong> {{ $banquet->phone }}</p>
+            <p><strong>Email:</strong> {{ $banquet->email }}</p>
+            <p><strong>Guest Count:</strong> {{ $banquet->guest_count }}</p>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h4>Event Information</h4>
+            <p><strong>Event Name:</strong> {{ $banquet->event_name }}</p>
+            <p><strong>Event Date:</strong> {{ $banquet->event_date }}</p>
+            <p><strong>Department:</strong> {{ $banquet->department }}</p>
+            <p><strong>Description:</strong> {{ $banquet->description }}</p>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h4>Location & Time</h4>
+            @foreach ($banquet->locations as $location)
+                <p><strong>Room:</strong> {{ $location->room }}</p>
+                <p><strong>Setup Style:</strong> {{ $location->setup_style }}</p>
+                <p><strong>Start Time:</strong> {{ $location->start_time }}</p>
+                <p><strong>End Time:</strong> {{ $location->end_time }}</p>
+                <hr>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h4>Menu Selection</h4>
+            @foreach ($banquet->menuItems as $menu)
+                <p><strong>Day:</strong> {{ $menu->day }}</p>
+                <p><strong>Meal Type:</strong> {{ $menu->meal_type }}</p>
+                <p><strong>Quantity:</strong> {{ $menu->quantity }}</p>
+                <p><strong>Price:</strong> {{ $menu->price }}</p>
+                <hr>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <h4>Billing Summary</h4>
+            <p><strong>Subtotal:</strong> {{ $banquet->subtotal }}</p>
+            <p><strong>Total:</strong> {{ $banquet->total }}</p>
+        </div>
+    </div>
+</div>
+@endsection
+
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ route('banquet.index') }}">Banquets</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ $banquet->order_number }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between mb-4">
+                <h1>Banquet Details: {{ $banquet->order_number }}</h1>
+                <div>
+                    <a href="{{ route('banquet.edit', $banquet->id) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="{{ route('banquet.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+
+            <!-- Status Badge -->
+            <div class="mb-4">
+                <span class="badge 
+                    @if($banquet->event_status === 'pending') bg-warning
+                    @elseif($banquet->event_status === 'confirmed') bg-success
+                    @else bg-danger
+                    @endif fs-6">
+                    {{ ucfirst($banquet->event_status) }}
+                </span>
+            </div>
+
+            <!-- Customer Information Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-circle me-2"></i>Customer Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Customer Name</dt>
+                        <dd class="col-sm-9">{{ $banquet->customer_name }}</dd>
+
+                        <dt class="col-sm-3">Primary Contact</dt>
+                        <dd class="col-sm-9">{{ $banquet->primary_contact }}</dd>
+
+                        <dt class="col-sm-3">Phone</dt>
+                        <dd class="col-sm-9">{{ $banquet->phone }}</dd>
+
+                        <dt class="col-sm-3">Email</dt>
+                        <dd class="col-sm-9"><a href="mailto:{{ $banquet->email }}">{{ $banquet->email }}</a></dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Event Details Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Event Details</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Event Dates</dt>
+                        <dd class="col-sm-9">
+                            <ul class="list-unstyled">
+                                @foreach(json_decode($banquet->event_dates) as $date)
+                                    <li>{{ \Carbon\Carbon::parse($date)->format('M d, Y') }}</li>
+                                @endforeach
+                            </ul>
+                        </dd>
+
+                        <dt class="col-sm-3">Guest Count</dt>
+                        <dd class="col-sm-9">{{ $banquet->guest_count }}</dd>
+
+                        <dt class="col-sm-3">F&B Coordinator</dt>
+                        <dd class="col-sm-9">
+                            @if($banquet->employee)
+                                {{ $banquet->employee->name }}
+                            @else
+                                <span class="text-muted">Not assigned</span>
+                            @endif
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Locations Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Locations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Room</th>
+                                    <th>Setup Style</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($banquet->locations as $location)
+                                    <tr>
+                                        <td>{{ $location->room }}</td>
+                                        <td>{{ ucfirst($location->setup_style) }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($location->start_time)->format('M d, Y H:i') }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($location->end_time)->format('M d, Y H:i') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">No locations added</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div
