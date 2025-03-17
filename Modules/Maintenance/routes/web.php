@@ -14,6 +14,23 @@ use Modules\Maintenance\Http\Controllers\MaintenanceController;
 |
 */
 
-Route::group([], function () {
-    Route::resource('maintenance', MaintenanceController::class)->names('maintenance');
-});
+// Show all maintenance logs
+Route::get('maintenance', [MaintenanceController::class, 'index'])->name('maintenance.index');
+
+// Show form to create a new maintenance log
+Route::get('maintenance/create', [MaintenanceController::class, 'create'])->name('maintenance.create');
+
+// Store a new maintenance log
+Route::post('maintenance', [MaintenanceController::class, 'store'])->name('maintenance.store');
+
+// Show a specific maintenance log
+Route::get('maintenance/{maintenanceLog}', [MaintenanceController::class, 'show'])->name('maintenance.show');
+
+// Show form to edit a specific maintenance log
+Route::get('maintenance/{maintenanceLog}/edit', [MaintenanceController::class, 'edit'])->name('maintenance.edit');
+
+// Update a specific maintenance log
+Route::put('maintenance/{maintenanceLog}', [MaintenanceController::class, 'update'])->name('maintenance.update');
+
+// Delete a specific maintenance log
+Route::delete('maintenance/{maintenanceLog}', [MaintenanceController::class, 'destroy'])->name('maintenance.destroy');
