@@ -243,12 +243,31 @@
                                             @foreach ($day->menuItems as $item)
                                                 <div class="col">
                                                     <div class="card h-100 border-0 shadow-sm">
-                                                        <div class="card-header bg-light">
+                                                        <div
+                                                            class="card-header bg-light d-flex justify-content-between align-items-center">
                                                             <h6 class="mb-0">
                                                                 <i
                                                                     class="fas fa-{{ $item->meal_type === 'breakfast' ? 'sun' : 'moon' }} me-2"></i>
                                                                 {{ ucfirst($item->meal_type) }}
                                                             </h6>
+                                                            <div>
+                                                                <a href="{{ route('banquet.orders.edit-menu-item', [$order->order_id, $day->id, $item->id]) }}"
+                                                                    class="btn btn-sm btn-warning me-2"
+                                                                    title="Edit Menu Item">
+                                                                    <i class="fas fa-edit"></i>
+                                                                </a>
+                                                                <form
+                                                                    action="{{ route('banquet.orders.menu-item.destroy', [$order->order_id, $day->id, $item->id]) }}"
+                                                                    method="POST" style="display:inline;">
+                                                                    @method('DELETE')
+                                                                    @csrf
+                                                                    <button type="submit" class="btn btn-sm btn-danger"
+                                                                        onclick="return confirm('Are you sure you want to delete this menu item?')"
+                                                                        title="Delete Menu Item">
+                                                                        <i class="fas fa-trash"></i>
+                                                                    </button>
+                                                                </form>
+                                                            </div>
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="d-flex justify-content-between mb-3">
@@ -262,7 +281,6 @@
                                                                     <div class="h5">{{ $item->quantity }}</div>
                                                                 </div>
                                                             </div>
-
                                                             <h6 class="mb-2">Menu Items:</h6>
                                                             <div class="d-flex flex-wrap gap-2 mb-3">
                                                                 @foreach (json_decode($item->menu_items, true) as $menu)
@@ -270,7 +288,6 @@
                                                                         class="badge bg-primary-subtle text-primary">{{ $menu }}</span>
                                                                 @endforeach
                                                             </div>
-
                                                             @if ($item->dietary_restrictions)
                                                                 <h6 class="mb-2">Dietary Needs:</h6>
                                                                 <div class="d-flex flex-wrap gap-2">
@@ -294,6 +311,7 @@
             </div>
         </div>
     </div>
+
 
     <style>
         .card {
