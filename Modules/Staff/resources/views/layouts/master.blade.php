@@ -8,8 +8,11 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
     <title>Staff Module - {{ config('app.name', 'Staff Management') }}</title>
-    
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+
 
     <meta name="description" content="{{ $description ?? '' }}">
     <meta name="keywords" content="{{ $keywords ?? '' }}">
@@ -25,10 +28,11 @@
 </head>
 
 <body>
-   <body>
-    @yield('content') <!-- This is where your page content will be injected -->
 
-    <!-- Add your JavaScript files here -->
-    @yield('scripts') <!-- This is where your scripts will be injected -->
-</body>
+    <body>
+        @yield('content') <!-- This is where your page content will be injected -->
+
+        <!-- Add your JavaScript files here -->
+        @yield('scripts') <!-- This is where your scripts will be injected -->
+    </body>
 </body>
