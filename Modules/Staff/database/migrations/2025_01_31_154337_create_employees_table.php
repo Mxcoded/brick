@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('email');
             $table->string('place_of_birth');
             $table->string('state_of_origin');
             $table->string('lga');
@@ -24,6 +25,7 @@ return new class extends Migration
             $table->string('blood_group');
             $table->string('genotype');
             $table->string('phone_number');
+            $table->string('position');
             $table->string('residential_address');
             $table->string('next_of_kin_name');
             $table->string('next_of_kin_phone');
@@ -31,6 +33,12 @@ return new class extends Migration
             $table->string('ice_contact_phone');
             $table->string('profile_image')->nullable(); // For profile image upload
             $table->string('cv_path')->nullable(); // For CV upload
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->text('note_for_leaving')->nullable();
+            $table->enum('leaving_reason', ['resignation', 'sack', 'transfer'])->nullable();
+            $table->string('branch_name')->nullable();
+            $table->string('resignation_letter')->nullable();
             $table->timestamps();
         });
     }
