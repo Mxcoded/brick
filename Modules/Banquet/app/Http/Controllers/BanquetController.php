@@ -272,6 +272,7 @@ class BanquetController extends Controller
             'contact_person_email_ii' => 'nullable|email|max:255',
             'expenses' => 'nullable|numeric|min:0',
             'status' => 'required|in:Pending,Confirmed,Cancelled,Completed',
+            'organization' => 'nullable|string|max:255',
         ]);
 
         try {
