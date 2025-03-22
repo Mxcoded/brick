@@ -17,7 +17,7 @@ return new class extends Migration
             $table->dateTime('complaint_datetime');
             $table->text('nature_of_complaint');
             $table->string('lodged_by', 100);
-            $table->string('received_by', 100);
+            $table->string('received_by', 100)->nullable();
             $table->decimal('cost_of_fixing', 10, 2)->nullable();
             $table->date('completion_date')->nullable();
             $table->enum('status', ['new', 'in_progress', 'completed', 'cancelled'])->default('new');
