@@ -14,9 +14,24 @@ use Modules\Staff\Http\Controllers\StaffController;
 |
 */
 
-Route::group([], function () {
-    Route::resource('staff', StaffController::class)->names('staff');
-});
+Route::middleware('auth')->group(
+    function () {
+        Route::group([], function () {
+            Route::resource('staff', StaffController::class)->names('staff');
+        });
+
+        // Leave Management Routes
+        Route::prefix('leaves')->group(function () {
+            Route::get('/', [StaffController::class, 'leaveIndex'])->name('staff.leaves.index'); // Employee leave dashboard
+            Route::get('/request', [StaffController::class, 'leaveRequestForm'])->name('staff.leaves.request');
+            Route::post('/request', [StaffController::class, 'submitLeaveRequest'])->name('staff.leaves.submit');
+            Route::get('/admin', [StaffController::class, 'leaveAdminIndex'])->name('staff.leaves.admin'); // Admin view
+            Route::post('/admin/approve/{id}', [StaffController::class, 'approveLeave'])->name('staff.leaves.approve');
+            Route::post('/admin/reject/{id}', [StaffController::class, 'rejectLeave'])->name('staff.leaves.reject');
+            Route::get('/report', [StaffController::class, 'leaveReport'])->name('staff.leaves.report'); // Leave report
+        });
+    }
+);
 
 // Approval Routes (accessible only to HR/Admins)
 Route::prefix('approvals')->group(function () {
