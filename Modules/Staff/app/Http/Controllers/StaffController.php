@@ -5,6 +5,7 @@ namespace Modules\Staff\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Modules\Staff\Models\Employee;
+use Illuminate\Support\Facades\Auth;
 use Modules\Staff\Models\EmploymentHistory;
 use Modules\Staff\Models\EducationalBackground;
 use Modules\Staff\Models\LeaveRequest;
@@ -123,6 +124,23 @@ class StaffController extends Controller
                     ]));
                 }
             }
+
+            // Add default leave balances
+            $defaultBalances = [
+                ['leave_type' => 'Vacation', 'total_days' => 20],
+                ['leave_type' => 'Sick', 'total_days' => 10],
+                ['leave_type' => 'Maternity', 'total_days' => 90],
+            ];
+
+            foreach ($defaultBalances as $balance) {
+                $employee->leaveBalances()->create([
+                    'leave_type' => $balance['leave_type'],
+                    'year' => date('Y'),
+                    'total_days' => $balance['total_days'],
+                    'used_days' => 0,
+                    'remaining_days' => $balance['total_days'],
+                ]);
+            }
         });
 
         return redirect()->route('staff.index')->with('success', 'Employee created successfully.');
@@ -204,6 +222,12 @@ class StaffController extends Controller
                     $staffCode = str_pad(mt_rand(0, 9999), 4, '0', STR_PAD_LEFT);
                 } while (Employee::where('staff_code', $staffCode)->exists());
                 $employee->staff_code = $staffCode;
+            }
+            // Check if end_date is provided in the request
+            if ($request->has('end_date') && !empty($request->input('end_date'))) {
+                $validatedData['status'] = 'rejected'; // Or another status like 'terminated'
+            } else {
+                $validatedData['status'] = 'draft'; // Revert to 'draft' if end_date is not supplied or is empty
             }
 
             // Remove file fields from validatedData
@@ -296,7 +320,11 @@ class StaffController extends Controller
     // Employee Leave Dashboard
     public function leaveIndex()
     {
-        $employee = auth()->user()->employee; // Assuming employees are linked to users
+        $user = Auth::user();
+        $employee = $user->employee;
+        if (!$employee) {
+            return redirect()->back()->with('error', 'You do not have an employee profile.');
+        }
         $leaveRequests = $employee->leaveRequests()->latest()->get();
         $leaveBalances = $employee->leaveBalances()->where('year', date('Y'))->get();
         return view('staff::leaves.index', compact('employee', 'leaveRequests', 'leaveBalances'));
@@ -305,7 +333,11 @@ class StaffController extends Controller
     // Leave Request Form
     public function leaveRequestForm()
     {
-        $employee = auth()->user()->employee;
+        $user =Auth::user();
+        $employee = $user->employee;
+        if (!$employee) {
+            return redirect()->back()->with('error', 'You do not have an employee profile.');
+        }
         $leaveBalances = $employee->leaveBalances()->where('year', date('Y'))->get();
         return view('staff::leaves.request', compact('employee', 'leaveBalances'));
     }
@@ -313,26 +345,41 @@ class StaffController extends Controller
     // Submit Leave Request
     public function submitLeaveRequest(Request $request)
     {
-        $employee = auth()->user()->employee;
+        $user = Auth::user();
+        $employee = $user->employee;
+        if (!$employee) {
+            return redirect()->back()->with('error', 'You do not have an employee profile.');
+        }
+
         $validated = $request->validate([
-            'leave_type' => 'required|string|in:Vacation,Sick,Maternity', // Add more types as needed
+            'leave_type' => 'required|string|in:Vacation,Sick,Maternity',
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string|max:1000',
         ]);
 
-        // Check leave balance
         $leaveBalance = $employee->leaveBalances()
             ->where('leave_type', $validated['leave_type'])
             ->where('year', date('Y'))
-            ->firstOrFail();
-        $daysRequested = (new \DateTime($validated['start_date']))->diff(new \DateTime($validated['end_date']))->days + 1;
+            ->first();
+
+        if (!$leaveBalance) {
+            return redirect()->back()->withErrors(['leave_type' => 'No leave balance available for this type.']);
+        }
+
+        $startDate = new \DateTime($validated['start_date']);
+        $endDate = new \DateTime($validated['end_date']);
+        $daysRequested = $startDate->diff($endDate)->days + 1;
 
         if ($leaveBalance->remaining_days < $daysRequested) {
             return redirect()->back()->withErrors(['leave_type' => 'Insufficient leave balance.']);
         }
 
-        LeaveRequest::create(array_merge($validated, ['employee_id' => $employee->id]));
+        LeaveRequest::create(array_merge($validated, [
+            'employee_id' => $employee->id,
+            'days_count' => $daysRequested, // Store days requested
+            'status' => 'pending', // Ensure status is set
+        ]));
 
         return redirect()->route('staff.leaves.index')->with('success', 'Leave request submitted successfully.');
     }
@@ -340,6 +387,7 @@ class StaffController extends Controller
     // Admin Leave Management
     public function leaveAdminIndex()
     {
+        // Optional: Add admin check here or via middleware
         $leaveRequests = LeaveRequest::with('employee')->where('status', 'pending')->latest()->get();
         return view('staff::leaves.admin', compact('leaveRequests'));
     }
@@ -347,15 +395,21 @@ class StaffController extends Controller
     // Approve Leave
     public function approveLeave($id)
     {
+        // Should be restricted to admins via middleware
         $leaveRequest = LeaveRequest::findOrFail($id);
         $leaveRequest->update(['status' => 'approved']);
 
-        // Update leave balance
         $leaveBalance = $leaveRequest->employee->leaveBalances()
             ->where('leave_type', $leaveRequest->leave_type)
             ->where('year', date('Y'))
             ->first();
-        $leaveBalance->increment('used_days', $leaveRequest->days_count);
+
+        if ($leaveBalance) {
+            $daysCount = $leaveRequest->days_count ?? (new \DateTime($leaveRequest->start_date))
+                ->diff(new \DateTime($leaveRequest->end_date))->days + 1;
+            $leaveBalance->increment('used_days', $daysCount);
+            $leaveBalance->decrement('remaining_days', $daysCount); // Update remaining days
+        }
 
         return redirect()->route('staff.leaves.admin')->with('success', 'Leave request approved.');
     }
@@ -363,6 +417,7 @@ class StaffController extends Controller
     // Reject Leave
     public function rejectLeave(Request $request, $id)
     {
+        // Should be restricted to admins via middleware
         $leaveRequest = LeaveRequest::findOrFail($id);
         $leaveRequest->update([
             'status' => 'rejected',
