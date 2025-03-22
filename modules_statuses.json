@@ -2,5 +2,6 @@
     "Staff": true,
     "Event": true,
     "Banquet": true,
-    "Maintenance": true
+    "Maintenance": true,
+    "Auth": true
 }
