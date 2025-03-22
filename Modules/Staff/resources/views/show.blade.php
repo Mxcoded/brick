@@ -1,8 +1,12 @@
 @extends('staff::layouts.master')
 
-@section('content')
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Staff Details</li>
+@endsection
+
+@section('page-content')
     <div class="container my-4">
-        <h1 class="mb-4 fw-bold">Employee Details</h1>
+        <h1 class="mb-4 fw-bold">Staff Details</h1>
 
         <!-- Main Employee Card -->
         <div class="card shadow-sm">
@@ -12,7 +16,6 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <!-- Profile Image -->
                     <div class="col-md-4 text-center">
                         @if ($employee->profile_image)
                             <img src="{{ asset('storage/' . $employee->profile_image) }}" alt="Profile Image"
@@ -24,8 +27,6 @@
                             </div>
                         @endif
                     </div>
-
-                    <!-- Employee Details -->
                     <div class="col-md-8">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -48,7 +49,6 @@
                     </div>
                 </div>
 
-                <!-- Employment Status -->
                 <div class="mt-4">
                     <h5 class="border-bottom pb-2"><i class="fas fa-clock me-2"></i> Employment Status</h5>
                     <p>
@@ -69,7 +69,6 @@
                     </p>
                 </div>
 
-                <!-- Emergency Contacts -->
                 <div class="mt-4 row">
                     <div class="col-md-6">
                         <h5 class="border-bottom pb-2"><i class="fas fa-user-friends me-2"></i> Next of Kin</h5>
@@ -83,7 +82,6 @@
                     </div>
                 </div>
 
-                <!-- CV Download -->
                 <div class="mt-4">
                     <h5 class="border-bottom pb-2"><i class="fas fa-file-alt me-2"></i> CV</h5>
                     @if ($employee->cv_path)
@@ -178,37 +176,24 @@
             </div>
         </div>
 
-        <!-- Action Buttons -->
         <div class="mt-4 d-flex justify-content-between">
             <a href="{{ route('staff.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left me-1"></i> Back to Staff List
             </a>
             <a href="{{ route('staff.edit', $employee->id) }}" class="btn btn-primary">
-                <i class="fas fa-edit me-1"></i> Edit Employee
+                <i class="fas fa-edit me-1"></i> Edit Staff
             </a>
         </div>
     </div>
+@endsection
 
-    <!-- Optional Custom Styles -->
+@section('styles')
     <style>
-        .card {
-            border: none;
-            border-radius: 8px;
-        }
-        .card-header {
-            border-radius: 8px 8px 0 0;
-        }
-        .table th, .table td {
-            vertical-align: middle;
-        }
-        .badge {
-            font-size: 0.9rem;
-        }
-        h5 {
-            font-weight: 500;
-        }
-        p {
-            margin-bottom: 0.5rem;
-        }
+        .card { border: none; border-radius: 8px; }
+        .card-header { border-radius: 8px 8px 0 0; }
+        .table th, .table td { vertical-align: middle; }
+        .badge { font-size: 0.9rem; }
+        h5 { font-weight: 500; }
+        p { margin-bottom: 0.5rem; }
     </style>
 @endsection
