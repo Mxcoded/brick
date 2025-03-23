@@ -2,14 +2,19 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="fw-bold display-5 text-primary">
-            <i class="fas fa-utensils me-3"></i>Banquet Orders
-        </h1>
+   <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-bold display-5 text-primary">
+        <i class="fas fa-utensils me-3"></i>Banquet Orders
+    </h1>
+    <div>
+        <a href="{{ route('banquet.orders.report.form') }}" class="btn btn-secondary me-2">
+            <i class="fas fa-file-pdf me-2"></i>Generate Report
+        </a>
         <a href="{{ route('banquet.orders.create') }}" class="btn btn-primary">
             <i class="fas fa-plus-circle me-2"></i>Create New Order
         </a>
     </div>
+</div>
 
     <div class="card shadow-sm border-0">
         <div class="card-body">
