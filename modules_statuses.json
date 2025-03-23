@@ -3,5 +3,6 @@
     "Event": true,
     "Banquet": true,
     "Maintenance": true,
-    "Auth": true
+    "Auth": true,
+    "Admin": true
 }
