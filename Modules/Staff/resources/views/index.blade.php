@@ -17,22 +17,71 @@
 
         <!-- Status Summary Cards -->
         <div class="mb-4 row">
-            <div class="col-md-4">
-                <div class="p-3 text-center text-white card bg-secondary">
-                    <h5>Total Registered Staff (Draft)</h5>
-                    <h3>{{ $employees->where('status', 'draft')->count() }}</h3>
+            <!-- Total Approved Staff Card -->
+            <div class="col-md-3 mb-4">
+                <div class="card bg-primary text-white shadow-sm h-100 hover-scale">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h5 class="card-title mb-3">Total Approved Staff</h5>
+                                <h3 class="mb-0">{{ $totalApprovedStaff }}</h3>
+                            </div>
+                            <div class="icon-circle bg-success-light">
+                                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Staff Icon" class="img-fluid" style="width: 40px;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="p-3 text-center text-white card bg-danger">
-                    <h5>Rejected</h5>
-                    <h3>{{ $employees->where('status', 'rejected')->count() }}</h3>
+
+            <!-- Active Staff Card (New) -->
+            <div class="col-md-3 mb-4">
+                <div class="card bg-info text-white shadow-sm h-100 hover-scale">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h5 class="card-title mb-3">Active Staff</h5>
+                                <h3 class="mb-0">{{ $activeStaffCount }}</h3>
+                            </div>
+                            <div class="icon-circle bg-primary-light">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1484/1484579.png" alt="Active Icon" class="img-fluid" style="width: 40px;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="p-3 text-center text-white card bg-success">
-                    <h5>Approved</h5>
-                    <h3>{{ $employees->where('status', 'approved')->count() }}</h3>
+
+            <!-- Staff On Leave Card -->
+            <div class="col-md-3 mb-4">
+                <div class="card bg-success text-white shadow-sm h-100 hover-scale">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h5 class="card-title mb-3">Staff On Leave</h5>
+                                <h3 class="mb-0">{{ $staffOnLeaveCount }}</h3>
+                            </div>
+                            <div class="icon-circle bg-primary-light">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1046/1046857.png" alt="Leave Icon" class="img-fluid" style="width: 40px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inactive Staff Card -->
+            <div class="col-md-3 mb-4">
+                <div class="card bg-danger text-white shadow-sm h-100 hover-scale">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h5 class="card-title mb-3">Inactive Staff</h5>
+                                <h3 class="mb-0">{{ $employees->where('status', 'rejected')->count() }}</h3>
+                            </div>
+                            <div class="icon-circle bg-danger-light">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1828/1828843.png" alt="Inactive Icon" class="img-fluid" style="width: 40px;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
