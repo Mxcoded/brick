@@ -3,63 +3,59 @@
 namespace Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class AdminController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        return view('admin::index');
+        return view('admin::dashboard');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function roles()
     {
-        return view('admin::create');
+        $roles = Role::all();
+        return view('admin::roles.index', compact('roles'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function createRole(Request $request)
     {
-        //
+        $request->validate(['name' => 'required|unique:roles,name']);
+        Role::create(['name' => $request->name]);
+        return redirect()->route('admin.roles.index')->with('success', 'Role created successfully.');
     }
 
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function permissions()
     {
-        return view('admin::show');
+        $permissions = Permission::all();
+        return view('admin::permissions.index', compact('permissions'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function createPermission(Request $request)
     {
-        return view('admin::edit');
+        $request->validate(['name' => 'required|unique:permissions,name']);
+        Permission::create(['name' => $request->name]);
+        return redirect()->route('admin.permissions.index')->with('success', 'Permission created successfully.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id)
+    public function users()
     {
-        //
+        $users = User::with('roles')->get();
+        $roles = Role::all();
+        return view('admin::users.index', compact('users', 'roles'));
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id)
+    public function assignRole(Request $request)
     {
-        //
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'role' => 'required|exists:roles,name'
+        ]);
+        $user = User::find($request->user_id);
+        $user->syncRoles([$request->role]); // Replace existing roles with the new one
+        return redirect()->route('admin.users.index')->with('success', 'Role assigned successfully.');
     }
 }
