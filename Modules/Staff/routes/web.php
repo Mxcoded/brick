@@ -14,31 +14,55 @@ use Modules\Staff\Http\Controllers\StaffController;
 |
 */
 
-Route::middleware('auth')->group(
-    function () {
-        Route::group([], function () {
-            Route::resource('staff', StaffController::class)->names('staff');
-        });
+// Routes for authenticated staff or admins
+Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
+    // Staff Resource Routes (accessible to staff or admins with view-staff permission)
+    Route::resource('staff', StaffController::class)
+        ->names('staff')
+        ->middleware('permission:view-staff');
 
-        // Leave Management Routes
-        Route::prefix('leaves')->group(function () {
-            Route::get('/', [StaffController::class, 'leaveIndex'])->name('staff.leaves.index'); // Employee leave dashboard
-            Route::get('/request', [StaffController::class, 'leaveRequestForm'])->name('staff.leaves.request');
-            Route::post('/request', [StaffController::class, 'submitLeaveRequest'])->name('staff.leaves.submit');
-            Route::get('/admin', [StaffController::class, 'leaveAdminIndex'])->name('staff.leaves.admin'); // Admin view
-            Route::post('/admin/approve/{id}', [StaffController::class, 'approveLeave'])->name('staff.leaves.approve');
-            Route::post('/admin/reject/{id}', [StaffController::class, 'rejectLeave'])->name('staff.leaves.reject');
-            Route::get('/report', [StaffController::class, 'leaveReport'])->name('staff.leaves.report'); // Leave report
-        });
-    }
-);
+    // Leave Management Routes
+    Route::prefix('leaves')->group(function () {
+        Route::get('/', [StaffController::class, 'leaveIndex'])
+            ->name('staff.leaves.index')
+            ->middleware('permission:manage-leaves');
+        Route::get('/request', [StaffController::class, 'leaveRequestForm'])
+            ->name('staff.leaves.request')
+            ->middleware('permission:manage-leaves');
+        Route::post('/request', [StaffController::class, 'submitLeaveRequest'])
+            ->name('staff.leaves.submit')
+            ->middleware('permission:manage-leaves');
+        Route::get('/admin', [StaffController::class, 'leaveAdminIndex'])
+            ->name('staff.leaves.admin')
+            ->middleware('permission:approve-leaves');
+        Route::post('/admin/approve/{id}', [StaffController::class, 'approveLeave'])
+            ->name('staff.leaves.approve')
+            ->middleware('permission:approve-leaves');
+        Route::post('/admin/reject/{id}', [StaffController::class, 'rejectLeave'])
+            ->name('staff.leaves.reject')
+            ->middleware('permission:approve-leaves');
+        Route::get('/report', [StaffController::class, 'leaveReport'])
+            ->name('staff.leaves.report')
+            ->middleware('permission:view-reports');
+    });
 
-// Approval Routes (accessible only to HR/Admins)
-Route::prefix('approvals')->group(function () {
-    Route::get('/', [StaffController::class, 'approvalIndex'])->name('staff.approvals.index');
-    Route::post('/approve/{id}', [StaffController::class, 'approve'])->name('staff.approve');
-    Route::post('/reject/{id}', [StaffController::class, 'reject'])->name('staff.reject');
+    // Approval Routes (Admin only)
+    Route::prefix('approvals')
+        ->middleware('role:admin')
+        ->group(function () {
+            Route::get('/', [StaffController::class, 'approvalIndex'])
+                ->name('staff.approvals.index');
+            Route::post('/approve/{id}', [StaffController::class, 'approve'])
+                ->name('staff.approve');
+            Route::post('/reject/{id}', [StaffController::class, 'reject'])
+                ->name('staff.reject');
+        });
 });
 
-Route::get('/complete-registration', [StaffController::class, 'showCompleteRegistrationForm'])->name('staff.complete-registration');
-Route::post('/complete-registration', [StaffController::class, 'completeRegistration'])->name('staff.complete-registration.submit');
+// Public routes (no auth required)
+Route::middleware('web')->group(function () {
+    Route::get('/complete-registration', [StaffController::class, 'showCompleteRegistrationForm'])
+        ->name('staff.complete-registration');
+    Route::post('/complete-registration', [StaffController::class, 'completeRegistration'])
+        ->name('staff.complete-registration.submit');
+});
