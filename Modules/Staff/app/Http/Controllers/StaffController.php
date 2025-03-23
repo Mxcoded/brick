@@ -11,6 +11,7 @@ use Modules\Staff\Models\EducationalBackground;
 use Modules\Staff\Models\LeaveRequest;
 use Modules\Staff\Models\LeaveBalance;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 
 
@@ -19,6 +20,7 @@ class StaffController extends Controller
 {
     public function index()
     {
+        Log::info('Middleware: ', app('router')->getMiddleware());
         $employees = Employee::all();
         return view('staff::index', compact('employees'));
     }
