@@ -30,10 +30,34 @@ class AdminController extends Controller
         return redirect()->route('admin.roles.index')->with('success', 'Role created successfully.');
     }
 
+    public function editRole($id)
+    {
+        $role = Role::findOrFail($id);
+        return view('admin::roles.edit', compact('role'));
+    }
+
+    public function updateRole(Request $request, $id)
+    {
+        $role = Role::findOrFail($id);
+        $request->validate([
+            'name' => 'required|unique:roles,name,' . $role->id,
+        ]);
+        $role->update(['name' => $request->name]);
+        return redirect()->route('admin.roles.index')->with('success', 'Role updated successfully.');
+    }
+
+    public function destroyRole($id)
+    {
+        $role = Role::findOrFail($id);
+        $role->delete();
+        return redirect()->route('admin.roles.index')->with('success', 'Role deleted successfully.');
+    }
+
     public function permissions()
     {
         $permissions = Permission::all();
-        return view('admin::permissions.index', compact('permissions'));
+        $roles = Role::all();
+        return view('admin::permissions.index', compact('permissions', 'roles'));
     }
 
     public function createPermission(Request $request)
@@ -41,6 +65,57 @@ class AdminController extends Controller
         $request->validate(['name' => 'required|unique:permissions,name']);
         Permission::create(['name' => $request->name]);
         return redirect()->route('admin.permissions.index')->with('success', 'Permission created successfully.');
+    }
+
+    public function editPermission($id)
+    {
+        $permission = Permission::findOrFail($id);
+        $roles = Role::all(); // Fetch all roles for assignment options
+        return view('admin::permissions.edit', compact('permission', 'roles'));
+    }
+
+    public function updatePermission(Request $request, $id)
+    {
+        $permission = Permission::findOrFail($id);
+        $request->validate([
+            'name' => 'required|unique:permissions,name,' . $permission->id,
+        ]);
+        $permission->update(['name' => $request->name]);
+        return redirect()->route('admin.permissions.index')->with('success', 'Permission updated successfully.');
+    }
+
+    public function updatePermissionRoles(Request $request, $id)
+    {
+        $permission = Permission::findOrFail($id);
+        $request->validate([
+            'roles' => 'nullable|array',
+            'roles.*' => 'exists:roles,id',
+        ]);
+
+        // Sync the selected roles with the permission
+        $permission->roles()->sync($request->input('roles', []));
+
+        return redirect()->route('admin.permissions.edit', $permission->id)->with('success', 'Role assignments updated successfully.');
+    }
+
+    public function destroyPermission($id)
+    {
+        $permission = Permission::findOrFail($id);
+        $permission->delete();
+        return redirect()->route('admin.permissions.index')->with('success', 'Permission deleted successfully.');
+    }
+    public function assignPermissionToRole(Request $request)
+    {
+        $request->validate([
+            'permission_id' => 'required|exists:permissions,id',
+            'role_id' => 'required|exists:roles,id',
+        ]);
+
+        $role = Role::findOrFail($request->role_id);
+        $permission = Permission::findOrFail($request->permission_id);
+        $role->givePermissionTo($permission);
+
+        return redirect()->route('admin.permissions.index')->with('success', "Permission '{$permission->name}' assigned to role '{$role->name}' successfully.");
     }
 
     public function users()

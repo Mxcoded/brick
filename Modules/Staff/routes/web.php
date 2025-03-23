@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Staff\Http\Controllers\StaffController;
 
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -14,8 +13,10 @@ use Modules\Staff\Http\Controllers\StaffController;
 | contains the "web" middleware group. Now create something great!
 |
 */
-Route::middleware(['web', 'auth'])->group(function () {
-    // Staff Resource Routes
+
+// Routes for authenticated staff or admins
+Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
+    // Staff Resource Routes (accessible to staff or admins with view-staff permission)
     Route::resource('staff', StaffController::class)
         ->names('staff')
         ->middleware('permission:view-staff');
@@ -58,6 +59,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         });
 });
 
+// Public routes (no auth required)
 Route::middleware('web')->group(function () {
     Route::get('/complete-registration', [StaffController::class, 'showCompleteRegistrationForm'])
         ->name('staff.complete-registration');

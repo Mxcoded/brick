@@ -1,6 +1,10 @@
 @extends('admin::layouts.master')
 
-@section('content')
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+@endsection
+
+@section('page-content')
     <h1>Admin Dashboard</h1>
     <p>Welcome to the admin panel.</p>
 
