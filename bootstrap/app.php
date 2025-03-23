@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 
 return Application::configure(basePath: __DIR__ . '/../')
@@ -14,6 +15,7 @@ return Application::configure(basePath: __DIR__ . '/../')
     ->withMiddleware(function (Middleware $middleware) {
         // Register the permission middleware
         $middleware->alias([
+            'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
         ]);
     })
