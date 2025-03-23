@@ -22,7 +22,22 @@ class StaffController extends Controller
     {
         Log::info('Middleware: ', app('router')->getMiddleware());
         $employees = Employee::all();
-        return view('staff::index', compact('employees'));
+
+        // Total approved staff
+        $totalApprovedStaff = $employees->where('status', 'approved')->count();
+
+        // Staff currently on leave
+        $currentDate = now(); // Current date: March 23, 2025
+        $staffOnLeaveCount = LeaveRequest::where('status', 'approved')
+            ->where('start_date', '<=', $currentDate)
+            ->where('end_date', '>=', $currentDate)
+            ->distinct('employee_id')
+            ->count('employee_id');
+
+        // Active staff (total approved minus staff on leave)
+        $activeStaffCount = $totalApprovedStaff - $staffOnLeaveCount;
+
+        return view('staff::index', compact('employees', 'totalApprovedStaff', 'staffOnLeaveCount', 'activeStaffCount'));
     }
 
     public function create()
@@ -295,10 +310,22 @@ class StaffController extends Controller
     }
 
 
-    public function approvalIndex()
+    public function approvalIndex(Request $request)
     {
-        // Fetch employees with 'pending' status
-        $employees = Employee::where('status', 'pending')->get();
+        $query = Employee::where('status', 'draft');
+
+        // Filter by name
+        if ($request->has('search')) {
+            $query->where('name', 'like', '%' . $request->input('search') . '%');
+        }
+
+        // Sort
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        $query->orderBy($sort, $direction);
+
+        $employees = $query->get();
+
         return view('staff::approvals.index', compact('employees'));
     }
 
@@ -311,10 +338,23 @@ class StaffController extends Controller
             ->with('success', 'Employee approved successfully.');
     }
 
-    public function reject($id)
+    public function reject(Request $request, $id)
     {
         $employee = Employee::findOrFail($id);
-        $employee->update(['status' => 'rejected']);
+
+        $request->validate([
+            'rejection_reason' => 'nullable|string|max:1000',
+        ]);
+
+        $employee->update([
+            'status' => 'rejected',
+            'rejection_reason' => $request->input('rejection_reason'),
+        ]);
+
+        // Optional: Log the action
+        Log::info("Employee {$employee->id} rejected by " . Auth::user()->name, [
+            'reason' => $request->input('rejection_reason'),
+        ]);
 
         return redirect()->route('staff.approvals.index')
             ->with('success', 'Employee rejected successfully.');
@@ -335,7 +375,7 @@ class StaffController extends Controller
     // Leave Request Form
     public function leaveRequestForm()
     {
-        $user =Auth::user();
+        $user = Auth::user();
         $employee = $user->employee;
         if (!$employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
