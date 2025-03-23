@@ -4,6 +4,7 @@ namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\User;
 
 // use Modules\Staff\Database\Factories\EmployeeFactory;
 
@@ -69,7 +70,10 @@ class Employee extends Model
     {
         return $this->hasMany(LeaveBalance::class);
     }
-
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
     // protected static function newFactory(): EmployeeFactory
     // {
     //     // return EmployeeFactory::new();

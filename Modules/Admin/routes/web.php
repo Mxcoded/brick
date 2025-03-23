@@ -21,4 +21,7 @@ Route::prefix('admin')->middleware(['web', 'auth', 'role:admin'])->group(functio
     Route::post('/permissions', [AdminController::class, 'createPermission'])->name('admin.permissions.store');
     Route::get('/users', [AdminController::class, 'users'])->name('admin.users.index');
     Route::post('/users/assign-role', [AdminController::class, 'assignRole'])->name('admin.users.assign-role');
+    // New routes for creating user accounts from employees
+    Route::get('/employees/create-user', [AdminController::class, 'createUserFromEmployee'])->name('admin.employees.create-user');
+    Route::post('/employees/store-user', [AdminController::class, 'storeUserFromEmployee'])->name('admin.employees.store-user');
 });

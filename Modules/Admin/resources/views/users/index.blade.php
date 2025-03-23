@@ -5,6 +5,8 @@
     @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
+    <!-- Add this at the top of the content section -->
+<a href="{{ route('admin.employees.create-user') }}">Create User for Employee</a>
     <table>
         <thead>
             <tr>
