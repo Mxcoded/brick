@@ -46,20 +46,20 @@ class MaintenanceController extends Controller
         return view('maintenance::edit', compact('maintenanceLog'));
     }
 
-    public function update(Request $request, MaintenanceLog $maintenance)
+    public function update(Request $request, MaintenanceLog $maintenanceLog)
     {
         $validated = $request->validate([
             'location' => 'required|string|max:100',
             'complaint_datetime' => 'required|date',
             'nature_of_complaint' => 'required|string',
             'lodged_by' => 'required|string|max:100',
-            'received_by' => 'required|string|max:100',
+            'received_by' => 'nullable|string|max:100',
             'cost_of_fixing' => 'nullable|numeric',
             'completion_date' => 'nullable|date',
             'status' => 'required|in:new,in_progress,completed,cancelled',
         ]);
 
-        $maintenance->update($validated);
+        $maintenanceLog->update($validated);
         return redirect()->route('maintenance.index')->with('success', 'Log updated successfully');
     }
 
