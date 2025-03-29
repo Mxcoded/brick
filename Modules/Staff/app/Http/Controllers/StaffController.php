@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 
 class StaffController extends Controller
 {
+
     public function index()
     {
         Log::info('Middleware: ', app('router')->getMiddleware());
@@ -39,7 +40,17 @@ class StaffController extends Controller
 
         return view('staff::index', compact('employees', 'totalApprovedStaff', 'staffOnLeaveCount', 'activeStaffCount'));
     }
-
+    public function dashboard()
+    {
+        Log::info('StaffController@dashboard reached', ['user_id' => Auth::user()->id]);
+        $userRoles = session('user_roles', []);
+        if (view()->exists('staff::dashboard')) {
+            Log::info('Rendering staff::dashboard');
+            return view('staff::dashboard', compact('userRoles'));
+        }
+        Log::info('View staff::dashboard not found');
+        return response('View staff::dashboard not found', 404);
+    }
     public function create()
     {
         return view('staff::create');
