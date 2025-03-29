@@ -8,6 +8,7 @@
     <div class="container">
         <h1>Staff Management</h1>
         <a href="{{ route('staff.create') }}" class="mb-3 btn btn-primary"><i class="fas fa-plus me-1"></i> Add New Staff</a>
+        <a href="{{ route('staff.dashboard') }}" class="mb-3 btn btn-primary"><i class="fas fa-plus me-1"></i> Dashboard</a>
 
         @if (session('success'))
             <div class="alert alert-success">

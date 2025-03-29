@@ -1,12 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Staff Dashboard</title>
-</head>
-<body>
+@extends('staff::layouts.master')
+
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">My Dashboard</li>
+@endsection
+
+@section('page-content')
     <h1>Staff Dashboard</h1>
-    <p>Welcome, {{ $user->name }}!</p>
-    <p>Email: {{ $user->email }}</p>
-    <a href="{{ route('logout') }}">Logout</a>
-</body>
-</html>
+    <p>Welcome, {{ Auth::user()->name }}!</p>
+    <p>Your roles: {{ implode(', ', session('user_roles', [])) }}</p>
+@endsection
