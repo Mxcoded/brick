@@ -14,15 +14,25 @@ use Modules\Staff\Http\Controllers\StaffController;
 |
 */
 
-// Routes for authenticated staff or admins
-Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
-    // Staff Resource Routes (accessible to staff or admins with view-staff permission)
-    Route::resource('staff', StaffController::class)
-        ->names('staff')
-        ->middleware('permission:view-staff');
+// **Staff Resource Routes**
+// URLs: /staff, /staff/{id}, /staff/create, etc.
+// Purpose: CRUD operations for managing staff records
+// Accessible to authenticated users with 'admin' or 'staff' role and 'view-staff' permission
+Route::middleware(['web', 'auth'])
+    ->resource('staff', StaffController::class)
+    ->names('staff');
 
-    // Leave Management Routes
+// **Staff Functionality Routes**
+// Base URL: /staff/*
+// Purpose: Staff user actions like dashboard, leave management, and approvals
+Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {    
+    // Staff Dashboard
+    // URL: /staff/dashboard
+  Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('staff.dashboard');
+    // **Leave Management Routes**
+    // Base URL: /staff/leaves/*
     Route::prefix('leaves')->group(function () {
+        // User Leave Routes (for staff to manage their own leaves)
         Route::get('/', [StaffController::class, 'leaveIndex'])
             ->name('staff.leaves.index')
             ->middleware('permission:manage-leaves');
@@ -32,6 +42,8 @@ Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
         Route::post('/request', [StaffController::class, 'submitLeaveRequest'])
             ->name('staff.leaves.submit')
             ->middleware('permission:manage-leaves');
+
+        // Admin Leave Routes (for managing all leaves)
         Route::get('/admin', [StaffController::class, 'leaveAdminIndex'])
             ->name('staff.leaves.admin')
             ->middleware('permission:approve-leaves');
@@ -41,25 +53,27 @@ Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
         Route::post('/admin/reject/{id}', [StaffController::class, 'rejectLeave'])
             ->name('staff.leaves.reject')
             ->middleware('permission:approve-leaves');
+
+        // Leave Report Route
         Route::get('/report', [StaffController::class, 'leaveReport'])
             ->name('staff.leaves.report')
             ->middleware('permission:view-reports');
     });
 
-    // Approval Routes (Admin only)
-    Route::prefix('approvals')
-        ->middleware('role:admin')
-        ->group(function () {
-            Route::get('/', [StaffController::class, 'approvalIndex'])
-                ->name('staff.approvals.index');
-            Route::post('/approve/{id}', [StaffController::class, 'approve'])
-                ->name('staff.approve');
-            Route::post('/reject/{id}', [StaffController::class, 'reject'])
-                ->name('staff.reject');
-        });
+    // **Approval Routes (Admin Only)**
+    // Base URL: /staff/approvals/*
+    Route::prefix('approvals')->middleware('role:admin')->group(function () {
+        Route::get('/', [StaffController::class, 'approvalIndex'])
+            ->name('staff.approvals.index');
+        Route::post('/approve/{id}', [StaffController::class, 'approve'])
+            ->name('staff.approve');
+        Route::post('/reject/{id}', [StaffController::class, 'reject'])
+            ->name('staff.reject');
+    });
 });
 
-// Public routes (no auth required)
+// **Public Routes**
+// Purpose: Routes accessible without authentication
 Route::middleware('web')->group(function () {
     Route::get('/complete-registration', [StaffController::class, 'showCompleteRegistrationForm'])
         ->name('staff.complete-registration');
