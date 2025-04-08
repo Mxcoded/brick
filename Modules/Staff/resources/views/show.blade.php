@@ -19,7 +19,8 @@
                     <div class="col-md-4 text-center">
                         @if ($employee->profile_image)
                             <img src="{{ asset('storage/' . $employee->profile_image) }}" alt="Profile Image"
-                                class="img-fluid rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                                class="img-fluid rounded-circle mb-3"
+                                style="width: 150px; height: 150px; object-fit: cover;">
                         @else
                             <div class="mb-3 bg-light rounded-circle d-flex align-items-center justify-content-center text-muted"
                                 style="width: 150px; height: 150px;">
@@ -30,20 +31,35 @@
                     <div class="col-md-8">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <p><strong><i class="fas fa-map-marker-alt me-2"></i> Place of Birth:</strong> {{ $employee->place_of_birth }}</p>
-                                <p><strong><i class="fas fa-flag me-2"></i> State of Origin:</strong> {{ $employee->state_of_origin }}</p>
+                                <p><strong><i class="fas fa-map-marker-alt me-2"></i> Place of Birth:</strong>
+                                    {{ $employee->place_of_birth }}</p>
+                                <p><strong><i class="fas fa-flag me-2"></i> State of Origin:</strong>
+                                    {{ $employee->state_of_origin }}</p>
                                 <p><strong><i class="fas fa-city me-2"></i> LGA:</strong> {{ $employee->lga }}</p>
-                                <p><strong><i class="fas fa-globe me-2"></i> Nationality:</strong> {{ $employee->nationality }}</p>
-                                <p><strong><i class="fas fa-venus-mars me-2"></i> Gender:</strong> {{ $employee->gender }}</p>
-                                <p><strong><i class="fas fa-birthday-cake me-2"></i> Date of Birth:</strong> {{ $employee->date_of_birth }}</p>
-                                <p><strong><i class="fas fa-briefcase me-2"></i> Position:</strong> {{ $employee->position }}</p>
+                                <p><strong><i class="fas fa-globe me-2"></i> Nationality:</strong>
+                                    {{ $employee->nationality }}</p>
+                                <p><strong><i class="fas fa-venus-mars me-2"></i> Gender:</strong> {{ $employee->gender }}
+                                </p>
+                                <p><strong><i class="fas fa-birthday-cake me-2"></i> Date of Birth:</strong>
+                                    {{ $employee->date_of_birth }}</p>
+                                <p><strong><i class="fas fa-briefcase me-2"></i> Position:</strong>
+                                    {{ $employee->position }}</p>
                             </div>
                             <div class="col-md-6">
-                                <p><strong><i class="fas fa-ring me-2"></i> Marital Status:</strong> {{ $employee->marital_status }}</p>
-                                <p><strong><i class="fas fa-tint me-2"></i> Blood Group:</strong> {{ $employee->blood_group }}</p>
+                                <p><strong><i class="fas fa-ring me-2"></i> Marital Status:</strong>
+                                    {{ $employee->marital_status }}</p>
+                                <p><strong><i class="fas fa-tint me-2"></i> Blood Group:</strong>
+                                    {{ $employee->blood_group }}</p>
                                 <p><strong><i class="fas fa-dna me-2"></i> Genotype:</strong> {{ $employee->genotype }}</p>
-                                <p><strong><i class="fas fa-phone me-2"></i> Phone Number:</strong> {{ $employee->phone_number }}</p>
-                                <p><strong><i class="fas fa-home me-2"></i> Residential Address:</strong> {{ $employee->residential_address }}</p>
+                                <p><strong><i class="fas fa-phone me-2"></i> Phone Number:</strong>
+                                    {{ $employee->phone_number }}</p>
+                                <p><strong><i class="fas fa-home me-2"></i> Residential Address:</strong>
+                                    {{ $employee->residential_address }}</p>
+                                {{-- ✅ Add NIN and BVN here --}}
+                                <p><strong><i class="fas fa-id-card me-2"></i> NIN:</strong> {{ $employee->nin ?? 'N/A' }}
+                                </p>
+                                <p><strong><i class="fas fa-bank me-2"></i> BVN:</strong> {{ $employee->bvn ?? 'N/A' }}</p>
+
                             </div>
                         </div>
                     </div>
@@ -56,12 +72,14 @@
                             <span class="badge bg-success me-2">Active</span> {{ $employee->start_date }} - Present
                             <br><strong>Branch:</strong> {{ $employee->branch_name ?? 'N/A' }}
                         @else
-                            <span class="badge bg-danger me-2">Inactive</span> {{ $employee->start_date }} - {{ $employee->end_date }}
+                            <span class="badge bg-danger me-2">Inactive</span> {{ $employee->start_date }} -
+                            {{ $employee->end_date }}
                             <br><strong>Reason:</strong> {{ $employee->leaving_reason ?? 'N/A' }}
                             <br><strong>Note:</strong> {{ $employee->note_for_leaving ?? 'N/A' }}
                             <br><strong>Branch:</strong> {{ $employee->branch_name ?? 'N/A' }}
                             @if ($employee->resignation_letter)
-                                <br><a href="{{ Storage::url($employee->resignation_letter) }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                <br><a href="{{ Storage::url($employee->resignation_letter) }}" target="_blank"
+                                    class="btn btn-sm btn-outline-primary mt-2">
                                     <i class="fas fa-file-pdf me-1"></i> View Resignation Letter
                                 </a>
                             @endif
@@ -85,7 +103,8 @@
                 <div class="mt-4">
                     <h5 class="border-bottom pb-2"><i class="fas fa-file-alt me-2"></i> CV</h5>
                     @if ($employee->cv_path)
-                        <a href="{{ asset('storage/' . $employee->cv_path) }}" target="_blank" class="btn btn-sm btn-primary">
+                        <a href="{{ asset('storage/' . $employee->cv_path) }}" target="_blank"
+                            class="btn btn-sm btn-primary">
                             <i class="fas fa-download me-1"></i> Download CV
                         </a>
                     @else
@@ -189,11 +208,30 @@
 
 @section('styles')
     <style>
-        .card { border: none; border-radius: 8px; }
-        .card-header { border-radius: 8px 8px 0 0; }
-        .table th, .table td { vertical-align: middle; }
-        .badge { font-size: 0.9rem; }
-        h5 { font-weight: 500; }
-        p { margin-bottom: 0.5rem; }
+        .card {
+            border: none;
+            border-radius: 8px;
+        }
+
+        .card-header {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .table th,
+        .table td {
+            vertical-align: middle;
+        }
+
+        .badge {
+            font-size: 0.9rem;
+        }
+
+        h5 {
+            font-weight: 500;
+        }
+
+        p {
+            margin-bottom: 0.5rem;
+        }
     </style>
 @endsection
