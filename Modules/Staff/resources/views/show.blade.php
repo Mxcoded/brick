@@ -276,3 +276,35 @@
         }
     </style>
 @endsection
+@section('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const bvnDisplay = document.getElementById('bvn-display');
+            const toggleBtn = document.querySelector('.toggle-bvn');
+            const bvnEye = document.getElementById('bvn-eye');
+            const fullBvn = '{{ $employee->bvn ?? 'N/A' }}';
+            const maskedBvn =
+                '{{ $employee->bvn ? substr($employee->bvn, 0, 5) . str_repeat('•', strlen($employee->bvn) - 5) : 'N/A' }}';
+            let isVisible = false;
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    isVisible = !isVisible;
+                    bvnDisplay.textContent = isVisible ? fullBvn : maskedBvn;
+                    bvnEye.classList.toggle('fa-eye', !isVisible);
+                    bvnEye.classList.toggle('fa-eye-slash', isVisible);
+                    this.setAttribute('title', isVisible ? 'Hide Full BVN' : 'Show Full BVN');
+                    this.setAttribute('aria-label', isVisible ? 'Hide Full BVN' : 'Show Full BVN');
+
+                    // Reinitialize tooltip
+                    const tooltip = bootstrap.Tooltip.getInstance(this);
+                    if (tooltip) tooltip.dispose();
+                    new bootstrap.Tooltip(this);
+                });
+
+                // Initialize tooltip
+                new bootstrap.Tooltip(toggleBtn);
+            }
+        });
+    </script>
+@endsection
