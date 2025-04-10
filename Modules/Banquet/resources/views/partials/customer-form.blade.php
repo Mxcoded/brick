@@ -18,8 +18,7 @@
                             class="form-control bg-light"
                             value="{{ old('preparation_date', $order->preparation_date ?? now()->toDateString()) }}"
                             readonly required>
-                        {{-- value="{{ old('preparation_date', $order->preparation_date ?? now()->toDateString()) }}" 
-                               {{ $order ? '' : 'readonly' }} required> --}}
+                       
                         <label for="preparation_date" class="text-muted">Preparation Date</label>
                     </div>
                     @error('preparation_date')

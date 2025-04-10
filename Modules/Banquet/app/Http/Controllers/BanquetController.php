@@ -279,7 +279,7 @@ class BanquetController extends Controller
             $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
             $order->update([
                 // 'preparation_date' => $request->preparation_date,
-                // 'customer_id' => $request->customer_id,
+                 'customer_id' => $request->customer_id,
                 'contact_person_name' => $request->contact_person_name,
                 'department' => $request->department,
                 'contact_person_phone' => $request->contact_person_phone,
