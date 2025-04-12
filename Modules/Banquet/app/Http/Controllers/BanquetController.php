@@ -63,16 +63,14 @@ class BanquetController extends Controller
             'contact_person_phone_ii' => 'nullable|string|max:20',
             'contact_person_email_ii' => 'nullable|email|max:255',
             'expenses' => 'nullable|numeric|min:0',
-            'organization' => 'nullable|string|max:255', // Optional for customer
+            'organization' => 'nullable|string|max:255',
         ]);
 
         try {
             $order = DB::transaction(function () use ($validated) {
-                // Check if a customer with this email already exists
                 $customer = Customer::where('email', $validated['contact_person_email'])->first();
 
                 if (!$customer) {
-                    // Create a new customer if none exists
                     $customer = Customer::create([
                         'name' => $validated['contact_person_name'],
                         'email' => $validated['contact_person_email'],
@@ -80,15 +78,12 @@ class BanquetController extends Controller
                         'organization' => $validated['organization'] ?? null,
                     ]);
                 } else {
-                    // Optionally update the existing customer's details if desired
-                    $customer->update([
-                        'name' => $validated['contact_person_name'],
-                        'phone' => $validated['contact_person_phone'],
-                        'organization' => $validated['organization'] ?? $customer->organization,
-                    ]);
+                    // Update only organization for existing customers
+                    if (isset($validated['organization'])) {
+                        $customer->update(['organization' => $validated['organization']]);
+                    }
                 }
 
-                // Create the banquet order with the customer's ID
                 return BanquetOrder::create([
                     'order_id' => $this->generateOrderId(),
                     'preparation_date' => $validated['preparation_date'],
@@ -115,7 +110,72 @@ class BanquetController extends Controller
             return back()->withInput()->with('error', 'Failed to create order: ' . $e->getMessage());
         }
     }
+    /**
+     * Update an existing banquet order.
+     */
+    public function update(Request $request, $order_id)
+    {
+        $request->validate([
+            'contact_person_name' => 'required|string|max:255',
+            'contact_person_phone' => 'required|string|max:20',
+            'contact_person_email' => 'required|email|max:255',
+            'department' => 'nullable|string|max:255',
+            'referred_by' => 'nullable|string|max:255',
+            'contact_person_name_ii' => 'nullable|string|max:255',
+            'contact_person_phone_ii' => 'nullable|string|max:20',
+            'contact_person_email_ii' => 'nullable|email|max:255',
+            'expenses' => 'nullable|numeric|min:0',
+            'status' => 'required|in:Pending,Confirmed,Cancelled,Completed',
+            'organization' => 'nullable|string|max:255',
+        ]);
 
+        try {
+            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+
+            // Start a transaction to ensure atomic updates
+            return DB::transaction(function () use ($request, $order) {
+                // Update the associated customer record if it exists
+                if ($order->customer) {
+                    $order->customer->update([
+                        'name' => $request->contact_person_name,
+                        'phone' => $request->contact_person_phone,
+                        'email' => $request->contact_person_email,
+                        'organization' => $request->input('organization'),
+                    ]);
+                } else {
+                    // Handle case where no customer is associated (should be rare)
+                    Log::warning("No customer associated with order ID: {$order->order_id}. Creating new customer.");
+                    $customer = Customer::create([
+                        'name' => $request->contact_person_name,
+                        'email' => $request->contact_person_email,
+                        'phone' => $request->contact_person_phone,
+                        'organization' => $request->input('organization'),
+                    ]);
+                    $order->customer_id = $customer->id;
+                }
+
+                // Update the banquet order with order-specific fields
+                $order->update([
+                    'contact_person_name' => $request->contact_person_name,
+                    'contact_person_phone' => $request->contact_person_phone,
+                    'contact_person_email' => $request->contact_person_email,
+                    'department' => $request->department,
+                    'referred_by' => $request->referred_by,
+                    'contact_person_name_ii' => $request->contact_person_name_ii,
+                    'contact_person_phone_ii' => $request->contact_person_phone_ii,
+                    'contact_person_email_ii' => $request->contact_person_email_ii,
+                    'expenses' => $request->expenses ?? 0,
+                    'status' => $request->status,
+                ]);
+
+                return redirect()->route('banquet.orders.show', $order->order_id)
+                    ->with('success', 'Order updated successfully.');
+            });
+        } catch (\Exception $e) {
+            Log::error('Order update failed: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to update order: ' . $e->getMessage());
+        }
+    }
     /**
      * Show the form to add an event day to an existing order.
      */
@@ -254,51 +314,7 @@ class BanquetController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
-    /**
-     * Update an existing banquet order.
-     */
-    public function update(Request $request, $order_id)
-    {
-        $request->validate([
-            // 'preparation_date' => 'required|date',
-            // 'customer_id' => 'nullable|exists:customers,id',
-            'contact_person_name' => 'required|string|max:255',
-            'department' => 'nullable|string|max:255',
-            'contact_person_phone' => 'required|string|max:20',
-            'contact_person_email' => 'required|email|max:255',
-            'referred_by' => 'nullable|string|max:255',
-            'contact_person_name_ii' => 'nullable|string|max:255',
-            'contact_person_phone_ii' => 'nullable|string|max:20',
-            'contact_person_email_ii' => 'nullable|email|max:255',
-            'expenses' => 'nullable|numeric|min:0',
-            'status' => 'required|in:Pending,Confirmed,Cancelled,Completed',
-            'organization' => 'nullable|string|max:255',
-        ]);
-
-        try {
-            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
-            $order->update([
-                // 'preparation_date' => $request->preparation_date,
-                // 'customer_id' => $request->customer_id,
-                'contact_person_name' => $request->contact_person_name,
-                'department' => $request->department,
-                'contact_person_phone' => $request->contact_person_phone,
-                'contact_person_email' => $request->contact_person_email,
-                'referred_by' => $request->referred_by,
-                'contact_person_name_ii' => $request->contact_person_name_ii,
-                'contact_person_phone_ii' => $request->contact_person_phone_ii,
-                'contact_person_email_ii' => $request->contact_person_email_ii,
-                'expenses' => $request->expenses ?? 0,
-                'status' => $request->status,
-                // total_revenue is managed via menu items, not updated here
-            ]);
-
-            return redirect()->route('banquet.orders.show', $order->order_id)
-                ->with('success', 'Order updated successfully.');
-        } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Failed to update order: ' . $e->getMessage());
-        }
-    }
+   
 
     /**
      * Show the form for editing an existing event day.
@@ -654,6 +670,9 @@ class BanquetController extends Controller
                     'contact_person_name' => $order->contact_person_name
                 ];
             })
+            ->addColumn('organization', function ($order) {
+                return $order->customer->organization ?? 'N/A'; // New organization column
+            })
             ->addColumn('event_dates', function ($order) {
                 if ($order->eventDays->isEmpty()) return 'No event days';
                 $dates = $order->eventDays->sortBy('event_date');
@@ -674,6 +693,6 @@ class BanquetController extends Controller
             ->filterColumn('status', function ($query, $keyword) {
                 $query->where('status', $keyword);
             })
-            ->make(true); // Removed rawColumns since no HTML is rendered server-side
+            ->make(true);
     }
 }

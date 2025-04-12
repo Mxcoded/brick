@@ -94,7 +94,7 @@
                                    step="0.01" 
                                    min="0" 
                                    required>
-                            <label for="unit_price" class="text-muted">Unit Price ($)</label>
+                            <label for="unit_price" class="text-muted">Unit Price (&#8358;)</label>
                             @error('unit_price')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
@@ -103,7 +103,7 @@
                     <div class="col-12">
                         <div class="alert alert-info mb-0">
                             <i class="fas fa-calculator me-2"></i>
-                            Total Price: $<span id="total-price">0.00</span>
+                            Total Price: &#8358;<span id="total-price">0.00</span>
                         </div>
                     </div>
                 </div>

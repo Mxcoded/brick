@@ -106,6 +106,8 @@ class StaffController extends Controller
             'leaving_reason' => 'nullable|in:resignation,sack,transfer', // New: Reason for leaving
             'branch_name' => 'nullable|string|max:255',              // New: Branch name
             'resignation_letter' => 'nullable|file|mimes:pdf,doc,docx|max:5120', // New: Resignation letter upload
+            'nin' => ['nullable', 'digits:11'], //New: National Identification number
+            'bvn' => ['nullable', 'digits:11'], //New: Bank Verification number
         ]);
 
         // Use transaction for data integrity
@@ -217,6 +219,8 @@ class StaffController extends Controller
             'leaving_reason' => 'nullable|in:resignation,sack,transfer', // New: Reason for leaving
             'branch_name' => 'nullable|string|max:255',              // New: Branch name
             'resignation_letter' => 'nullable|file|mimes:pdf,doc,docx|max:5120', // New: Resignation letter upload
+            'nin' => ['nullable', 'digits:11'], //New: Update National identification Number
+            'bvn' => ['nullable', 'digits:11'], // New Updat Bank Verification Number
         ]);
 
         DB::transaction(function () use ($employee, $request, $validatedData) {
