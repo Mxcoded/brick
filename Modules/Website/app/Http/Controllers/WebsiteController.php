@@ -71,7 +71,7 @@ class WebsiteController extends Controller
 
     public function submitBooking(Request $request)
     {
-        $validated = $request->validate([
+        $validated = $request->validate([ 
             'room_id' => 'required|exists:rooms,id',
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',

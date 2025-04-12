@@ -4,6 +4,7 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\User;
 // use Modules\Website\Database\Factories\BookingFactory;
 
 class Booking extends Model
@@ -29,7 +30,10 @@ class Booking extends Model
     {
         return $this->belongsTo(Room::class);
     }
-
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
     // protected static function newFactory(): BookingFactory
     // {
     //     // return BookingFactory::new();
