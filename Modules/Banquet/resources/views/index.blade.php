@@ -4,7 +4,7 @@
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="fw-bold display-5 text-primary">
-                <i class="fas fa-utensils me-3"></i>Banquet Orders
+                <i class="fas fa-utensils me-3"></i>Event Orders
             </h1>
             <div>
                 <a href="{{ route('banquet.orders.report.form') }}" class="btn btn-secondary me-2">
