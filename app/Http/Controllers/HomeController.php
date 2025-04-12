@@ -35,6 +35,7 @@ class HomeController extends Controller
         $roleRoutes = [
             'admin' => 'admin.dashboard',
             'staff' => 'staff.dashboard',
+            'guest' => 'website.guest.dashboard', // Added mapping for guest role
         ];
 
         // Check each role in the mapping against the user's roles

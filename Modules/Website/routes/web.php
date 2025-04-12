@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Website\Http\Controllers\WebsiteController;
+use Modules\Website\Http\Controllers\GuestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,4 +47,12 @@ Route::prefix('website')->group(function () {
 
     // Blog/News
     Route::get('/blog', [WebsiteController::class, 'blog'])->name('website.blog');
+
+    // Guest-specific routes
+    Route::middleware(['auth', 'role:guest'])->group(function () {
+        Route::get('/guest/dashboard', [GuestController::class, 'index'])->name('website.guest.dashboard');
+        Route::get('/guest/bookings', [GuestController::class, 'bookings'])->name('website.guest.bookings');
+        Route::get('/guest/profile', [GuestController::class, 'profile'])->name('website.guest.profile');
+        Route::post('/guest/profile', [GuestController::class, 'updateProfile'])->name('website.guest.profile.update');
+    });
 });
