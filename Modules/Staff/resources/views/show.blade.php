@@ -1,28 +1,31 @@
 @extends('staff::layouts.master')
 
 @section('current-breadcrumb')
-    <li class="breadcrumb-item active" aria-current="page">Staff Details</li>
+    <li class="breadcrumb-item"><a href="{{ route('staff.index') }}">Staff</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ $employee->name }}</li>
 @endsection
 
 @section('page-content')
-    <div class="container my-4">
-        <h1 class="mb-4 fw-bold">Staff Details</h1>
+    <div class="container my-5">
+        <h1 class="mb-4 fw-bold text-dark">Staff Details</h1>
 
         <!-- Main Employee Card -->
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">{{ $employee->name }}</h5>
-                <span class="badge bg-light text-dark">{{ $employee->staff_code ?? 'N/A' }}</span>
+        <div class="card shadow-sm mb-5">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-semibold  text-white">{{ $employee->name }}</h5>
+                <span class="badge bg-light text-dark px-2 py-1">{{ $employee->staff_code ?? 'N/A' }}</span>
             </div>
-            <div class="card-body">
-                <div class="row">
+            <div class="card-body p-4">
+                <div class="row g-4">
                     <div class="col-md-4 text-center">
                         @if ($employee->profile_image)
-                            <img src="{{ asset('storage/' . $employee->profile_image) }}" alt="Profile Image"
-                                class="img-fluid rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                            <img src="{{ asset('storage/' . $employee->profile_image) }}" 
+                                 alt="{{ $employee->name }}'s Profile Image"
+                                 class="img-fluid rounded-circle mb-3"
+                                 style="width: 150px; height: 150px; object-fit: cover;">
                         @else
                             <div class="mb-3 bg-light rounded-circle d-flex align-items-center justify-content-center text-muted"
-                                style="width: 150px; height: 150px;">
+                                 style="width: 150px; height: 150px;">
                                 <i class="fas fa-user fa-3x"></i>
                             </div>
                         @endif
@@ -30,38 +33,70 @@
                     <div class="col-md-8">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <p><strong><i class="fas fa-map-marker-alt me-2"></i> Place of Birth:</strong> {{ $employee->place_of_birth }}</p>
-                                <p><strong><i class="fas fa-flag me-2"></i> State of Origin:</strong> {{ $employee->state_of_origin }}</p>
-                                <p><strong><i class="fas fa-city me-2"></i> LGA:</strong> {{ $employee->lga }}</p>
-                                <p><strong><i class="fas fa-globe me-2"></i> Nationality:</strong> {{ $employee->nationality }}</p>
-                                <p><strong><i class="fas fa-venus-mars me-2"></i> Gender:</strong> {{ $employee->gender }}</p>
-                                <p><strong><i class="fas fa-birthday-cake me-2"></i> Date of Birth:</strong> {{ $employee->date_of_birth }}</p>
-                                <p><strong><i class="fas fa-briefcase me-2"></i> Position:</strong> {{ $employee->position }}</p>
+                                <p><strong><i class="fas fa-map-marker-alt me-2"></i> Place of Birth:</strong> 
+                                    {{ $employee->place_of_birth ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-flag me-2"></i> State of Origin:</strong> 
+                                    {{ $employee->state_of_origin ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-city me-2"></i> LGA:</strong> 
+                                    {{ $employee->lga ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-globe me-2"></i> Nationality:</strong> 
+                                    {{ $employee->nationality ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-venus-mars me-2"></i> Gender:</strong> 
+                                    {{ $employee->gender ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-birthday-cake me-2"></i> Date of Birth:</strong> 
+                                    {{ $employee->date_of_birth ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-briefcase me-2"></i> Position:</strong> 
+                                    {{ $employee->position ?? 'N/A' }}</p>
                             </div>
                             <div class="col-md-6">
-                                <p><strong><i class="fas fa-ring me-2"></i> Marital Status:</strong> {{ $employee->marital_status }}</p>
-                                <p><strong><i class="fas fa-tint me-2"></i> Blood Group:</strong> {{ $employee->blood_group }}</p>
-                                <p><strong><i class="fas fa-dna me-2"></i> Genotype:</strong> {{ $employee->genotype }}</p>
-                                <p><strong><i class="fas fa-phone me-2"></i> Phone Number:</strong> {{ $employee->phone_number }}</p>
-                                <p><strong><i class="fas fa-home me-2"></i> Residential Address:</strong> {{ $employee->residential_address }}</p>
+                                <p><strong><i class="fas fa-ring me-2"></i> Marital Status:</strong> 
+                                    {{ $employee->marital_status ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-tint me-2"></i> Blood Group:</strong> 
+                                    {{ $employee->blood_group ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-dna me-2"></i> Genotype:</strong> 
+                                    {{ $employee->genotype ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-phone me-2"></i> Phone Number:</strong> 
+                                    {{ $employee->phone_number ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-home me-2"></i> Residential Address:</strong> 
+                                    {{ $employee->residential_address ?? 'N/A' }}</p>
+                                <p><strong><i class="fas fa-id-card me-2"></i> NIN:</strong> 
+                                    {{ $employee->nin ?? 'N/A' }}</p>
+                                <p>
+                                    <strong><i class="fas fa-bank me-2"></i> BVN:</strong>
+                                    @if ($employee->bvn)
+                                        <span id="bvn-display">
+                                            {{ substr($employee->bvn, 0, 5) . str_repeat('•', strlen($employee->bvn) - 5) }}
+                                        </span>
+                                        <button class="btn btn-link p-0 ms-2 toggle-bvn" type="button" 
+                                                data-bs-toggle="tooltip" title="Show Full BVN" aria-label="Show Full BVN">
+                                            <i class="fas fa-eye" id="bvn-eye"></i>
+                                        </button>
+                                    @else
+                                        N/A
+                                    @endif
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-4">
-                    <h5 class="border-bottom pb-2"><i class="fas fa-clock me-2"></i> Employment Status</h5>
+                    <h5 class="border-bottom pb-2 fw-semibold text-dark">
+                        <i class="fas fa-clock me-2"></i> Employment Status
+                    </h5>
                     <p>
                         @if ($employee->isActive())
-                            <span class="badge bg-success me-2">Active</span> {{ $employee->start_date }} - Present
+                            <span class="badge bg-success me-2">Active</span> {{ $employee->start_date ?? 'N/A' }} - Present
                             <br><strong>Branch:</strong> {{ $employee->branch_name ?? 'N/A' }}
                         @else
-                            <span class="badge bg-danger me-2">Inactive</span> {{ $employee->start_date }} - {{ $employee->end_date }}
+                            <span class="badge bg-danger me-2">Inactive</span> 
+                            {{ $employee->start_date ?? 'N/A' }} - {{ $employee->end_date ?? 'N/A' }}
                             <br><strong>Reason:</strong> {{ $employee->leaving_reason ?? 'N/A' }}
                             <br><strong>Note:</strong> {{ $employee->note_for_leaving ?? 'N/A' }}
                             <br><strong>Branch:</strong> {{ $employee->branch_name ?? 'N/A' }}
                             @if ($employee->resignation_letter)
-                                <br><a href="{{ Storage::url($employee->resignation_letter) }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                <br><a href="{{ Storage::url($employee->resignation_letter) }}" target="_blank"
+                                    class="btn btn-sm btn-outline-primary mt-2">
                                     <i class="fas fa-file-pdf me-1"></i> View Resignation Letter
                                 </a>
                             @endif
@@ -69,23 +104,30 @@
                     </p>
                 </div>
 
-                <div class="mt-4 row">
+                <div class="mt-4 row g-4">
                     <div class="col-md-6">
-                        <h5 class="border-bottom pb-2"><i class="fas fa-user-friends me-2"></i> Next of Kin</h5>
-                        <p><strong>Name:</strong> {{ $employee->next_of_kin_name }}</p>
-                        <p><strong>Phone:</strong> {{ $employee->next_of_kin_phone }}</p>
+                        <h5 class="border-bottom pb-2 fw-semibold text-dark">
+                            <i class="fas fa-user-friends me-2"></i> Next of Kin
+                        </h5>
+                        <p><strong>Name:</strong> {{ $employee->next_of_kin_name ?? 'N/A' }}</p>
+                        <p><strong>Phone:</strong> {{ $employee->next_of_kin_phone ?? 'N/A' }}</p>
                     </div>
                     <div class="col-md-6">
-                        <h5 class="border-bottom pb-2"><i class="fas fa-ambulance me-2"></i> ICE Contact</h5>
-                        <p><strong>Name:</strong> {{ $employee->ice_contact_name }}</p>
-                        <p><strong>Phone:</strong> {{ $employee->ice_contact_phone }}</p>
+                        <h5 class="border-bottom pb-2 fw-semibold text-dark">
+                            <i class="fas fa-ambulance me-2"></i> ICE Contact
+                        </h5>
+                        <p><strong>Name:</strong> {{ $employee->ice_contact_name ?? 'N/A' }}</p>
+                        <p><strong>Phone:</strong> {{ $employee->ice_contact_phone ?? 'N/A' }}</p>
                     </div>
                 </div>
 
                 <div class="mt-4">
-                    <h5 class="border-bottom pb-2"><i class="fas fa-file-alt me-2"></i> CV</h5>
+                    <h5 class="border-bottom pb-2 fw-semibold text-dark">
+                        <i class="fas fa-file-alt me-2"></i> CV
+                    </h5>
                     @if ($employee->cv_path)
-                        <a href="{{ asset('storage/' . $employee->cv_path) }}" target="_blank" class="btn btn-sm btn-primary">
+                        <a href="{{ asset('storage/' . $employee->cv_path) }}" target="_blank"
+                            class="btn btn-sm btn-primary">
                             <i class="fas fa-download me-1"></i> Download CV
                         </a>
                     @else
@@ -96,31 +138,31 @@
         </div>
 
         <!-- Employment History Card -->
-        <div class="card shadow-sm mt-4">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0"><i class="fas fa-history me-2"></i> Employment History</h5>
+        <div class="card shadow-sm mt-5">
+            <div class="card-header bg-secondary text-white py-3">
+                <h5 class="mb-0 fw-semibold"><i class="fas fa-history me-2"></i> Employment History</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 @if ($employee->employmentHistories->isEmpty())
                     <p class="text-muted">No employment history available.</p>
                 @else
                     <div class="table-responsive">
-                        <table class="table table-hover table-bordered">
+                        <table class="table table-hover table-bordered align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Employer Name</th>
-                                    <th>Employer Contact</th>
-                                    <th>Position Held</th>
-                                    <th>Duration</th>
+                                    <th scope="col">Employer Name</th>
+                                    <th scope="col">Employer Contact</th>
+                                    <th scope="col">Position Held</th>
+                                    <th scope="col">Duration</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($employee->employmentHistories as $history)
                                     <tr>
-                                        <td>{{ $history->employer_name }}</td>
-                                        <td>{{ $history->employer_contact }}</td>
-                                        <td>{{ $history->position_held }}</td>
-                                        <td>{{ $history->duration }}</td>
+                                        <td>{{ $history->employer_name ?? 'N/A' }}</td>
+                                        <td>{{ $history->employer_contact ?? 'N/A' }}</td>
+                                        <td>{{ $history->position_held ?? 'N/A' }}</td>
+                                        <td>{{ $history->duration ?? 'N/A' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -131,32 +173,32 @@
         </div>
 
         <!-- Educational Background Card -->
-        <div class="card shadow-sm mt-4">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i> Educational Background</h5>
+        <div class="card shadow-sm mt-5">
+            <div class="card-header bg-secondary text-white py-3">
+                <h5 class="mb-0 fw-semibold"><i class="fas fa-graduation-cap me-2"></i> Educational Background</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 @if ($employee->educationalBackgrounds->isEmpty())
                     <p class="text-muted">No educational background available.</p>
                 @else
                     <div class="table-responsive">
-                        <table class="table table-hover table-bordered">
+                        <table class="table table-hover table-bordered align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th>School Name</th>
-                                    <th>Start Date</th>
-                                    <th>End Date</th>
-                                    <th>Qualification</th>
-                                    <th>Certificate</th>
+                                    <th scope="col">School Name</th>
+                                    <th scope="col">Start Date</th>
+                                    <th scope="col">End Date</th>
+                                    <th scope="col">Qualification</th>
+                                    <th scope="col">Certificate</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($employee->educationalBackgrounds as $education)
                                     <tr>
-                                        <td>{{ $education->school_name }}</td>
-                                        <td>{{ $education->start_date }}</td>
-                                        <td>{{ $education->end_date }}</td>
-                                        <td>{{ $education->qualification }}</td>
+                                        <td>{{ $education->school_name ?? 'N/A' }}</td>
+                                        <td>{{ $education->start_date ?? 'N/A' }}</td>
+                                        <td>{{ $education->end_date ?? 'N/A' }}</td>
+                                        <td>{{ $education->qualification ?? 'N/A' }}</td>
                                         <td>
                                             @if ($education->certificate_path)
                                                 <a href="{{ asset('storage/' . $education->certificate_path) }}"
@@ -176,7 +218,7 @@
             </div>
         </div>
 
-        <div class="mt-4 d-flex justify-content-between">
+        <div class="mt-5 d-flex justify-content-between flex-wrap gap-3">
             <a href="{{ route('staff.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left me-1"></i> Back to Staff List
             </a>
@@ -189,11 +231,80 @@
 
 @section('styles')
     <style>
-        .card { border: none; border-radius: 8px; }
-        .card-header { border-radius: 8px 8px 0 0; }
-        .table th, .table td { vertical-align: middle; }
-        .badge { font-size: 0.9rem; }
-        h5 { font-weight: 500; }
-        p { margin-bottom: 0.5rem; }
+        .card {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .table th,
+        .table td {
+            vertical-align: middle;
+        }
+
+        .badge {
+            font-size: 0.9rem;
+            padding: 0.4em 0.6em;
+        }
+
+        h5 {
+            font-weight: 600;
+            color: #343a40;
+        }
+
+        p {
+            margin-bottom: 0.75rem;
+        }
+
+        .btn-link {
+            color: #495057;
+            text-decoration: none;
+        }
+
+        .btn-link:hover {
+            color: #0d6efd;
+        }
+
+        @media (max-width: 767.98px) {
+            .text-center img, .text-center div {
+                margin: 0 auto;
+            }
+        }
     </style>
+@endsection
+@section('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const bvnDisplay = document.getElementById('bvn-display');
+            const toggleBtn = document.querySelector('.toggle-bvn');
+            const bvnEye = document.getElementById('bvn-eye');
+            const fullBvn = '{{ $employee->bvn ?? 'N/A' }}';
+            const maskedBvn =
+                '{{ $employee->bvn ? substr($employee->bvn, 0, 5) . str_repeat('•', strlen($employee->bvn) - 5) : 'N/A' }}';
+            let isVisible = false;
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    isVisible = !isVisible;
+                    bvnDisplay.textContent = isVisible ? fullBvn : maskedBvn;
+                    bvnEye.classList.toggle('fa-eye', !isVisible);
+                    bvnEye.classList.toggle('fa-eye-slash', isVisible);
+                    this.setAttribute('title', isVisible ? 'Hide Full BVN' : 'Show Full BVN');
+                    this.setAttribute('aria-label', isVisible ? 'Hide Full BVN' : 'Show Full BVN');
+
+                    // Reinitialize tooltip
+                    const tooltip = bootstrap.Tooltip.getInstance(this);
+                    if (tooltip) tooltip.dispose();
+                    new bootstrap.Tooltip(this);
+                });
+
+                // Initialize tooltip
+                new bootstrap.Tooltip(toggleBtn);
+            }
+        });
+    </script>
 @endsection

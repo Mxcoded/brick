@@ -43,6 +43,9 @@ class Employee extends Model
         'leaving_reason',      // Enum: resignation, sack, transfer
         'branch_name',         // Branch name
         'resignation_letter',  // Path to uploaded resignation letter
+        'nin',                 //National identification number
+        'bvn',                 //Bank Verification number
+
     ];
 
     public function employmentHistories()

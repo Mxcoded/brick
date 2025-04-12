@@ -67,7 +67,15 @@
                                 <small class="text-muted">Event Status</small>
                                 <div class="h6 mb-0 ">{{ $order->status }}</div>
                             </div>
-                            <i class="fas fa-sync text-success fs-4"></i>
+                            @if ($order->status == 'Pending')
+                                <i class="fas fa-sync text-warning fs-4"></i>
+                            @elseif($order->status == 'Completed')
+                                <i class="fas fa-check text-success fs-4"></i>
+                            @elseif($order->status == 'Confirmed')
+                                <i class="fas fa-calendar-check text-primary fs-4"></i>
+                            @elseif($order->status == 'Cancelled')
+                                <i class="fa-solid fa-calendar-xmark text-danger fs-4"></i>
+                            @endif
                         </div>
                     </div>
                 </div>
