@@ -60,7 +60,14 @@
         </div>
     </div>
 @endsection
-
+<style>
+    #ordersTable th,
+    #ordersTable td {
+        text-transform: uppercase;
+        /* Optional for consistency */
+        white-space: nowrap;
+    }
+</style>
 @section('scripts')
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
@@ -68,82 +75,93 @@
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
 
     <script>
-      $(document).ready(function () {
-    const table = $('#ordersTable').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: {
-            url: "{{ route('banquet.orders.datatable') }}",
-            type: "GET",
-            error: function(xhr, error, thrown) {
-                console.log('AJAX Error:', error, thrown);
-                alert('Failed to load data. Check console.');
-            }
-        },
-        columns: [
-            { 
-                data: null,
-                render: function(data, type, row, meta) {
-                    return meta.row + meta.settings._iDisplayStart + 1;
+        $(document).ready(function() {
+            const table = $('#ordersTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "{{ route('banquet.orders.datatable') }}",
+                    type: "GET",
+                    error: function(xhr, error, thrown) {
+                        console.log('AJAX Error:', error, thrown);
+                        alert('Failed to load data. Check console.');
+                    }
                 },
-                orderable: false
-            },
-            { data: 'order_id', name: 'order_id' },
-            { 
-                data: 'customer',
-                name: 'customer',
-                render: function(data) {
-                    return data ? (data.name || data.contact_person_name || 'N/A') : 'N/A';
-                }
-            },
-            { 
-                data: 'organization',
-                name: 'organization',
-                render: function(data) {
-                    return data || 'N/A';
-                }
-            },
-            { 
-                data: 'event_dates',
-                name: 'event_dates',
-                render: function(data) {
-                    return data ? `<span class="badge bg-dark">${data}</span>` : 'N/A';
-                }
-            },
-            { data: 'total_guests', name: 'total_guests' },
-            { 
-                data: 'expenses',
-                name: 'expenses',
-                render: function(data) {
-                    return data !== null ? `₦${Number(data).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '₦0.00';
-                }
-            },
-            { 
-                data: 'total_revenue',
-                name: 'total_revenue',
-                render: function(data) {
-                    return data !== null ? `₦${Number(data).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '₦0.00';
-                }
-            },
-            { 
-                data: 'status',
-                name: 'status',
-                render: function(data) {
-                    const statusColors = {
-                        'Pending': 'warning',
-                        'Confirmed': 'primary',
-                        'Completed': 'success',
-                        'Cancelled': 'danger'
-                    };
-                    return data ? `<span class="badge bg-${statusColors[data] || 'secondary'}">${data}</span>` : 'N/A';
-                }
-            },
-            { 
-                data: 'actions',
-                name: 'actions',
-                orderable: false,
-                render: function(data) {
-                    return `
+                columns: [{
+                        data: null,
+                        render: function(data, type, row, meta) {
+                            return meta.row + meta.settings._iDisplayStart + 1;
+                        },
+                        orderable: false
+                    },
+                    {
+                        data: 'order_id',
+                        name: 'order_id'
+                    },
+                    {
+                        data: 'customer',
+                        name: 'customer',
+                        render: function(data) {
+                            return data ? (data.name || data.contact_person_name || 'N/A') : 'N/A';
+                        }
+                    },
+                    {
+                        data: 'organization',
+                        name: 'organization',
+                        render: function(data) {
+                            return data || 'N/A';
+                        }
+                    },
+                    {
+                        data: 'event_dates',
+                        name: 'event_dates',
+                        render: function(data) {
+                            return data ? `<span class="badge bg-dark">${data}</span>` : 'N/A';
+                        }
+                    },
+                    {
+                        data: 'total_guests',
+                        name: 'total_guests'
+                    },
+                    {
+                        data: 'expenses',
+                        name: 'expenses',
+                        render: function(data) {
+                            return data !== null ?
+                                `₦${Number(data).toLocaleString('en-US', {minimumFractionDigits: 2})}` :
+                                '₦0.00';
+                        }
+                    },
+                    {
+                        data: 'total_revenue',
+                        name: 'total_revenue',
+                        render: function(data) {
+                            return data !== null ?
+                                `₦${Number(data).toLocaleString('en-US', {minimumFractionDigits: 2})}` :
+                                '₦0.00';
+                        }
+                    },
+                    {
+                        data: 'status',
+                        name: 'status',
+                        render: function(data) {
+                            const statusColors = {
+                                'Pending': 'warning',
+                                'Confirmed': 'primary',
+                                'Completed': 'success',
+                                'Cancelled': 'danger'
+                            };
+                            return data ?
+                                `<span class="badge bg-${statusColors[data] || 'secondary'}">${data}</span>` :
+                                'N/A';
+                        }
+                    },
+                    {
+                        data: 'actions',
+                        name: 'actions',
+                        orderable: false,
+                        render: function(data) {
+                            return `
                         <div class="d-flex gap-2">
                             <a href="${data.view}" class="btn btn-sm btn-outline-primary" title="View">
                                 <i class="fas fa-eye"></i>
@@ -159,36 +177,35 @@
                             </button>
                         </div>
                     `;
+                        }
+                    }
+                ],
+                dom: 'Bfrtip',
+                buttons: [{
+                    extend: 'excel',
+                    text: '<i class="fas fa-file-excel me-2"></i>Export',
+                    className: 'btn btn-success'
+                }],
+                language: {
+                    search: "",
+                    searchPlaceholder: "Search orders...",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                },
+                initComplete: function() {
+                    $('#customSearch').on('keyup', function() {
+                        table.search(this.value).draw();
+                    });
+                    $('#statusFilter').on('change', function() {
+                        table.column(8).search(this.value).draw(); // Update column index
+                    });
+                    this.api().on('draw', function() {
+                        const count = table.page.info().recordsDisplay;
+                        $('#resultCount').html(
+                            `Found ${count} ${count === 1 ? 'result' : 'results'}`);
+                    });
                 }
-            }
-        ],
-        dom: 'Bfrtip',
-        buttons: [
-            {
-                extend: 'excel',
-                text: '<i class="fas fa-file-excel me-2"></i>Export',
-                className: 'btn btn-success'
-            }
-        ],
-        language: {
-            search: "",
-            searchPlaceholder: "Search orders...",
-            lengthMenu: "Show _MENU_ entries",
-            info: "Showing _START_ to _END_ of _TOTAL_ entries"
-        },
-        initComplete: function() {
-            $('#customSearch').on('keyup', function() {
-                table.search(this.value).draw();
             });
-            $('#statusFilter').on('change', function() {
-                table.column(8).search(this.value).draw(); // Update column index
-            });
-            this.api().on('draw', function() {
-                const count = table.page.info().recordsDisplay;
-                $('#resultCount').html(`Found ${count} ${count === 1 ? 'result' : 'results'}`);
-            });
-        }
-    });
 
             // Delete functionality
             $(document).on('click', '.delete-order', function() {
