@@ -22,6 +22,9 @@ class Booking extends Model
         'guest_email',
         'guest_phone',
         'status',
+        'user_id',
+        'confirmation_token',
+        'booking_ref_number',
     ];
 
     protected $dates = ['check_in', 'check_out'];

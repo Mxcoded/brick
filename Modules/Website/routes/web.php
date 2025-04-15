@@ -26,6 +26,7 @@ Route::prefix('website')->group(function () {
     // Booking
     Route::get('/booking', [WebsiteController::class, 'bookingForm'])->name('website.booking.form');
     Route::post('/booking', [WebsiteController::class, 'submitBooking'])->name('website.booking.submit');
+    Route::get('/booking/confirmation/{booking}', [WebsiteController::class, 'bookingConfirmation'])->name('website.booking.confirmation');
     Route::get('/rooms/{room}/check-availability', [WebsiteController::class, 'checkAvailability'])
         ->name('website.room.checkAvailability');
 
@@ -52,6 +53,7 @@ Route::prefix('website')->group(function () {
     Route::middleware(['auth', 'role:guest'])->group(function () {
         Route::get('/guest/dashboard', [GuestController::class, 'index'])->name('website.guest.dashboard');
         Route::get('/guest/bookings', [GuestController::class, 'bookings'])->name('website.guest.bookings');
+        Route::post('/guest/claim-booking', [GuestController::class, 'claimBooking'])->name('website.guest.claim-booking');
         Route::get('/guest/profile', [GuestController::class, 'profile'])->name('website.guest.profile');
         Route::post('/guest/profile', [GuestController::class, 'updateProfile'])->name('website.guest.profile.update');
     });

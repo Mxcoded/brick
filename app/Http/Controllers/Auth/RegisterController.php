@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Modules\Website\Models\GuestProfile;
+use Modules\Website\Models\Booking;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -78,6 +79,13 @@ class RegisterController extends Controller
             'user_id' => $user->id,
             'phone' => $data['phone'] ?? null, // Add phone field to registration form if needed
         ]);
+        // Link existing bookings with matching email
+        Booking::where('guest_email', $data['email'])
+            ->whereNull('user_id')
+            ->update([
+                'user_id' => $user->id,
+                'confirmation_token' => null,
+            ]);
 
         return $user;
     }

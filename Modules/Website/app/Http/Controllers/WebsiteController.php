@@ -7,6 +7,8 @@ use Modules\Website\Models\Room;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Models\Dining;
 use Modules\Website\Models\Booking;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class WebsiteController extends Controller
 {
@@ -71,7 +73,7 @@ class WebsiteController extends Controller
 
     public function submitBooking(Request $request)
     {
-        $validated = $request->validate([ 
+        $validated = $request->validate([
             'room_id' => 'required|exists:rooms,id',
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
@@ -80,10 +82,65 @@ class WebsiteController extends Controller
             'guest_phone' => 'required|string|max:20',
         ]);
 
-        Booking::create($validated);
-        return redirect()->route('website.home')->with('success', 'Booking request submitted successfully!');
+        if (Auth::check()) {
+            $validated['user_id'] = Auth::id();
+        } else {
+            $validated['confirmation_token'] = Str::random(40);
+        }
+
+        // Generate booking reference number: BK + last 3 digits of year + 4-digit incremental
+        $year = date('Y'); // e.g., 2025
+        $yearPrefix = substr($year, -3); // e.g., "025"
+        $prefix = "BK{$yearPrefix}"; // e.g., "BK025"
+
+        // Find the highest existing number for this year
+        $lastBooking = Booking::where('booking_ref_number', 'like', "{$prefix}%")
+            ->orderBy('booking_ref_number', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastBooking) {
+            $lastNumber = (int) substr($lastBooking->booking_ref_number, -4);
+            $nextNumber = min($lastNumber + 1, 9999); // Cap at 9999
+            if ($nextNumber === 9999 && Booking::where('booking_ref_number', "{$prefix}9999")->exists()) {
+                throw new \Exception('Maximum bookings for this year reached.');
+            }
+        }
+
+        $validated['booking_ref_number'] = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+        $booking = Booking::create($validated);
+
+        if (!Auth::check()) {
+            $request->session()->put('booking_email', $validated['guest_email']);
+        }
+
+        // Optional: Send email
+        // Mail::to($validated['guest_email'])->send(new BookingConfirmation($booking));
+
+        return redirect()->route('website.booking.confirmation', [
+            'booking' => $booking->id,
+            'token' => $booking->confirmation_token ?? '',
+        ]);
     }
 
+    public function bookingConfirmation(Request $request, Booking $booking)
+    {
+        // For logged-in users, check user_id
+        if (Auth::check()) {
+            if ($booking->user_id === Auth::id()) {
+                return view('website::booking-confirmation', compact('booking'));
+            }
+            return redirect()->route('website.home')->with('error', 'Unauthorized access to booking.');
+        }
+
+        // For non-logged-in users, verify token
+        if ($booking->confirmation_token && $request->query('token') === $booking->confirmation_token) {
+            return view('website::booking-confirmation', compact('booking'));
+        }
+
+        return redirect()->route('website.home')->with('error', 'Unauthorized access to booking.');
+    }
     public function amenities()
     {
         return view('website::amenities');
