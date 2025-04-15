@@ -29,6 +29,46 @@ class GuestController extends Controller
         $bookings = Booking::where('user_id', $user->id)->get();
         return view('website::guest.bookings', compact('bookings'));
     }
+    public function claimBooking(Request $request)
+    {
+        // Validate the incoming request
+        $validated = $request->validate([
+            // 'booking_ref_number' => 'required|string|exists:bookings,booking_ref_number',
+            'booking_id' => 'required|exists:bookings,id',
+            'guest_email' => 'required|email',
+        ]);
+
+        // Get the authenticated user
+        $user = Auth::user();
+
+        // Find the booking with matching ID, email, and no user_id
+        $booking = Booking::where('id', $validated['booking_id'])
+            ->where('guest_email', $validated['guest_email'])
+            ->whereNull('user_id')
+            ->first();
+        // Booking::where('booking_ref_number', $validated['booking_ref_number'])
+        //     ->where('guest_email', $validated['guest_email'])
+        //     ->whereNull('user_id')
+        //     ->first();
+
+        if ($booking) {
+            // Check if the logged-in user's email matches the booking's guest_email
+            if ($user->email === $validated['guest_email']) {
+                $booking->update([
+                    'user_id' => $user->id,
+                    'confirmation_token' => null,
+                ]);
+                return redirect()->route('website.guest.dashboard')
+                    ->with('success', 'Booking linked to your account.');
+            } else {
+                return redirect()->route('website.guest.dashboard')
+                    ->with('error', 'You can only claim bookings made with your email address.');
+            }
+        }
+
+        return redirect()->route('website.guest.dashboard')
+            ->with('error', 'Booking not found or already claimed.');
+    }
     /**
      * Display the guest's profile.
      */

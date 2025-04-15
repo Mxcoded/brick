@@ -30,7 +30,26 @@
                 </tbody>
             </table>
         @endif
-
+<div class="mt-4">
+    <h3>Claim a Booking</h3>
+    <form method="POST" action="{{ route('website.guest.claim-booking') }}">
+        @csrf
+        <div class="mb-3">
+            <label for="booking_id" class="form-label">Booking ID</label>
+            <input type="text" name="booking_id" id="booking_id" class="form-control" required>
+        </div>
+        <div class="mb-3">
+            <label for="guest_email" class="form-label">Booking Email</label>
+            <input type="email" name="guest_email" id="guest_email" class="form-control" value="{{ Auth::user()->email }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Claim Booking</button>
+    </form>
+    @if(session('success'))
+        <div class="alert alert-success mt-3">{{ session('success') }}</div>
+    @elseif(session('error'))
+        <div class="alert alert-danger mt-3">{{ session('error') }}</div>
+    @endif
+</div>
         <a href="{{ route('website.guest.profile') }}" class="btn btn-primary">Manage Profile</a>
     </div>
 @endsection
