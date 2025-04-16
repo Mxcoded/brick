@@ -40,7 +40,7 @@ Route::middleware('auth')->group(
                 Route::prefix('menu-items/{menu_item_id}')->group(function () {
                     Route::get('/edit', [BanquetController::class, 'editMenuItem'])->name('banquet.orders.edit-menu-item');
                     Route::put('/', [BanquetController::class, 'updateMenuItem'])->name('banquet.orders.update-menu-item');
-                    Route::delete('/', [BanquetController::class, 'destroyMenuItem'])->name('banquet.orders.menu-item.destroy');
+                    Route::delete('/', [BanquetController::class, 'deleteMenuItem'])->name('banquet.orders.menu-item.destroy');
                 });
             });
 

@@ -30,6 +30,7 @@ class BanquetOrder extends Model
         'expenses',
         'profit_margin',
         'status',
+        'hall_rental_fees',
     ];
     protected $casts = [
         'preparation_date' => 'date',

@@ -64,27 +64,38 @@ class BanquetController extends Controller
             'contact_person_email_ii' => 'nullable|email|max:255',
             'expenses' => 'nullable|numeric|min:0',
             'organization' => 'nullable|string|max:255',
+            'customer_id' => 'nullable|exists:customers,id',
+            'hall_rental_fees' => 'nullable|numeric|min:0',
         ]);
 
         try {
-            $order = DB::transaction(function () use ($validated) {
-                $customer = Customer::where('email', $validated['contact_person_email'])->first();
-
-                if (!$customer) {
-                    $customer = Customer::create([
-                        'name' => $validated['contact_person_name'],
-                        'email' => $validated['contact_person_email'],
-                        'phone' => $validated['contact_person_phone'],
-                        'organization' => $validated['organization'] ?? null,
-                    ]);
+            return DB::transaction(function () use ($validated, $request) {
+                // Handle customer
+                if (isset($validated['customer_id'])) {
+                    $customer = Customer::findOrFail($validated['customer_id']);
                 } else {
-                    // Update only organization for existing customers
-                    if (isset($validated['organization'])) {
-                        $customer->update(['organization' => $validated['organization']]);
+                    $customer = Customer::where('email', $validated['contact_person_email'])->first();
+                    if (!$customer) {
+                        $customer = Customer::create([
+                            'name' => $validated['contact_person_name'],
+                            'email' => $validated['contact_person_email'],
+                            'phone' => $validated['contact_person_phone'],
+                            'organization' => $validated['organization'] ?? null,
+                        ]);
+                    } else {
+                        if (isset($validated['organization'])) {
+                            $customer->update(['organization' => $validated['organization']]);
+                        }
                     }
                 }
 
-                return BanquetOrder::create([
+                // Calculate initial total_revenue and profit_margin
+                $totalRevenue = $validated['hall_rental_fees'] ?? 0;
+                $expenses = $validated['expenses'] ?? 0;
+                $profitMargin = $this->calculateProfitMargin($totalRevenue, $expenses);
+
+                // Create order
+                $order = BanquetOrder::create([
                     'order_id' => $this->generateOrderId(),
                     'preparation_date' => $validated['preparation_date'],
                     'customer_id' => $customer->id,
@@ -96,15 +107,16 @@ class BanquetController extends Controller
                     'contact_person_name_ii' => $validated['contact_person_name_ii'],
                     'contact_person_phone_ii' => $validated['contact_person_phone_ii'],
                     'contact_person_email_ii' => $validated['contact_person_email_ii'],
+                    'hall_rental_fees' => $validated['hall_rental_fees'] ?? 0,
                     'status' => 'Pending',
-                    'total_revenue' => 0,
-                    'expenses' => $validated['expenses'] ?? 0,
-                    'profit_margin' => $validated['expenses'] ? null : 0,
+                    'total_revenue' => $totalRevenue,
+                    'expenses' => $expenses,
+                    'profit_margin' => $profitMargin,
                 ]);
-            });
 
-            return redirect()->route('banquet.orders.add-day', $order->order_id)
-                ->with('success', 'Order created! Now add event days.');
+                return redirect()->route('banquet.orders.add-day', $order->order_id)
+                    ->with('success', 'Order created! Now add event days.');
+            });
         } catch (\Exception $e) {
             Log::error('Order creation failed: ' . $e->getMessage());
             return back()->withInput()->with('error', 'Failed to create order: ' . $e->getMessage());
@@ -127,14 +139,14 @@ class BanquetController extends Controller
             'expenses' => 'nullable|numeric|min:0',
             'status' => 'required|in:Pending,Confirmed,Cancelled,Completed',
             'organization' => 'nullable|string|max:255',
+            'hall_rental_fees' => 'nullable|numeric|min:0',
         ]);
 
         try {
             $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
 
-            // Start a transaction to ensure atomic updates
             return DB::transaction(function () use ($request, $order) {
-                // Update the associated customer record if it exists
+                // Update customer
                 if ($order->customer) {
                     $order->customer->update([
                         'name' => $request->contact_person_name,
@@ -143,7 +155,6 @@ class BanquetController extends Controller
                         'organization' => $request->input('organization'),
                     ]);
                 } else {
-                    // Handle case where no customer is associated (should be rare)
                     Log::warning("No customer associated with order ID: {$order->order_id}. Creating new customer.");
                     $customer = Customer::create([
                         'name' => $request->contact_person_name,
@@ -154,7 +165,14 @@ class BanquetController extends Controller
                     $order->customer_id = $customer->id;
                 }
 
-                // Update the banquet order with order-specific fields
+                // Calculate total revenue and profit margin
+                $menuRevenue = $order->eventDays->flatMap->menuItems->sum('total_price') ?? 0;
+                $hallFees = $request->hall_rental_fees ?? 0;
+                $totalRevenue = $menuRevenue + $hallFees;
+                $expenses = $request->expenses ?? 0;
+                $profitMargin = $this->calculateProfitMargin($totalRevenue, $expenses);
+
+                // Update order
                 $order->update([
                     'contact_person_name' => $request->contact_person_name,
                     'contact_person_phone' => $request->contact_person_phone,
@@ -164,8 +182,11 @@ class BanquetController extends Controller
                     'contact_person_name_ii' => $request->contact_person_name_ii,
                     'contact_person_phone_ii' => $request->contact_person_phone_ii,
                     'contact_person_email_ii' => $request->contact_person_email_ii,
-                    'expenses' => $request->expenses ?? 0,
+                    'expenses' => $expenses,
+                    'hall_rental_fees' => $hallFees,
                     'status' => $request->status,
+                    'total_revenue' => $totalRevenue,
+                    'profit_margin' => $profitMargin,
                 ]);
 
                 return redirect()->route('banquet.orders.show', $order->order_id)
@@ -246,8 +267,8 @@ class BanquetController extends Controller
     {
         $request->validate([
             'meal_type' => 'required|string|max:255',
-            'menu_items' => 'required|array|min:1', // Ensure at least one item
-            'menu_items.*' => 'string|max:255', // Each item is a string
+            'menu_items' => 'required|array|min:1',
+            'menu_items.*' => 'string|max:255',
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
             'dietary_restrictions' => 'nullable|array',
@@ -268,8 +289,12 @@ class BanquetController extends Controller
                 'dietary_restrictions' => json_encode($request->dietary_restrictions ?? []),
             ]);
 
-            // Update total revenue
-            $order->total_revenue += $totalPrice;
+            // Update total revenue and profit margin
+            $totalRevenue = ($order->total_revenue ?? 0) + $totalPrice;
+            $profitMargin = $this->calculateProfitMargin($totalRevenue, $order->expenses);
+
+            $order->total_revenue = $totalRevenue;
+            $order->profit_margin = $profitMargin;
             $order->save();
 
             return redirect()->route('banquet.orders.add-menu-item', [$order->order_id, $day->id])
@@ -278,7 +303,67 @@ class BanquetController extends Controller
             return back()->withInput()->with('error', 'Failed to add menu item: ' . $e->getMessage());
         }
     }
+    /**
+     * Update an existing menu item.
+     */
+    public function updateMenuItem(Request $request, $order_id, $day_id, $menu_item_id)
+    {
+        $request->validate([
+            'meal_type' => 'required|string|max:255',
+            'menu_items' => 'required|array|min:1',
+            'menu_items.*' => 'string|max:255',
+            'quantity' => 'required|integer|min:1',
+            'unit_price' => 'required|numeric|min:0',
+            'dietary_restrictions' => 'nullable|array',
+            'dietary_restrictions.*' => 'string|max:255',
+        ]);
 
+        try {
+            $menuItem = BanquetOrderMenuItem::findOrFail($menu_item_id);
+            $oldTotalPrice = $menuItem->total_price;
+            $newTotalPrice = $request->quantity * $request->unit_price;
+
+            $menuItem->update([
+                'meal_type' => $request->meal_type,
+                'menu_items' => json_encode($request->menu_items),
+                'quantity' => $request->quantity,
+                'unit_price' => $request->unit_price,
+                'total_price' => $newTotalPrice,
+                'dietary_restrictions' => json_encode($request->dietary_restrictions ?? []),
+            ]);
+
+            // Adjust order's total_revenue and profit_margin
+            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+            $totalRevenue = ($order->total_revenue - $oldTotalPrice) + $newTotalPrice;
+            $profitMargin = $this->calculateProfitMargin($totalRevenue, $order->expenses);
+
+            $order->total_revenue = $totalRevenue;
+            $order->profit_margin = $profitMargin;
+            $order->save();
+
+            return redirect()->route('banquet.orders.show', $order_id)
+                ->with('success', 'Menu item updated successfully.');
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', 'Failed to update menu item: ' . $e->getMessage());
+        }
+    }
+    public function deleteMenuItem($order_id, $day_id, $menu_item_id)
+    {
+        $menuItem = BanquetOrderMenuItem::findOrFail($menu_item_id);
+        $totalPrice = $menuItem->total_price;
+        $menuItem->delete();
+
+        $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+        $totalRevenue = $order->total_revenue - $totalPrice;
+        $profitMargin = $this->calculateProfitMargin($totalRevenue, $order->expenses);
+
+        $order->total_revenue = $totalRevenue;
+        $order->profit_margin = $profitMargin;
+        $order->save();
+
+        return redirect()->route('banquet.orders.show', $order_id)
+            ->with('success', 'Menu item deleted.');
+    }
     /**
      * Search customers based on query string.
      */
@@ -314,7 +399,7 @@ class BanquetController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
-   
+
 
     /**
      * Show the form for editing an existing event day.
@@ -381,46 +466,7 @@ class BanquetController extends Controller
         return view('banquet::edit-menu-item', compact('order', 'day', 'menuItem', 'mealTypes'));
     }
 
-    /**
-     * Update an existing menu item.
-     */
-    public function updateMenuItem(Request $request, $order_id, $day_id, $menu_item_id)
-    {
-        $request->validate([
-            'meal_type' => 'required|string|max:255',
-            'menu_items' => 'required|array|min:1',
-            'menu_items.*' => 'string|max:255',
-            'quantity' => 'required|integer|min:1',
-            'unit_price' => 'required|numeric|min:0',
-            'dietary_restrictions' => 'nullable|array',
-            'dietary_restrictions.*' => 'string|max:255',
-        ]);
 
-        try {
-            $menuItem = BanquetOrderMenuItem::findOrFail($menu_item_id);
-            $oldTotalPrice = $menuItem->total_price;
-            $newTotalPrice = $request->quantity * $request->unit_price;
-
-            $menuItem->update([
-                'meal_type' => $request->meal_type,
-                'menu_items' => json_encode($request->menu_items),
-                'quantity' => $request->quantity,
-                'unit_price' => $request->unit_price,
-                'total_price' => $newTotalPrice,
-                'dietary_restrictions' => json_encode($request->dietary_restrictions ?? []),
-            ]);
-
-            // Adjust the order's total_revenue
-            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
-            $order->total_revenue = $order->total_revenue - $oldTotalPrice + $newTotalPrice;
-            $order->save();
-
-            return redirect()->route('banquet.orders.show', $order_id)
-                ->with('success', 'Menu item updated successfully.');
-        } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Failed to update menu item: ' . $e->getMessage());
-        }
-    }
 
     /**
      * Update the status of an event day quickly.
@@ -657,10 +703,13 @@ class BanquetController extends Controller
             'summary' => $summary,
         ]);
     }
+    /**
+     * Display datatable for index.
+     */
     public function datatable(Request $request)
     {
-        $orders = BanquetOrder::with(['customer', 'eventDays'])
-            ->select('id', 'order_id', 'expenses', 'total_revenue', 'status', 'customer_id')
+        $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
+            ->select('id', 'order_id', 'expenses', 'hall_rental_fees', 'status', 'customer_id', 'profit_margin') // Add profit_margin
             ->latest();
 
         return DataTables::of($orders)
@@ -681,6 +730,13 @@ class BanquetController extends Controller
             })
             ->addColumn('total_guests', function ($order) {
                 return $order->eventDays->max('guest_count') ?? 0;
+            })->addColumn('total_revenue', function ($order) {
+                $menuRevenue = $order->eventDays->flatMap->menuItems->sum('total_price') ?? 0;
+                $hallFees = $order->hall_rental_fees ?? 0;
+                return $menuRevenue + $hallFees;
+            })
+            ->addColumn('profit_margin', function ($order) {
+                return $order->profit_margin !== null ? number_format($order->profit_margin, 2) . '%' : 'N/A';
             })
             ->addColumn('actions', function ($order) {
                 return [
@@ -694,5 +750,16 @@ class BanquetController extends Controller
                 $query->where('status', $keyword);
             })
             ->make(true);
+    }
+    /**
+     * Helper Functions to Calculate Profit margin
+     */
+    private function calculateProfitMargin($totalRevenue, $expenses)
+    {
+        if ($totalRevenue <= 0) {
+            return null; // Avoid division by zero
+        }
+        $profit = $totalRevenue - ($expenses ?? 0);
+        return ($profit / $totalRevenue) * 100; // Percentage
     }
 }

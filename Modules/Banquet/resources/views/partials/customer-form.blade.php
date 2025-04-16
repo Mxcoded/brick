@@ -222,6 +222,16 @@
                         @enderror
                     </div>
                 </div>
+                <div class="col-md-6">
+                <div class="form-floating">
+                    <input type="number" name="hall_rental_fees" id="hall_rental_fees" class="form-control"
+                        value="{{ old('hall_rental_fees', $order->hall_rental_fees ?? 0) }}" step="0.01" min="0">
+                    <label for="hall_rental_fees" class="text-muted">Hall Rental Fees (&#8358;)</label>
+                    @error('hall_rental_fees')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
 
                 <div class="col-md-12">
                     <div class="alert alert-info mb-0">

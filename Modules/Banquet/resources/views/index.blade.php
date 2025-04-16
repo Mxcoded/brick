@@ -50,6 +50,7 @@
                                 <th>Total Guests</th>
                                 <th>Expenses (₦)</th>
                                 <th>Revenue (₦)</th>
+                                <th>Profit Margin</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -139,6 +140,13 @@
                             return data !== null ?
                                 `₦${Number(data).toLocaleString('en-US', {minimumFractionDigits: 2})}` :
                                 '₦0.00';
+                        }
+                    },
+                    {
+                        data: 'profit_margin',
+                        name: 'profit_margin',
+                        render: function(data) {
+                            return data || 'N/A';
                         }
                     },
                     {
