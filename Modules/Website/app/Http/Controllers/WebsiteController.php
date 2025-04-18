@@ -7,17 +7,20 @@ use Modules\Website\Models\Room;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Models\Dining;
 use Modules\Website\Models\Booking;
+use Modules\Website\Models\ContactMessage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Modules\Website\Models\Settings;
 
 class WebsiteController extends Controller
 {
     public function index()
     {
+        $settings = $this->getSettings();
         $featuredRooms = Room::where('featured', true)->take(3)->get();
-        $diningOptions = Dining::where('is_featured', true)->take(3)->get(); // Fetch featured dining options
+        $diningOptions = Dining::where('is_featured', true)->take(3)->get();
         $testimonials = Testimonial::where('approved', true)->latest()->take(3)->get();
-        return view('website::index', compact('featuredRooms', 'diningOptions', 'testimonials'));
+        return view('website::index', compact('settings', 'featuredRooms', 'diningOptions', 'testimonials'));
     }
 
     public function rooms(Request $request)
@@ -164,7 +167,16 @@ class WebsiteController extends Controller
             'message' => 'required|string|max:1000',
         ]);
 
-        // Logic to handle contact form (e.g., send email)
+        ContactMessage::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'message' => $validated['message'],
+            'status' => 'unread',
+        ]);
+
+        // Optional: Send email notification (uncomment if mail is set up)
+        // Mail::to('admin@luxuryhotelabuja.com')->send(new ContactMessageReceived($validated));
+
         return redirect()->route('website.contact')->with('success', 'Your message has been sent!');
     }
 
@@ -224,5 +236,13 @@ class WebsiteController extends Controller
                 'message' => 'An error occurred: ' . $e->getMessage()
             ], 500, ['Content-Type' => 'application/json']);
         }
+    }
+
+    /**
+     * Settings
+     */
+    protected function getSettings()
+    {
+        return Settings::pluck('value', 'key')->toArray();
     }
 }
