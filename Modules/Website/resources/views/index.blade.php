@@ -11,14 +11,14 @@
             <div class="carousel-item active h-100">
                 <div class="video-background h-100">
                     <video autoplay loop muted playsinline class="w-100 h-100">
-                        <source src="{{ Storage::url('images/myvideo1.79ba4195a28673379baa.mp4') }}" type="video/mp4">
+                       <source src="{{ Storage::url($settings['hero_video'] ?? 'images/myvideo1.79ba4195a28673379baa.mp4') }}" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
                     <div class="video-overlay"></div>
                 </div>
                 <div class="container h-100 d-flex align-items-center position-relative z-index-1">
                     <div class="hero-content text-white text-center w-100 pt-5 pb-6">
-                        <img src="{{ Storage::url('images/brickspoint_logo.png') }}" alt="Hotel Logo" class="mb-4 hotel-logo">
+                        <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" alt="Brickspoint Logo" class="mb-4 hotel-logo">
                         <h4 class="display-3 fw-bold mb-4 animate__animated animate__fadeInDown">Experience Unmatched Luxury</h4>
                         <p class="lead mb-5 animate__animated animate__fadeInUp animate__delay-1s">Discover our exquisite accommodations in the heart of Abuja</p>
                         <div class="d-flex justify-content-center gap-3 animate__animated animate__fadeInUp animate__delay-2s mb-5">
