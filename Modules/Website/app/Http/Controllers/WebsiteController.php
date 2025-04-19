@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Modules\Website\Models\Settings;
 use Modules\Website\Models\Amenity;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class WebsiteController extends Controller
 {
@@ -82,35 +84,73 @@ class WebsiteController extends Controller
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'guest_name' => 'required|string|max:255',
-            'guest_email' => 'required|email',
+            'guest_email' => 'required|email|max:255',
             'guest_phone' => 'required|string|max:20',
+            'guest_company' => 'nullable|string|max:255',
+            'guest_address' => 'nullable|string',
+            'guest_nationality' => 'nullable|string|max:100',
+            'guest_id_type' => 'nullable|string|max:50',
+            'guest_id_number' => 'nullable|string|max:100',
+            'number_of_guests' => 'required|integer|min:1',
+            'number_of_children' => 'required|integer|min:0',
+            'special_requests' => 'nullable|string',
+            'payment_method' => 'nullable|in:credit_card,bank_transfer,cash',
         ]);
 
+        // Parse dates
+        $checkIn = Carbon::parse($validated['check_in']);
+        $checkOut = Carbon::parse($validated['check_out']);
+        $validated['check_in'] = $checkIn->format('Y-m-d');
+        $validated['check_out'] = $checkOut->format('Y-m-d');
+
+        // Check for duplicate bookings
+        $existingBooking = Booking::where('room_id', $validated['room_id'])
+            ->where('status', '!=', 'cancelled')
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->whereBetween('check_in', [$checkIn, $checkOut])
+                    ->orWhereBetween('check_out', [$checkIn, $checkOut])
+                    ->orWhereRaw('? BETWEEN check_in AND check_out', [$checkIn])
+                    ->orWhereRaw('? BETWEEN check_in AND check_out', [$checkOut]);
+            })
+            ->first();
+
+        if ($existingBooking) {
+            Log::warning('Duplicate booking attempt (frontend):', [
+                'room_id' => $validated['room_id'],
+                'check_in' => $validated['check_in'],
+                'check_out' => $validated['check_out'],
+            ]);
+            return back()->withErrors(['check_in' => 'This room is already booked for the selected dates.']);
+        }
+
+        // Set user_id or confirmation_token
         if (Auth::check()) {
             $validated['user_id'] = Auth::id();
+            $validated['created_by'] = Auth::id();
+            $validated['updated_by'] = Auth::id();
         } else {
             $validated['confirmation_token'] = Str::random(40);
         }
 
-        // Generate booking reference number: BK + last 3 digits of year + 4-digit incremental
-        $year = date('Y'); // e.g., 2025
-        $yearPrefix = substr($year, -3); // e.g., "025"
-        $prefix = "BK{$yearPrefix}"; // e.g., "BK025"
+        // Calculate total_price
+        $room = Room::find($validated['room_id']);
+        $days = $checkOut->diffInDays($checkIn);
+        $validated['total_price'] = $room->price_per_night * $days;
+        $validated['status'] = 'pending';
+        $validated['payment_status'] = 'pending';
+        $validated['source'] = 'website';
 
-        // Find the highest existing number for this year
+        // Generate booking reference number
+        $year = date('Y');
+        $yearPrefix = substr($year, -3);
+        $prefix = "BK{$yearPrefix}";
         $lastBooking = Booking::where('booking_ref_number', 'like', "{$prefix}%")
             ->orderBy('booking_ref_number', 'desc')
             ->first();
-
-        $nextNumber = 1;
-        if ($lastBooking) {
-            $lastNumber = (int) substr($lastBooking->booking_ref_number, -4);
-            $nextNumber = min($lastNumber + 1, 9999); // Cap at 9999
-            if ($nextNumber === 9999 && Booking::where('booking_ref_number', "{$prefix}9999")->exists()) {
-                throw new \Exception('Maximum bookings for this year reached.');
-            }
+        $nextNumber = $lastBooking ? (int) substr($lastBooking->booking_ref_number, -4) + 1 : 1;
+        if ($nextNumber > 9999) {
+            throw new \Exception('Maximum bookings for this year reached.');
         }
-
         $validated['booking_ref_number'] = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
 
         $booking = Booking::create($validated);
@@ -119,9 +159,7 @@ class WebsiteController extends Controller
             $request->session()->put('booking_email', $validated['guest_email']);
         }
 
-        // Optional: Send email
-        // Mail::to($validated['guest_email'])->send(new BookingConfirmation($booking));
-
+        Log::info('Frontend booking created:', $booking->toArray());
         return redirect()->route('website.booking.confirmation', [
             'booking' => $booking->id,
             'token' => $booking->confirmation_token ?? '',

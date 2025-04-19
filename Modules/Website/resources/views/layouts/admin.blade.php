@@ -53,9 +53,9 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    {{-- <a class="nav-link" href="{{ route('website.admin.bookings.index') }}">
+                    <a class="nav-link" href="{{ route('website.admin.bookings.index') }}">
                         <i class="fas fa-book me-2"></i> Bookings
-                    </a> --}}
+                    </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('website.admin.settings.index') }}">
