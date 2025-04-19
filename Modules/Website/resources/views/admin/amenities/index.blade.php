@@ -1,12 +1,12 @@
 @extends('website::layouts.admin')
 
-@section('title', 'Manage Rooms')
+@section('title', 'Manage Amenities')
 
 @section('content')
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h1 class="h3 mb-0">Manage Rooms</h1>
-            <a href="{{ route('website.admin.rooms.create') }}" class="btn btn-primary">Add New Room</a>
+            <h1 class="h3 mb-0">Manage Amenities</h1>
+            <a href="{{ route('website.admin.amenities.create') }}" class="btn btn-primary">Add New Amenity</a>
         </div>
         <div class="card-body">
             @if (session('success'))
@@ -15,32 +15,26 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
-            @if ($rooms->isEmpty())
-                <p>No rooms found.</p>
+            @if ($amenities->isEmpty())
+                <p>No amenities found.</p>
             @else
                 <table class="table table-hover">
                     <thead>
                         <tr>
                             <th>Name</th>
-                            <th>Price/Night</th>
-                            <th>Capacity</th>
-                            <th>Size</th>
-                            <th>Featured</th>
+                            <th>Icon</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($rooms as $room)
+                        @foreach ($amenities as $amenity)
                             <tr>
-                                <td>{{ $room->name }}</td>
-                                <td>{{ number_format($room->price_per_night, 2) }}</td>
-                                <td>{{ $room->capacity }}</td>
-                                <td>{{ $room->size ?? 'N/A' }}</td>
-                                <td>{{ $room->featured ? 'Yes' : 'No' }}</td>
+                                <td>{{ $amenity->name }}</td>
+                                <td><i class="{{ $amenity->icon ?? 'fas fa-question' }}"></i> {{ $amenity->icon ?? 'None' }}</td>
                                 <td>
-                                    <a href="{{ route('website.admin.rooms.show', $room) }}" class="btn btn-sm btn-info">View</a>
-                                    <a href="{{ route('website.admin.rooms.edit', $room) }}" class="btn btn-sm btn-warning">Edit</a>
-                                    <form action="{{ route('website.admin.rooms.destroy', $room) }}" method="POST" class="d-inline">
+                                    <a href="{{ route('website.admin.amenities.show', $amenity) }}" class="btn btn-sm btn-info">View</a>
+                                    <a href="{{ route('website.admin.amenities.edit', $amenity) }}" class="btn btn-sm btn-warning">Edit</a>
+                                    <form action="{{ route('website.admin.amenities.destroy', $amenity) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>

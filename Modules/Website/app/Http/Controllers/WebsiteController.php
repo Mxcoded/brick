@@ -11,6 +11,7 @@ use Modules\Website\Models\ContactMessage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Modules\Website\Models\Settings;
+use Modules\Website\Models\Amenity;
 
 class WebsiteController extends Controller
 {
@@ -146,7 +147,9 @@ class WebsiteController extends Controller
     }
     public function amenities()
     {
-        return view('website::amenities');
+        $amenities = Amenity::all();
+        $settings = Settings::pluck('value', 'key')->toArray();
+        return view('website::amenities', compact('amenities', 'settings'));
     }
 
     public function location()

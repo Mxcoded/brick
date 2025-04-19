@@ -4,6 +4,7 @@ namespace Modules\Website\Providers;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
+use Modules\Website\Models\RoomImage;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -17,6 +18,13 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         parent::boot();
+
+        // Route::bind('image', function ($value, $route) {
+        //     $room = $route->parameter('room');
+        //     return RoomImage::where('id', $value)
+        //         ->where('room_id', $room->id)
+        //         ->firstOrFail();
+        // });
     }
 
     /**

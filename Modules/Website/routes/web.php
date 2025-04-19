@@ -7,6 +7,7 @@ use Modules\Website\Http\Controllers\Admin\WebsiteAdminController;
 use Modules\Website\Http\Controllers\Admin\RoomController;
 use Modules\Website\Http\Controllers\Admin\SettingController;
 use Modules\Website\Http\Controllers\Admin\ContactMessageController;
+use Modules\Website\Http\Controllers\Admin\AmenityController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,6 +74,8 @@ Route::prefix('website')->group(function () {
         Route::get('rooms/{room}/edit', [RoomController::class, 'edit'])->name('website.admin.rooms.edit');
         Route::put('rooms/{room}', [RoomController::class, 'update'])->name('website.admin.rooms.update');
         Route::delete('rooms/{room}', [RoomController::class, 'destroy'])->name('website.admin.rooms.destroy');
+        Route::delete('rooms/{room}/images/delete/{image}', [RoomController::class, 'destroyImage'])->name('website.admin.rooms.images.destroy');
+        Route::delete('rooms/{room}/video/delete', [RoomController::class, 'destroyVideo'])->name('website.admin.rooms.video.destroy');
 
         // Settings routes
         Route::get('settings', [SettingController::class, 'index'])->name('website.admin.settings.index');
@@ -83,8 +86,6 @@ Route::prefix('website')->group(function () {
         Route::put('settings/{setting}', [SettingController::class, 'update'])->name('website.admin.settings.update');
         Route::delete('settings/{setting}', [SettingController::class, 'destroy'])->name('website.admin.settings.destroy');
 
-        // Other resource routes (commented out until implemented)
-        /*
         Route::get('amenities', [AmenityController::class, 'index'])->name('website.admin.amenities.index');
         Route::get('amenities/create', [AmenityController::class, 'create'])->name('website.admin.amenities.create');
         Route::post('amenities', [AmenityController::class, 'store'])->name('website.admin.amenities.store');
@@ -93,6 +94,8 @@ Route::prefix('website')->group(function () {
         Route::put('amenities/{amenity}', [AmenityController::class, 'update'])->name('website.admin.amenities.update');
         Route::delete('amenities/{amenity}', [AmenityController::class, 'destroy'])->name('website.admin.amenities.destroy');
 
+        // Other resource routes (commented out until implemented)
+        /*
         Route::get('bookings', [BookingController::class, 'index'])->name('website.admin.bookings.index');
         Route::get('bookings/create', [BookingController::class, 'create'])->name('website.admin.bookings.create');
         Route::post('bookings', [BookingController::class, 'store'])->name('website.admin.bookings.store');
@@ -100,7 +103,7 @@ Route::prefix('website')->group(function () {
         Route::get('bookings/{booking}/edit', [BookingController::class, 'edit'])->name('website.admin.bookings.edit');
         Route::put('bookings/{booking}', [BookingController::class, 'update'])->name('website.admin.bookings.update');
         Route::delete('bookings/{booking}', [BookingController::class, 'destroy'])->name('website.admin.bookings.destroy');
-*/
+        */
         Route::get('contact-messages', [ContactMessageController::class, 'index'])->name('website.admin.contact-messages.index');
         Route::get('contact-messages/create', [ContactMessageController::class, 'create'])->name('website.admin.contact-messages.create');
         Route::post('contact-messages', [ContactMessageController::class, 'store'])->name('website.admin.contact-messages.store');

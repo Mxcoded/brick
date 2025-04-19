@@ -18,6 +18,7 @@ class Room extends Model
         'description',
         'price_per_night',
         'image',
+        'video',
         'featured',
         'capacity',
         'size',

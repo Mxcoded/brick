@@ -48,9 +48,9 @@
                         Rooms</a>
                 </li>
                 <li class="nav-item">
-                    {{-- <a class="nav-link" href="{{ route('website.admin.amenities.index') }}">
+                    <a class="nav-link" href="{{ route('website.admin.amenities.index') }}">
                         <i class="fas fa-concierge-bell me-2"></i> Amenities
-                    </a> --}}
+                    </a>
                 </li>
                 <li class="nav-item">
                     {{-- <a class="nav-link" href="{{ route('website.admin.bookings.index') }}">
