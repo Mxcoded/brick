@@ -25,22 +25,32 @@
             <!-- Image Gallery -->
             <div class="row mb-5">
                 <div class="col-lg-8">
+                    @if ($room->video)
+                        <div class="mb-4">
+                            <video class="w-100 rounded shadow-lg" controls>
+                                <source src="{{ Storage::url($room->video) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    @endif
                     <div id="roomGallery" class="carousel slide" data-bs-ride="carousel">
                         <div class="carousel-inner">
                             @php
                                 $images = $room->images ?? collect();
-                                $mainImage = $room->image ? Storage::url($room->image) : asset('images/default-room.jpg');
+                                $mainImage = $room->image
+                                    ? Storage::url($room->image)
+                                    : asset('images/default-room.jpg');
                             @endphp
 
                             @if ($images->isNotEmpty())
                                 @foreach ($images as $index => $image)
                                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
                                         <a href="{{ Storage::url($image->path) }}" data-fancybox="gallery"
-                                           data-caption="{{ $image->caption ?? $room->name }}">
+                                            data-caption="{{ $image->caption ?? $room->name }}">
                                             <img src="{{ Storage::url($image->path) }}"
-                                                 class="d-block w-100 rounded shadow-lg"
-                                                 alt="{{ $image->caption ?? $room->name }}"
-                                                 style="max-height: 500px; object-fit: cover;" loading="lazy">
+                                                class="d-block w-100 rounded shadow-lg"
+                                                alt="{{ $image->caption ?? $room->name }}"
+                                                style="max-height: 500px; object-fit: cover;" loading="lazy">
                                         </a>
                                         @if ($image->caption)
                                             <div class="carousel-caption d-none d-md-block">
@@ -52,22 +62,22 @@
                             @else
                                 <div class="carousel-item active">
                                     <a href="{{ $mainImage }}" data-fancybox="gallery"
-                                       data-caption="{{ $room->name }}">
+                                        data-caption="{{ $room->name }}">
                                         <img src="{{ $mainImage }}" class="d-block w-100 rounded shadow-lg"
-                                             alt="{{ $room->name }}" style="max-height: 500px; object-fit: cover;"
-                                             loading="lazy">
+                                            alt="{{ $room->name }}" style="max-height: 500px; object-fit: cover;"
+                                            loading="lazy">
                                     </a>
                                 </div>
                             @endif
                         </div>
                         @if ($images->count() > 1)
                             <button class="carousel-control-prev" type="button" data-bs-target="#roomGallery"
-                                    data-bs-slide="prev">
+                                data-bs-slide="prev">
                                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Previous</span>
                             </button>
                             <button class="carousel-control-next" type="button" data-bs-target="#roomGallery"
-                                    data-bs-slide="next">
+                                data-bs-slide="next">
                                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Next</span>
                             </button>
@@ -78,12 +88,10 @@
                         <div class="thumbnail-gallery d-flex gap-3 overflow-auto mt-3">
                             @foreach ($images as $index => $image)
                                 <div class="thumbnail rounded shadow-sm" data-bs-target="#roomGallery"
-                                     data-bs-slide-to="{{ $index }}"
-                                     style="width: 150px; height: 100px; cursor: pointer; flex-shrink: 0;">
-                                    <img src="{{ Storage::url($image->path) }}"
-                                         class="w-100 h-100 object-fit-cover"
-                                         alt="{{ $image->caption ?? 'Thumbnail ' . ($index + 1) }}"
-                                         loading="lazy">
+                                    data-bs-slide-to="{{ $index }}"
+                                    style="width: 150px; height: 100px; cursor: pointer; flex-shrink: 0;">
+                                    <img src="{{ Storage::url($image->path) }}" class="w-100 h-100 object-fit-cover"
+                                        alt="{{ $image->caption ?? 'Thumbnail ' . ($index + 1) }}" loading="lazy">
                                 </div>
                             @endforeach
                         </div>
@@ -103,7 +111,7 @@
                                     {{ $room->capacity ?? 'N/A' }} Guests</li>
                             </ul>
                             <a href="{{ route('website.booking.form', ['room_id' => $room->id]) }}"
-                               class="btn btn-primary w-100 mt-3">Book Now</a>
+                                class="btn btn-primary w-100 mt-3">Book Now</a>
                             <a href="#availability-checker" class="btn btn-outline-primary w-100 mt-2">Check
                                 Availability</a>
                         </div>
@@ -143,12 +151,12 @@
                                 <div class="col-md-4">
                                     <label for="check_in" class="form-label">Check-In</label>
                                     <input type="date" class="form-control" id="check_in" name="check_in"
-                                           min="{{ date('Y-m-d') }}" required>
+                                        min="{{ date('Y-m-d') }}" required>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="check_out" class="form-label">Check-Out</label>
                                     <input type="date" class="form-control" id="check_out" name="check_out"
-                                           min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
+                                        min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
                                 </div>
                                 <div class="col-md-4 d-flex align-items-end">
                                     <button type="button" id="checkAvailabilityBtn" class="btn btn-primary w-100">Check
@@ -171,8 +179,8 @@
                                 <div class="col-md-4">
                                     <div class="card border-0 shadow-sm h-100">
                                         <img src="{{ $relatedRoom->image ? Storage::url($relatedRoom->image) : asset('images/default-room.jpg') }}"
-                                             class="card-img-top" alt="{{ $relatedRoom->name }}"
-                                             style="height: 200px; object-fit: cover;" loading="lazy">
+                                            class="card-img-top" alt="{{ $relatedRoom->name }}"
+                                            style="height: 200px; object-fit: cover;" loading="lazy">
                                         <div class="card-body">
                                             <h4 class="h5">{{ $relatedRoom->name }}</h4>
                                             <p class="text-muted">{{ Str::limit($relatedRoom->description, 50) }}</p>
@@ -181,7 +189,7 @@
                                         </div>
                                         <div class="card-footer bg-white border-0">
                                             <a href="{{ route('website.room.details', $relatedRoom->id) }}"
-                                               class="btn btn-outline-primary w-100">View Details</a>
+                                                class="btn btn-outline-primary w-100">View Details</a>
                                         </div>
                                     </div>
                                 </div>
@@ -245,7 +253,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css">
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             // Initialize Fancybox only if elements exist
             if (document.querySelector('[data-fancybox="gallery"]')) {
                 Fancybox.bind('[data-fancybox="gallery"]', {
@@ -260,7 +268,7 @@
             const checkIn = document.getElementById('check_in');
             const checkOut = document.getElementById('check_out');
             if (checkIn && checkOut) {
-                checkIn.addEventListener('change', function () {
+                checkIn.addEventListener('change', function() {
                     if (this.value) {
                         const nextDay = new Date(this.value);
                         nextDay.setDate(nextDay.getDate() + 1);
@@ -279,7 +287,7 @@
             const form = document.getElementById('availabilityForm');
 
             if (checkAvailabilityBtn && availabilityResult && form) {
-                checkAvailabilityBtn.addEventListener('click', function () {
+                checkAvailabilityBtn.addEventListener('click', function() {
                     const formData = new FormData(form);
                     const checkInDate = formData.get('check_in');
                     const checkOutDate = formData.get('check_out');
@@ -297,33 +305,36 @@
 
                     // Loading state
                     checkAvailabilityBtn.disabled = true;
-                    checkAvailabilityBtn.innerHTML = `
+                    checkAvailabilityBtn.innerHTML =
+                        `
                         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Checking...`;
 
                     // Correctly construct the URL with the room ID
                     const url = "{{ route('website.room.checkAvailability', $room->id) }}" +
-                                `?check_in=${encodeURIComponent(checkInDate)}&check_out=${encodeURIComponent(checkOutDate)}`;
+                        `?check_in=${encodeURIComponent(checkInDate)}&check_out=${encodeURIComponent(checkOutDate)}`;
 
                     fetch(url, {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.text().then(text => {
-                                throw new Error(`Server responded with status ${response.status}: ${text}`);
-                            });
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (typeof data.available === 'boolean' && data.message) {
-                            if (data.available) {
-                                availabilityResult.innerHTML = `
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.text().then(text => {
+                                    throw new Error(
+                                        `Server responded with status ${response.status}: ${text}`
+                                        );
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (typeof data.available === 'boolean' && data.message) {
+                                if (data.available) {
+                                    availabilityResult.innerHTML = `
                                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                                         ${data.message}
                                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -334,29 +345,29 @@
                                             </a>
                                         </div>
                                     </div>`;
-                            } else {
-                                availabilityResult.innerHTML = `
+                                } else {
+                                    availabilityResult.innerHTML = `
                                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                         ${data.message}
                                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                     </div>`;
+                                }
+                            } else {
+                                throw new Error('Invalid response format from server');
                             }
-                        } else {
-                            throw new Error('Invalid response format from server');
-                        }
-                    })
-                    .catch(error => {
-                        availabilityResult.innerHTML = `
+                        })
+                        .catch(error => {
+                            availabilityResult.innerHTML = `
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 Failed to check availability: ${error.message}. Please try again or contact support.
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>`;
-                        console.error('Availability Check Error:', error);
-                    })
-                    .finally(() => {
-                        checkAvailabilityBtn.disabled = false;
-                        checkAvailabilityBtn.innerHTML = 'Check Availability';
-                    });
+                            console.error('Availability Check Error:', error);
+                        })
+                        .finally(() => {
+                            checkAvailabilityBtn.disabled = false;
+                            checkAvailabilityBtn.innerHTML = 'Check Availability';
+                        });
                 });
             }
         });
