@@ -82,7 +82,7 @@
                 <div class="col-md-4">
                     <div class="team-card bg-white p-4 h-100 rounded shadow-sm text-center">
                         <img src="{{ asset('images/team-member1.jpg') }}" class="rounded-circle mb-3" width="150" height="150" alt="Team Member">
-                        <h3 class="h5 mb-2">Jane Doe</h3>
+                        <h3 class="h5 mb-2">{{$settings['gm_name']}}</h3>
                         <p class="text-muted mb-2">General Manager</p>
                         <p class="text-muted">With over 15 years in hospitality, Jane ensures every guest feels at home.</p>
                     </div>
@@ -90,7 +90,7 @@
                 <div class="col-md-4">
                     <div class="team-card bg-white p-4 h-100 rounded shadow-sm text-center">
                         <img src="{{ asset('images/team-member2.jpg') }}" class="rounded-circle mb-3" width="150" height="150" alt="Team Member">
-                        <h3 class="h5 mb-2">John Smith</h3>
+                        <h3 class="h5 mb-2">{{$settings['chef_name']}}</h3>
                         <p class="text-muted mb-2">Head Chef</p>
                         <p class="text-muted">John crafts culinary masterpieces inspired by local and international flavors.</p>
                     </div>
@@ -98,7 +98,7 @@
                 <div class="col-md-4">
                     <div class="team-card bg-white p-4 h-100 rounded shadow-sm text-center">
                         <img src="{{ asset('images/team-member3.jpg') }}" class="rounded-circle mb-3" width="150" height="150" alt="Team Member">
-                        <h3 class="h5 mb-2">Emily Brown</h3>
+                        <h3 class="h5 mb-2">{{$settings['spa_director']}}</h3>
                         <p class="text-muted mb-2">Spa Director</p>
                         <p class="text-muted">Emily creates serene experiences with her expertise in wellness therapies.</p>
                     </div>
