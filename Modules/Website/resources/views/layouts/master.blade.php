@@ -106,7 +106,7 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-2">
             <div class="container">
                 <a class="navbar-brand" href="{{ route('website.home') }}">
-                    <img src="{{ Storage::url('images/brickspoint_logo.png') }}" alt="Brickspoint ApartHotel"
+                    <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" alt="Brickspoint ApartHotel"
                         class="d-inline-block align-top">
                 </a>
 
@@ -162,7 +162,7 @@
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-4">
-                    <img src="{{ Storage::url('images/brickspoint_logo.png') }}" alt="Brickspoint Logo" class="footer-logo">
+                     <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" alt="Brickspoint Logo" class="footer-logo">
                     <p class="text-muted-footer">Experience the pinnacle of luxury and comfort in the heart of Abuja city.</p>
                     <div class="mt-4">
                         <a href="https://fb.com/bpaparthotel" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>

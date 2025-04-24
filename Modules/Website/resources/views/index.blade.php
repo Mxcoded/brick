@@ -19,8 +19,8 @@
                 <div class="container h-100 d-flex align-items-center position-relative z-index-1">
                     <div class="hero-content text-white text-center w-100 pt-5 pb-6">
                         <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" alt="Brickspoint Logo" class="mb-4 hotel-logo">
-                        <h4 class="display-3 fw-bold mb-4 animate__animated animate__fadeInDown">Experience Unmatched Luxury</h4>
-                        <p class="lead mb-5 animate__animated animate__fadeInUp animate__delay-1s">Discover our exquisite accommodations in the heart of Abuja</p>
+                        <h4 class="display-3 fw-light mb-4 animate__animated animate__fadeInDown" style="font-family: FuturaLight; text-transform: uppercase;">Experience Unmatched Luxury</h4>
+                        <p class="lead mb-5 animate__animated animate__fadeInUp animate__delay-1s" style="font-family: FuturaLight;">Discover our exquisite accommodations in the heart of Abuja</p>
                         <div class="d-flex justify-content-center gap-3 animate__animated animate__fadeInUp animate__delay-2s mb-5">
                             <a href="{{ route('website.booking.form') }}" class="btn btn-primary btn-lg px-5 py-3">Book Your Stay</a>
                             <a href="#featured-rooms" class="btn btn-outline-light btn-lg px-5 py-3">Explore Rooms</a>
@@ -120,8 +120,8 @@
     <section id="featured-rooms" class="py-5 py-lg-7 bg-light">
         <div class="container">
             <div class="section-header text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">Our Signature Rooms & Suites</h2>
-                <p class="text-muted mx-auto" style="max-width: 700px;">Each of our accommodations is designed to provide the ultimate comfort and luxury experience.</p>
+                <h2 class="display-5 fw-bold mb-3" style="font-family: FuturaLight; text-transform: uppercase;">Our Signature Rooms & Suites</h2>
+                <p class="text-muted mx-auto" style="max-width: 700px;" style="font-family: FuturaLight;">Each of our accommodations is designed to provide the ultimate comfort and luxury experience.</p>
             </div>
 
             <div class="row g-4">
@@ -143,7 +143,7 @@
                             <div class="room-features d-flex flex-wrap gap-2 mb-3">
                                 @foreach($room->amenities->take(3) as $amenity)
                                 <span class="badge bg-light text-dark">
-                                    <i class="fas fa-check-circle text-primary me-1"></i> {{ $amenity->name }}
+                                    <i class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i> {{ $amenity->name }}
                                 </span>
                                 @endforeach
                             </div>
@@ -168,8 +168,8 @@
             <div class="row align-items-center">
                 <div class="col-lg-6 mb-5 mb-lg-0">
                     <div class="pe-lg-5">
-                        <h2 class="display-5 fw-bold mb-4">Why Choose Our Hotel</h2>
-                        <p class="lead mb-4">We provide exceptional services to make your stay unforgettable</p>
+                        <h2 class="display-5 fw-bold mb-4" style="font-family: FuturaLight;">Why Choose Our Hotel</h2>
+                        <p class="lead mb-4" style="font-family: FuturaLight;">We provide exceptional services to make your stay unforgettable</p>
                         
                         <div class="feature-list">
                             <div class="feature-item d-flex mb-4">
@@ -217,7 +217,7 @@
     <section id="dining" class="py-5 py-lg-7 bg-light">
         <div class="container">
             <div class="section-header text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">Exquisite Dining Experiences</h2>
+                <h2 class="display-5 fw-bold mb-3" style="font-family: FuturaLight; text-transform: uppercase;">Exquisite Dining Experiences</h2>
                 <p class="text-muted mx-auto" style="max-width: 700px;">Indulge in culinary delights at our award-winning restaurants.</p>
             </div>
             
@@ -248,8 +248,8 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-6 order-lg-2 ps-lg-5">
-                    <h2 class="display-5 fw-bold mb-4">Rejuvenate at Our Spa</h2>
-                    <p class="lead mb-4">Our world-class spa offers a sanctuary of relaxation and rejuvenation with treatments designed to restore balance to both body and mind.</p>
+                    <h2 class="display-5 fw-bold mb-4" style="font-family: FuturaLight;">Rejuvenate at Our Spa</h2>
+                    <p class="lead mb-4" style="font-family: FuturaLight;">Our world-class spa offers a sanctuary of relaxation and rejuvenation with treatments designed to restore balance to both body and mind.</p>
                     
                     <div class="spa-features mb-4">
                         <div class="d-flex mb-3">

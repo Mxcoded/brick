@@ -104,6 +104,7 @@ Route::prefix('website')->group(function () {
         Route::get('bookings/{booking}/edit', [BookingController::class, 'edit'])->name('website.admin.bookings.edit');
         Route::put('bookings/{booking}', [BookingController::class, 'update'])->name('website.admin.bookings.update');
         Route::delete('bookings/{booking}', [BookingController::class, 'destroy'])->name('website.admin.bookings.destroy');
+        Route::patch('bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('website.admin.bookings.cancel');
         
         Route::get('contact-messages', [ContactMessageController::class, 'index'])->name('website.admin.contact-messages.index');
         Route::get('contact-messages/create', [ContactMessageController::class, 'create'])->name('website.admin.contact-messages.create');

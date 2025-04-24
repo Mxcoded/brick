@@ -3,219 +3,268 @@
 @section('title', 'Book Your Stay')
 
 @section('content')
+<section class="booking-section py-5 bg-light">
     <div class="container">
-        <h1 class="mb-4">Book Your Stay</h1>
-        @if ($errors->any())
-            <div class="alert alert-danger">
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-        <form action="{{ route('website.booking.submit') }}" method="POST">
-            @csrf
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="room_id" class="form-label">Room</label>
-                        <select class="form-control @error('room_id') is-invalid @enderror" id="room_id" name="room_id"
-                            required>
-                            <option value="">Select Room</option>
-                            @foreach ($rooms as $room)
-                                <option value="{{ $room->id }}">{{ $room->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('room_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 overflow-hidden">
+                    <div class="card-header bg-primary text-white py-4">
+                        <h1 class="h3 mb-0 text-center">Reserve Your Luxury Stay</h1>
                     </div>
-                    <div class="mb-3">
-                        <label for="guest_name" class="form-label">Full Name</label>
-                        <input type="text" class="form-control @error('guest_name') is-invalid @enderror" id="guest_name"
-                            name="guest_name" value="{{ old('guest_name') }}" required>
-                        @error('guest_name')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="guest_email" class="form-label">Email</label>
-                        <input type="email" class="form-control @error('guest_email') is-invalid @enderror"
-                            id="guest_email" name="guest_email" value="{{ old('guest_email') }}" required>
-                        @error('guest_email')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="guest_phone" class="form-label">Phone</label>
-                        <input type="text" class="form-control @error('guest_phone') is-invalid @enderror"
-                            id="guest_phone" name="guest_phone" value="{{ old('guest_phone') }}" required>
-                        @error('guest_phone')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="guest_company" class="form-label">Company (Optional)</label>
-                        <input type="text" class="form-control @error('guest_company') is-invalid @enderror"
-                            id="guest_company" name="guest_company" value="{{ old('guest_company') }}">
-                        @error('guest_company')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label for="guest_nationality" class="form-label">Nationality (Optional)</label>
-                        <input type="text" class="form-control @error('guest_nationality') is-invalid @enderror"
-                            id="guest_nationality" name="guest_nationality" value="{{ old('guest_nationality') }}">
-                        @error('guest_nationality')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="check_in" class="form-label">Check-In Date</label>
-                        <input type="date" class="form-control @error('check_in') is-invalid @enderror" id="check_in"
-                            name="check_in" value="{{ old('check_in') }}" required>
-                        @error('check_in')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="check_out" class="form-label">Check-Out Date</label>
-                        <input type="date" class="form-control @error('check_out') is-invalid @enderror" id="check_out"
-                            name="check_out" value="{{ old('check_out') }}" required>
-                        @error('check_out')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="number_of_guests" class="form-label">Number of Guests</label>
-                        <input type="number" class="form-control @error('number_of_guests') is-invalid @enderror"
-                            id="number_of_guests" name="number_of_guests" value="{{ old('number_of_guests', 1) }}"
-                            min="1" required>
-                        @error('number_of_guests')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="number_of_children" class="form-label">Number of Children</label>
-                        <input type="number" class="form-control @error('number_of_children') is-invalid @enderror"
-                            id="number_of_children" name="number_of_children" value="{{ old('number_of_children', 0) }}"
-                            min="0" required>
-                        @error('number_of_children')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="special_requests" class="form-label">Special Requests</label>
-                        <textarea class="form-control @error('special_requests') is-invalid @enderror" id="special_requests"
-                            name="special_requests">{{ old('special_requests') }}</textarea>
-                        @error('special_requests')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
-                        <label for="payment_method" class="form-label">Payment Method (Optional)</label>
-                        <select class="form-control @error('payment_method') is-invalid @enderror" id="payment_method"
-                            name="payment_method">
-                            <option value="">Select Payment Method</option>
-                            <option value="credit_card" {{ old('payment_method') == 'credit_card' ? 'selected' : '' }}>
-                                Credit Card</option>
-                            <option value="bank_transfer"
-                                {{ old('payment_method') == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
-                            <option value="cash" {{ old('payment_method') == 'cash' ? 'selected' : '' }}>Cash</option>
-                        </select>
-                        @error('payment_method')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                    <div class="card-body p-4 p-md-5">
+                        @if ($errors->any())
+                            <div class="alert alert-danger">
+                                <ul>
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                        <form action="{{ route('website.booking.submit') }}" method="POST" id="bookingForm">
+                            @csrf
+                            <div class="row g-4">
+                                <!-- Room Selection -->
+                                <div class="col-md-12">
+                                    <div class="form-floating">
+                                        <select class="form-select" name="room_id" id="room_id" required>
+                                            <option value="" selected disabled>Select a room</option>
+                                            @foreach ($rooms as $room)
+                                                <option value="{{ $room->id }}" data-price="{{ $room->price_per_night }}">
+                                                    {{ $room->name }} - ₦{{ number_format($room->price_per_night, 2) }}/night
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <label for="room_id">Room Type</label>
+                                    </div>
+                                </div>
+                                <!-- Date Selection -->
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control flatpickr" name="check_in" id="check_in" 
+                                               placeholder="Check-In Date" required>
+                                        <label for="check_in">Check-In Date</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control flatpickr" name="check_out" id="check_out" 
+                                               placeholder="Check-Out Date" required>
+                                        <label for="check_out">Check-Out Date</label>
+                                    </div>
+                                </div>
+                                <!-- Guest Information -->
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" name="guest_name" id="guest_name" 
+                                               pattern="[A-Za-z ]+" required>
+                                        <label for="guest_name">Full Name</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="email" class="form-control" name="guest_email" id="guest_email" required>
+                                        <label for="guest_email">Email Address</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="tel" class="form-control" name="guest_phone" id="guest_phone" 
+                                               pattern="[0-9]{10,15}" required>
+                                        <label for="guest_phone">Phone Number</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" name="guests" id="guests" 
+                                               min="1" max="10" value="1" required>
+                                        <label for="guests">Number of Guests</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input type="number" class="form-control" name="number_of_children" id="number_of_children" 
+                                               min="0" max="10" value="0" required>
+                                        <label for="number_of_children">Number of Children</label>
+                                    </div>
+                                </div>
+                                <!-- Special Requests -->
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" name="special_requests" id="special_requests" 
+                                                  style="height: 100px"></textarea>
+                                        <label for="special_requests">Special Requests (Optional)</label>
+                                    </div>
+                                </div>
+                                <!-- Booking Summary -->
+                                <div class="col-12 mt-4">
+                                    <div class="booking-summary p-4 bg-light rounded">
+                                        <h5 class="mb-3">Booking Summary</h5>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Room Rate:</span>
+                                            <span id="roomRate">₦0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Nights:</span>
+                                            <span id="nightsCount">0</span>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between fw-bold">
+                                            <span>Total Estimate:</span>
+                                            <span id="totalEstimate">₦0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Submit Button -->
+                                <div class="col-12 mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
+                                        <i class="fas fa-calendar-check me-2"></i> Confirm Reservation
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary">Submit Booking</button>
-        </form>
+        </div>
     </div>
+</section>
 
-    @push('styles')
-        <style>
-            .booking-section {
-                background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .booking-section {
+        background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), 
                     url('{{ asset('images/booking-bg.jpg') }}') no-repeat center center;
-                background-size: cover;
+        background-size: cover;
+    }
+    .card {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .booking-summary {
+        border: 1px solid #dee2e6;
+    }
+    .flatpickr-input {
+        background: transparent;
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const roomSelect = document.getElementById('room_id');
+        const checkIn = document.getElementById('check_in');
+        const checkOut = document.getElementById('check_out');
+        const roomRate = document.getElementById('roomRate');
+        const nightsCount = document.getElementById('nightsCount');
+        const totalEstimate = document.getElementById('totalEstimate');
+
+        // Initialize Flatpickr
+        const checkInPicker = flatpickr('#check_in', {
+            dateFormat: 'Y-m-d',
+            minDate: 'today',
+            onChange: function(selectedDates, dateStr) {
+                const nextDay = new Date(selectedDates[0]);
+                nextDay.setDate(nextDay.getDate() + 1);
+                checkOutPicker.set('minDate', nextDay);
+                if (checkOut.value && new Date(checkOut.value) <= nextDay) {
+                    checkOutPicker.setDate(nextDay);
+                }
+                calculateTotal();
             }
+        });
 
-            .card {
-                border-radius: 10px;
-                overflow: hidden;
+        const checkOutPicker = flatpickr('#check_out', {
+            dateFormat: 'Y-m-d',
+            minDate: new Date().setDate(new Date().getDate() + 1),
+            onChange: function(selectedDates, dateStr) {
+                const checkInDate = new Date(checkIn.value);
+                if (selectedDates[0] <= checkInDate) {
+                    const nextDay = new Date(checkInDate);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    checkOutPicker.setDate(nextDay);
+                }
+                calculateTotal();
             }
+        });
 
-            .form-control:focus,
-            .form-select:focus {
-                border-color: #0d6efd;
-                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-            }
+        checkIn.addEventListener('change', calculateTotal);
+        checkOut.addEventListener('change', calculateTotal);
+        roomSelect.addEventListener('change', calculateTotal);
 
-            .booking-summary {
-                border: 1px solid #dee2e6;
-            }
-        </style>
-    @endpush
+        function calculateTotal() {
+            if (roomSelect.value && checkIn.value && checkOut.value) {
+                const price = Math.abs(parseFloat(roomSelect.options[roomSelect.selectedIndex].dataset.price));
+                const checkInDate = new Date(checkIn.value);
+                const checkOutDate = new Date(checkOut.value);
 
-    @push('scripts')
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const roomSelect = document.getElementById('room_id');
-                const checkIn = document.getElementById('check_in');
-                const checkOut = document.getElementById('check_out');
-                const roomRate = document.getElementById('roomRate');
-                const nightsCount = document.getElementById('nightsCount');
-                const totalEstimate = document.getElementById('totalEstimate');
-
-                // Set minimum checkout date based on checkin date
-                checkIn.addEventListener('change', function() {
-                    if (this.value) {
-                        const nextDay = new Date(this.value);
-                        nextDay.setDate(nextDay.getDate() + 1);
-                        checkOut.min = nextDay.toISOString().split('T')[0];
-
-                        if (checkOut.value && new Date(checkOut.value) < nextDay) {
-                            checkOut.value = '';
-                        }
-
-                        calculateTotal();
-                    }
-                });
-
-                // Calculate total when dates or room change
-                checkOut.addEventListener('change', calculateTotal);
-                roomSelect.addEventListener('change', calculateTotal);
-
-                function calculateTotal() {
-                    if (roomSelect.value && checkIn.value && checkOut.value) {
-                        const price = roomSelect.options[roomSelect.selectedIndex].dataset.price;
-                        const checkInDate = new Date(checkIn.value);
-                        const checkOutDate = new Date(checkOut.value);
-
-                        // Calculate nights
-                        const timeDiff = checkOutDate - checkInDate;
-                        const nights = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-                        // Update display
-                        roomRate.textContent = `$${parseFloat(price).toLocaleString()}`;
-                        nightsCount.textContent = nights;
-                        totalEstimate.textContent = `$${(price * nights).toLocaleString()}`;
-                    }
+                if (checkOutDate <= checkInDate) {
+                    console.warn('Invalid dates: check-out must be after check-in', {
+                        checkIn: checkIn.value,
+                        checkOut: checkOut.value
+                    });
+                    const nextDay = new Date(checkIn.value);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    checkOut.value = nextDay.toISOString().split('T')[0];
+                    checkOutDate.setTime(nextDay.getTime());
                 }
 
-                // Form validation
-                document.getElementById('bookingForm').addEventListener('submit', function(e) {
-                    if (!this.checkValidity()) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }
-                    this.classList.add('was-validated');
-                }, false);
-            });
-        </script>
-    @endpush
+                const timeDiff = checkOutDate - checkInDate;
+                const nights = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+
+                roomRate.textContent = `₦${price.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+                nightsCount.textContent = nights;
+                const total = Math.max(0, (price * nights).toFixed(2));
+                totalEstimate.textContent = `₦${parseFloat(total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+            }
+        }
+
+        document.getElementById('bookingForm').addEventListener('submit', function(e) {
+            try {
+                const checkInDate = new Date(checkIn.value);
+                const checkOutDate = new Date(checkOut.value);
+                if (!checkIn.value || !checkOut.value || isNaN(checkInDate) || isNaN(checkOutDate)) {
+                    e.preventDefault();
+                    alert('Please select valid check-in and check-out dates.');
+                    console.error('Invalid date values', { checkIn: checkIn.value, checkOut: checkOut.value });
+                    return;
+                }
+                if (checkOutDate <= checkInDate) {
+                    e.preventDefault();
+                    alert('Check-out date must be after check-in date.');
+                    const nextDay = new Date(checkIn.value);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    checkOut.value = nextDay.toISOString().split('T')[0];
+                    calculateTotal();
+                    console.warn('Adjusted check-out date', { newCheckOut: checkOut.value });
+                    return;
+                }
+                console.log('Submitting form:', {
+                    room_id: roomSelect.value,
+                    check_in: checkIn.value,
+                    check_out: checkOut.value,
+                    guest_name: document.getElementById('guest_name').value,
+                    guest_email: document.getElementById('guest_email').value,
+                    guest_phone: document.getElementById('guest_phone').value,
+                    guests: document.getElementById('guests').value,
+                    number_of_children: document.getElementById('number_of_children').value
+                });
+            } catch (error) {
+                e.preventDefault();
+                console.error('Form submission error:', error);
+                alert('An error occurred while submitting the form. Please try again.');
+            }
+        });
+
+        calculateTotal();
+    });
+</script>
+@endpush
 @endsection
