@@ -8,7 +8,7 @@ use Modules\Tasks\Models\Task;
 use Modules\Tasks\Models\TaskAssignment;
 use Modules\Staff\Models\Employee;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class TasksController extends Controller
 {
@@ -43,9 +43,14 @@ class TasksController extends Controller
             'assignees' => 'required|array',
             'assignees.*' => 'exists:employees,id',
         ]);
+        // Generate task number: TASK-DDMMYY-N
+        $today = Carbon::today();
+        $datePart = $today->format('dmy'); // e.g., 120525 for May 12, 2025
+        $taskCount = Task::whereDate('created_at', $today)->count() + 1; // Increment for today’s tasks
+        $taskNumber = sprintf('TASK-%s-%d', $datePart, $taskCount);
 
         $task = Task::create([
-            'task_number' => 'TASK-' . Str::random(8),
+            'task_number' => $taskNumber,
             'date' => $request->date,
             'created_by' => Auth::id(),
             'description' => $request->description,
@@ -63,13 +68,13 @@ class TasksController extends Controller
         return redirect()->route('tasks.index')->with('success', 'Task created successfully.');
     }
 
-
     /**
-     * Show the specified resource.
+     * Display the specified resource.
      */
     public function show($id)
     {
-        return view('tasks::show');
+        $task = Task::with('employees', 'creator')->findOrFail($id);
+        return view('tasks::show', compact('task'));
     }
 
     /**
@@ -78,8 +83,7 @@ class TasksController extends Controller
     public function edit($id)
     {
         $task = Task::with('employees')->findOrFail($id);
-        $employees = Employee::whereIn('designation', ['Manager', 'Supervisor'])->get();
-        return view('tasks::edit', compact('task', 'employees'));
+        return view('tasks::edit', compact('task'));
     }
 
     /**
@@ -105,6 +109,9 @@ class TasksController extends Controller
         return redirect()->route('tasks.index')->with('success', 'Task updated successfully.');
     }
 
+    /**
+     * Evaluate the specified task (for General Manager).
+     */
     public function evaluate(Request $request, $id)
     {
         $request->validate([
@@ -128,6 +135,8 @@ class TasksController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $task = Task::findOrFail($id);
+        $task->delete();
+        return redirect()->route('tasks.index')->with('success', 'Task deleted successfully.');
     }
 }
