@@ -36,7 +36,7 @@ return new class extends Migration
             $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
             $table->text('note_for_leaving')->nullable();
-            $table->enum('leaving_reason', ['resignation', 'sack', 'transfer'])->nullable();
+            $table->enum('leaving_reason', ['resignation', 'sack', 'transfer', 'absconded'])->nullable();
             $table->string('branch_name')->nullable();
             $table->string('resignation_letter')->nullable();
             $table->timestamps();
