@@ -157,6 +157,17 @@
                 @enderror
             </div>
         </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="position" class="form-label">Department</label>
+                <input type="text" name="department" id="department" class="form-control"
+                    placeholder="e.g. Software Engineer" value="{{ old('department', $employee->department ?? '') }}"
+                    required>
+                @error('department')
+                    <small class="text-danger">{{ $message }}</small>
+                @enderror
+            </div>
+        </div>
         <div class="col-12">
             <div class="form-group">
                 <label for="residential_address" class="form-label">Residential Address</label>
@@ -243,6 +254,9 @@
                     <option value="transfer"
                         {{ old('leaving_reason', $employee->leaving_reason ?? '') == 'transfer' ? 'selected' : '' }}>
                         Transfer</option>
+                        <option value="absconded"
+                        {{ old('leaving_reason', $employee->leaving_reason ?? '') == 'absconded' ? 'selected' : '' }}>
+                        Absconded</option>
                 </select>
             </div>
         </div>

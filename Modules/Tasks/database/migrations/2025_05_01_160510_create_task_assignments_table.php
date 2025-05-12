@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('contact_messages', function (Blueprint $table) {
+        Schema::create('task_assignments', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 255);
-            $table->string('email', 255);
-            $table->text('message');
-            $table->string('status')->default('unread');
+            $table->unsignedBigInteger('task_id');
+            $table->unsignedBigInteger('employees_id');
+            $table->foreign('task_id')->references('id')->on('tasks')->onDelete('cascade');
+            $table->foreign('employees_id')->references('id')->on('employees')->onDelete('cascade');
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('contact_messages');
+        Schema::dropIfExists('task_assignments');
     }
 };
