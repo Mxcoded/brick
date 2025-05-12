@@ -104,7 +104,7 @@ class StaffController extends Controller
             'start_date' => 'required|date',                         // New: Date employed
             'end_date' => 'nullable|date|after_or_equal:start_date', // New: Date departed (optional)
             'note_for_leaving' => 'nullable|string|max:1000',        // New: Note for leaving
-            'leaving_reason' => 'nullable|in:resignation,sack,transfer', // New: Reason for leaving
+            'leaving_reason' => 'nullable|in:resignation,sack,transfer,absconded', // New: Reason for leaving
             'branch_name' => 'nullable|string|max:255',              // New: Branch name
             'resignation_letter' => 'nullable|file|mimes:pdf,doc,docx|max:5120', // New: Resignation letter upload
             'nin' => ['nullable', 'digits:11'], //New: National Identification number
