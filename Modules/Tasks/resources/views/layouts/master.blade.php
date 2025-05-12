@@ -7,7 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>Tasks Module - {{ config('app.name', 'Laravel') }}</title>
+     <title>@yield('title', 'Staff Portal')</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    @stack('styles')
 
     <meta name="description" content="{{ $description ?? '' }}">
     <meta name="keywords" content="{{ $keywords ?? '' }}">
@@ -22,8 +24,33 @@
 </head>
 
 <body>
-    @yield('content')
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Staff Portal</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('tasks.index') }}">Tasks</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
 
-    {{-- Vite JS --}}
-    {{-- {{ module_vite('build-tasks', 'resources/assets/js/app.js', storage_path('vite.hot')) }} --}}
+    <main class="container mt-4">
+        @yield('content')
+    </main>
+
+    <footer class="bg-light text-center py-3 mt-4">
+        <p>&copy; {{ date('Y') }} Staff Portal</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    @stack('scripts')
 </body>
+</html>
