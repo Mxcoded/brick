@@ -11,11 +11,16 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('staff.index') }}">Home</a>
+                        <a class="nav-link" href="{{ route('staff.dashboard') }}">Home</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('staff.leaves.index') }}"><i
                                 class="fas fa-calendar-alt me-2"></i> My Leaves</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('tasks.index') }}">
+                            <i class="fa fa-list-alt me-1"></i> Tasks
+                        </a>
                     </li>
                 </ul>
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
@@ -55,7 +60,7 @@
     <nav aria-label="breadcrumb" class="bg-light py-2">
         <div class="container">
             <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{{ route('staff.index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('staff.dashboard') }}">Home</a></li>
                 @yield('current-breadcrumb')
             </ol>
         </div>
