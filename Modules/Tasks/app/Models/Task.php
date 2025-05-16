@@ -54,6 +54,10 @@ class Task extends Model
     {
         return $this->belongsToMany(Employee::class, 'task_assignments', 'task_id', 'employee_id');
     }
+    public function updates()
+    {
+        return $this->hasMany(TaskUpdate::class, 'task_id');
+    }
 
     // protected static function newFactory(): TaskFactory
     // {

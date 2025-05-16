@@ -1,44 +1,51 @@
-@extends('tasks::layouts.master')
+@extends('staff::layouts.master')
+
 
 @section('title', 'Edit Task')
-
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Edit Task</li>
+@endsection
 @section('content')
     <div class="container">
         <h1>Edit Task</h1>
 
-        <!-- Task Update Form -->
-        <form action="{{ route('tasks.update', $task->id) }}" method="POST" class="mb-5">
-            @csrf
-            @method('PUT')
+        @if ($task->is_successful)
+            <div class="alert alert-info">This task has been evaluated as successful and cannot be updated.</div>
+        @else
+            <!-- Task Update Form -->
+            <form action="{{ route('tasks.update', $task->id) }}" method="POST" class="mb-5">
+                @csrf
+                @method('PUT')
 
-            <div class="mb-3">
-                <label for="is_completed" class="form-label">Completed</label>
-                <select name="is_completed" id="is_completed" class="form-select">
-                    <option value="1" {{ $task->is_completed ? 'selected' : '' }}>Yes</option>
-                    <option value="0" {{ !$task->is_completed ? 'selected' : '' }}>No</option>
-                </select>
-            </div>
+                <div class="mb-3">
+                    <label for="is_completed" class="form-label">Completed</label>
+                    <select name="is_completed" id="is_completed" class="form-select">
+                        <option value="1" {{ $task->is_completed ? 'selected' : '' }}>Yes</option>
+                        <option value="0" {{ !$task->is_completed ? 'selected' : '' }}>No</option>
+                    </select>
+                </div>
 
-            <div class="mb-3">
-                <label for="completion_date" class="form-label">Completion Date</label>
-                <input type="date" name="completion_date" id="completion_date" class="form-control" value="{{ $task->completion_date ? $task->completion_date->format('Y-m-d') : '' }}">
-            </div>
+                <div class="mb-3">
+                    <label for="completion_date" class="form-label">Completion Date</label>
+                    <input type="date" name="completion_date" id="completion_date" class="form-control" value="{{ $task->completion_date ? $task->completion_date->format('Y-m-d') : '' }}">
+                </div>
 
-            <div class="mb-3">
-                <label for="notes" class="form-label">Notes</label>
-                <textarea name="notes" id="notes" class="form-control" rows="3">{{ $task->notes }}</textarea>
-            </div>
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Notes</label>
+                    <textarea name="notes" id="notes" class="form-control" rows="3">{{ $task->notes }}</textarea>
+                </div>
 
-            <div class="mb-3">
-                <label for="non_completion_reason" class="form-label">Reason for Non-Completion</label>
-                <textarea name="non_completion_reason" id="non_completion_reason" class="form-control" rows="3">{{ $task->non_completion_reason }}</textarea>
-            </div>
+                <div class="mb-3">
+                    <label for="non_completion_reason" class="form-label">Reason for Non-Completion</label>
+                    <textarea name="non_completion_reason" id="non_completion_reason" class="form-control" rows="3">{{ $task->non_completion_reason }}</textarea>
+                </div>
 
-            <button type="submit" class="btn btn-primary">Update Task</button>
-        </form>
+                <button type="submit" class="btn btn-primary">Update Task</button>
+            </form>
+        @endif
 
         <!-- Evaluation Form for General Manager -->
-        @if (Auth::user()) <!-- Replace with actual authorization logic -->
+        @if (Auth::user()->hasRole('admin'))
             <h2>Evaluate Task</h2>
             <form action="{{ route('tasks.evaluate', $task->id) }}" method="POST">
                 @csrf
@@ -67,6 +74,26 @@
 
                 <button type="submit" class="btn btn-success">Evaluate Task</button>
             </form>
+        @endif
+
+        <!-- Task Update History -->
+        <h2 class="mt-5">Task Update History</h2>
+        @if ($task->updates->isNotEmpty())
+            <ul class="list-group">
+                @foreach ($task->updates as $update)
+                    <li class="list-group-item">
+                        <strong>{{ $update->user->name }}</strong> {{ $update->action == 'updated_completion' ? 'updated the task' : 'evaluated the task' }}
+                        on {{ $update->created_at->format('Y-m-d H:i:s') }}
+                        <ul>
+                            @foreach ($update->changes as $field => $value)
+                                <li>{{ ucfirst(str_replace('_', ' ', $field)) }}: {{ is_bool($value) ? ($value ? 'Yes' : 'No') : ($value ?? 'N/A') }}</li>
+                            @endforeach
+                        </ul>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <p>No updates recorded.</p>
         @endif
     </div>
 @endsection

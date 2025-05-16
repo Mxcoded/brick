@@ -1,7 +1,9 @@
-@extends('tasks::layouts.master')
+@extends('staff::layouts.master')
 
 @section('title', 'Task Details')
-
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Task Details</li>
+@endsection
 @section('content')
     <div class="container">
         <h1>Task Details</h1>
@@ -27,7 +29,7 @@
                     <dd class="col-sm-9">{{ $task->deadline->format('Y-m-d') }}</dd>
 
                     <dt class="col-sm-3">Assignees</dt>
-                    <dd class="col-sm-9">{{ $task->employees->pluck('name')->implode(', ') }}</dd>
+                    <dd class="col-sm-9">{{ $task->employees->isNotEmpty() ? $task->employees->pluck('name')->implode(', ') : 'No assignees' }}</dd>
 
                     <dt class="col-sm-3">Completed</dt>
                     <dd class="col-sm-9">{{ $task->is_completed ? 'Yes' : 'No' }}</dd>
@@ -56,6 +58,27 @@
                 </dl>
             </div>
         </div>
+
+        <!-- Task Update History -->
+        <h2 class="mt-5">Task Update History</h2>
+        @if ($task->updates->isNotEmpty())
+            <ul class="list-group">
+                @foreach ($task->updates as $update)
+                    <li class="list-group-item">
+                        <strong>{{ $update->user->name }}</strong> {{ $update->action == 'updated_completion' ? 'updated the task' : 'evaluated the task' }}
+                        on {{ $update->created_at->format('Y-m-d H:i:s') }}
+                        <ul>
+                            @foreach ($update->changes as $field => $value)
+                                <li>{{ ucfirst(str_replace('_', ' ', $field)) }}: {{ is_bool($value) ? ($value ? 'Yes' : 'No') : ($value ?? 'N/A') }}</li>
+                            @endforeach
+                        </ul>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <p>No updates recorded.</p>
+        @endif
+
         <div class="mt-3">
             <a href="{{ route('tasks.index') }}" class="btn btn-secondary">Back to List</a>
             @can('update', $task)
