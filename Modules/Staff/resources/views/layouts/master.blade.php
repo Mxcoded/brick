@@ -31,6 +31,10 @@
                                 <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="{{ route('login') }}"><i
+                                    class="fas fa-user-alt me-2"></i>My Profile</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
                                 <li><a class="dropdown-item" href="{{ route('staff.leaves.index') }}"><i
                                             class="fas fa-calendar-alt me-2"></i> My Leaves</a></li>
                                 <li>
