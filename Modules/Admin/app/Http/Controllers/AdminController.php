@@ -129,12 +129,16 @@ class AdminController extends Controller
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'role' => 'required|exists:roles,name'
+            'roles' => 'required|array|max:2',
+            'roles.*' => 'exists:roles,name',
         ]);
-        $user = User::find($request->user_id);
-        $user->syncRoles([$request->role]); // Replace existing roles with the new one
-        return redirect()->route('admin.users.index')->with('success', 'Role assigned successfully.');
+
+        $user = User::findOrFail($request->user_id);
+        $user->syncRoles($request->roles);
+
+        return redirect()->route('admin.users.index')->with('success', 'Roles assigned successfully.');
     }
+
     public function createUserFromEmployee()
     {
         $employees = Employee::doesntHave('user')->get(); // Employees without user accounts

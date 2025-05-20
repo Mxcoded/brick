@@ -30,6 +30,7 @@ Route::prefix('admin')->middleware(['web', 'auth', 'role:admin'])->group(functio
     Route::post('/permissions/assign-to-role', [AdminController::class, 'assignPermissionToRole'])->name('admin.permissions.assign-to-role');
     Route::get('/users', [AdminController::class, 'users'])->name('admin.users.index');
     Route::post('/users/assign-role', [AdminController::class, 'assignRole'])->name('admin.users.assign-role');
+    Route::post('users/{user}/remove-role', [AdminController::class, 'removeRole'])->name('admin.users.remove-role');
     Route::get('/employees/create-user', [AdminController::class, 'createUserFromEmployee'])->name('admin.employees.create-user');
     Route::post('/employees/store-user', [AdminController::class, 'storeUserFromEmployee'])->name('admin.employees.store-user');
 });
