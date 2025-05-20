@@ -62,7 +62,7 @@ Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
 
     // **Approval Routes (Admin Only)**
     // Base URL: /staff/approvals/*
-    Route::prefix('approvals')->middleware('role:admin')->group(function () {
+    Route::prefix('approvals')->middleware('role:admin|human_resource')->group(function () {
         Route::get('/', [StaffController::class, 'approvalIndex'])
             ->name('staff.approvals.index');
         Route::post('/approve/{id}', [StaffController::class, 'approve'])
