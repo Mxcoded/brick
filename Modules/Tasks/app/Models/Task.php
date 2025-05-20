@@ -40,6 +40,8 @@ class Task extends Model
         'meets_expectations' => 'boolean',
     ];
 
+    protected $appends = ['status'];
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -53,6 +55,19 @@ class Task extends Model
     public function employees()
     {
         return $this->belongsToMany(Employee::class, 'task_assignments', 'task_id', 'employee_id');
+    }
+
+    public function updates()
+    {
+        return $this->hasMany(TaskUpdate::class, 'task_id');
+    }
+
+    public function getStatusAttribute()
+    {
+        if ($this->is_successful !== null) {
+            return $this->is_successful ? 'Evaluated (Successful)' : 'Evaluated (Not Successful)';
+        }
+        return $this->is_completed ? 'Completed' : 'Pending';
     }
 
     // protected static function newFactory(): TaskFactory
