@@ -18,18 +18,73 @@ class TasksController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    // public function index()
+    // {
+    //     $user = Auth::user();
+    //     if ($user->hasRole('admin')) { // Replace with your role check
+    //         $tasks = Task::with('employees', 'creator')->get();
+    //     } else {
+    //         $employee = Employee::where('user_id', $user->id)->first();
+    //         $tasks = Task::whereHas('employees', function ($query) use ($employee) {
+    //             $query->where('employee_id', $employee->id);
+    //         })->with('employees', 'creator')->get();
+    //     }
+    //     return view('tasks::index', compact('tasks'));
+    // }
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
     {
         $user = Auth::user();
-        if ($user->hasRole('admin')) { // Replace with your role check
-            $tasks = Task::with('employees', 'creator')->get();
-        } else {
+        $query = Task::with('employees', 'creator');
+
+        // Role-based filtering
+        if (!$user->hasRole('admin','gm')) {
             $employee = Employee::where('user_id', $user->id)->first();
-            $tasks = Task::whereHas('employees', function ($query) use ($employee) {
-                $query->where('employee_id', $employee->id);
-            })->with('employees', 'creator')->get();
+            $query->whereHas('employees', function ($q) use ($employee) {
+                $q->where('employee_id', $employee->id);
+            });
         }
-        return view('tasks::index', compact('tasks'));
+
+        // Search
+        if ($search = $request->query('q')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('task_number', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('employees', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // Filters
+        if ($status = $request->query('status')) {
+            if ($status == 'Pending') {
+                $query->where('is_completed', false);
+            } elseif ($status == 'Completed') {
+                $query->where('is_completed', true)->whereNull('is_successful');
+            } elseif ($status == 'Evaluated (Successful)') {
+                $query->where('is_completed', true)->where('is_successful', true);
+            } elseif ($status == 'Evaluated (Not Successful)') {
+                $query->where('is_completed', true)->where('is_successful', false);
+            }
+        }
+
+        if ($priority = $request->query('priority')) {
+            $query->where('priority', $priority);
+        }
+
+        if ($assignee = $request->query('assignee') && $user->hasRole('admin','gm')) {
+            $query->whereHas('employees', function ($q) use ($assignee) {
+                $q->where('employee_id', $assignee);
+            });
+        }
+
+        $tasks = $query->paginate(10);
+        $employees = Employee::whereIn('position', ['Manager', 'Supervisor'])->get();
+
+        return view('tasks::index', compact('tasks', 'employees'));
     }
 
     /**

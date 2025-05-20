@@ -59,7 +59,7 @@
                                                 </option>
                                             @endforeach
                                         </select>
-                                        <button type="submit" class="btn btn-sm btn-success" {{ $permission->roles->isEmpty() ? '' : 'disabled' }}>
+                                        <button type="submit" class="btn btn-sm btn-success">
                                             <i class="fas fa-link"></i> Assign
                                         </button>
                                     </form>
