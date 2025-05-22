@@ -7,5 +7,6 @@
 @section('page-content')
     <h1>Staff Dashboard</h1>
     <p>Welcome, {{ Auth::user()->name }}!</p>
-    <p>Your roles: {{ implode(', ', session('user_roles', [])) }}</p>
+    {{-- <p>Your roles: {{ implode(', ', session('user_roles', [])) }}</p> --}}
+    {{-- @include('tasks::index'); --}}
 @endsection
