@@ -24,12 +24,12 @@
                         @endif
                     </li>
                     <li class="nav-item ">
-                        
+
                         <a class="nav-link {{ request()->routeIs('staff.leaves.index') ? 'active' : '' }} disabled"
                             href="{{ route('staff.leaves.index') }}"><i class="fas fa-calendar-alt me-2"></i> My Leaves
-                            
+
                         </a>
-                       
+
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('tasks.index') ? 'active' : '' }}"
@@ -37,12 +37,14 @@
                             <i class="fa fa-list-alt me-1"></i> Tasks
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('staff.index') ? 'active' : '' }}"
-                            href="{{ route('staff.index') }}">
-                            <i class="fa fa-users me-1"></i> Staff list
-                        </a>
-                    </li>
+                    @can('staff-view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('staff.index') ? 'active' : '' }}"
+                                href="{{ route('staff.index') }}">
+                                <i class="fa fa-users me-1"></i> Staff list
+                            </a>
+                        </li>
+                    @endcan
                 </ul>
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     @auth

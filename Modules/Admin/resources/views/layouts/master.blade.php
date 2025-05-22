@@ -37,13 +37,14 @@
                             <i class="fa fa-list-alt me-1"></i> Tasks
                         </a>
                     </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('staff.index') ? 'active' : '' }}"
-                            href="{{ route('staff.index') }}">
-                            <i class="fa fa-users me-1"></i> Staff list
-                        </a>
-                    </li>
+                    @can('staff-view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('staff.index') ? 'active' : '' }}"
+                                href="{{ route('staff.index') }}">
+                                <i class="fa fa-users me-1"></i> Staff list
+                            </a>
+                        </li>
+                    @endcan
 
                     @can('manage-user')
                         <li class="nav-item">
