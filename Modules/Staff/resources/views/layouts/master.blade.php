@@ -9,17 +9,38 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('staff.dashboard') }}">Home</a>
+                        @if (Auth::user()->hasRole('staff'))
+                            <a class="nav-link {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}"
+                                href="{{ route('staff.dashboard') }}">
+                                <i class="fas fa-home me-1"></i> Home
+                            </a>
+                        @elseif (Auth::user()->hasRole('admin'))
+                            <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
+                                href="{{ route('admin.dashboard') }}">
+                                <i class="fas fa-home me-1"></i> Home
+                            </a>
+                        @endif
+                    </li>
+                    <li class="nav-item ">
+                        
+                        <a class="nav-link {{ request()->routeIs('staff.leaves.index') ? 'active' : '' }} disabled"
+                            href="{{ route('staff.leaves.index') }}"><i class="fas fa-calendar-alt me-2"></i> My Leaves
+                            
+                        </a>
+                       
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('staff.leaves.index') }}"><i
-                                class="fas fa-calendar-alt me-2"></i> My Leaves</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('tasks.index') }}">
+                        <a class="nav-link {{ request()->routeIs('tasks.index') ? 'active' : '' }}"
+                            href="{{ route('tasks.index') }}">
                             <i class="fa fa-list-alt me-1"></i> Tasks
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('staff.index') ? 'active' : '' }}"
+                            href="{{ route('staff.index') }}">
+                            <i class="fa fa-users me-1"></i> Staff list
                         </a>
                     </li>
                 </ul>
@@ -31,10 +52,10 @@
                                 <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="{{ route('login') }}"><i
-                                    class="fas fa-user-alt me-2"></i>My Profile</a></li>
-                        <li>
-                            <hr class="dropdown-divider">
+                                <li><a class="dropdown-item" href="{{ route('profile.show') }}"><i
+                                            class="fas fa-user-alt me-2"></i>My Profile</a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
                                 <li><a class="dropdown-item" href="{{ route('staff.leaves.index') }}"><i
                                             class="fas fa-calendar-alt me-2"></i> My Leaves</a></li>
                                 <li>
@@ -76,6 +97,5 @@
 @endsection
 
 @section('scripts')
-  
     @yield('page-scripts')
 @endsection
