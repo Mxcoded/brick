@@ -20,7 +20,7 @@ use Modules\Staff\Http\Controllers\StaffController;
 // Accessible to authenticated users with 'admin' or 'staff' role and 'view-staff' permission
 Route::middleware(['web', 'auth'])
     ->resource('staff', StaffController::class)
-    ->names('staff');
+    ->names('staff')->middleware('permission:staff-view');
 
 // **Staff Functionality Routes**
 // Base URL: /staff/*
