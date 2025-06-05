@@ -1,4 +1,4 @@
-@extends('banquet::layouts.master')
+@extends('staff::layouts.master')
 
 @section('content')
 <div class="container-fluid px-4">
