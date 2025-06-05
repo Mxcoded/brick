@@ -762,7 +762,7 @@ class BanquetController extends Controller
 
             $reportData[] = [
                 'event_date_range' => $eventDateRange,
-                'organization' => $order->customer ? $order->customer->name : 'N/A',
+                'organization' => $order->customer->organization ?? 'N/A',
                 'guest_count' => $guestCount,
                 'location' => $location,
                 'hall_rental_fees' => $hallRentalFee,
