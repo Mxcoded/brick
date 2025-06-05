@@ -66,23 +66,27 @@
             <table class="table table-bordered table-striped">
                 <thead class="bg-primary text-white">
                     <tr>
-                        <th>Event Date Range</th>
-                        <th>Customer</th>
-                        <th>Event Type</th>
+                        <th>S/N</th>
+                        <th>Organization</th>
+                        <th>Guest Count</th>
+                        <th>Event Date</th>
                         <th>Location</th>
-                        <th>Total Guest Count</th>
-                        <th>Remark</th>
+                        <th>Hall Rental Fee</th>
+                        <th>Food & Beverage</th>
+                        <th>Total</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($reportData as $data)
+                    @foreach ($reportData as $index => $data)
                         <tr>
-                            <td>{{ $data['event_date_range'] }}</td>
-                            <td>{{ $data['customer_name'] }}</td>
-                            <td>{{ $data['event_type'] }}</td>
-                            <td>{{ $data['location'] }}</td>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $data['organization'] }}</td>
                             <td>{{ $data['guest_count'] }}</td>
-                            <td>{{ $data['status'] }}</td>
+                            <td>{{ $data['event_date_range'] }}</td>
+                            <td>{{ $data['location'] }}</td>
+                            <td>{{ number_format($data['hall_rental_fees'], 2) }}</td>
+                            <td>{{ number_format($data['food_beverage_total'], 2) }}</td>
+                            <td>{{ number_format($data['total'], 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -205,7 +209,15 @@
         margin: 10px auto;
         height: 20px;
     }
-
+    /* Adjusted table styles for new columns */
+    .table th, .table td {
+        vertical-align: middle;
+        font-size: 14px;
+    }
+    .table th {
+        font-size: 12px;
+        text-transform: uppercase;
+    }
     /* Print Styles */
     @media print {
         body {
@@ -230,8 +242,9 @@
         .summary-item p {
             font-size: 16px;
         }
-        table th, table td {
-            padding: 8px;
+        .table th, .table td {
+            padding: 6px;
+            font-size: 11px;
         }
         .footer {
             font-size: 10px;
@@ -240,7 +253,7 @@
             display: none;
         }
         .signature-section {
-            display: block !important; /* Ensure signature section is visible in print */
+            display: block !important;
         }
     }
 </style>

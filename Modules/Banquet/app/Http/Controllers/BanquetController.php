@@ -621,6 +621,88 @@ class BanquetController extends Controller
     /**
      * Display an HTML report of events based on the selected date range.
      */
+    // public function generateEventReport(Request $request)
+    // {
+    //     $request->validate([
+    //         'start_date' => 'required|date',
+    //         'end_date' => 'required|date|after_or_equal:start_date',
+    //     ]);
+
+    //     $startDate = $request->input('start_date');
+    //     $endDate = $request->input('end_date');
+
+    //     // Fetch orders with event days and customer within the date range
+    //     $orders = BanquetOrder::with(['customer', 'eventDays'])
+    //         ->whereBetween('preparation_date', [$startDate, $endDate])
+    //         ->get();
+
+    //     // Prepare report data
+    //     $reportData = [];
+    //     $statusCounts = ['Confirmed' => 0, 'Cancelled' => 0, 'Completed' => 0, 'Pending' => 0];
+    //     $locationCounts = [];
+
+    //     // Count total orders (events)
+    //     $totalEvents = $orders->count();
+
+    //     foreach ($orders as $order) {
+    //         if ($order->eventDays->isEmpty()) {
+    //             $eventDateRange = 'No event days';
+    //             $eventType = 'N/A';
+    //             $location = 'N/A';
+    //             $guestCount = 0;
+    //         } else {
+    //             $dates = $order->eventDays->sortBy('event_date');
+    //             $eventDateRange = $dates->first()->event_date->format('M d, Y') . ' - ' .
+    //                 $dates->last()->event_date->format('M d, Y');
+    //             $eventType = $order->eventDays->first()->event_type;
+    //             $location = $order->eventDays->first()->room;
+    //             $guestCount = $order->eventDays->sum('guest_count');
+
+    //             // Count locations (still based on event days)
+    //             $locationCounts[$location] = ($locationCounts[$location] ?? 0) + 1;
+    //         }
+
+    //         // Count statuses based on orders
+    //         if (isset($statusCounts[$order->status])) {
+    //             $statusCounts[$order->status]++;
+    //         }
+
+    //         $reportData[] = [
+    //             'event_date_range' => $eventDateRange,
+    //             'customer_name' => $order->customer ? $order->customer->name : 'N/A',
+    //             'event_type' => $eventType,
+    //             'location' => $location,
+    //             'guest_count' => $guestCount,
+    //             'status' => $order->status,
+    //         ];
+    //     }
+
+    //     // Sort report data by event_date_range
+    //     usort($reportData, function ($a, $b) {
+    //         return strcmp($a['event_date_range'], $b['event_date_range']);
+    //     });
+
+    //     // Determine most used location
+    //     $mostUsedLocation = !empty($locationCounts) ? array_search(max($locationCounts), $locationCounts) : 'N/A';
+
+    //     // Prepare summary data
+    //     $summary = [
+    //         'total_events' => $totalEvents,
+    //         'confirmed' => $statusCounts['Confirmed'],
+    //         'cancelled' => $statusCounts['Cancelled'],
+    //         'completed' => $statusCounts['Completed'],
+    //         'pending' => $statusCounts['Pending'],
+    //         'most_used_location' => $mostUsedLocation,
+    //     ];
+
+    //     // Return HTML view instead of PDF
+    //     return view('banquet::reports.event-report', [
+    //         'reportData' => $reportData,
+    //         'startDate' => $startDate,
+    //         'endDate' => $endDate,
+    //         'summary' => $summary,
+    //     ]);
+    // }
     public function generateEventReport(Request $request)
     {
         $request->validate([
@@ -631,8 +713,8 @@ class BanquetController extends Controller
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
 
-        // Fetch orders with event days and customer within the date range
-        $orders = BanquetOrder::with(['customer', 'eventDays'])
+        // Fetch orders with event days, customer, and menu items within the date range
+        $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
             ->whereBetween('preparation_date', [$startDate, $endDate])
             ->get();
 
@@ -650,6 +732,8 @@ class BanquetController extends Controller
                 $eventType = 'N/A';
                 $location = 'N/A';
                 $guestCount = 0;
+                $hallRentalFee = 0;
+                $foodBeverageTotal = 0;
             } else {
                 $dates = $order->eventDays->sortBy('event_date');
                 $eventDateRange = $dates->first()->event_date->format('M d, Y') . ' - ' .
@@ -658,7 +742,16 @@ class BanquetController extends Controller
                 $location = $order->eventDays->first()->room;
                 $guestCount = $order->eventDays->sum('guest_count');
 
-                // Count locations (still based on event days)
+                // Calculate hall rental fee (sum across event days, assuming each day has a fee)
+                $hallRentalFee = $order->hall_rental_fees;
+
+                // Calculate food and beverage total (sum of menu item prices)
+                $foodBeverageTotal = $order->eventDays->flatMap->menuItems->sum('total_price') ?? 0;
+                // $order->eventDays->reduce(function ($carry, $day) {
+                //     return $carry + $day->menuItems->sum('price');
+                // }, 0);
+
+                // Count locations (based on event days)
                 $locationCounts[$location] = ($locationCounts[$location] ?? 0) + 1;
             }
 
@@ -669,10 +762,12 @@ class BanquetController extends Controller
 
             $reportData[] = [
                 'event_date_range' => $eventDateRange,
-                'customer_name' => $order->customer ? $order->customer->name : 'N/A',
-                'event_type' => $eventType,
-                'location' => $location,
+                'organization' => $order->customer ? $order->customer->name : 'N/A',
                 'guest_count' => $guestCount,
+                'location' => $location,
+                'hall_rental_fees' => $hallRentalFee,
+                'food_beverage_total' => $foodBeverageTotal,
+                'total' => $hallRentalFee + $foodBeverageTotal,
                 'status' => $order->status,
             ];
         }
@@ -695,7 +790,7 @@ class BanquetController extends Controller
             'most_used_location' => $mostUsedLocation,
         ];
 
-        // Return HTML view instead of PDF
+        // Return HTML view
         return view('banquet::reports.event-report', [
             'reportData' => $reportData,
             'startDate' => $startDate,
@@ -704,6 +799,7 @@ class BanquetController extends Controller
         ]);
     }
     /**
+     * 
      * Display datatable for index.
      */
     public function datatable(Request $request)
