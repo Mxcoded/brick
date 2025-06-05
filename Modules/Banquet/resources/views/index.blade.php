@@ -1,6 +1,9 @@
-@extends('banquet::layouts.master')
+@extends('staff::layouts.master')
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Event Orders Tracker</li>
+@endsection
 
-@section('content')
+@section('page-content')
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="fw-bold display-5 text-primary">
@@ -174,10 +177,10 @@
                             <a href="${data.view}" class="btn btn-sm btn-outline-primary" title="View">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            <a href="${data.edit}" class="btn btn-sm btn-outline-warning" title="Edit">
+                            <a href="${data.edit}" class="btn btn-sm btn-outline-warning" title="Update Data">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            <a href="${data.pdf}" class="btn btn-sm btn-outline-success" title="Generate PDF" target="_blank">
+                            <a href="${data.pdf}" class="btn btn-sm btn-outline-success" title="Generate Function Sheet PDF" target="_blank">
                                 <i class="fas fa-file-pdf"></i>
                             </a>
                             <button class="btn btn-sm btn-outline-danger delete-order" data-order-id="${data.order_id}" title="Delete">

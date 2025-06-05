@@ -25,7 +25,7 @@ class BanquetController extends Controller
         $statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
         return view('banquet::index', compact('orders', 'statuses'));
     }
-
+  
     /**
      * Show the form for creating a new banquet order.
      */

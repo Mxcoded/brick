@@ -3,7 +3,7 @@
 @section('header')
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">BRICKSPOINT</a>
+            <a class="navbar-brand" href="#">BRICKSPOINT<sup>&trade;</sup><sub style="font-size:8pt;">v1.0</sub></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -25,26 +25,40 @@
                     </li>
                     <li class="nav-item ">
 
-                        <a class="nav-link {{ request()->routeIs('staff.leaves.index') ? 'active' : '' }} disabled"
+                        <a class="nav-link {{ request()->routeIs('staff.leaves.*') ? 'active' : '' }} disabled"
                             href="{{ route('staff.leaves.index') }}"><i class="fas fa-calendar-alt me-2"></i> My Leaves
 
                         </a>
 
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('tasks.index') ? 'active' : '' }}"
+                        <a class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}"
                             href="{{ route('tasks.index') }}">
                             <i class="fa fa-list-alt me-1"></i> Tasks
                         </a>
                     </li>
                     @can('staff-view')
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('staff.index') ? 'active' : '' }}"
+                            <a class="nav-link {{ request()->routeIs('staff.*') ? 'active' : '' }}"
                                 href="{{ route('staff.index') }}">
                                 <i class="fa fa-users me-1"></i> Staff list
                             </a>
                         </li>
                     @endcan
+                    
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('maintenance.*') ? 'active' : '' }}"
+                                href="{{ route('maintenance.index') }}">
+                                <i class="fa fa-users me-1"></i> Maintenance log
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('banquet.orders.*') ? 'active' : '' }}"
+                                href="{{ route('banquet.orders.index') }}">
+                                <i class="fa fa-users me-1"></i>Banquet
+                            </a>
+                        </li>
+                
                 </ul>
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     @auth

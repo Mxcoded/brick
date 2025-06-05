@@ -4,6 +4,7 @@ namespace Modules\Banquet\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\DB;
 
 class BanquetOrder extends Model
 {
@@ -56,5 +57,24 @@ class BanquetOrder extends Model
     public function getRouteKeyName()
     {
         return 'order_id'; // Use order_id instead of id for route binding
+    }
+    /**
+     * Scope to fetch upcoming banquet events.
+     */
+    public function scopeUpcoming($query)
+    {
+        return $query->select(
+            'banquet_orders.id',
+            'banquet_orders.order_id',
+            'banquet_orders.customer_id',
+            'banquet_orders.status',
+            DB::raw('MIN(banquet_order_days.event_date) as earliest_event_date')
+        )
+            ->join('banquet_order_days', 'banquet_orders.id', '=', 'banquet_order_days.banquet_order_id')
+            ->whereNotIn('banquet_orders.status', ['Completed', 'Cancelled'])
+            ->groupBy('banquet_orders.id', 'banquet_orders.order_id', 'banquet_orders.customer_id', 'banquet_orders.status')
+            ->having('earliest_event_date', '>=', now()->toDateString())
+            ->orderBy('earliest_event_date', 'asc')
+            ->with('customer');
     }
 }
