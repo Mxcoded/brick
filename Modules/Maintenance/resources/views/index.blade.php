@@ -1,9 +1,9 @@
-@extends('staff::layouts.master')
+@extends('maintenance::layouts.master')
 @section('current-breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">Maintenance Tracker</li>
 @endsection
 
-@section('page-content')
+@section('content')
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="fw-bold text-gradient">🏗️ Maintenance Tracker</h1>
