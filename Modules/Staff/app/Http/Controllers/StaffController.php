@@ -10,8 +10,10 @@ use Modules\Staff\Models\EmploymentHistory;
 use Modules\Staff\Models\EducationalBackground;
 use Modules\Staff\Models\LeaveRequest;
 use Modules\Staff\Models\LeaveBalance;
+use Modules\Banquet\Models\BanquetOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+
 
 
 
@@ -44,9 +46,10 @@ class StaffController extends Controller
     {
         Log::info('StaffController@dashboard reached', ['user_id' => Auth::user()->id]);
         $userRoles = session('user_roles', []);
+        $upcomingEvents = BanquetOrder::upcoming()->take(3)->get();
         if (view()->exists('staff::dashboard')) {
             Log::info('Rendering staff::dashboard');
-            return view('staff::dashboard', compact('userRoles'));
+            return view('staff::dashboard', compact('userRoles', 'upcomingEvents'));
         }
         Log::info('View staff::dashboard not found');
         return response('View staff::dashboard not found', 404);

@@ -9,12 +9,14 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Hash;
+use Modules\Banquet\Models\BanquetOrder;
 
 class AdminController extends Controller
 {
     public function index()
     {
-        return view('admin::dashboard');
+        $upcomingEvents = BanquetOrder::upcoming()->take(3)->get();
+        return view('admin::dashboard', compact('upcomingEvents'));
     }
 
     public function roles()

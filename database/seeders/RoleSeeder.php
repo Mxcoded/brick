@@ -24,7 +24,7 @@ class RoleSeeder extends Seeder
             'view-staff',
             'manage-leaves',
             'approve-leaves',
-            'view-reports',
+            'leave-reports',
         ];
 
         foreach ($permissions as $permission) {
@@ -39,7 +39,7 @@ class RoleSeeder extends Seeder
         $staffRole->syncPermissions([
             'view-staff',
             'manage-leaves',
-            'view-reports',
+            'leave-reports',
         ]);
 
         $guestRole = Role::firstOrCreate(['name' => 'guest']);

@@ -57,7 +57,7 @@ Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
         // Leave Report Route
         Route::get('/report', [StaffController::class, 'leaveReport'])
             ->name('staff.leaves.report')
-            ->middleware('permission:view-reports');
+            ->middleware('permission:leave-reports');
     });
 
     // **Approval Routes (Admin Only)**
