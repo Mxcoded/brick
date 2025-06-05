@@ -89,7 +89,8 @@
 
 <body>
   <div class="container mt-4">
-        @yield('content')
+   
+    @yield('content')
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script><!-- Add your JavaScript files here -->
     @yield('scripts') <!-- This is where your scripts will be injected -->

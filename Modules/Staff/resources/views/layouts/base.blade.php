@@ -47,7 +47,7 @@
     <!-- Footer Section -->
     <footer class="bg-dark text-white p-3">
         <div class="container">
-            <p>&copy; {{ date('Y') }} Staff Module. All rights reserved.</p>
+            <p>&copy; {{ date('Y') }} <a class="navbar-brand" href="#">BRICKSPOINT <i style="font-size:8pt;"> v1.0</i></a>. All rights reserved.</p>
         </div>
     </footer>
 

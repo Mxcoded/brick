@@ -1,6 +1,9 @@
-@extends('banquet::layouts.master')
+@extends('staff::layouts.master')
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Add Event Day(s)</li>
+@endsection
 
-@section('content')
+@section('page-content')
 <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="fw-bold display-5 text-primary">
