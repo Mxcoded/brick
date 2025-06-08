@@ -10,6 +10,11 @@
             <a href="{{ route('maintenance.create') }}" class="btn btn-primary rounded-pill shadow-sm">
                 <i class="fas fa-plus-circle me-2"></i> New Log
             </a>
+            @auth
+            <a href="{{route('home')}}" class="btn btn-secondary rounded-pill shadow-sm">
+                <i class="fas fa-arrow-left me-2"></i> Back Home
+            </a>
+            @endauth
         </div>
 
         @if (session('success'))
