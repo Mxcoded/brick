@@ -1,5 +1,6 @@
 @extends('staff::layouts.base')
 
+
 @section('header')
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
@@ -11,17 +12,12 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills">
                     <li class="nav-item">
-                        @if (Auth::user()->hasRole('staff'))
-                            <a class="nav-link {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}"
-                                href="{{ route('staff.dashboard') }}">
+                        
+                            <a class="nav-link {{ request()->routeIs('staff.dashboard','admin.dashboard') ? 'active' : '' }}"
+                                href="{{ route('home') }}">
                                 <i class="fas fa-home me-1"></i> Home
                             </a>
-                        @elseif (Auth::user()->hasRole('admin'))
-                            <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
-                                href="{{ route('admin.dashboard') }}">
-                                <i class="fas fa-home me-1"></i> Home
-                            </a>
-                        @endif
+                      
                     </li>
                     <li class="nav-item ">
 

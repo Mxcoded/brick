@@ -8,7 +8,7 @@
     <h1>Staff Dashboard</h1>
     <p>Welcome, {{ Auth::user()->name }}!</p>
     <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-warning text-dark">
             <h5 class="mb-0">Upcoming Events</h5>
         </div>
         <div class="card-body">
