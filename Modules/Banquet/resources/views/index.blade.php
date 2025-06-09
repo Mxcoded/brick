@@ -10,10 +10,10 @@
                 <i class="fas fa-utensils me-3"></i>Event Orders
             </h1>
             <div>
-                <a href="{{ route('banquet.orders.report.form') }}" class="btn btn-secondary me-2">
+                <a href="{{ route('banquet.orders.report.form') }}" class="btn btn-primary me-2">
                     <i class="fas fa-file-pdf me-2"></i>Generate Report
                 </a>
-                <a href="{{ route('banquet.orders.create') }}" class="btn btn-primary">
+                <a href="{{ route('banquet.orders.create') }}" class="btn btn-success">
                     <i class="fas fa-plus-circle me-2"></i>Create New Order
                 </a>
             </div>
@@ -174,9 +174,10 @@
                         render: function(data) {
                             return `
                         <div class="d-flex gap-2">
-                            <a href="${data.view}" class="btn btn-sm btn-outline-primary" title="View">
+                            <a href="${data.view}" class="btn btn-sm btn-outline-primary" title="Show Detail">
                                 <i class="fas fa-eye"></i>
                             </a>
+                            @can('manage-banquet')
                             <a href="${data.edit}" class="btn btn-sm btn-outline-warning" title="Update Data">
                                 <i class="fas fa-edit"></i>
                             </a>
@@ -186,6 +187,7 @@
                             <button class="btn btn-sm btn-outline-danger delete-order" data-order-id="${data.order_id}" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
+                            @endcan
                         </div>
                     `;
                         }

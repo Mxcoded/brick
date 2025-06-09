@@ -1,8 +1,9 @@
-@extends('staff::layouts.base')
+@extends('admin::layouts.base')
 
 @section('header')
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    @include('admin::layouts\navbar');
+    {{-- <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container-fluid">
             <!-- Brand Logo -->
             <a class="navbar-brand fw-bold" href="#">BRICKSPOINT</a>
@@ -19,7 +20,7 @@
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
-                            href="{{ route('admin.dashboard') }}">
+                            href="{{ route('home') }}">
                             <i class="fas fa-home me-1"></i> Home
                         </a>
                     </li>
@@ -115,7 +116,7 @@
                 </ul>
             </div>
         </div>
-    </nav>
+    </nav> --}}
 @endsection
 
 @section('breadcrumb')
@@ -123,7 +124,7 @@
     <nav aria-label="breadcrumb" class="bg-light py-3 shadow-sm">
         <div class="container">
             <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{{ route('staff.index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
                 @yield('current-breadcrumb')
             </ol>
         </div>

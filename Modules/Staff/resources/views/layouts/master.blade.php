@@ -1,7 +1,9 @@
 @extends('staff::layouts.base')
 
+
 @section('header')
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+@include('admin::layouts.navbar')
+    {{-- <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">BRICKSPOINT<sup>&trade;</sup><sub style="font-size:8pt;">v1.0</sub></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
@@ -11,17 +13,12 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0 nav-pills">
                     <li class="nav-item">
-                        @if (Auth::user()->hasRole('staff'))
-                            <a class="nav-link {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}"
-                                href="{{ route('staff.dashboard') }}">
+                        
+                            <a class="nav-link {{ request()->routeIs('staff.dashboard','admin.dashboard') ? 'active' : '' }}"
+                                href="{{ route('home') }}">
                                 <i class="fas fa-home me-1"></i> Home
                             </a>
-                        @elseif (Auth::user()->hasRole('admin'))
-                            <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
-                                href="{{ route('admin.dashboard') }}">
-                                <i class="fas fa-home me-1"></i> Home
-                            </a>
-                        @endif
+                      
                     </li>
                     <li class="nav-item ">
 
@@ -39,10 +36,10 @@
                     </li>
                     @can('staff-view')
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('staff.*') ? 'active' : '' }}"
+                            <a class="nav-link {{ !request()->routeIs('staff.dashboard') ? 'active' : '' }}"
                                 href="{{ route('staff.index') }}">
                                 <i class="fa fa-users me-1"></i> Staff list
-                            </a>
+                             </a>
                         </li>
                     @endcan
                     
@@ -94,7 +91,7 @@
                 </ul>
             </div>
         </div>
-    </nav>
+    </nav> --}}
 @endsection
 
 @section('breadcrumb')

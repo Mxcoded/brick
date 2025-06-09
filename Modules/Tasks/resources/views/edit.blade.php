@@ -142,8 +142,8 @@
                             <button type="submit" class="btn btn-primary" aria-label="Update task">
                                 <i class="fas fa-save me-1"></i> Update Task
                             </button>
-                            <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary" aria-label="Cancel">
-                                <i class="fas fa-times me-1"></i> Cancel
+                            <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-outline-white btn-danger" aria-label="Cancel">
+                                <i class="fas fa-times-circle me-1"></i> Cancel Update
                             </a>
                         </div>
                     </form>
