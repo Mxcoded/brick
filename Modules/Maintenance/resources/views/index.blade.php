@@ -10,6 +10,11 @@
             <a href="{{ route('maintenance.create') }}" class="btn btn-primary rounded-pill shadow-sm">
                 <i class="fas fa-plus-circle me-2"></i> New Log
             </a>
+            @auth
+            <a href="{{route('home')}}" class="btn btn-warning rounded-pill shadow-sm">
+                <i class="fas fa-arrow-left me-2"></i> Back Home
+            </a>
+            @endauth
         </div>
 
         @if (session('success'))
@@ -95,13 +100,14 @@
                                     <td class="text-end pe-4">
                                         <div class="btn-group btn-group-sm shadow-sm">
                                             <a href="{{ route('maintenance.show', $log->id) }}"
-                                                class="btn btn-light border" data-bs-toggle="tooltip" title="View">
+                                                class="btn btn-light border" data-bs-toggle="tooltip" title="Show Detail">
                                                 <i class="fas fa-eye text-info"></i>
                                             </a>
                                             <a href="{{ route('maintenance.edit', $log->id) }}"
-                                                class="btn btn-light border" data-bs-toggle="tooltip" title="Edit">
-                                                <i class="fas fa-edit text-warning"></i>
+                                                class="btn btn-light border" data-bs-toggle="tooltip" title="Update Log">
+                                                <i class="fas fa-edit text-primary"></i>
                                             </a>
+                                            @can('delete-maintenance-log')
                                             <form action="{{ route('maintenance.destroy', $log->id) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
@@ -110,6 +116,7 @@
                                                     <i class="fas fa-trash text-danger"></i>
                                                 </button>
                                             </form>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

@@ -24,6 +24,13 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+    <style>
+        .nav-pills .nav-link.active {
+            background-color: gold !important;
+            color: black;
+        }
+    </style>
+
     <!-- Yield custom styles -->
     @yield('styles')
 </head>
@@ -47,7 +54,8 @@
     <!-- Footer Section -->
     <footer class="bg-dark text-white p-3">
         <div class="container">
-            <p>&copy; {{ date('Y') }} <a class="navbar-brand" href="#">BRICKSPOINT <i style="font-size:8pt;"> v1.0</i></a>. All rights reserved.</p>
+            <p>&copy; {{ date('Y') }} <a class="navbar-brand" href="#">BRICKSPOINT <i style="font-size:8pt;">
+                        v1.0</i></a>. All rights reserved.</p>
         </div>
     </footer>
 
