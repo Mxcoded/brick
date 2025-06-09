@@ -37,6 +37,29 @@
                         </a>
                     </li>
                 @endcan
+                @can('manage-user')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
+                                href="{{ route('admin.users.index') }}">
+                                <i class="fas fa-users me-1"></i> Manage Users
+                            </a>
+                        </li>
+                    @endcan
+
+                    @can('manage-roles-permission')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}"
+                                href="{{ route('admin.permissions.index') }}">
+                                <i class="fas fa-key me-1"></i> Manage Permissions
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('admin.roles.index') ? 'active' : '' }}"
+                                href="{{ route('admin.roles.index') }}">
+                                <i class="fas fa-user-tag me-1"></i> Manage Roles
+                            </a>
+                        </li>
+                    @endcan
 
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('maintenance.*') ? 'active' : '' }}"
