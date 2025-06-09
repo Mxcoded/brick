@@ -2,7 +2,8 @@
 
 
 @section('header')
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+@include('admin::layouts.navbar')
+    {{-- <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">BRICKSPOINT<sup>&trade;</sup><sub style="font-size:8pt;">v1.0</sub></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
@@ -35,10 +36,10 @@
                     </li>
                     @can('staff-view')
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('staff.*') ? 'active' : '' }}"
+                            <a class="nav-link {{ !request()->routeIs('staff.dashboard') ? 'active' : '' }}"
                                 href="{{ route('staff.index') }}">
                                 <i class="fa fa-users me-1"></i> Staff list
-                            </a>
+                             </a>
                         </li>
                     @endcan
                     
@@ -90,7 +91,7 @@
                 </ul>
             </div>
         </div>
-    </nav>
+    </nav> --}}
 @endsection
 
 @section('breadcrumb')
