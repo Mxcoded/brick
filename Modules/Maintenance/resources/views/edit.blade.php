@@ -76,7 +76,7 @@
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
-        <button type="submit" class="btn btn-primary">Update</button>
-        <a href="{{ route('maintenance.index') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary mt-5">Update (Save)</button>
+        <a href="{{ route('maintenance.index') }}" class="btn btn-warning mt-5" title="Back to logs"><span class="fas fa-arrow-circle-left"></span> Cancel</a>
     </form>
 @endsection

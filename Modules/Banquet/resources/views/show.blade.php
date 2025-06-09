@@ -139,9 +139,11 @@
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0"><i class="fas fa-calendar-days me-2"></i>Event Schedule</h5>
+                @can('manage-banquet')
                 <a href="{{ route('banquet.orders.add-day', $order->order_id) }}" class="btn btn-light btn-sm">
                     <i class="fas fa-plus me-2"></i>Add Event Day
                 </a>
+                @endcan
             </div>
             <div class="card-body p-0">
                 @if ($order->eventDays->isEmpty())
@@ -190,6 +192,7 @@
                                             </span>
                                         </td>
                                         <td>
+                                            @can('manage-banquet')
                                             <div>
                                                 <a href="{{ route('banquet.orders.add-menu-item', [$order->order_id, $day->id]) }}"
                                                     class="btn btn-sm btn-outline-primary" title="Add Menu">
@@ -218,6 +221,7 @@
                                                     </button>
                                                 </form>
                                             </div>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @endforeach
@@ -261,6 +265,7 @@
                                                                     class="fas fa-{{ $item->meal_type === 'breakfast' ? 'sun' : 'moon' }} me-2"></i>
                                                                 {{ ucfirst($item->meal_type) }}
                                                             </h6>
+                                                            @can('manage-banquet')
                                                             <div>
                                                                 <a href="{{ route('banquet.orders.edit-menu-item', [$order->order_id, $day->id, $item->id]) }}"
                                                                     class="btn btn-sm btn-warning me-2"
@@ -279,6 +284,7 @@
                                                                     </button>
                                                                 </form>
                                                             </div>
+                                                            @endcan
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="d-flex justify-content-between mb-3">
