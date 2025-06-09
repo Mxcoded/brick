@@ -92,8 +92,8 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0">Task #{{ $task->task_number }}</h1>
-            <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary btn-sm" aria-label="Back to tasks">
-                <i class="fas fa-arrow-left me-1"></i> Back
+            <a href="{{ route('tasks.index') }}" class="btn btn-outline-warning btn-primary" aria-label="Cancel">
+                <i class="fas fa-arrow-circle-left me-1"></i> Task List
             </a>
         </div>
 
@@ -163,11 +163,11 @@
                 <div class="d-flex gap-2">
                     @can('edit-task')
                         <a href="{{ route('tasks.edit', $task->id) }}" class="btn btn-primary btn-sm" aria-label="Edit task">
-                            <i class="fas fa-edit me-1"></i> Edit Task
+                            <i class="fas fa-edit me-1"></i> Update Task
                         </a>
                     @endcan
-                    <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary btn-sm" aria-label="Back to tasks">
-                        <i class="fas fa-arrow-left me-1"></i> Back
+                    <a href="{{ route('tasks.index') }}" class="btn btn-outline-warning btn-secondary" aria-label="Cancel">
+                        <i class="fas fa-arrow-circle-left me-1"></i> Task List
                     </a>
                 </div>
             </div>
