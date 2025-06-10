@@ -717,7 +717,7 @@ class BanquetController extends Controller
         $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
             ->whereBetween('preparation_date', [$startDate, $endDate])
             ->get();
-
+        
         // Prepare report data
         $reportData = [];
         $statusCounts = ['Confirmed' => 0, 'Cancelled' => 0, 'Completed' => 0, 'Pending' => 0];
@@ -725,6 +725,7 @@ class BanquetController extends Controller
 
         // Count total orders (events)
         $totalEvents = $orders->count();
+        $totalRevenue = 0;
 
         foreach ($orders as $order) {
             if ($order->eventDays->isEmpty()) {
@@ -747,9 +748,9 @@ class BanquetController extends Controller
 
                 // Calculate food and beverage total (sum of menu item prices)
                 $foodBeverageTotal = $order->eventDays->flatMap->menuItems->sum('total_price') ?? 0;
-                // $order->eventDays->reduce(function ($carry, $day) {
-                //     return $carry + $day->menuItems->sum('price');
-                // }, 0);
+
+                //Calculate Event total Amount
+                $eventTotal = $hallRentalFee + $foodBeverageTotal;
 
                 // Count locations (based on event days)
                 $locationCounts[$location] = ($locationCounts[$location] ?? 0) + 1;
@@ -767,9 +768,10 @@ class BanquetController extends Controller
                 'location' => $location,
                 'hall_rental_fees' => $hallRentalFee,
                 'food_beverage_total' => $foodBeverageTotal,
-                'total' => $hallRentalFee + $foodBeverageTotal,
+                'total' =>  $eventTotal,
                 'status' => $order->status,
             ];
+            $totalRevenue += $eventTotal;
         }
 
         // Sort report data by event_date_range
@@ -796,6 +798,7 @@ class BanquetController extends Controller
             'startDate' => $startDate,
             'endDate' => $endDate,
             'summary' => $summary,
+            'totalRevenue' => $totalRevenue,
         ]);
     }
     /**

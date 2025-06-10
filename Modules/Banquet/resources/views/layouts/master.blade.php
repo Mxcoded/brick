@@ -82,6 +82,10 @@
 .alert {
     border-radius: 0.5rem;
 }
+.summary-item.total-revenue p {
+    font-size: 24px;
+    color: #28a745;
+}
 
 </style>
 
