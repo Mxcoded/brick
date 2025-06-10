@@ -56,6 +56,14 @@
                 </div>
             </div>
         </div>
+        <div class="row mt-3">
+            <div class="col-12 text-center">
+                <div class="summary-item total-revenue">
+                    <h3>Total Revenue</h3>
+                    <p>₦{{ number_format($totalRevenue, 2) }}</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Report Data -->
