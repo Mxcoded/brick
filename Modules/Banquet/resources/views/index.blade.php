@@ -9,14 +9,16 @@
             <h1 class="fw-bold display-5 text-primary">
                 <i class="fas fa-utensils me-3"></i>Event Orders
             </h1>
-            <div>
-                <a href="{{ route('banquet.orders.report.form') }}" class="btn btn-primary me-2">
-                    <i class="fas fa-file-pdf me-2"></i>Generate Report
-                </a>
-                <a href="{{ route('banquet.orders.create') }}" class="btn btn-success">
-                    <i class="fas fa-plus-circle me-2"></i>Create New Order
-                </a>
-            </div>
+            @can('manage-banquet')
+                <div>
+                    <a href="{{ route('banquet.orders.report.form') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-file-pdf me-2"></i>Generate Report
+                    </a>
+                    <a href="{{ route('banquet.orders.create') }}" class="btn btn-success">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Order
+                    </a>
+                </div>
+            @endcan
         </div>
 
         <div class="card shadow-sm border-0">
