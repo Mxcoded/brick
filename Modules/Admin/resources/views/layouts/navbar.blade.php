@@ -73,6 +73,12 @@
                         <i class="fa fa-users me-1"></i>Banquet
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('gym.*') ? 'active' : '' }}"
+                        href="{{ route('gym.index') }}">
+                        <i class="fas fa-dumbbell me-1"></i>Gym
+                    </a>
+                </li>
 
             </ul>
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
