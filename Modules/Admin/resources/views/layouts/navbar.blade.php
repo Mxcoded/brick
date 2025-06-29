@@ -46,11 +46,11 @@
                 {{-- //start --}}
                 @can('manage-user')
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                            aria-expanded="false">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+                            href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Manage User
                         </a>
-                        <ul class="dropdown-menu">
+                        <ul class="dropdown-menu nav-pills">
 
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
@@ -91,13 +91,14 @@
                         <i class="fa fa-users me-1"></i>Banquet
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('gym.*') ? 'active' : '' }}"
-                        href="{{ route('gym.index') }}">
-                        <i class="fas fa-dumbbell me-1"></i>Gym
-                    </a>
-                </li>
-
+                @can('manage-gym')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('gym.*') ? 'active' : '' }}"
+                            href="{{ route('gym.index') }}">
+                            <i class="fas fa-dumbbell me-1"></i>Gym
+                        </a>
+                    </li>
+                @endcan
             </ul>
             <div id="liveClock"
                 style=" color: #fff;font-weight: bold;font-family: 'Courier New', monospace; font-size: 1rem;  padding: 6px 12px;border-radius: 6px;  background: linear-gradient(145deg, #1e1e1e, #2c2c2c);  box-shadow: inset 1px 1px 3px rgba(255,255,255,0.1), inset -1px -1px 3px rgba(0,0,0,0.5);margin-left: 15px;  min-width: 120px;  text-align: center;">
