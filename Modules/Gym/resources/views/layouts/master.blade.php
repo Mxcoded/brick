@@ -225,6 +225,11 @@
             .toggle-container {
                 flex-direction: column;
             }
+
+        }
+        .nav-pills .nav-link.active {
+            background-color: gold !important;
+            color: black;
         }
     </style>
     {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -597,20 +602,34 @@
 
 <body>
     @include('admin::layouts.navbar')
-    @yield('content')
-
+    <main class="container my-4">
+        @yield('content')
+    </main>
+   
     {{-- Vite JS --}}
     {{-- {{ module_vite('build-gym', 'resources/assets/js/app.js', storage_path('vite.hot')) }} --}}
 
 
     <!-- Before </body> -->
-    <!-- In <head> -->
 
-    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.21/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#gymMemberTable').DataTable({
+                responsive: true,
+                columnDefs: [{
+                        orderable: false,
+                        targets: [4, 7, 10]
+                    },
+                    {
+                        searchable: false,
+                        targets: [4, 7, 10]
+                    }
+                ]
+            });
+        });
+    </script>
 </body>

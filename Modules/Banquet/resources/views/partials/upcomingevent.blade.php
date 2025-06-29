@@ -1,7 +1,7 @@
 <div class="card-body">
 <div class="card shadow-sm">
     <div class="card-header bg-warning text-dark">
-        <h5 class="mb-0">Upcoming Events</h5>
+        <h5 class="mb-0">Upcoming Events <i class="fas fa-bell"></i></h5>
     </div>
     
         @if (isset($upcomingEvents) && $upcomingEvents->isNotEmpty())
@@ -9,12 +9,24 @@
             @foreach ($upcomingEvents as $event)
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
-                        <strong>Order #{{ $event->order_id }}</strong> - {{ $event->customer->organization }} <br>
-                        Starts on {{ \Carbon\Carbon::parse($event->earliest_event_date)->format('M d, Y') }} <br>
+                        <strong>Order #{{ $event->order_id }}</strong><br> 
+                        
+                        @if($event->customer->organization == "Individual")
+                        Guest Name -    
+                        <strong>{{ strtoupper($event->customer->name) }}</strong>
+                            
+                        @else
+                        Organization Name -
+                            {{ strtoupper($event->customer->organization) }}
+                        @endif
+                        <br>
+                        <strong>Starts on {{ \Carbon\Carbon::parse($event->earliest_event_date)->format('M d, Y') }} - {{ \Carbon\Carbon::parse($event->last_event_date)->format('M d, Y') }}</strong><br>
+                        Location : <strong>{{strtoupper($event->eventDays->first()->room);}}</strong><br>
+                        Expected Guest: <strong>{{$event->eventDays->sum('guest_count');}}</strong><br>
                         Status: <span class="badge bg-{{ $event->status == 'Confirmed' ? 'success' : 'warning' }}">{{ $event->status }}</span>
                     </div>
-                    <a href="{{ route('banquet.orders.show', $event->order_id) }}"
-                        class="btn btn-sm btn-outline-primary">
+                    {{-- {{ route('banquet.orders.show', $event->order_id) }} --}}
+                    <a href="#"class="btn btn-sm btn-outline-primary" title="Disabled Temprorarily">
                         View Details
                     </a>
                 </li>
