@@ -609,7 +609,11 @@
     {{-- Vite JS --}}
     {{-- {{ module_vite('build-gym', 'resources/assets/js/app.js', storage_path('vite.hot')) }} --}}
 
-
+    <footer class="bg-dark text-white p-3">
+        <div class="container">
+            <p class="text-center">&copy; {{ date('Y') }} BRICKSPOINT<sup style="font-size: 8pt">ERP</sup><sub style="font-size: 7pt">V 1.0</sub>. All rights reserved.</p>
+        </div>
+    </footer>
     <!-- Before </body> -->
 
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>

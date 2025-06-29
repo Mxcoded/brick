@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>Staff Module - {{ config('app.name', 'Staff Management') }}</title>
+    <title>Staff Module - {{ config('app.name', 'Staff Management') }}&trade;</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -45,7 +45,7 @@
     <!-- Footer Section -->
     <footer class="bg-dark text-white p-3">
         <div class="container">
-            <p>&copy; {{ date('Y') }} Staff Module. All rights reserved.</p>
+            <p class="text-center">&copy; {{ date('Y') }} BRICKSPOINT<sup style="font-size: 8pt">ERP</sup><sub style="font-size: 7pt">V 1.0</sub>. All rights reserved.</p>
         </div>
     </footer>
 

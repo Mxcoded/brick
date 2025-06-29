@@ -1,8 +1,20 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <div style="display: inline-block; padding: 10px 20px;  border-radius: 8px; background: linear-gradient(145deg, #f0f0f0, #dcdcdc);box-shadow: 4px 4px 10px rgba(0,0,0,0.2), -4px -4px 10px rgba(255,255,255,0.6);  border: 1px solid #e0e0e0;  transform: perspective(600px) rotateX(2deg);transition: transform 0.3s ease, box-shadow 0.3s ease;"
-            class="px-2 ml-3">
-            <a href="home" style="font-weight: bold; font-size: 1.2rem;   color: #333;  text-decoration: none; ">
+
+        <div
+            style="display: inline-block; padding: 10px 20px;   border-radius: 12px; background: var(--glass-effect); border: 1px solid var(--glass-border);
+                box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), 
+                            -4px -4px 15px rgba(255, 255, 255, 0.05); transform: perspective(600px) rotateX(2deg); transition: var(--transition); margin-right: 15px;">
+
+            <a href="home"
+                style="
+                font-weight: 800;
+                font-size: 1.4rem;
+                color: #fff;
+                text-decoration: none;
+                letter-spacing: -0.5px;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            ">
                 BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub style="font-size:8pt;">v1.0</sub>
             </a>
         </div>
@@ -46,28 +58,29 @@
                 {{-- //start --}}
                 @can('manage-user')
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
-                            href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.*') && !request()->routeIs('admin.dashboard') ? 'active' : '' }}"
+                            href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i
+                                class="fas fa-users me-1"></i>
                             Manage User
                         </a>
-                        <ul class="dropdown-menu nav-pills">
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
 
-                            <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
+                            <li>
+                                <a class="dropdown-item {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
                                     href="{{ route('admin.users.index') }}">
                                     <i class="fas fa-users me-1"></i> Manage Users
                                 </a>
                             </li>
 
                             @can('manage-roles-permission')
-                                <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}"
+                                <li>
+                                    <a class="dropdown-item {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}"
                                         href="{{ route('admin.permissions.index') }}">
                                         <i class="fas fa-key me-1"></i> Manage Permissions
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('admin.roles.index') ? 'active' : '' }}"
+                                <li>
+                                    <a class="dropdown-item {{ request()->routeIs('admin.roles.index') ? 'active' : '' }}"
                                         href="{{ route('admin.roles.index') }}">
                                         <i class="fas fa-user-tag me-1"></i> Manage Roles
                                     </a>
@@ -77,7 +90,7 @@
                     </li>
                 @endcan
 
-
+    
 
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('maintenance.*') ? 'active' : '' }}"
