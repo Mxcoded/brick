@@ -68,7 +68,9 @@ class BanquetOrder extends Model
             'banquet_orders.order_id',
             'banquet_orders.customer_id',
             'banquet_orders.status',
-            DB::raw('MIN(banquet_order_days.event_date) as earliest_event_date')
+            DB::raw('MIN(banquet_order_days.event_date) as earliest_event_date'),
+            DB::raw('MAX(banquet_order_days.event_date) as last_event_date')
+
         )
             ->join('banquet_order_days', 'banquet_orders.id', '=', 'banquet_order_days.banquet_order_id')
             ->whereNotIn('banquet_orders.status', ['Completed', 'Cancelled'])

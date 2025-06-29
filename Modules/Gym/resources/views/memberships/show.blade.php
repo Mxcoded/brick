@@ -21,9 +21,9 @@
                     </span>
                 </p>
                 <p><strong>Registered By:</strong> {{ $membership->createdBy->name ?? 'N/A' }}</p>
-                <p><strong>Total Cost:</strong> {{ $membership->total_cost }}</p>
-                <p><strong>Total Paid:</strong> {{ $totalPaid }}</p>
-                <p><strong>Remaining Balance:</strong> {{ $remainingBalance }}</p>
+                <p><strong>Total Cost:</strong> &#8358;{{ number_format($membership->total_cost,2) }}</p>
+                <p><strong>Total Paid:</strong> &#8358;{{ number_format($totalPaid,2) }}</p>
+                <p><strong>Remaining Balance:</strong>&#8358; {{number_format($remainingBalance,2) }}</p>
                 <p><strong>Status:</strong> {{ $status }}</p>
             </div>
         </div>
@@ -75,20 +75,20 @@
                   
                             <tr>
                                 <th>Date</th>
-                                <th>Amount</th>
+                                <th>Amount (&#8358;)</th>
                                 <th>Status</th>
                                 <th>Mode</th>
-                                <th>Remaining Balance</th>
+                                <th>Remaining Balance (&#8358;)</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($membership->payments as $payment)
                                 <tr>
                                     <td>{{ $payment->payment_date->format('Y-m-d') }}</td>
-                                    <td>{{ $payment->payment_amount }}</td>
+                                    <td>{{ number_format($payment->payment_amount,2) }}</td>
                                     <td>{{ ucfirst($payment->payment_status) }}</td>
                                     <td>{{ ucfirst(str_replace('_', ' ', $payment->payment_mode)) }}</td>
-                                    <td>{{ $payment->remaining_balance }}</td>
+                                    <td>{{ number_format($payment->remaining_balance,2) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
