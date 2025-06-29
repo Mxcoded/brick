@@ -26,7 +26,7 @@
                         Status: <span class="badge bg-{{ $event->status == 'Confirmed' ? 'success' : 'warning' }}">{{ $event->status }}</span>
                     </div>
                     {{-- {{ route('banquet.orders.show', $event->order_id) }} --}}
-                    <a href="#"class="btn btn-sm btn-outline-primary" title="Disabled Temprorarily">
+                    <a href="#"class="btn btn-sm btn-outline-primary" title="Disabled Temporarily" onclick="alert('This feature is temporarily disabled.');">
                         View Details
                     </a>
                 </li>
