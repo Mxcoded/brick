@@ -21,9 +21,17 @@ class GymController extends Controller
      */
     public function index()
     {
-        $memberships = Membership::with(['members', 'payments', 'createdBy'])->get();
+        $memberships = Membership::with([
+            'members',
+            'createdBy',
+            'payments' => function ($query) {
+                $query->latest('payment_date')->take(2);
+            }
+        ])->get();
+
         return view('gym::index', compact('memberships'));
     }
+
 
     /**
      * Show the form for creating a new Membership.
