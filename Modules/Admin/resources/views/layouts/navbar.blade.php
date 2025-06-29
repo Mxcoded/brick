@@ -1,6 +1,11 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="#">BRICKSPOINT<sup>&trade;</sup><sub style="font-size:8pt;">v1.0</sub></a>
+        <div style="display: inline-block; padding: 10px 20px;  border-radius: 8px; background: linear-gradient(145deg, #f0f0f0, #dcdcdc);box-shadow: 4px 4px 10px rgba(0,0,0,0.2), -4px -4px 10px rgba(255,255,255,0.6);  border: 1px solid #e0e0e0;  transform: perspective(600px) rotateX(2deg);transition: transform 0.3s ease, box-shadow 0.3s ease;"
+            class="px-2 ml-3">
+            <a href="home" style="font-weight: bold; font-size: 1.2rem;   color: #333;  text-decoration: none; ">
+                BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub style="font-size:8pt;">v1.0</sub>
+            </a>
+        </div>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -38,33 +43,33 @@
                     </li>
                 @endcan
                 @can('manage-user')
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
-                                href="{{ route('admin.users.index') }}">
-                                <i class="fas fa-users me-1"></i> Manage Users
-                            </a>
-                        </li>
-                    @endcan
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
+                            href="{{ route('admin.users.index') }}">
+                            <i class="fas fa-users me-1"></i> Manage Users
+                        </a>
+                    </li>
+                @endcan
 
-                    @can('manage-roles-permission')
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}"
-                                href="{{ route('admin.permissions.index') }}">
-                                <i class="fas fa-key me-1"></i> Manage Permissions
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.roles.index') ? 'active' : '' }}"
-                                href="{{ route('admin.roles.index') }}">
-                                <i class="fas fa-user-tag me-1"></i> Manage Roles
-                            </a>
-                        </li>
-                    @endcan
+                @can('manage-roles-permission')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}"
+                            href="{{ route('admin.permissions.index') }}">
+                            <i class="fas fa-key me-1"></i> Manage Permissions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.roles.index') ? 'active' : '' }}"
+                            href="{{ route('admin.roles.index') }}">
+                            <i class="fas fa-user-tag me-1"></i> Manage Roles
+                        </a>
+                    </li>
+                @endcan
 
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('maintenance.*') ? 'active' : '' }}"
                         href="{{ route('maintenance.index') }}">
-                        <i class="fa fa-users me-1"></i> Maintenance log
+                        <i class="fa fa-tools me-1"></i> Maintenance log
                     </a>
                 </li>
                 <li class="nav-item">
@@ -81,6 +86,11 @@
                 </li>
 
             </ul>
+            <div id="liveClock" style=" color: #fff;font-weight: bold;font-family: 'Courier New', monospace; font-size: 1rem;  padding: 6px 12px;border-radius: 6px;  background: linear-gradient(145deg, #1e1e1e, #2c2c2c);  box-shadow: inset 1px 1px 3px rgba(255,255,255,0.1), inset -1px -1px 3px rgba(0,0,0,0.5);margin-left: 15px;  min-width: 120px;  text-align: center;">
+                --
+            </div>
+
+
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                 @auth
                     <li class="nav-item dropdown">
@@ -116,3 +126,20 @@
         </div>
     </div>
 </nav>
+<script>
+    function updateClock() {
+        const now = new Date();
+        let hours = now.getHours();
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+
+        hours = hours % 12 || 12; // Convert to 12-hour format
+
+        const timeString = `${hours}:${minutes}:${seconds} ${ampm}`;
+        document.getElementById('liveClock').textContent = timeString;
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock(); // initial call
+</script>
