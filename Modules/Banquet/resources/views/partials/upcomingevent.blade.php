@@ -11,7 +11,7 @@
                     <div>
                         <strong>Order #{{ $event->order_id }}</strong><br> 
                         
-                        @if($event->customer->organization == "Individual")
+                        @if(Str::lower($event->customer->organization) === 'individual')
                         Guest Name -    
                         <strong>{{ strtoupper($event->customer->name) }}</strong>
                             
