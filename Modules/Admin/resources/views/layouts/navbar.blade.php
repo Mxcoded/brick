@@ -42,29 +42,42 @@
                         </a>
                     </li>
                 @endcan
+
+                {{-- //start --}}
                 @can('manage-user')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
-                            href="{{ route('admin.users.index') }}">
-                            <i class="fas fa-users me-1"></i> Manage Users
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            Manage User
                         </a>
+                        <ul class="dropdown-menu">
+
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
+                                    href="{{ route('admin.users.index') }}">
+                                    <i class="fas fa-users me-1"></i> Manage Users
+                                </a>
+                            </li>
+
+                            @can('manage-roles-permission')
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}"
+                                        href="{{ route('admin.permissions.index') }}">
+                                        <i class="fas fa-key me-1"></i> Manage Permissions
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('admin.roles.index') ? 'active' : '' }}"
+                                        href="{{ route('admin.roles.index') }}">
+                                        <i class="fas fa-user-tag me-1"></i> Manage Roles
+                                    </a>
+                                </li>
+                            @endcan
+                        </ul>
                     </li>
                 @endcan
 
-                @can('manage-roles-permission')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}"
-                            href="{{ route('admin.permissions.index') }}">
-                            <i class="fas fa-key me-1"></i> Manage Permissions
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.roles.index') ? 'active' : '' }}"
-                            href="{{ route('admin.roles.index') }}">
-                            <i class="fas fa-user-tag me-1"></i> Manage Roles
-                        </a>
-                    </li>
-                @endcan
+
 
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('maintenance.*') ? 'active' : '' }}"
@@ -86,7 +99,8 @@
                 </li>
 
             </ul>
-            <div id="liveClock" style=" color: #fff;font-weight: bold;font-family: 'Courier New', monospace; font-size: 1rem;  padding: 6px 12px;border-radius: 6px;  background: linear-gradient(145deg, #1e1e1e, #2c2c2c);  box-shadow: inset 1px 1px 3px rgba(255,255,255,0.1), inset -1px -1px 3px rgba(0,0,0,0.5);margin-left: 15px;  min-width: 120px;  text-align: center;">
+            <div id="liveClock"
+                style=" color: #fff;font-weight: bold;font-family: 'Courier New', monospace; font-size: 1rem;  padding: 6px 12px;border-radius: 6px;  background: linear-gradient(145deg, #1e1e1e, #2c2c2c);  box-shadow: inset 1px 1px 3px rgba(255,255,255,0.1), inset -1px -1px 3px rgba(0,0,0,0.5);margin-left: 15px;  min-width: 120px;  text-align: center;">
                 --
             </div>
 

@@ -17,7 +17,7 @@
                             
                         @else
                         Organization Name -
-                            {{ strtoupper($event->customer->organization) }}
+                           <strong> {{ strtoupper($event->customer->organization) }}</strong>
                         @endif
                         <br>
                         <strong>Starts on {{ \Carbon\Carbon::parse($event->earliest_event_date)->format('M d, Y') }} - {{ \Carbon\Carbon::parse($event->last_event_date)->format('M d, Y') }}</strong><br>
