@@ -49,7 +49,7 @@
                             <tr>
                                 <th>S/N</th>
                                 <th>Order ID</th>
-                                <th>Client</th>
+                                <th>Contact Person</th>
                                 <th>Organization</th> <!-- New column -->
                                 <th>Event Dates</th>
                                 <th>Total Guests</th>
