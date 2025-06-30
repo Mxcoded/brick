@@ -1,10 +1,10 @@
 @extends('gym::layouts.master')
 
 @section('content')
-<div class="container py-5"><i class="fas fa-dumbbell me-2"></i>
+<div class="container py-5">
     <div class="form-container">
         <div class="form-header">
-            <h1>Gym Membership Registration</h1>
+            <h1><i class="fas fa-dumbbell me-2"></i>Gym Membership Registration</h1>
             <p>FITNESSZONE BY BRICKSPOINT</p>
         </div>
         <a href="{{ route('gym.index') }}" class="btn btn-danger mt-2 mb-3"><i class="fas fa-arrow-circle-left"></i> Cancel</a>
