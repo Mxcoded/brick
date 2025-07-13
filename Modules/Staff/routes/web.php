@@ -43,6 +43,14 @@ Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
             ->name('staff.leaves.submit')
             ->middleware('permission:manage-leaves');
 
+         // Leave Balance Route
+        Route::get('/balance', [StaffController::class, 'leaveBalance'])
+            ->name('staff.leaves.balance')
+            ->middleware('permission:manage-leaves');
+        Route::post('/balance', [StaffController::class, 'leaveBalanceSubmit'])
+            ->name('staff.leaves.balance-submit')
+            ->middleware('permission:manage-leaves');
+
         // Admin Leave Routes (for managing all leaves)
         Route::get('/admin', [StaffController::class, 'leaveAdminIndex'])
             ->name('staff.leaves.admin')
@@ -58,6 +66,8 @@ Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
         Route::get('/report', [StaffController::class, 'leaveReport'])
             ->name('staff.leaves.report')
             ->middleware('permission:leave-reports');
+
+        
     });
 
     // **Approval Routes (Admin Only)**
