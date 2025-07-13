@@ -2,7 +2,7 @@
 
 @section('header')
     <!-- Navbar -->
-    @include('admin::layouts\navbar')
+    @include('admin::layouts.navbar')
     {{-- <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container-fluid">
             <!-- Brand Logo -->
