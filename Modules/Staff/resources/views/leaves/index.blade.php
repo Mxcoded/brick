@@ -6,8 +6,9 @@
 
         <!-- Leave Balance -->
         <div class="card shadow-sm mb-4">
-            <div class="card-header bg-info text-white">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Leave Balance ({{ date('Y') }})</h5>
+                <a href="{{ route('staff.leaves.balance') }}" class="btn btn-light btn-sm">Leave Balance</a>
             </div>
             <div class="card-body">
                 @forelse ($leaveBalances as $balance)

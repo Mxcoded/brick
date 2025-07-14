@@ -2,15 +2,15 @@
 
 @section('content')
     <div class="container my-4">
-        <h1 class="mb-4">Request Leave</h1>
+        <h1 class="mb-4">Leave Balance</h1>
         <div class="card shadow-sm">
             <div class="card-body">
-               
-                @error('start_date')
-                    <small class="text-danger">{{ $message }}</small>
-                @enderror
-
-                <form method="POST" action="{{ route('staff.leaves.submit') }}">
+                @if(session('success'))
+                    <div class="alert alert-success">
+                        {{ session('success') }}
+                    </div>
+                @endif
+                <form method="POST" action="{{ route('staff.leaves.balance-submit') }}">
                     @csrf
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -26,20 +26,18 @@
                             @enderror
                         </div>
                         <div class="col-md-6">
-                            <label for="start_date" class="form-label">Start Date</label>
-                            <input type="date" name="start_date" id="start_date" class="form-control" required>
+                            <label for="staff_code" class="form-label">Staff Code</label>
+                            <input type="number" name="staff_code" id="staff_code" class="form-control" required>
                         </div>
+                        
                         <div class="col-md-6">
-                            <label for="end_date" class="form-label">End Date</label>
-                            <input type="date" name="end_date" id="end_date" class="form-control" required>
+                            <label for="total_days" class="form-label">Total Days</label>
+                            <input type="number" name="total_days" id="total_days" class="form-control" required>
                         </div>
-                        <div class="col-12">
-                            <label for="reason" class="form-label">Reason</label>
-                            <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="e.g. Medical appointment"></textarea>
-                        </div>
+                        
                     </div>
                     <div class="mt-4">
-                        <button type="submit" class="btn btn-primary">Submit Request</button>
+                        <button type="submit" class="btn btn-primary">Submit Balance</button>
                         <a href="{{ route('staff.leaves.index') }}" class="btn btn-secondary">Cancel</a>
                     </div>
                 </form>
