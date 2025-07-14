@@ -44,6 +44,12 @@
                             </a>
                         </li>
                         @can('manage-leaves')
+                        <li>
+                            <a class="dropdown-item {{ request()->routeIs('staff.leaves.admin') ? 'active' : '' }}"
+                                href="{{ route('staff.leaves.admin') }}">
+                                <i class="fas fa-plus me-1"></i> Manage Leaves
+                            </a>
+                        </li>
                             <li>
                                 <a class="dropdown-item {{ request()->routeIs('staff.leaves.create') ? 'active' : '' }}"
                                     href="{{ route('staff.leaves.balance') }}">
@@ -61,7 +67,7 @@
                 </li>
                 @can('staff-view')
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('staff.*') && !request()->routeIs('staff.dashboard') ? 'active' : '' }}"
+                        <a class="nav-link {{ request()->routeIs('staff.*') && !request()->routeIs('staff.dashboard') && !request()->routeIs('staff.leaves.*')  ? 'active' : '' }}"
                             href="{{ route('staff.index') }}">
                             <i class="fa fa-users me-1"></i> Staff list
                         </a>

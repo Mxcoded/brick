@@ -19,7 +19,7 @@
             <div class="row align-items-center">
                 <div class="col-lg-6 mb-4 mb-lg-0">
                     <div class="ratio ratio-16x9 rounded overflow-hidden shadow-lg">
-                        <img src="{{ asset('images/hotel-history.jpg') }}" alt="Hotel History" class="img-fluid w-100 h-100 object-fit-cover">
+                        <img src="{{ asset('images/hotel-hero-2.png') }}" alt="Hotel History" class="img-fluid w-100 h-100 object-fit-cover">
                     </div>
                 </div>
                 <div class="col-lg-6 ps-lg-5">
