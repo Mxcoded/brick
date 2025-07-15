@@ -15,6 +15,7 @@ class LeaveRequest extends Model
      */
     protected $fillable = [
         'employee_id',
+        'staff_code', // Added staff_code to fillable attributes
         'leave_type',
         'start_date',
         'end_date',

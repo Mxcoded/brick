@@ -32,13 +32,38 @@
                     </a>
 
                 </li>
-                <li class="nav-item ">
-
-                    <a class="nav-link {{ request()->routeIs('staff.leaves.*') ? 'active' : '' }} disabled"
-                        href="{{ route('staff.leaves.index') }}"><i class="fas fa-calendar-alt me-2"></i> My Leaves
-
+                 <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs('staff.leaves.*') ? 'active' : '' }}"
+                        href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-calendar-alt me-2"></i>Leaves
                     </a>
-
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                        <li>
+                            <a class="dropdown-item {{ request()->routeIs('staff.leaves.index') ? 'active' : '' }}"
+                                href="{{ route('staff.leaves.index') }}">
+                                <i class="fas fa-calendar-alt me-1"></i> My Leaves
+                            </a>
+                        </li>
+                        @can('manage-leaves')
+                        <li>
+                            <a class="dropdown-item {{ request()->routeIs('staff.leaves.admin') ? 'active' : '' }}"
+                                href="{{ route('staff.leaves.admin') }}">
+                                <i class="fas fa-gear me-1"></i> Manage Leaves
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {{ request()->routeIs('staff.leaves.request') ? 'active' : '' }}"
+                                href="{{ route('staff.leaves.request') }}">
+                                <i class="fas fa-user me-1"></i> Leave Request
+                            </a>
+                        </li>
+                            <li>
+                                <a class="dropdown-item {{ request()->routeIs('staff.leaves.create') ? 'active' : '' }}"
+                                    href="{{ route('staff.leaves.balance') }}">
+                                    <i class="fas fa-plus me-1"></i> Add Leave balance
+                                </a>
+                            </li>
+                        @endcan
+                    </ul>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}"
@@ -48,7 +73,7 @@
                 </li>
                 @can('staff-view')
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('staff.*') && !request()->routeIs('staff.dashboard') ? 'active' : '' }}"
+                        <a class="nav-link {{ request()->routeIs('staff.*') && !request()->routeIs('staff.dashboard') && !request()->routeIs('staff.leaves.*')  ? 'active' : '' }}"
                             href="{{ route('staff.index') }}">
                             <i class="fa fa-users me-1"></i> Staff list
                         </a>
