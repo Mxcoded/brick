@@ -46,7 +46,8 @@ class Employee extends Model
         'resignation_letter',  // Path to uploaded resignation letter
         'nin',                 // National identification number
         'bvn',                 // Bank Verification number
-        'department'           // Department
+        'department',           // Department
+        'staff_code'
 
     ];
 

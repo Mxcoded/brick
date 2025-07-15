@@ -161,9 +161,12 @@ class StaffController extends Controller
 
             // Add default leave balances
             $defaultBalances = [
-                ['leave_type' => 'Vacation', 'total_days' => 20],
-                ['leave_type' => 'Sick', 'total_days' => 10],
-                ['leave_type' => 'Maternity', 'total_days' => 90],
+                ['leave_type' => 'Annual', 'total_days' => 21],
+                ['leave_type' => 'Casual', 'total_days' => 5],
+                ['leave_type' => 'Compassionate', 'total_days' => 3],
+                ['leave_type' => 'Sick', 'total_days' => 3],
+                ['leave_type' => 'Paternity', 'total_days' => 14],
+                ['leave_type' => 'Maternity', 'total_days' => 84],
             ];
 
             foreach ($defaultBalances as $balance) {
@@ -389,6 +392,7 @@ class StaffController extends Controller
         }
         $leaveRequests = $employee->leaveRequests()->latest()->get();
         $leaveBalances = $employee->leaveBalances()->where('year', date('Y'))->get();
+        dd($employee['staff_code']);
         return view('staff::leaves.index', compact('employee', 'leaveRequests', 'leaveBalances'));
     }
 
@@ -401,6 +405,7 @@ class StaffController extends Controller
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
         $leaveBalances = $employee->leaveBalances()->where('year', date('Y'))->get();
+        // dd($employee['staff_code']);
         return view('staff::leaves.request', compact('employee', 'leaveBalances'));
     }
 
@@ -413,10 +418,10 @@ class StaffController extends Controller
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
 
-        
-
+        // Validate leave request
         $validated = $request->validate([
-            'leave_type' => 'required|string|in:Vacation,Sick,Maternity',
+            'staff_code' => 'required|integer|exists:employees,staff_code',
+            'leave_type' => 'required|string|in:Annual,Casual,Compassionate,Sick,Paternity,Maternity',
             'start_date' => 'required|date|after_or_equal:today',
             //check for days within start date and end date: It should reject
             'end_date' => 'required|date|after_or_equal:start_date',
@@ -424,13 +429,14 @@ class StaffController extends Controller
         ]);
         $startDate = new \DateTime($validated['start_date']);
         $endDate = new \DateTime($validated['end_date']);
-        $overlappingLeave = LeaveRequest::where('employee_id', $employee->id)
+        $employeeId = Employee::where('staff_code', $validated['staff_code'])->value('id');
+        $overlappingLeave = LeaveRequest::where('employee_id', $employeeId)
             ->where(function ($query) use ($startDate, $endDate) {
                 $query->whereBetween('start_date', [$startDate, $endDate])
                     ->orWhereBetween('end_date', [$startDate, $endDate])
                     ->orWhere(function ($query) use ($startDate, $endDate) {
                         $query->where('start_date', '<=', $startDate)
-                                ->where('end_date', '>=', $endDate);
+                            ->where('end_date', '>=', $endDate);
                     });
             })
             ->whereIn('status', ['pending', 'approved']) // Optional: ignore rejected/cancelled
@@ -443,7 +449,7 @@ class StaffController extends Controller
         }
 
 
-        $leaveBalance = $employee->leaveBalances()
+        $leaveBalance = LeaveBalance::where('employee_id', $employeeId)
             ->where('leave_type', $validated['leave_type'])
             ->where('year', date('Y'))
             ->first();
@@ -453,9 +459,6 @@ class StaffController extends Controller
         }
 
 
-
-        $startDate = new \DateTime($validated['start_date']);
-        $endDate = new \DateTime($validated['end_date']);
         $daysRequested = $startDate->diff($endDate)->days + 1;
 
         if ($leaveBalance->remaining_days < $daysRequested) {
@@ -463,7 +466,8 @@ class StaffController extends Controller
         }
 
         LeaveRequest::create(array_merge($validated, [
-            'employee_id' => $employee->id,
+            'employee_id' => $employeeId,
+            'staff_code' => $validated['staff_code'],
             'days_count' => $daysRequested, // Store days requested
             'status' => 'pending', // Ensure status is set
         ]));
@@ -537,19 +541,19 @@ class StaffController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-         $employee = $user->employee;
+        $employee = $user->employee;
         if (!$employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
 
         $validated = $request->validate([
-            'leave_type' => 'required|string|in:Vacation,Sick,Maternity',
+            'leave_type' => 'required|string|in:Annual,Casual,Compassionate,Sick,Paternity,Maternity',
             'staff_code' => 'required|integer|exists:employees,staff_code',
             'total_days' => 'required|integer|min:1',
-            ]);
-
+        ]);
+        $employeeId = Employee::where('staff_code', $validated['staff_code'])->value('id');
         LeaveBalance::create(array_merge($validated, [
-            'employee_id' => $employee->id,
+            'employee_id' => $employeeId,
             'year' => date('Y'), // Use current year
             'used_days' => 0, // Initialize used days to 0
             'total_days' => $validated['total_days'], // Set remaining days to total days
@@ -558,7 +562,6 @@ class StaffController extends Controller
         ]));
 
         return redirect()->route('staff.leaves.balance')->with('success', 'Leave balance created successfully.');
-
     }
     // Add other methods like show, edit, update, destroy as needed
 }
