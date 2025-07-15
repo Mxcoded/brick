@@ -50,6 +50,12 @@
                                 <i class="fas fa-gear me-1"></i> Manage Leaves
                             </a>
                         </li>
+                        <li>
+                            <a class="dropdown-item {{ request()->routeIs('staff.leaves.request') ? 'active' : '' }}"
+                                href="{{ route('staff.leaves.request') }}">
+                                <i class="fas fa-user me-1"></i> Leave Request
+                            </a>
+                        </li>
                             <li>
                                 <a class="dropdown-item {{ request()->routeIs('staff.leaves.create') ? 'active' : '' }}"
                                     href="{{ route('staff.leaves.balance') }}">
