@@ -392,7 +392,7 @@ class StaffController extends Controller
         }
         $leaveRequests = $employee->leaveRequests()->latest()->get();
         $leaveBalances = $employee->leaveBalances()->where('year', date('Y'))->get();
-        dd($employee['staff_code']);
+       
         return view('staff::leaves.index', compact('employee', 'leaveRequests', 'leaveBalances'));
     }
 
