@@ -5,15 +5,38 @@
         <h1 class="mb-4">Request Leave</h1>
         <div class="card shadow-sm">
             <div class="card-body">
+               
+                @error('start_date')
+                    <small class="text-danger">{{ $message }}</small>
+                @enderror
+
                 <form method="POST" action="{{ route('staff.leaves.submit') }}">
                     @csrf
                     <div class="row g-3">
+                        
+                        @can('manage-leaves')
+                            <div class="col-md-6">
+                                <label for="staff_code" class="form-label">Staff Code</label>
+                                <input type="number" name="staff_code" id="staff_code"  placeholder="Enter Staff Code" class="form-control" required>
+                            </div>
+                        @endcan
+                        @cannot('manage-leaves')
+                            <div class="col-md-6">
+                                <label for="staff_code" class="form-label">Staff Code</label>
+                                <input type="hidden" name="staff_code" id="staff_code" value="{{ $employee->staff_code }}"readonly>
+                            </div>
+                        @endcannot
+                        
+                
                         <div class="col-md-6">
                             <label for="leave_type" class="form-label">Leave Type</label>
                             <select name="leave_type" id="leave_type" class="form-select" required>
                                 <option value="" disabled selected>Select Leave Type</option>
-                                <option value="Vacation">Vacation</option>
+                                <option value="Annual">Annual</option>
+                                <option value="Casual">Casual</option>
+                                <option value="Compassionate">Compassionate</option>
                                 <option value="Sick">Sick</option>
+                                <option value="Paternity">Paternity</option>
                                 <option value="Maternity">Maternity</option>
                             </select>
                             @error('leave_type')
