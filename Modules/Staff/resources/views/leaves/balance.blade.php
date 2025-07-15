@@ -17,8 +17,11 @@
                             <label for="leave_type" class="form-label">Leave Type</label>
                             <select name="leave_type" id="leave_type" class="form-select" required>
                                 <option value="" disabled selected>Select Leave Type</option>
-                                <option value="Vacation">Vacation</option>
+                                <option value="Annual">Annual</option>
+                                <option value="Casual">Casual</option>
+                                <option value="Compassionate">Compassionate</option>
                                 <option value="Sick">Sick</option>
+                                <option value="Paternity">Paternity</option>
                                 <option value="Maternity">Maternity</option>
                             </select>
                             @error('leave_type')

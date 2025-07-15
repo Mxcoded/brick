@@ -47,7 +47,7 @@
                         <li>
                             <a class="dropdown-item {{ request()->routeIs('staff.leaves.admin') ? 'active' : '' }}"
                                 href="{{ route('staff.leaves.admin') }}">
-                                <i class="fas fa-plus me-1"></i> Manage Leaves
+                                <i class="fas fa-gear me-1"></i> Manage Leaves
                             </a>
                         </li>
                             <li>
