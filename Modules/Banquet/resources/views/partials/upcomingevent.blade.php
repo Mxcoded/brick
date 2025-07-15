@@ -22,7 +22,7 @@
                         <br>
                         <strong>Starts on {{ \Carbon\Carbon::parse($event->earliest_event_date)->format('M d, Y') }} - {{ \Carbon\Carbon::parse($event->last_event_date)->format('M d, Y') }}</strong><br>
                         Location : <strong>{{strtoupper($event->eventDays->first()->room);}}</strong><br>
-                        Expected Guest: <strong>{{$event->eventDays->sum('guest_count');}}</strong><br>
+                        Expected Guest: <strong>{{$event->eventDays->first('guest_count');}}</strong><br>
                         Status: <span class="badge bg-{{ $event->status == 'Confirmed' ? 'success' : 'warning' }}">{{ $event->status }}</span>
                     </div>
                     {{-- {{ route('banquet.orders.show', $event->order_id) }} --}}
