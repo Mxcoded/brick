@@ -23,7 +23,10 @@
                                 - {{ \Carbon\Carbon::parse($event->last_event_date)->format('M d, Y') }}</strong><br>
                             Location : <strong>{{ strtoupper($event->eventDays->first()->room) }}</strong><br>
                             Expected Guest:
-                            <strong>{{ $event->eventDays->guest_count }}
+                            <strong>{{ $event->eventDays->first(function ($day) {
+                                return !is_null($day->guest_count);
+                            })->guest_count ?? 'N/A' }}
+
                             </strong><br>
                             Status: <span
                                 class="badge bg-{{ $event->status == 'Confirmed' ? 'success' : 'warning' }}">{{ $event->status }}</span>
