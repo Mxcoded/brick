@@ -47,7 +47,7 @@
     </section>
 
     <!-- Main Content Section -->
-    <main class="container my-4">
+    <main class="container-fluid my-4">
         @yield('content')
     </main>
 
