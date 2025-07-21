@@ -44,7 +44,7 @@
                                 <p><strong><i class="fas fa-venus-mars me-2"></i> Gender:</strong> 
                                     {{ $employee->gender ?? 'N/A' }}</p>
                                 <p><strong><i class="fas fa-birthday-cake me-2"></i> Date of Birth:</strong> 
-                                    {{ $employee->date_of_birth ?? 'N/A' }}</p>
+                                    {{ \Carbon\Carbon::parse($employee->date_of_birth)->format('d M, Y') ?? 'N/A' }}</p>
                                 <p><strong><i class="fas fa-briefcase me-2"></i> Position:</strong> 
                                     {{ $employee->position ?? 'N/A' }}</p>
                             </div>
@@ -86,11 +86,11 @@
                     </h5>
                     <p>
                         @if ($employee->isActive())
-                            <span class="badge bg-success me-2">Active</span> {{ $employee->start_date ?? 'N/A' }} - Present
+                            <span class="badge bg-success me-2">Active</span> {{ \Carbon\Carbon::parse($employee->start_date)->format('d M, Y') ?? 'N/A' }} - Present
                             <br><strong>Branch:</strong> {{ $employee->branch_name ?? 'N/A' }}
                         @else
                             <span class="badge bg-danger me-2">Inactive</span> 
-                            {{ $employee->start_date ?? 'N/A' }} - {{ $employee->end_date ?? 'N/A' }}
+                            {{ \Carbon\Carbon::parse($employee->start_date)->format('d M, Y') ?? 'N/A' }} - {{ \Carbon\Carbon::parse($employee->end_date)->format('d M, Y') ?? 'N/A' }}
                             <br><strong>Reason:</strong> {{ $employee->leaving_reason ?? 'N/A' }}
                             <br><strong>Note:</strong> {{ $employee->note_for_leaving ?? 'N/A' }}
                             <br><strong>Branch:</strong> {{ $employee->branch_name ?? 'N/A' }}
