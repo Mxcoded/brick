@@ -33,7 +33,7 @@
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fas fa-calendar-alt text-primary"></i></span>
                         <input type="date" name="event_date" id="event_date" class="form-control" 
-                               value="{{ old('event_date', $day ? $day->event_date : '') }}" required>
+                               value="{{ old('event_date', optional($day->event_date)->format('Y-m-d')) }}" required>
                     </div>
                     @error('event_date') 
                         <div class="text-danger small mt-2">{{ $message }}</div>
