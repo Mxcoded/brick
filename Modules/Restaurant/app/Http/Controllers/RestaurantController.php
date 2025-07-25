@@ -4,62 +4,92 @@ namespace Modules\Restaurant\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Restaurant\Models\MenuItem;
+use Modules\Restaurant\Models\Order;
+use Modules\Restaurant\Models\OrderItem;
+use Illuminate\Support\Facades\Session; // Assuming you have an Order model and OrderItem model
 
 class RestaurantController extends Controller
 {
+   
     /**
-     * Display a listing of the resource.
+     * Display the restaurant menu.
      */
-    public function index()
+    public function index($table)
     {
-        return view('restaurant::index');
+        $menuItems = MenuItem::all();
+        return view('restaurant::menu', compact('menuItems', 'table'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Add a menu item to the cart.
      */
-    public function create()
+    public function addToCart(Request $request, $table)
     {
-        return view('restaurant::create');
+        $request->validate([
+            'item_id' => 'required|exists:menu_items,id',
+            'quantity' => 'required|integer|min:1',
+            'instructions' => 'nullable|string|max:255',
+        ]);
+
+        $cart = session()->get('cart', []);
+        $cart[] = [
+            'item_id' => $request->input('item_id'),
+            'quantity' => $request->input('quantity'),
+            'instructions' => $request->input('instructions', ''),
+        ];
+        session()->put('cart', $cart);
+
+        return redirect()->back()->with('success', 'Item added to cart!');
+    }
+    /**
+     * View the cart.
+     */
+    public function viewCart($table)
+    {
+        $cart = session()->get('cart', []);
+        $itemIds = array_column($cart, 'item_id');
+        $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
+        return view('restaurant::cart', compact('cart', 'items', 'table'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function submitOrder($table)
     {
-        //
+        $cart = session()->get('cart', []);
+        if (empty($cart)) {
+            return redirect()->back()->with('error', 'Your cart is empty.');
+        }
+
+        $order = Order::create([
+            'table_id' => $table,
+            'status' => 'pending',
+        ]);
+
+        foreach ($cart as $item) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'menu_item_id' => $item['item_id'],
+                'quantity' => $item['quantity'],
+                'instructions' => $item['instructions'],
+            ]);
+        }
+
+        session()->forget('cart');
+        return redirect()->route('restaurant.menu', $table)->with('success', 'Order placed successfully!');
+    }
+    public function waiterDashboard()
+    {
+        $orders = Order::where('status', 'pending')
+            ->with('orderItems.menuItem', 'table')
+            ->get();
+        return view('restaurant::waiter.dashboard', compact('orders'));
     }
 
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function acceptOrder($order)
     {
-        return view('restaurant::show');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
-    {
-        return view('restaurant::edit');
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id)
-    {
-        //
+        $order = Order::findOrFail($order);
+        $order->status = 'accepted';
+        $order->save();
+        return redirect()->back()->with('success', 'Order accepted!');
     }
 }
