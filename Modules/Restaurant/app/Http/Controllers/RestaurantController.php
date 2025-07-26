@@ -92,4 +92,19 @@ class RestaurantController extends Controller
         $order->save();
         return redirect()->back()->with('success', 'Order accepted!');
     }
+
+    public function addMenuCategory(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'parent_id' => 'nullable|exists:restaurant_menu_categories,id',
+        ]);
+
+        $category = new MenuCategory();
+        $category->name = $request->input('name');
+        $category->parent_id = $request->input('parent_id');
+        $category->save();
+
+        return redirect()->back()->with('success', 'Menu category added successfully!');
+    }
 }
