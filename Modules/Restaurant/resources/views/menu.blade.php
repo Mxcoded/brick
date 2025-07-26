@@ -1,3 +1,6 @@
+@extends('restaurant::layouts.master')
+
+@section('content')
 <h1>Fancy Menu - Table {{ $table }}</h1>
 @foreach ($menuItems as $item)
     <div style="border: 1px solid #ccc; padding: 10px; margin: 10px;">
@@ -13,3 +16,5 @@
     </div>
 @endforeach
 <a href="{{ url('/table/' . $table . '/cart') }}">View Cart</a>
+
+@endsection
