@@ -14,6 +14,7 @@ class Table extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = ['number'];
+    protected $table = 'restaurant_tables';
 
     public function orders()
     {

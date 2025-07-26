@@ -12,5 +12,8 @@ class RestaurantDatabaseSeeder extends Seeder
     public function run(): void
     {
         // $this->call([]);
+        $this->call(CategorySeeder::class);
+        $this->call(MenuItemSeeder::class);
+        $this->call(TableSeeder::class);
     }
 }

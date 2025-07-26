@@ -13,11 +13,13 @@ class MenuItem extends Model
     /**
      * The attributes that are mass assignable.
      */
-    protected $fillable = ['restaurant_category_id', 'name', 'description', 'price'];
+   
 
+    protected $fillable = ['restaurant_categories_id', 'name', 'description', 'price'];
+    protected $table = 'restaurant_menu_items';
     public function category()
     {
-        return $this->belongsTo(MenuCategory::class, 'restaurant_category_id');
+        return $this->belongsTo(MenuCategory::class, 'restaurant_categories_id');
     }
 
     // protected static function newFactory(): MenuItemFactory

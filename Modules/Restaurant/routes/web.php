@@ -14,6 +14,7 @@ use Modules\Restaurant\Http\Controllers\RestaurantController;
 |
 */
 
-Route::group([], function () {
-    Route::resource('restaurant', RestaurantController::class)->names('restaurant');
-});
+Route::get('/table/{table}/menu', [RestaurantController::class, 'index'])->name('restaurant.menu');
+Route::post('/table/{table}/cart/add', [RestaurantController::class, 'addToCart']);
+Route::get('/table/{table}/cart', [RestaurantController::class, 'viewCart']);
+Route::post('/table/{table}/order/submit', [RestaurantController::class, 'submitOrder']);

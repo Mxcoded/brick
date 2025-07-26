@@ -1,3 +1,6 @@
+@extends('restaurant::layouts.master')
+
+@section('content')
 <h1>Your Cart - Table {{ $table }}</h1>
 @if (empty($cart))
     <p>Your cart is empty.</p>
@@ -15,3 +18,5 @@
     </form>
 @endif
 <a href="{{ route('restaurant.menu', $table) }}">Back to Menu</a>
+
+@endsection
