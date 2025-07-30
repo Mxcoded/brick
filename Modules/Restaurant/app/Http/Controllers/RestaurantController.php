@@ -7,18 +7,35 @@ use Illuminate\Http\Request;
 use Modules\Restaurant\Models\MenuItem;
 use Modules\Restaurant\Models\Order;
 use Modules\Restaurant\Models\OrderItem;
+use Modules\Restaurant\Models\MenuCategory;
+use Modules\Restaurant\Models\Table;
 use Illuminate\Support\Facades\Session; // Assuming you have an Order model and OrderItem model
 
 class RestaurantController extends Controller
 {
-   
+
+    public function index()
+    {
+        $tables = Table::all();
+        return view('restaurant::index', compact('tables'));
+    }
+
+    public function selectTable(Request $request)
+    {
+        $request->validate([
+            'table_id' => 'required|exists:restaurant_tables,id',
+        ]);
+
+        return redirect()->route('restaurant.menu', $request->table_id);
+    }
     /**
      * Display the restaurant menu.
      */
-    public function index($table)
+    public function menu($table)
     {
-        $menuItems = MenuItem::all();
-        return view('restaurant::menu', compact('menuItems', 'table'));
+       
+        $categories = MenuCategory::with('menuItems')->get();
+        return view('restaurant::menu', compact('categories', 'table'));
     }
 
     /**

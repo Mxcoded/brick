@@ -14,10 +14,12 @@ class MenuCategory extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = ['name'];
+    protected $table = 'restaurant_menu_categories';
+
 
     public function menuItems()
     {
-        return $this->hasMany(MenuItem::class);
+        return $this->hasMany(MenuItem::class, 'restaurant_menu_categories_id');
     }
 
     // protected static function newFactory(): MenuCategoryFactory
