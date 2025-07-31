@@ -21,8 +21,8 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
     Route::post('/table/{table}/order/submit', [RestaurantController::class, 'submitOrder']);
 });
 
-Route::prefix('restaurant-admin')->middleware(['web', ''])->group(function () {
-    Route::get('/table/{table}/menu', [RestaurantController::class, 'index'])->name('restaurant.menu');
+Route::prefix('restaurant-admin')->middleware(['web'])->group(function () {
+    Route::get('/dashboard', [RestaurantController::class, 'adminDashboard'])->name('dashboard');
 
 });
 
