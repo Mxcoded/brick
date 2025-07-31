@@ -8,6 +8,8 @@ use Modules\Restaurant\Models\MenuItem;
 use Modules\Restaurant\Models\Order;
 use Modules\Restaurant\Models\OrderItem;
 use Illuminate\Support\Facades\Session; // Assuming you have an Order model and OrderItem model
+use Modules\Restaurant\Models\MenuCategory;
+
 
 class RestaurantController extends Controller
 {
@@ -91,6 +93,12 @@ class RestaurantController extends Controller
         $order->status = 'accepted';
         $order->save();
         return redirect()->back()->with('success', 'Order accepted!');
+    }
+
+    public function adminDashboard()
+    {
+        $categories = MenuCategory::where('parent_id', NULL)->get();
+        return view('restaurant::admin.dashboard', compact('categories'));
     }
 
     public function addMenuCategory(Request $request)
