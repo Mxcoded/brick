@@ -7,20 +7,36 @@ use Illuminate\Http\Request;
 use Modules\Restaurant\Models\MenuItem;
 use Modules\Restaurant\Models\Order;
 use Modules\Restaurant\Models\OrderItem;
-use Illuminate\Support\Facades\Session; // Assuming you have an Order model and OrderItem model
 use Modules\Restaurant\Models\MenuCategory;
+use Modules\Restaurant\Models\Table;
+use Illuminate\Support\Facades\Session; // Assuming you have an Order model and OrderItem model
 
 
 class RestaurantController extends Controller
 {
-   
+
+    public function index()
+    {
+        $tables = Table::all();
+        return view('restaurant::index', compact('tables'));
+    }
+
+    public function selectTable(Request $request)
+    {
+        $request->validate([
+            'table_id' => 'required|exists:restaurant_tables,id',
+        ]);
+
+        return redirect()->route('restaurant.menu', $request->table_id);
+    }
     /**
      * Display the restaurant menu.
      */
-    public function index($table)
+    public function menu($table)
     {
-        $menuItems = MenuItem::all();
-        return view('restaurant::menu', compact('menuItems', 'table'));
+       
+        $categories = MenuCategory::with('menuItems')->get();
+        return view('restaurant::menu', compact('categories', 'table'));
     }
 
     /**
@@ -97,20 +113,22 @@ class RestaurantController extends Controller
 
     public function adminDashboard()
     {
-        $categories = MenuCategory::where('parent_id', NULL)->get();
-        return view('restaurant::admin.dashboard', compact('categories'));
+        $categories = MenuCategory::get();
+        $parent_categories = $categories->whereNull('parent_id');
+        return view('restaurant::admin.dashboard', compact('categories', 'parent_categories'));
     }
 
     public function addMenuCategory(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'parent_id' => 'nullable|exists:restaurant_menu_categories,id',
+            'parent_category' => 'nullable|exists:restaurant_menu_categories,id',
+            'sub_category' => 'nullable|exists:restaurant_menu_categories,id',
         ]);
 
         $category = new MenuCategory();
         $category->name = $request->input('name');
-        $category->parent_id = $request->input('parent_id');
+        $category->parent_id =  !empty($request->input('parent_category')) ? $request->input('parent_category') :  $request->input('sub_category');
         $category->save();
 
         return redirect()->back()->with('success', 'Menu category added successfully!');
