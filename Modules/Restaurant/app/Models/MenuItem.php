@@ -15,11 +15,11 @@ class MenuItem extends Model
      */
    
 
-    protected $fillable = ['restaurant_categories_id', 'name', 'description', 'price'];
+    protected $fillable = ['restaurant_menu_categories_id', 'name', 'description', 'price'];
     protected $table = 'restaurant_menu_items';
     public function category()
     {
-        return $this->belongsTo(MenuCategory::class, 'restaurant_categories_id');
+        return $this->belongsTo(MenuCategory::class, 'restaurant_menu_categories_id');
     }
 
     // protected static function newFactory(): MenuItemFactory

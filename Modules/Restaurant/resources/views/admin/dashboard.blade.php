@@ -10,14 +10,14 @@
                         {{ session('success') }}
                     </div>
                 @endif
-                <form method="POST" action="{{ route('staff.leaves.balance-submit') }}">
+                <form method="POST" action="{{ route('restaurant.admin.add-category') }}">
                     @csrf
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="parent_category" class="form-label">Menu Category</label>
-                            <select name="parent_category" id="parent_category" class="form-select" required>
+                            <select name="parent_category" id="parent_category" class="form-select" >
                                 <option value="" disabled selected>Select Menu Categories</option>
-                                @foreach($categories as $category)
+                                @foreach($parent_categories as $category)
                                     <option value="{{$category->id}}">{{$category->name}}</option>
                                 @endforeach
                             </select>
@@ -25,14 +25,18 @@
                                 <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label for="sub_category" class="form-label">Sub category</label>
+                            <select name="sub_category" id="sub_category" class="form-select" >
+                                <option value="" disabled selected>Select Sub Menu Categories</option>
+                            </select>
+                            @error('sub_category')
+                                <small class="text-danger">{{ $message }}</small>
+                            @enderror
+                        </div>
+                        <div class="col-md-4">
                             <label for="name" class="form-label">Category Name</label>
                             <input type="text" name="name" id="name" class="form-control" required>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label for="total_days" class="form-label">Total Days</label>
-                            <input type="number" name="total_days" id="total_days" class="form-control" required>
                         </div>
                         
                     </div>
@@ -45,3 +49,26 @@
         </div>
     </div>
 @endsection
+
+@section('scripts')
+    <script >
+        $(document).ready(function() {
+            document.getElementById('parent_category').addEventListener('change', function () {
+                const selectedValue = event.target.value; 
+                console.log('Selected Parent Category ID:', selectedValue);
+                var categories = @json($categories); // For numbers (without quotes)
+                // Filter categories based on the selected parent category
+                var sub_categories = categories.filter(category => category.parent_id == selectedValue);
+                document.getElementById('sub_category').innerHTML = '<option value="" >Select Sub Menu Categories</option>';
+                sub_categories.forEach(function (category) {
+                    var option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    document.getElementById('sub_category').appendChild(option);
+                });
+            });
+
+        });
+    </script>
+@endsection
+

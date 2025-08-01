@@ -636,4 +636,5 @@
             });
         });
     </script>
+    @yield('scripts')
 </body>
