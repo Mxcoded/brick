@@ -9,12 +9,10 @@ use Modules\Restaurant\Models\Order;
 use Modules\Restaurant\Models\OrderItem;
 use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\Table;
-use Illuminate\Support\Facades\Session; // Assuming you have an Order model and OrderItem model
-
+use Illuminate\Support\Facades\Session;
 
 class RestaurantController extends Controller
 {
-
     public function index()
     {
         $tables = Table::all();
@@ -29,23 +27,22 @@ class RestaurantController extends Controller
 
         return redirect()->route('restaurant.menu', $request->table_id);
     }
-    /**
-     * Display the restaurant menu.
-     */
-    public function menu($table)
+
+    public function menu($table, $categoryId = null)
     {
-       
-        $categories = MenuCategory::with('menuItems')->get();
+        if ($categoryId) {
+            $category = MenuCategory::with('menuItems')->findOrFail($categoryId);
+            $categories = collect([$category]);
+        } else {
+            $categories = MenuCategory::with('menuItems')->get();
+        }
         return view('restaurant::menu', compact('categories', 'table'));
     }
 
-    /**
-     * Add a menu item to the cart.
-     */
     public function addToCart(Request $request, $table)
     {
         $request->validate([
-            'item_id' => 'required|exists:menu_items,id',
+            'item_id' => 'required|exists:restaurant_menu_items,id',
             'quantity' => 'required|integer|min:1',
             'instructions' => 'nullable|string|max:255',
         ]);
@@ -57,18 +54,56 @@ class RestaurantController extends Controller
             'instructions' => $request->input('instructions', ''),
         ];
         session()->put('cart', $cart);
+        // dd(session()->get('cart'));
 
         return redirect()->back()->with('success', 'Item added to cart!');
     }
-    /**
-     * View the cart.
-     */
+
     public function viewCart($table)
     {
+        $table = Table::findOrFail($table);
         $cart = session()->get('cart', []);
         $itemIds = array_column($cart, 'item_id');
         $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
         return view('restaurant::cart', compact('cart', 'items', 'table'));
+    }
+
+    public function updateCart(Request $request, $table)
+    {
+        $request->validate([
+            'index' => 'required|integer|min:0',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $cart = session()->get('cart', []);
+        $index = $request->input('index');
+
+        if (isset($cart[$index])) {
+            $cart[$index]['quantity'] = $request->input('quantity');
+            session()->put('cart', $cart);
+            return redirect()->back()->with('success', 'Cart updated!');
+        }
+
+        return redirect()->back()->with('error', 'Invalid cart item.');
+    }
+
+    public function removeFromCart(Request $request, $table)
+    {
+        $request->validate([
+            'index' => 'required|integer|min:0',
+        ]);
+
+        $cart = session()->get('cart', []);
+        $index = $request->input('index');
+
+        if (isset($cart[$index])) {
+            unset($cart[$index]);
+            $cart = array_values($cart); // Reindex array
+            session()->put('cart', $cart);
+            return redirect()->back()->with('success', 'Item removed from cart!');
+        }
+
+        return redirect()->back()->with('error', 'Invalid cart item.');
     }
 
     public function submitOrder($table)
@@ -78,22 +113,39 @@ class RestaurantController extends Controller
             return redirect()->back()->with('error', 'Your cart is empty.');
         }
 
+        // Validate menu item IDs
+        $itemIds = array_column($cart, 'item_id');
+        $validItems = MenuItem::whereIn('id', $itemIds)->pluck('id')->toArray();
+        $invalidItems = array_diff($itemIds, $validItems);
+        if (!empty($invalidItems)) {
+            return redirect()->back()->with('error', 'Some items in your cart are no longer available.');
+        }
+
         $order = Order::create([
-            'table_id' => $table,
+            'restaurant_table_id' => $table,
             'status' => 'pending',
         ]);
 
         foreach ($cart as $item) {
             OrderItem::create([
-                'order_id' => $order->id,
-                'menu_item_id' => $item['item_id'],
+                'restaurant_order_id' => $order->id,
+                'restaurant_menu_item_id' => $item['item_id'],
                 'quantity' => $item['quantity'],
                 'instructions' => $item['instructions'],
             ]);
         }
 
         session()->forget('cart');
-        return redirect()->route('restaurant.menu', $table)->with('success', 'Order placed successfully!');
+        return redirect()->route('restaurant.order.confirm', ['table' => $table, 'order' => $order->id])
+            ->with('success', 'Order placed successfully!');
+    }
+    public function confirmOrder($table, $order)
+    {
+        $order = Order::with('orderItems.menuItem', 'table')->findOrFail($order);
+        if ($order->restaurant_table_id != $table) {
+            abort(403, 'Unauthorized access to this order.');
+        }
+        return view('restaurant::order.confirm', compact('order', 'table'));
     }
     public function waiterDashboard()
     {
@@ -128,7 +180,7 @@ class RestaurantController extends Controller
 
         $category = new MenuCategory();
         $category->name = $request->input('name');
-        $category->parent_id =  !empty($request->input('parent_category')) ? $request->input('parent_category') :  $request->input('sub_category');
+        $category->parent_id = !empty($request->input('parent_category')) ? $request->input('parent_category') : $request->input('sub_category');
         $category->save();
 
         return redirect()->back()->with('success', 'Menu category added successfully!');

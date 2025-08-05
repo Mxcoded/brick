@@ -18,9 +18,16 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
     Route::get('/', [RestaurantController::class, 'index'])->name('restaurant.landing');
     Route::post('/select-table', [RestaurantController::class, 'selectTable'])->name('restaurant.select-table');
     Route::get('/table/{table}/menu', [RestaurantController::class, 'menu'])->name('restaurant.menu');
-    Route::post('/table/{table}/cart/add', [RestaurantController::class, 'addToCart']);
-    Route::get('/table/{table}/cart', [RestaurantController::class, 'viewCart']);
-    Route::post('/table/{table}/order/submit', [RestaurantController::class, 'submitOrder']);
+    Route::post('/table/{table}/cart/add', [RestaurantController::class, 'addToCart'])->name('restaurant.cart.add');
+    Route::get('/table/{table}/cart', [RestaurantController::class, 'viewCart'])->name('restaurant.cart');
+    Route::post('/table/{table}/cart/update', [RestaurantController::class, 'updateCart'])->name('restaurant.cart.update');
+    Route::post('/table/{table}/cart/remove', [RestaurantController::class, 'removeFromCart'])->name('restaurant.cart.remove');
+    Route::post('/table/{table}/order/submit', [RestaurantController::class, 'submitOrder'])->name('restaurant.order.submit');
+    Route::get('/table/{table}/order/confirm/{order}', [RestaurantController::class, 'confirmOrder'])->name('restaurant.order.confirm');
+});
+Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
+    Route::get('/dashboard', [RestaurantController::class, 'waiterDashboard'])->name('restaurant.waiter.dashboard');
+    Route::post('/order/{order}/accept', [RestaurantController::class, 'acceptOrder'])->name('restaurant.waiter.accept');
 });
 
 Route::prefix('restaurant-admin')->middleware(['web'])->group(function () {

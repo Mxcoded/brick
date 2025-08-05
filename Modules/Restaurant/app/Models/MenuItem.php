@@ -15,7 +15,8 @@ class MenuItem extends Model
      */
    
 
-    protected $fillable = ['restaurant_menu_categories_id', 'name', 'description', 'price'];
+    protected $fillable = ['restaurant_menu_categories_id', 'name',
+            'image', 'description', 'price'];
     protected $table = 'restaurant_menu_items';
     public function category()
     {

@@ -10,14 +10,20 @@ class Order extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     const STATUS_PENDING = 'pending';
     const STATUS_ACCEPTED = 'accepted';
     const STATUS_COMPLETED = 'completed';
 
-    protected $fillable = ['restaurant_table_id', 'status'];
+    protected $fillable = [
+        'restaurant_table_id',
+        'type',
+        'customer_name',
+        'customer_phone',
+        'delivery_address',
+        'status',
+        'tracking_status',
+    ];
+    protected $table = 'restaurant_orders';
 
     public function table()
     {
@@ -26,7 +32,7 @@ class Order extends Model
 
     public function orderItems()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(OrderItem::class, 'restaurant_order_id');
     }
     // protected static function newFactory(): OrderFactory
     // {
