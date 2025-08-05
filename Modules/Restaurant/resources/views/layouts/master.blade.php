@@ -72,27 +72,29 @@
 
         .content {
             margin-top: 20px;
+            margin: auto;
         }
     </style>
 </head>
 
 <body>
-@if(View::getSection('title') !== 'Welcome')
-    <nav class="navbar navbar-expand-lg transparent bg-light">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url('/restaurant') }}">Taste Restaurant</a>
-        </div>
-    </nav>
-    <div class="container-fluid content">
-@endif
     
-        
-            @yield('content')
-        </div>
-    
-        {{-- Vite JS --}}
-        {{-- {{ module_vite('build-restaurant', 'resources/assets/js/app.js', storage_path('vite.hot')) }} --}}
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    @if (View::getSection('title') !== 'Welcome')
+        <nav class="navbar navbar-expand-lg transparent bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url('/restaurant') }}">Taste Restaurant</a>
+            </div>
+        </nav>
+        <div class="container-fluid">
+    @endif
+
+
+    @yield('content')
+    </div>
+
+    {{-- Vite JS --}}
+    {{-- {{ module_vite('build-restaurant', 'resources/assets/js/app.js', storage_path('vite.hot')) }} --}}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
