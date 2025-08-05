@@ -54,14 +54,12 @@ class RestaurantController extends Controller
             'instructions' => $request->input('instructions', ''),
         ];
         session()->put('cart', $cart);
-        // dd(session()->get('cart'));
 
         return redirect()->back()->with('success', 'Item added to cart!');
     }
 
     public function viewCart($table)
     {
-        $table = Table::findOrFail($table);
         $cart = session()->get('cart', []);
         $itemIds = array_column($cart, 'item_id');
         $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
@@ -98,7 +96,7 @@ class RestaurantController extends Controller
 
         if (isset($cart[$index])) {
             unset($cart[$index]);
-            $cart = array_values($cart); // Reindex array
+            $cart = array_values($cart);
             session()->put('cart', $cart);
             return redirect()->back()->with('success', 'Item removed from cart!');
         }
@@ -139,6 +137,7 @@ class RestaurantController extends Controller
         return redirect()->route('restaurant.order.confirm', ['table' => $table, 'order' => $order->id])
             ->with('success', 'Order placed successfully!');
     }
+
     public function confirmOrder($table, $order)
     {
         $order = Order::with('orderItems.menuItem', 'table')->findOrFail($order);
@@ -147,6 +146,7 @@ class RestaurantController extends Controller
         }
         return view('restaurant::order.confirm', compact('order', 'table'));
     }
+
     public function waiterDashboard()
     {
         $orders = Order::where('status', 'pending')
@@ -160,7 +160,7 @@ class RestaurantController extends Controller
         $order = Order::findOrFail($order);
         $order->status = 'accepted';
         $order->save();
-        return redirect()->back()->with('success', 'Order accepted!');
+        return redirect()->route('restaurant.waiter.dashboard')->with('success', 'Order accepted!');
     }
 
     public function adminDashboard()
@@ -184,5 +184,31 @@ class RestaurantController extends Controller
         $category->save();
 
         return redirect()->back()->with('success', 'Menu category added successfully!');
+    }
+
+    public function addMenuItem(Request $request)
+    {
+        $request->validate([
+            'restaurant_menu_categories_id' => 'required|exists:restaurant_menu_categories,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'price' => 'required|numeric|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Max 2MB
+        ]);
+
+        $menuItem = new MenuItem();
+        $menuItem->restaurant_menu_categories_id = $request->input('restaurant_menu_categories_id');
+        $menuItem->name = $request->input('name');
+        $menuItem->description = $request->input('description');
+        $menuItem->price = $request->input('price');
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('dishes', 'public');
+            $menuItem->image = $path;
+        }
+
+        $menuItem->save();
+
+        return redirect()->back()->with('success', 'Menu item added successfully!');
     }
 }
