@@ -1,10 +1,10 @@
 @extends('restaurant::layouts.master')
-@section('title', 'Order Confirmation')
+@section('title', 'Online Order Confirmation')
 @section('content')
     <div class="container-fluid content py-4">
         <div class="text-center mb-5">
             <h1 class="display-4 fw-bold text-dark">Order #{{ $order->id }} Confirmed</h1>
-            <p class="lead text-muted">Thank you for your order, Table {{ $order->table->number }}! It has been sent to our staff for processing.</p>
+            <p class="lead text-muted">Thank you for your order, {{ $order->customer_name }}! It has been sent for processing.</p>
         </div>
 
         @if ($order->orderItems->isEmpty())
@@ -17,6 +17,10 @@
                     <div class="card shadow-lg border-0 rounded-3">
                         <div class="card-body">
                             <h3 class="card-title fw-bold">Order Summary</h3>
+                            <p><strong>Customer:</strong> {{ $order->customer_name }}</p>
+                            <p><strong>Phone:</strong> {{ $order->customer_phone }}</p>
+                            <p><strong>Delivery Address:</strong> {{ $order->delivery_address }}</p>
+                            <p><strong>Tracking Status:</strong> {{ ucfirst($order->tracking_status ?? 'Pending') }}</p>
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
@@ -62,7 +66,7 @@
         @endif
 
         <div class="text-center mt-4">
-            <a href="{{ route('restaurant.menu', $table) }}" class="btn btn-outline-primary btn-lg">Back to Menu</a>
+            <a href="{{ route('restaurant.online.menu') }}" class="btn btn-outline-primary btn-lg">Back to Menu</a>
         </div>
 
         <style>

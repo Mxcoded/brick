@@ -33,6 +33,7 @@
                                     <table class="table table-sm table-borderless">
                                         <thead>
                                             <tr>
+                                                <th>Image</th>
                                                 <th>Item</th>
                                                 <th>Qty</th>
                                                 <th>Price</th>
@@ -42,6 +43,13 @@
                                         <tbody>
                                             @foreach ($order->orderItems as $item)
                                                 <tr>
+                                                    <td>
+                                                        @if ($item->menuItem && $item->menuItem->image)
+                                                            <img src="{{ asset('storage/' . $item->menuItem->image) }}" alt="{{ $item->menuItem->name }}" class="img-fluid rounded" style="max-width: 50px; max-height: 50px; object-fit: cover;">
+                                                        @else
+                                                            <img src="https://via.placeholder.com/50x50?text=No+Image" alt="No Image" class="img-fluid rounded" style="max-width: 50px; max-height: 50px; object-fit: cover;">
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         {{ $item->menuItem ? $item->menuItem->name : 'Item not found' }}
                                                         @if ($item->instructions)
@@ -56,7 +64,7 @@
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <td colspan="3" class="text-end fw-bold">Total:</td>
+                                                <td colspan="4" class="text-end fw-bold">Total:</td>
                                                 <td>{{ '₦' . number_format($order->orderItems->sum(function($item) {
                                                     return $item->menuItem ? $item->menuItem->price * $item->quantity : 0;
                                                 }), 2) }}</td>
@@ -121,9 +129,12 @@
                 padding: 1.25rem;
                 border-radius: 0.75rem;
             }
+            .table img {
+                border-radius: 0.5rem;
+            }
         </style>
-    </div>
 
-    <!-- Include Bootstrap Icons for chevrons and alerts -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+        <!-- Include Bootstrap Icons for chevrons and alerts -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    </div>
 @endsection

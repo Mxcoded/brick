@@ -1,10 +1,10 @@
 @extends('restaurant::layouts.master')
-@section('title', 'Menu')
+@section('title', 'Online Menu')
 @section('content')
     <div class="container-fluid content py-4">
         <div class="text-center mb-5">
-            <h1 class="display-4 fw-bold text-dark">Menu - Table {{ $table }}</h1>
-            <p class="lead text-muted">Explore our delicious offerings and add your favorites to the cart.</p>
+            <h1 class="display-4 fw-bold text-dark">Online Menu</h1>
+            <p class="lead text-muted">Explore our delicious offerings and order for delivery.</p>
         </div>
 
         @if ($categories->isEmpty())
@@ -30,7 +30,7 @@
                                         <h5 class="card-title fw-bold">{{ $item->name }}</h5>
                                         <p class="text-muted">{{ $item->description ?: 'No description available' }}</p>
                                         <p class="fw-bold text-primary">₦ {{ number_format($item->price, 2) }}</p>
-                                        <form action="{{ route('restaurant.cart.add', $table) }}" method="POST">
+                                        <form action="{{ route('restaurant.online.cart.add') }}" method="POST">
                                             @csrf
                                             <input type="hidden" name="item_id" value="{{ $item->id }}">
                                             <div class="mb-3">
@@ -53,7 +53,7 @@
         @endif
 
         <div class="text-center mt-4">
-            <a href="{{ route('restaurant.cart', $table) }}" class="btn btn-outline-primary btn-lg">View Cart</a>
+            <a href="{{ route('restaurant.online.cart') }}" class="btn btn-outline-primary btn-lg">View Cart</a>
         </div>
 
         <style>

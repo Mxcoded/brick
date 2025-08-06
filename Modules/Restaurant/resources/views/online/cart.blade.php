@@ -1,10 +1,10 @@
 @extends('restaurant::layouts.master')
-@section('title', 'Cart')
+@section('title', 'Online Cart')
 @section('content')
     <div class="container-fluid content py-4">
         <div class="text-center mb-5">
-            <h1 class="display-4 fw-bold text-dark">Your Cart - Table {{ $table->number }}</h1>
-            <p class="lead text-muted">Review your items before placing your order.</p>
+            <h1 class="display-4 fw-bold text-dark">Your Online Cart</h1>
+            <p class="lead text-muted">Review your items and provide delivery details.</p>
         </div>
 
         @if (empty($cart))
@@ -43,7 +43,7 @@
                                             </td>
                                             <td>{{ $menuItem ? $menuItem->name : 'Item not found' }}</td>
                                             <td>
-                                                <form action="{{ route('restaurant.cart.update', $table) }}" method="POST">
+                                                <form action="{{ route('restaurant.online.cart.update') }}" method="POST">
                                                     @csrf
                                                     <input type="hidden" name="index" value="{{ $index }}">
                                                     <input type="number" name="quantity" value="{{ $item['quantity'] }}" min="1" class="form-control form-control-sm d-inline-block" style="width: 80px;">
@@ -54,7 +54,7 @@
                                             <td>{{ $item['instructions'] ?: 'None' }}</td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price * $item['quantity'], 2) : 'N/A' }}</td>
                                             <td>
-                                                <form action="{{ route('restaurant.cart.remove', $table) }}" method="POST">
+                                                <form action="{{ route('restaurant.online.cart.remove') }}" method="POST">
                                                     @csrf
                                                     <input type="hidden" name="index" value="{{ $index }}">
                                                     <button type="submit" class="btn btn-sm btn-danger">Remove</button>
@@ -73,8 +73,36 @@
                                     </tr>
                                 </tfoot>
                             </table>
-                            <form action="{{ route('restaurant.order.submit', $table) }}" method="POST">
+                            <h3 class="fw-bold mt-4">Delivery Details</h3>
+                            <form action="{{ route('restaurant.online.order.submit') }}" method="POST">
                                 @csrf
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="customer_name" class="form-label">Name</label>
+                                            <input type="text" name="customer_name" id="customer_name" class="form-control @error('customer_name') is-invalid @enderror" required>
+                                            @error('customer_name')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="customer_phone" class="form-label">Phone</label>
+                                            <input type="text" name="customer_phone" id="customer_phone" class="form-control @error('customer_phone') is-invalid @enderror" required>
+                                            @error('customer_phone')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="delivery_address" class="form-label">Delivery Address</label>
+                                    <textarea name="delivery_address" id="delivery_address" class="form-control @error('delivery_address') is-invalid @enderror" rows="4" required></textarea>
+                                    @error('delivery_address')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
                                 <button type="submit" class="btn btn-primary btn-lg w-100">Place Order</button>
                             </form>
                         </div>
@@ -84,7 +112,7 @@
         @endif
 
         <div class="text-center mt-4">
-            <a href="{{ route('restaurant.menu', $table) }}" class="btn btn-outline-primary btn-lg">Back to Menu</a>
+            <a href="{{ route('restaurant.online.menu') }}" class="btn btn-outline-primary btn-lg">Back to Menu</a>
         </div>
 
         <style>
@@ -112,7 +140,7 @@
                 background-color: #c82333;
                 border-color: #c82333;
             }
-            .form-control, .form-control-sm {
+            .form-control, .form-control-sm, textarea {
                 border-radius: 0.5rem;
             }
             .alert {

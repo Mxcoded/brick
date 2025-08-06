@@ -60,6 +60,7 @@ class RestaurantController extends Controller
 
     public function viewCart($table)
     {
+        $table = Table::findOrFail($table);
         $cart = session()->get('cart', []);
         $itemIds = array_column($cart, 'item_id');
         $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
@@ -111,7 +112,6 @@ class RestaurantController extends Controller
             return redirect()->back()->with('error', 'Your cart is empty.');
         }
 
-        // Validate menu item IDs
         $itemIds = array_column($cart, 'item_id');
         $validItems = MenuItem::whereIn('id', $itemIds)->pluck('id')->toArray();
         $invalidItems = array_diff($itemIds, $validItems);
@@ -121,7 +121,9 @@ class RestaurantController extends Controller
 
         $order = Order::create([
             'restaurant_table_id' => $table,
+            'type' => 'table',
             'status' => 'pending',
+            'tracking_status' => null,
         ]);
 
         foreach ($cart as $item) {
@@ -150,6 +152,7 @@ class RestaurantController extends Controller
     public function waiterDashboard()
     {
         $orders = Order::where('status', 'pending')
+            ->where('type', 'table')
             ->with('orderItems.menuItem', 'table')
             ->get();
         return view('restaurant::waiter.dashboard', compact('orders'));
@@ -159,6 +162,7 @@ class RestaurantController extends Controller
     {
         $order = Order::findOrFail($order);
         $order->status = 'accepted';
+        $order->tracking_status = 'preparing';
         $order->save();
         return redirect()->route('restaurant.waiter.dashboard')->with('success', 'Order accepted!');
     }
@@ -167,7 +171,8 @@ class RestaurantController extends Controller
     {
         $categories = MenuCategory::get();
         $parent_categories = $categories->whereNull('parent_id');
-        return view('restaurant::admin.dashboard', compact('categories', 'parent_categories'));
+        $orders = Order::with('orderItems.menuItem', 'table')->get();
+        return view('restaurant::admin.dashboard', compact('categories', 'parent_categories', 'orders'));
     }
 
     public function addMenuCategory(Request $request)
@@ -193,7 +198,7 @@ class RestaurantController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Max 2MB
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $menuItem = new MenuItem();
@@ -210,5 +215,164 @@ class RestaurantController extends Controller
         $menuItem->save();
 
         return redirect()->back()->with('success', 'Menu item added successfully!');
+    }
+
+    public function updateOrder(Request $request, $order)
+    {
+        $request->validate([
+            'status' => 'required|in:pending,accepted,completed',
+            'tracking_status' => 'nullable|in:pending,preparing,delivered',
+        ]);
+
+        $order = Order::findOrFail($order);
+        $order->status = $request->input('status');
+        if ($order->type === 'online') {
+            $order->tracking_status = $request->input('tracking_status');
+        }
+        $order->save();
+
+        return redirect()->back()->with('success', 'Order updated successfully!');
+    }
+
+    public function onlineMenu()
+    {
+        $categories = MenuCategory::with('menuItems')->get();
+        return view('restaurant::online.menu', compact('categories'));
+    }
+
+    public function addToOnlineCart(Request $request)
+    {
+        $request->validate([
+            'item_id' => 'required|exists:restaurant_menu_items,id',
+            'quantity' => 'required|integer|min:1',
+            'instructions' => 'nullable|string|max:255',
+        ]);
+
+        $cart = session()->get('online_cart', []);
+        $cart[] = [
+            'item_id' => $request->input('item_id'),
+            'quantity' => $request->input('quantity'),
+            'instructions' => $request->input('instructions', ''),
+        ];
+        session()->put('online_cart', $cart);
+
+        return redirect()->back()->with('success', 'Item added to cart!');
+    }
+
+    public function viewOnlineCart()
+    {
+        $cart = session()->get('online_cart', []);
+        $itemIds = array_column($cart, 'item_id');
+        $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
+        return view('restaurant::online.cart', compact('cart', 'items'));
+    }
+
+    public function updateOnlineCart(Request $request)
+    {
+        $request->validate([
+            'index' => 'required|integer|min:0',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $cart = session()->get('online_cart', []);
+        $index = $request->input('index');
+
+        if (isset($cart[$index])) {
+            $cart[$index]['quantity'] = $request->input('quantity');
+            session()->put('online_cart', $cart);
+            return redirect()->back()->with('success', 'Cart updated!');
+        }
+
+        return redirect()->back()->with('error', 'Invalid cart item.');
+    }
+
+    public function removeFromOnlineCart(Request $request)
+    {
+        $request->validate([
+            'index' => 'required|integer|min:0',
+        ]);
+
+        $cart = session()->get('online_cart', []);
+        $index = $request->input('index');
+
+        if (isset($cart[$index])) {
+            unset($cart[$index]);
+            $cart = array_values($cart);
+            session()->put('online_cart', $cart);
+            return redirect()->back()->with('success', 'Item removed from cart!');
+        }
+
+        return redirect()->back()->with('error', 'Invalid cart item.');
+    }
+
+    public function submitOnlineOrder(Request $request)
+    {
+        $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'delivery_address' => 'required|string|max:1000',
+        ]);
+
+        $cart = session()->get('online_cart', []);
+        if (empty($cart)) {
+            return redirect()->back()->with('error', 'Your cart is empty.');
+        }
+
+        $itemIds = array_column($cart, 'item_id');
+        $validItems = MenuItem::whereIn('id', $itemIds)->pluck('id')->toArray();
+        $invalidItems = array_diff($itemIds, $validItems);
+        if (!empty($invalidItems)) {
+            return redirect()->back()->with('error', 'Some items in your cart are no longer available.');
+        }
+
+        $order = Order::create([
+            'type' => 'online',
+            'customer_name' => $request->input('customer_name'),
+            'customer_phone' => $request->input('customer_phone'),
+            'delivery_address' => $request->input('delivery_address'),
+            'status' => 'pending',
+            'tracking_status' => 'pending',
+        ]);
+
+        foreach ($cart as $item) {
+            OrderItem::create([
+                'restaurant_order_id' => $order->id,
+                'restaurant_menu_item_id' => $item['item_id'],
+                'quantity' => $item['quantity'],
+                'instructions' => $item['instructions'],
+            ]);
+        }
+
+        session()->forget('online_cart');
+        return redirect()->route('restaurant.online.order.confirm', ['order' => $order->id])
+            ->with('success', 'Order placed successfully!');
+    }
+
+    public function confirmOnlineOrder($order)
+    {
+        $order = Order::with('orderItems.menuItem')->findOrFail($order);
+        if ($order->type !== 'online') {
+            abort(403, 'Unauthorized access to this order.');
+        }
+        return view('restaurant::online.confirm', compact('order'));
+    }
+    public function viewOrderHistory(Request $request)
+    {
+        $orders = collect();
+        $phone = null;
+
+        if ($request->isMethod('post')) {
+            $request->validate([
+                'customer_phone' => 'required|string|max:20',
+            ]);
+
+            $phone = $request->input('customer_phone');
+            $orders = Order::where('type', 'online')
+                ->where('customer_phone', $phone)
+                ->with('orderItems.menuItem')
+                ->get();
+        }
+
+        return view('restaurant::online.orders', compact('orders', 'phone'));
     }
 }
