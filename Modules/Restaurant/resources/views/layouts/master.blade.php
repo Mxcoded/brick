@@ -16,9 +16,13 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 
     {{-- Vite CSS --}}
     {{-- {{ module_vite('build-restaurant', 'resources/assets/sass/app.scss', storage_path('vite.hot')) }} --}}
+    
+        
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -75,26 +79,74 @@
             margin: auto;
         }
     </style>
+
+
 </head>
 
 <body>
     
     @if (View::getSection('title') !== 'Welcome')
-        <nav class="navbar navbar-expand-lg transparent bg-light">
-            <div class="container-fluid">
+        
+        <nav class="navbar navbar-expand-lg bg-body-tertiary">
+            <div class="container">
                 <a class="navbar-brand" href="{{ url('/restaurant') }}">Taste Restaurant</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarScroll" aria-controls="navbarScroll" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarScroll">
+                <ul class="nav justify-content-center m-auto my-2 my-lg-0" style="--bs-scroll-height: 100px;">
+                    <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                    <a class="nav-link" href="#">Link</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Link
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Action</a></li>
+                        <li><a class="dropdown-item" href="#">Another action</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#">Something else here</a></li>
+                    </ul>
+                    </li>
+                    <li class="nav-item">
+                    <a class="nav-link disabled" aria-disabled="true"></a>
+                    </li>
+                </ul>
+                <div class="d-flex" role="search">
+                    <button class="btn btn-outline-danger position-relative" type="button" data-bs-toggle="modal" data-bs-target="#cartModal">
+                        <i class="fa fa-shopping-cart" aria-hidden="true"></i>
+                        <span class="text-bg-danger position-absolute start-60 " id="cart-number" style="width: 20px; height auto; border-radius: 10px; top: -10px; font-size: 11px; padding: 2px; display: none; right: -10px;"></span>
+                    </button>
+                </div>
+                </div>
             </div>
         </nav>
-        <div class="container-fluid">
     @endif
-
+            
 
     @yield('content')
     </div>
 
     {{-- Vite JS --}}
     {{-- {{ module_vite('build-restaurant', 'resources/assets/js/app.js', storage_path('vite.hot')) }} --}}
+       <!-- Load Alpine.js -->
+  <script defer src="https://unpkg.com/alpinejs@3.12.0/dist/cdn.min.js"></script>
+  
+  <!-- Load persist plugin -->
+  <script defer src="https://unpkg.com/@alpinejs/persist@3.12.0/dist/cdn.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+@stack('scripts')
+
+
 </body>
 
 </html>
