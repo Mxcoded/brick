@@ -67,12 +67,12 @@ class RestaurantController extends Controller
             'order' => 'required',
         ]);
 
-        session()->put('online_cart', []);
-        $cart = session()->get('online_cart', []);
+        session()->put('cart', []);
+        $cart = session()->get('cart', []);
         $cart[] = [
             'order' => $request->input('order'),
         ];
-        session()->put('online_cart', $cart);
+        session()->put('cart', $cart);
 
         return response()->json(['success' => 'Data received successfully!', 'data' => $request->input('order')]);
     }
@@ -81,8 +81,11 @@ class RestaurantController extends Controller
     {
         $table = Table::findOrFail($table);
         $cart = session()->get('cart', []);
+        $cart = array_values($cart[0]); // Re-index the array to avoid gaps in indices
+        $cart = $cart[0];
         $itemIds = array_column($cart, 'item_id');
         $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
+        //dd($itemIds, $items, $cart);
         return view('restaurant::cart', compact('cart', 'items', 'table'));
     }
 

@@ -13,8 +13,8 @@
             </div>
         @else
             <div class="row">
-                <div class="col-md-10 offset-md-1">
-                    <div class="card shadow-lg border-0 rounded-3">
+                <div class="col-md-8 offset-md-2">
+                    <div class="shadow-lg border-0 rounded-3">
                         <div class="card-body">
                             <table class="table table-striped">
                                 <thead>
@@ -51,7 +51,7 @@
                                                 </form>
                                             </td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price, 2) : 'N/A' }}</td>
-                                            <td>{{ $item['instructions'] ?: 'None' }}</td>
+                                            <td>{{ $item['instructions'][$item['item_id']] ?: 'None' }}</td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price * $item['quantity'], 2) : 'N/A' }}</td>
                                             <td>
                                                 <form action="{{ route('restaurant.cart.remove', $table) }}" method="POST">
