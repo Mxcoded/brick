@@ -39,13 +39,8 @@
 
                             <div class="mb-3">
                                 <label for="sub_category" class="form-label">Sub Category (Optional)</label>
-                                <select name="sub_category" id="sub_category" class="form-select">
-                                    <option value="">None</option>
-                                    @foreach ($categories as $category)
-                                        @if ($category->parent_id)
-                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                        @endif
-                                    @endforeach
+                                <select name="sub_category" id="sub_category" class="form-select" >
+                                    <option value="" disabled selected>Select Sub Menu Categories</option>
                                 </select>
                             </div>
 
@@ -384,4 +379,26 @@
         <!-- Include Bootstrap Icons for alerts and chevrons -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     </div>
+@endsection
+@section('scripts')
+    <script >
+        $(document).ready(function() {
+            document.getElementById('parent_category').addEventListener('change', function () {
+                const selectedValue = event.target.value; 
+                console.log('Selected Parent Category ID:', selectedValue);
+                var categories = @json($categories); // For numbers (without quotes)
+                // Filter categories based on the selected parent category
+                var sub_categories = categories.filter(category => category.parent_id == selectedValue);
+                document.getElementById('sub_category').innerHTML = '<option value="" >Select Sub Menu Categories</option>';
+                sub_categories.forEach(function (category) {
+                    var option = document.createElement('option');
+                    console.log('Sub Category ID:', category.name);
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    document.getElementById('sub_category').appendChild(option);
+                });
+            });
+
+        });
+    </script>
 @endsection

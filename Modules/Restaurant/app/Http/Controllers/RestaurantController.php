@@ -32,11 +32,14 @@ class RestaurantController extends Controller
     {
         if ($categoryId) {
             $category = MenuCategory::with('menuItems')->findOrFail($categoryId);
-            $categories = collect([$category]);
+
         } else {
             $categories = MenuCategory::with('menuItems')->get();
+            $category_names = $categories->where('parent_id', NULL)->pluck('name')->toArray();
+
+            
         }
-        return view('restaurant::menu', compact('categories', 'table'));
+        return view('restaurant::menu', compact('categories', 'category_names', 'table'));
     }
 
     public function addToCart(Request $request, $table)
@@ -56,6 +59,22 @@ class RestaurantController extends Controller
         session()->put('cart', $cart);
 
         return redirect()->back()->with('success', 'Item added to cart!');
+    }
+
+    public function addOrder(Request $request, $table)
+    {
+        $request->validate([
+            'order' => 'required',
+        ]);
+
+        session()->put('online_cart', []);
+        $cart = session()->get('online_cart', []);
+        $cart[] = [
+            'order' => $request->input('order'),
+        ];
+        session()->put('online_cart', $cart);
+
+        return response()->json(['success' => 'Data received successfully!', 'data' => $request->input('order')]);
     }
 
     public function viewCart($table)
@@ -262,8 +281,11 @@ class RestaurantController extends Controller
     public function viewOnlineCart()
     {
         $cart = session()->get('online_cart', []);
+        $cart = array_values($cart[0]); // Re-index the array to avoid gaps in indices
+        $cart = $cart[0];
         $itemIds = array_column($cart, 'item_id');
         $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
+        //dd($itemIds, $items, $cart);
         return view('restaurant::online.cart', compact('cart', 'items'));
     }
 
