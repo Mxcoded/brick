@@ -51,7 +51,7 @@
                                                 </form>
                                             </td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price, 2) : 'N/A' }}</td>
-                                            <td>{{ $item['instructions'] ?: 'None' }}</td>
+                                            <td>{{ $item['instructions'][$item['item_id']] ?: 'None' }}</td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price * $item['quantity'], 2) : 'N/A' }}</td>
                                             <td>
                                                 <form action="{{ route('restaurant.online.cart.remove') }}" method="POST">
@@ -67,7 +67,7 @@
                                     <tr>
                                         <td colspan="5" class="text-end fw-bold">Total:</td>
                                         <td>{{ '₦' . number_format(array_sum(array_map(function($item) use ($items) {
-                                            return isset($items[$item['item_id']]) ? $items[$item['item_id']]->price * $item['quantity'] : 0;
+                                            return isset($items['item_id']) ? $items['item_id']->price * $item['quantity'] : 0;
                                         }, $cart)), 2) }}</td>
                                         <td></td>
                                     </tr>
