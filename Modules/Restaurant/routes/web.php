@@ -19,6 +19,7 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
     Route::post('/select-table', [RestaurantController::class, 'selectTable'])->name('restaurant.select-table');
     Route::get('/table/{table}/menu', [RestaurantController::class, 'menu'])->name('restaurant.menu');
     Route::post('/table/{table}/cart/add', [RestaurantController::class, 'addToCart'])->name('restaurant.cart.add');
+    Route::post('/table/{table}/order/add', [RestaurantController::class, 'addOrder'])->name('restaurant.cart.order');
     Route::get('/table/{table}/cart', [RestaurantController::class, 'viewCart'])->name('restaurant.cart');
     Route::post('/table/{table}/cart/update', [RestaurantController::class, 'updateCart'])->name('restaurant.cart.update');
     Route::post('/table/{table}/cart/remove', [RestaurantController::class, 'removeFromCart'])->name('restaurant.cart.remove');
