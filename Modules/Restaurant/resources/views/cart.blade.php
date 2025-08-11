@@ -51,7 +51,7 @@
                                                 </form>
                                             </td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price, 2) : 'N/A' }}</td>
-                                            <td>{{ $item['instructions'][$item['item_id']] ?: 'None' }}</td>
+                                            <td>{{ $item['instructions'][$item['item_id']] ?? 'None' }}</td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price * $item['quantity'], 2) : 'N/A' }}</td>
                                             <td>
                                                 <form action="{{ route('restaurant.cart.remove', $table) }}" method="POST">
