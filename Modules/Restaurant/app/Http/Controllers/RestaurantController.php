@@ -39,7 +39,7 @@ class RestaurantController extends Controller
 
             
         }
-        return view('restaurant::menu', compact('categories', 'category_names', 'table'));
+        return view('restaurant::table.menu', compact('categories', 'category_names', 'table'));
     }
 
     public function addToCart(Request $request, $table)
@@ -86,7 +86,7 @@ class RestaurantController extends Controller
         $itemIds = array_column($cart, 'item_id');
         $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
         //dd($itemIds, $items, $cart);
-        return view('restaurant::cart', compact('cart', 'items', 'table'));
+        return view('restaurant::table.cart', compact('cart', 'items', 'table'));
     }
 
     public function updateCart(Request $request, $table)
@@ -168,7 +168,7 @@ class RestaurantController extends Controller
         if ($order->restaurant_table_id != $table) {
             abort(403, 'Unauthorized access to this order.');
         }
-        return view('restaurant::order.confirm', compact('order', 'table'));
+        return view('restaurant::table.confirm', compact('order', 'table'));
     }
 
     public function waiterDashboard()
