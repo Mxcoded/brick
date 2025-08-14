@@ -1,4 +1,4 @@
-@extends('restaurant::layouts.master')
+:@extends('restaurant::layouts.master')
 @section('title', 'Menu')
 
 @section('content')

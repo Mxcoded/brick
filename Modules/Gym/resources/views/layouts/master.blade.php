@@ -602,7 +602,7 @@
 
 <body>
     @include('admin::layouts.navbar')
-    <main class="container my-4">
+    <main class="container-fluid p-5 my-4">
         @yield('content')
     </main>
    

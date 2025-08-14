@@ -42,16 +42,9 @@
                                                 @endif
                                             </td>
                                             <td>{{ $menuItem ? $menuItem->name : 'Item not found' }}</td>
-                                            <td>
-                                                <form action="{{ route('restaurant.cart.update', $table) }}" method="POST">
-                                                    @csrf
-                                                    <input type="hidden" name="index" value="{{ $index }}">
-                                                    <input type="number" name="quantity" value="{{ $item['quantity'] }}" min="1" class="form-control form-control-sm d-inline-block" style="width: 80px;">
-                                                    <button type="submit" class="btn btn-sm btn-primary mt-1">Update</button>
-                                                </form>
-                                            </td>
+                                            <td>{{ $item['quantity'] ? $item['quantity'] : 'Item not found' }}</td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price, 2) : 'N/A' }}</td>
-                                            <td>{{ $item['instructions'][$item['item_id']] ?: 'None' }}</td>
+                                            <td>{{ $item['instructions'] ?? 'None' }}</td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price * $item['quantity'], 2) : 'N/A' }}</td>
                                             <td>
                                                 <form action="{{ route('restaurant.cart.remove', $table) }}" method="POST">

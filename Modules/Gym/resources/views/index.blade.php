@@ -77,7 +77,7 @@
 @extends('gym::layouts.master')
 
 @section('content')
-    <div class="container-fluid py-4">
+    <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h2 mb-0"><i class="fas fa-id-card-alt me-2"></i>Gym Memberships</h1>
             <div class="btn-group">
@@ -123,7 +123,7 @@
                     </div>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div class="table-responsive ">
                         <table id="gymMemberTable" class="table table-hover align-middle mb-0" style="width:100%">
                             <thead class="table-light">
                                 <tr>

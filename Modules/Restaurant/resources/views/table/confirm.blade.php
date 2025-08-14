@@ -13,8 +13,8 @@
             </div>
         @else
             <div class="row">
-                <div class="col-md-10 offset-md-1">
-                    <div class="card shadow-lg border-0 rounded-3">
+                <div class="col-md-8 offset-md-2">
+                    <div class="shadow-lg border-0 rounded-3">
                         <div class="card-body">
                             <h3 class="card-title fw-bold">Order Summary</h3>
                             <table class="table table-striped">
