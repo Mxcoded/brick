@@ -134,7 +134,7 @@ class RestaurantController extends Controller
             return redirect()->back()->with('error', 'Your cart is empty.');
         }
 
-        $itemIds = array_column($cart, 'item_id');
+        $itemIds = array_column($cart[0], 'item_id');
         $validItems = MenuItem::whereIn('id', $itemIds)->pluck('id')->toArray();
         $invalidItems = array_diff($itemIds, $validItems);
         if (!empty($invalidItems)) {
@@ -148,7 +148,7 @@ class RestaurantController extends Controller
             'tracking_status' => null,
         ]);
 
-        foreach ($cart as $item) {
+        foreach ($cart[0]['order'] as $item) {
             OrderItem::create([
                 'restaurant_order_id' => $order->id,
                 'restaurant_menu_item_id' => $item['item_id'],
@@ -290,11 +290,8 @@ class RestaurantController extends Controller
     public function viewOnlineCart()
     {
         $cart = session()->get('online_cart', []);
-        $cart = array_values($cart[0]); // Re-index the array to avoid gaps in indices
-        $cart = $cart[0];
         $itemIds = array_column($cart, 'item_id');
         $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
-        //dd($itemIds, $items, $cart);
         return view('restaurant::online.cart', compact('cart', 'items'));
     }
 
