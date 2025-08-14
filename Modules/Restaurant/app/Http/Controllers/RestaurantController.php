@@ -238,7 +238,13 @@ class RestaurantController extends Controller
 
         return redirect()->back()->with('success', 'Menu item added successfully!');
     }
-
+    public function editMenuItem($item)
+    {
+        $menuItem = MenuItem::findOrFail($item);
+        $categories = MenuCategory::get();
+        dd($menuItem->toArray(), $categories->toArray()); // Debug item and categories
+        return view('restaurant::admin.edit-item', compact('menuItem', 'categories'));
+    }
     public function updateOrder(Request $request, $order)
     {
         $request->validate([
