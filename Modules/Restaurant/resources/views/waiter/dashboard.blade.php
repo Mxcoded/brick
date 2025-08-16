@@ -4,7 +4,7 @@
     <div class="container-fluid content py-4">
         <div class="text-center mb-5">
             <h1 class="display-4 fw-bold text-dark">Waiter Dashboard</h1>
-            <p class="lead text-muted">Manage pending orders for your restaurant.</p>
+            <p class="lead text-muted">Manage pending orders for tables and rooms.</p>
         </div>
 
         @if ($orders->isEmpty())
@@ -18,7 +18,7 @@
                         <div class="card h-100 shadow-lg border-0 rounded-3">
                             <div class="card-header bg-light border-bottom-0">
                                 <h3 class="card-title fw-bold mb-0">
-                                    Order #{{ $order->id }} - Table {{ $order->table->number }}
+                                    Order #{{ $order->id }} - {{ ucfirst($order->type) }}
                                     <span class="float-end">
                                         <span class="badge bg-success rounded-pill">{{ ucfirst($order->status) }}</span>
                                     </span>
@@ -26,6 +26,10 @@
                                 <small class="text-muted">Placed: {{ $order->created_at->format('d M Y H:i') }}</small>
                             </div>
                             <div class="card-body">
+                                <p><strong>{{ $order->type === 'table' ? 'Table' : 'Room' }}:</strong> {{ $order->source->name ?? 'N/A' }}</p>
+                                @if ($order->type === 'room')
+                                    <p><strong>Tracking:</strong> {{ ucfirst($order->tracking_status ?? 'Pending') }}</p>
+                                @endif
                                 <button class="btn btn-link text-decoration-none p-0 mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#orderDetails{{ $order->id }}" aria-expanded="false" aria-controls="orderDetails{{ $order->id }}">
                                     <i class="bi bi-chevron-down me-1"></i>View Order Details
                                 </button>
@@ -72,12 +76,10 @@
                                         </tfoot>
                                     </table>
                                 </div>
-                                @if ($order->status === 'pending')
-                                    <form action="{{ route('restaurant.waiter.accept', $order->id) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-primary w-100 mt-3">Accept Order</button>
-                                    </form>
-                                @endif
+                                <form action="{{ route('restaurant.waiter.accept', $order->id) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn btn-primary w-100">Accept Order</button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -92,7 +94,7 @@
             }
             .card:hover {
                 transform: translateY(-5px);
-                box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+                box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
             }
             .card-header {
                 background-color: #f8f9fa;
@@ -102,28 +104,10 @@
             .btn-primary {
                 background-color: #d9534f;
                 border-color: #d9534f;
-                transition: background-color 0.2s ease;
             }
             .btn-primary:hover {
                 background-color: #c9302c;
                 border-color: #c9302c;
-            }
-            .badge {
-                font-size: 0.9rem;
-                padding: 0.5em 0.75em;
-            }
-            .table-sm {
-                font-size: 0.85rem;
-            }
-            .table-borderless th, .table-borderless td {
-                padding: 0.5rem;
-            }
-            .btn-link {
-                color: #d9534f;
-            }
-            .btn-link:hover {
-                color: #c9302c;
-                text-decoration: underline;
             }
             .alert {
                 padding: 1.25rem;
@@ -132,9 +116,25 @@
             .table img {
                 border-radius: 0.5rem;
             }
+            .btn-link {
+                color: #d9534f;
+            }
+            .btn-link:hover {
+                color: #c9302c;
+                text-decoration: underline;
+            }
+            .table-sm {
+                font-size: 0.85rem;
+            }
+            .table-borderless th, .table-borderless td {
+                padding: 0.5rem;
+            }
+            .badge {
+                font-size: 0.9rem;
+                padding: 0.5em 0.75em;
+            }
         </style>
 
-        <!-- Include Bootstrap Icons for chevrons and alerts -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     </div>
 @endsection
