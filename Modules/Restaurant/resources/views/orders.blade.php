@@ -16,7 +16,9 @@
                             @csrf
                             <div class="mb-3">
                                 <label for="customer_phone" class="form-label">Phone Number</label>
-                                <input type="text" name="customer_phone" id="customer_phone" class="form-control @error('customer_phone') is-invalid @enderror" value="{{ old('customer_phone', $phone) }}" required>
+                                <input type="text" name="customer_phone" id="customer_phone"
+                                    class="form-control @error('customer_phone') is-invalid @enderror"
+                                    value="{{ old('customer_phone', $phone) }}" required>
                                 @error('customer_phone')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -71,11 +73,10 @@
                                                 @foreach ($order->orderItems as $item)
                                                     <tr>
                                                         <td>
-                                                            @if ($item->menuItem && $item->menuItem->image)
-                                                                <img src="{{ asset('storage/' . $item->menuItem->image) }}" alt="{{ $item->menuItem->name }}" class="img-fluid rounded" style="max-width: 50px; max-height: 50px; object-fit: cover;">
-                                                            @else
-                                                                <img src="https://via.placeholder.com/50x50?text=No+Image" alt="No Image" class="img-fluid rounded" style="max-width: 50px; max-height: 50px; object-fit: cover;">
-                                                            @endif
+                                                            <img src="{{ $item->menuItem && $item->menuItem->image && file_exists(public_path('storage/' . $item->menuItem->image)) ? asset('storage/' . $item->menuItem->image) : asset('storage/images/menudefaultimage.png') }}"
+                                                                alt="{{ $item->menuItem ? $item->menuItem->name : 'No Image' }}"
+                                                                class="img-fluid rounded"
+                                                                style="max-width: 50px; max-height: 50px; object-fit: cover;">
                                                         </td>
                                                         <td>
                                                             {{ $item->menuItem ? $item->menuItem->name : 'Item not found' }}
@@ -162,7 +163,6 @@
             }
         </style>
 
-        <!-- Include Bootstrap Icons for alerts and chevrons -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     </div>
 @endsection

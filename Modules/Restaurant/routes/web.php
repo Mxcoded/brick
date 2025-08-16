@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Restaurant\Http\Controllers\RestaurantController;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,25 +18,57 @@ use Modules\Restaurant\Http\Controllers\RestaurantController;
 
 Route::prefix('restaurant')->middleware(['web'])->group(function () {
     Route::get('/', [RestaurantController::class, 'index'])->name('restaurant.landing');
-    Route::post('/select-table', [RestaurantController::class, 'selectTable'])->name('restaurant.select-table');
-    Route::get('/table/{table}/menu', [RestaurantController::class, 'menu'])->name('restaurant.menu');
-    Route::post('/table/{table}/cart/add', [RestaurantController::class, 'addToCart'])->name('restaurant.cart.add');
-    Route::post('/table/{table}/order/add', [RestaurantController::class, 'addOrder'])->name('restaurant.cart.order');
-    Route::get('/table/{table}/cart', [RestaurantController::class, 'viewCart'])->name('restaurant.cart');
-    Route::post('/table/{table}/cart/update', [RestaurantController::class, 'updateCart'])->name('restaurant.cart.update');
-    Route::post('/table/{table}/cart/remove', [RestaurantController::class, 'removeFromCart'])->name('restaurant.cart.remove');
-    Route::post('/table/{table}/order/submit', [RestaurantController::class, 'submitOrder'])->name('restaurant.order.submit');
-    Route::get('/table/{table}/order/confirm/{order}', [RestaurantController::class, 'confirmOrder'])->name('restaurant.order.confirm');
-    // Online order routes
-    Route::get('/online/menu', [RestaurantController::class, 'onlineMenu'])->name('restaurant.online.menu');
-    Route::post('/online/cart/add', [RestaurantController::class, 'addToOnlineCart'])->name('restaurant.online.cart.add');
-    Route::get('/online/cart', [RestaurantController::class, 'viewOnlineCart'])->name('restaurant.online.cart');
-    Route::post('/online/cart/update', [RestaurantController::class, 'updateOnlineCart'])->name('restaurant.online.cart.update');
-    Route::post('/online/cart/remove', [RestaurantController::class, 'removeFromOnlineCart'])->name('restaurant.online.cart.remove');
-    Route::post('/online/order/submit', [RestaurantController::class, 'submitOnlineOrder'])->name('restaurant.online.order.submit');
-    Route::get('/online/order/confirm/{order}', [RestaurantController::class, 'confirmOnlineOrder'])->name('restaurant.online.order.confirm');
+    Route::post('/select-source', [RestaurantController::class, 'selectSource'])->name('restaurant.select-source');
+
+    // Explicit routes for online (no optional source to avoid slash issues)
+    Route::prefix('online')->name('restaurant.online.')->group(function () {
+        Route::get('menu', function (Request $request) {
+            return app(RestaurantController::class)->menu('online', null, $request);
+        })->name('menu');
+
+        Route::post('cart/add', function (Request $request) {
+            return app(RestaurantController::class)->addToCart($request, 'online', null);
+        })->name('cart.add');
+
+        Route::post('order/add', function (Request $request) {
+            return app(RestaurantController::class)->addToOrder($request, 'online', null);
+        })->name('order.add');
+
+        Route::get('cart', function (Request $request) {
+            return app(RestaurantController::class)->viewCart('online', null);
+        })->name('cart');
+
+        Route::post('cart/update', function (Request $request) {
+            return app(RestaurantController::class)->updateCart($request, 'online', null);
+        })->name('cart.update');
+
+        Route::post('cart/remove', function (Request $request) {
+            return app(RestaurantController::class)->removeFromCart($request, 'online', null);
+        })->name('cart.remove');
+
+        Route::post('order/submit', function (Request $request) {
+            return app(RestaurantController::class)->submitOrder($request, 'online', null);
+        })->name('order.submit');
+
+        Route::get('order/confirm/{order}', function ($order, Request $request) {
+            return app(RestaurantController::class)->confirmOrder('online', null, $order);
+        })->name('order.confirm');
+    });
+    // General route for other types
+    Route::get('/{type}/{source?}/menu', [RestaurantController::class, 'menu'])->name('restaurant.menu');
+   
+    Log::info('Restaurant menu route accessed: type=' . request()->type . ', source=' . request()->source);
+   
+    Route::post('/{type}/{source?}/cart/add', [RestaurantController::class, 'addToCart'])->name('restaurant.cart.add');
+    Route::post('/{type}/{source?}/order/add', [RestaurantController::class, 'addToOrder'])->name('restaurant.order.add');
+    Route::get('/{type}/{source?}/cart', [RestaurantController::class, 'viewCart'])->name('restaurant.cart');
+    Route::post('/{type}/{source?}/cart/update', [RestaurantController::class, 'updateCart'])->name('restaurant.cart.update');
+    Route::post('/{type}/{source?}/cart/remove', [RestaurantController::class, 'removeFromCart'])->name('restaurant.cart.remove');
+    Route::post('/{type}/{source?}/order/submit', [RestaurantController::class, 'submitOrder'])->name('restaurant.order.submit');
+    Route::get('/{type}/{source?}/order/confirm/{order}', [RestaurantController::class, 'confirmOrder'])->name('restaurant.order.confirm');
     Route::match(['get', 'post'], '/online/orders', [RestaurantController::class, 'viewOrderHistory'])->name('restaurant.online.orders');
 });
+
 Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
     Route::get('/dashboard', [RestaurantController::class, 'waiterDashboard'])->name('restaurant.waiter.dashboard');
     Route::post('/order/{order}/accept', [RestaurantController::class, 'acceptOrder'])->name('restaurant.waiter.accept');
@@ -44,6 +78,8 @@ Route::prefix('restaurant-admin')->middleware(['web', 'auth'])->group(function (
     Route::get('/dashboard', [RestaurantController::class, 'adminDashboard'])->name('dashboard');
     Route::post('/dashboard/category/add', [RestaurantController::class, 'addMenuCategory'])->name('restaurant.admin.add-category');
     Route::post('/dashboard/item/add', [RestaurantController::class, 'addMenuItem'])->name('restaurant.admin.add-item');
-    Route::get('/table/{table}/menu', [RestaurantController::class, 'menu'])->name('restaurant.admin.menu');
+    Route::get('/dashboard/item/{item}/edit', [RestaurantController::class, 'editMenuItem'])->name('restaurant.admin.edit-item');
+    Route::post('/dashboard/item/{item}/update', [RestaurantController::class, 'updateMenuItem'])->name('restaurant.admin.update-item');
+    Route::post('/dashboard/item/{item}/delete', [RestaurantController::class, 'deleteMenuItem'])->name('restaurant.admin.delete-item');
     Route::post('/order/{order}/update', [RestaurantController::class, 'updateOrder'])->name('restaurant.admin.order.update');
 });
