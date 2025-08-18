@@ -2,9 +2,9 @@
 @section('title', 'Admin Dashboard')
 @section('content')
     <div class="container-fluid">
-        <div class="text-center mb-5">
+        <div class="text-center mb-5 mt-4">
             <h1 class="display-4 fw-bold text-dark">Admin Dashboard</h1>
-            <p class="lead text-muted">Manage menu categories, items, and orders.</p>
+            <p class="lead text-muted">Manage menu categories, items, and orders</p>
         </div>
 
         <!-- Responsive Side-by-Side Form Section -->
@@ -12,39 +12,44 @@
             <!-- Add Category Form -->
             <div class="col-lg-6 col-12">
                 <div class="card shadow-lg border-0 rounded-4 h-100">
-                    <div class="card-header bg-light border-bottom-0">
-                        <h3 class="card-title fw-bold">Add New Category</h3>
+                    <div class="card-header bg-light py-3">
+                        <h3 class="card-title fw-bold mb-0">Add New Category</h3>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
                         <form action="{{ route('restaurant.admin.add-category') }}" method="POST">
                             @csrf
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Category Name</label>
+                            <div class="mb-4">
+                                <label for="name" class="form-label fw-medium">Category Name</label>
                                 <input type="text" name="name" id="name"
-                                    class="form-control @error('name') is-invalid @enderror" required>
+                                    class="form-control form-control-lg @error('name') is-invalid @enderror" 
+                                    placeholder="Enter category name" required>
                                 @error('name')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <div class="mb-3">
-                                <label for="parent_category" class="form-label">Parent Category (Optional)</label>
-                                <select name="parent_category" id="parent_category" class="form-select">
-                                    <option value="">None</option>
-                                    @foreach ($parent_categories as $category)
-                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                    @endforeach
-                                </select>
+                            <div class="row g-3">
+                                <div class="col-md-6 mb-4">
+                                    <label for="parent_category" class="form-label fw-medium">Parent Category</label>
+                                    <select name="parent_category" id="parent_category" class="form-select form-select-lg">
+                                        <option value="">None</option>
+                                        @foreach ($parent_categories as $category)
+                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label for="sub_category" class="form-label fw-medium">Sub Category</label>
+                                    <select name="sub_category" id="sub_category" class="form-select form-select-lg" disabled>
+                                        <option value="">Select parent first</option>
+                                    </select>
+                                </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="sub_category" class="form-label">Sub Category (Optional)</label>
-                                <select name="sub_category" id="sub_category" class="form-select" >
-                                    <option value="" disabled selected>Select Sub Menu Categories</option>
-                                </select>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100">Add Category</button>
+                            <button type="submit" class="btn btn-primary btn-lg w-100 py-2 fw-bold">
+                                <i class="bi bi-plus-circle me-2"></i>Add Category
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -53,17 +58,17 @@
             <!-- Add Menu Item Form -->
             <div class="col-lg-6 col-12">
                 <div class="card shadow-lg border-0 rounded-4 h-100">
-                    <div class="card-header bg-light border-bottom-0">
-                        <h3 class="card-title fw-bold">Add New Menu Item</h3>
+                    <div class="card-header bg-light py-3">
+                        <h3 class="card-title fw-bold mb-0">Add New Menu Item</h3>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
                         <form action="{{ route('restaurant.admin.add-item') }}" method="POST"
                             enctype="multipart/form-data">
                             @csrf
-                            <div class="mb-3">
-                                <label for="restaurant_menu_categories_id" class="form-label">Category</label>
+                            <div class="mb-4">
+                                <label for="restaurant_menu_categories_id" class="form-label fw-medium">Category</label>
                                 <select name="restaurant_menu_categories_id" id="restaurant_menu_categories_id"
-                                    class="form-select @error('restaurant_menu_categories_id') is-invalid @enderror"
+                                    class="form-select form-select-lg @error('restaurant_menu_categories_id') is-invalid @enderror"
                                     required>
                                     <option value="">Select Category</option>
                                     @foreach ($categories as $category)
@@ -75,44 +80,50 @@
                                 @enderror
                             </div>
 
-                            <div class="mb-3">
-                                <label for="name" class="form-label">Item Name</label>
+                            <div class="mb-4">
+                                <label for="name" class="form-label fw-medium">Item Name</label>
                                 <input type="text" name="name" id="name"
-                                    class="form-control @error('name') is-invalid @enderror" required>
+                                    class="form-control form-control-lg @error('name') is-invalid @enderror" 
+                                    placeholder="Enter item name" required>
                                 @error('name')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Description</label>
-                                <textarea name="description" id="description" class="form-control @error('description') is-invalid @enderror"
-                                    rows="4"></textarea>
+                            <div class="mb-4">
+                                <label for="description" class="form-label fw-medium">Description</label>
+                                <textarea name="description" id="description" 
+                                    class="form-control form-control-lg @error('description') is-invalid @enderror"
+                                    rows="3" placeholder="Enter item description"></textarea>
                                 @error('description')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <div class="mb-3">
-                                <label for="price" class="form-label">Price (₦)</label>
-                                <input type="number" name="price" id="price"
-                                    class="form-control @error('price') is-invalid @enderror" step="0.01" min="0"
-                                    required>
-                                @error('price')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                            <div class="row g-3">
+                                <div class="col-md-6 mb-4">
+                                    <label for="price" class="form-label fw-medium">Price (₦)</label>
+                                    <input type="number" name="price" id="price" step="0.01"
+                                        class="form-control form-control-lg @error('price') is-invalid @enderror" 
+                                        placeholder="0.00" required min="0">
+                                    @error('price')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-6 mb-4">
+                                    <label for="image" class="form-label fw-medium">Image</label>
+                                    <input type="file" name="image" id="image"
+                                        class="form-control form-control-lg @error('image') is-invalid @enderror">
+                                    @error('image')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="image" class="form-label">Dish Image (Optional)</label>
-                                <input type="file" name="image" id="image"
-                                    class="form-control @error('image') is-invalid @enderror" accept="image/*">
-                                @error('image')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100">Add Menu Item</button>
+                            <button type="submit" class="btn btn-primary btn-lg w-100 py-2 fw-bold">
+                                <i class="bi bi-plus-circle me-2"></i>Add Item
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -122,137 +133,155 @@
         <!-- Orders Section -->
         <div class="row mb-5">
             <div class="col-12">
-                <h2 class="fw-bold text-dark mb-4">Manage Orders</h2>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold mb-0">Manage Orders</h2>
+                    <div class="d-flex">
+                        <button class="btn btn-outline-primary me-2">
+                            <i class="bi bi-filter me-1"></i>Filter
+                        </button>
+                        <button class="btn btn-primary">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+                
                 @if ($orders->isEmpty())
-                    <div class="alert alert-info text-center rounded-3 shadow-sm">
-                        <i class="bi bi-info-circle me-2"></i>No orders available.
+                    <div class="alert alert-info text-center rounded-3 shadow-sm py-4">
+                        <i class="bi bi-info-circle-fill me-2"></i>No orders available
                     </div>
                 @else
                     <div class="row g-4">
                         @foreach ($orders as $order)
-                            <div class="col-md-6 col-lg-4">
-                                <div class="card h-100 shadow-lg border-0 rounded-3">
-                                    <div class="card-header bg-light border-bottom-0">
-                                        <h3 class="card-title fw-bold mb-0">
-                                            Order #{{ $order->id }} - {{ ucfirst($order->type) }}
-                                            <span class="float-end">
-                                                <span
-                                                    class="badge bg-success rounded-pill">{{ ucfirst($order->status) }}</span>
+                            <div class="col-md-6 col-lg-4 col-xl-3">
+                                <div class="card h-100 shadow-sm border-0 rounded-3">
+                                    <div class="card-header bg-light py-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h3 class="h5 fw-bold mb-0">
+                                                #{{ $order->id }}
+                                            </h3>
+                                            <span class="badge rounded-pill 
+                                                @if($order->status === 'pending') bg-warning text-dark
+                                                @elseif($order->status === 'accepted') bg-info
+                                                @else bg-success @endif">
+                                                {{ ucfirst($order->status) }}
                                             </span>
-                                        </h3>
-                                        <small class="text-muted">Placed:
-                                            {{ $order->created_at->format('d M Y H:i') }}</small>
+                                        </div>
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="bi bi-clock me-1"></i>{{ $order->created_at->format('d M Y, H:i') }}
+                                        </small>
                                     </div>
                                     <div class="card-body">
-                                        <p>
-                                            <strong>
-                                                {{ $order->type === 'table' ? 'Table: ' . ($order->table->number ?? 'N/A') : 'Customer: ' . ($order->customer_name ?? 'N/A') }}
-                                            </strong>
-                                        </p>
-                                        @if ($order->type === 'online')
-                                            <p><strong>Phone:</strong> {{ $order->customer_phone ?? 'N/A' }}</p>
-                                            <p><strong>Address:</strong> {{ $order->delivery_address ?? 'N/A' }}</p>
-                                            <p><strong>Tracking:</strong>
-                                                {{ ucfirst($order->tracking_status ?? 'Pending') }}</p>
-                                        @endif
-                                        <button class="btn btn-link text-decoration-none p-0 mb-2" type="button"
-                                            data-bs-toggle="collapse" data-bs-target="#orderDetails{{ $order->id }}"
-                                            aria-expanded="false" aria-controls="orderDetails{{ $order->id }}">
-                                            <i class="bi bi-chevron-down me-1"></i>View Order Details
-                                        </button>
-                                        <div class="collapse" id="orderDetails{{ $order->id }}">
-                                            <table class="table table-sm table-borderless">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Image</th>
-                                                        <th>Item</th>
-                                                        <th>Qty</th>
-                                                        <th>Price</th>
-                                                        <th>Total</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach ($order->orderItems as $item)
-                                                        <tr>
-                                                            <td>
-                                                                @if ($item->menuItem && $item->menuItem->image)
-                                                                    <img src="{{ asset('storage/' . $item->menuItem->image) }}"
-                                                                        alt="{{ $item->menuItem->name }}"
-                                                                        class="img-fluid rounded"
-                                                                        style="max-width: 50px; max-height: 50px; object-fit: cover;">
-                                                                @else
-                                                                    <img src="https://via.placeholder.com/50x50?text=No+Image"
-                                                                        alt="No Image" class="img-fluid rounded"
-                                                                        style="max-width: 50px; max-height: 50px; object-fit: cover;">
-                                                                @endif
-                                                            </td>
-                                                            <td>
-                                                                {{ $item->menuItem ? $item->menuItem->name : 'Item not found' }}
-                                                                @if ($item->instructions)
-                                                                    <small
-                                                                        class="text-muted d-block">{{ $item->instructions }}</small>
-                                                                @endif
-                                                            </td>
-                                                            <td>{{ $item->quantity }}</td>
-                                                            <td>{{ $item->menuItem ? '₦' . number_format($item->menuItem->price, 2) : 'N/A' }}
-                                                            </td>
-                                                            <td>{{ $item->menuItem ? '₦' . number_format($item->menuItem->price * $item->quantity, 2) : 'N/A' }}
-                                                            </td>
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                                <tfoot>
-                                                    <tr>
-                                                        <td colspan="4" class="text-end fw-bold">Total:</td>
-                                                        <td>{{ '₦' .
-                                                            number_format(
-                                                                $order->orderItems->sum(function ($item) {
-                                                                    return $item->menuItem ? $item->menuItem->price * $item->quantity : 0;
-                                                                }),
-                                                                2,
-                                                            ) }}
-                                                        </td>
-                                                    </tr>
-                                                </tfoot>
-                                            </table>
+                                        <div class="mb-3">
+                                            <p class="mb-1"><i class="bi bi-tag me-2"></i><strong>Type:</strong> 
+                                                <span class="text-capitalize">{{ $order->type }}</span>
+                                            </p>
+                                            @if ($order->type === 'table')
+                                                <p class="mb-1"><i class="bi bi-table me-2"></i><strong>Table:</strong> 
+                                                    {{ $order->table->number ?? 'N/A' }}
+                                                </p>
+                                            @elseif ($order->type === 'room')
+                                                <p class="mb-1"><i class="bi bi-door-closed me-2"></i><strong>Room:</strong> 
+                                                    {{ $order->room->name ?? 'N/A' }}
+                                                </p>
+                                            @elseif ($order->type === 'online')
+                                                <p class="mb-1"><i class="bi bi-person me-2"></i><strong>Customer:</strong> 
+                                                    {{ $order->customer_name }}
+                                                </p>
+                                                <p class="mb-1"><i class="bi bi-telephone me-2"></i><strong>Phone:</strong> 
+                                                    {{ $order->customer_phone }}
+                                                </p>
+                                                <p class="mb-1"><i class="bi bi-geo-alt me-2"></i><strong>Address:</strong> 
+                                                    {{ $order->delivery_address }}
+                                                </p>
+                                            @endif
+                                            <p class="mb-0"><i class="bi bi-truck me-2"></i><strong>Tracking:</strong> 
+                                                <span class="badge bg-secondary text-capitalize">
+                                                    {{ $order->tracking_status ?? 'pending' }}
+                                                </span>
+                                            </p>
                                         </div>
-                                        <form action="{{ route('restaurant.admin.order.update', $order->id) }}"
-                                            method="POST">
-                                            @csrf
-                                            <div class="mb-3">
-                                                <label for="status-{{ $order->id }}" class="form-label">Status</label>
-                                                <select name="status" id="status-{{ $order->id }}"
-                                                    class="form-select">
-                                                    <option value="pending"
-                                                        {{ $order->status === 'pending' ? 'selected' : '' }}>Pending
-                                                    </option>
-                                                    <option value="accepted"
-                                                        {{ $order->status === 'accepted' ? 'selected' : '' }}>Accepted
-                                                    </option>
-                                                    <option value="completed"
-                                                        {{ $order->status === 'completed' ? 'selected' : '' }}>Completed
-                                                    </option>
-                                                </select>
+
+                                        <div class="d-grid mb-3">
+                                            <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center" 
+                                                    type="button" 
+                                                    data-bs-toggle="collapse" 
+                                                    data-bs-target="#orderDetails{{ $order->id }}">
+                                                <span>View Order Details</span>
+                                                <i class="bi bi-chevron-down ms-2"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="collapse" id="orderDetails{{ $order->id }}">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-borderless">
+                                                    <thead class="bg-light">
+                                                        <tr>
+                                                            <th>Item</th>
+                                                            <th class="text-end">Qty</th>
+                                                            <th class="text-end">Price</th>
+                                                            <th class="text-end">Total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach ($order->orderItems as $item)
+                                                            <tr>
+                                                                <td class="align-middle">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <img src="{{ $item->menuItem && $item->menuItem->image && file_exists(public_path('storage/' . $item->menuItem->image)) ? asset('storage/' . $item->menuItem->image) : asset('storage/images/menudefaultimage.png') }}"
+                                                                            alt="{{ $item->menuItem ? $item->menuItem->name : 'No Image' }}"
+                                                                            class="img-fluid rounded me-2"
+                                                                            style="width: 40px; height: 40px; object-fit: cover;">
+                                                                        <div>
+                                                                            <div class="fw-medium">{{ $item->menuItem ? $item->menuItem->name : 'Item not found' }}</div>
+                                                                            @if ($item->instructions)
+                                                                                <small class="text-muted">{{ $item->instructions }}</small>
+                                                                            @endif
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td class="align-middle text-end">{{ $item->quantity }}</td>
+                                                                <td class="align-middle text-end">₦{{ $item->menuItem ? number_format($item->menuItem->price, 2) : '0.00' }}</td>
+                                                                <td class="align-middle text-end fw-medium">₦{{ $item->menuItem ? number_format($item->menuItem->price * $item->quantity, 2) : '0.00' }}</td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                    <tfoot class="border-top">
+                                                        <tr>
+                                                            <td colspan="3" class="text-end fw-bold">Total:</td>
+                                                            <td class="text-end fw-bold">₦{{ number_format($order->orderItems->sum(function($item) {
+                                                                return $item->menuItem ? $item->menuItem->price * $item->quantity : 0;
+                                                            }), 2) }}</td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
                                             </div>
-                                            @if ($order->type === 'online')
-                                                <div class="mb-3">
-                                                    <label for="tracking_status-{{ $order->id }}"
-                                                        class="form-label">Tracking Status</label>
-                                                    <select name="tracking_status"
-                                                        id="tracking_status-{{ $order->id }}" class="form-select">
-                                                        <option value="pending"
-                                                            {{ $order->tracking_status === 'pending' ? 'selected' : '' }}>
-                                                            Pending</option>
-                                                        <option value="preparing"
-                                                            {{ $order->tracking_status === 'preparing' ? 'selected' : '' }}>
-                                                            Preparing</option>
-                                                        <option value="delivered"
-                                                            {{ $order->tracking_status === 'delivered' ? 'selected' : '' }}>
-                                                            Delivered</option>
+                                        </div>
+                                        
+                                        <form action="{{ route('restaurant.admin.order.update', $order->id) }}" method="POST">
+                                            @csrf
+                                            <div class="row g-2">
+                                                <div class="col-md-6">
+                                                    <label for="status" class="form-label small fw-medium">Order Status</label>
+                                                    <select name="status" id="status" class="form-select" required>
+                                                        <option value="pending" {{ $order->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                                        <option value="accepted" {{ $order->status === 'accepted' ? 'selected' : '' }}>Accepted</option>
+                                                        <option value="completed" {{ $order->status === 'completed' ? 'selected' : '' }}>Completed</option>
                                                     </select>
                                                 </div>
-                                            @endif
-                                            <button type="submit" class="btn btn-primary w-100">Update Order</button>
+                                                @if ($order->type === 'online' || $order->type === 'room')
+                                                    <div class="col-md-6">
+                                                        <label for="tracking_status" class="form-label small fw-medium">Tracking</label>
+                                                        <select name="tracking_status" id="tracking_status" class="form-select">
+                                                            <option value="pending" {{ $order->tracking_status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                                            <option value="preparing" {{ $order->tracking_status === 'preparing' ? 'selected' : '' }}>Preparing</option>
+                                                            <option value="delivered" {{ $order->tracking_status === 'delivered' ? 'selected' : '' }}>Delivered</option>
+                                                        </select>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <button type="submit" class="btn btn-primary w-100 mt-3">
+                                                <i class="bi bi-check-circle me-1"></i>Update Order
+                                            </button>
                                         </form>
                                     </div>
                                 </div>
@@ -263,142 +292,153 @@
             </div>
         </div>
 
-        <!-- Display Existing Categories -->
-        <div class="row g-4">
-            @foreach ($categories as $category)
-                <div class="col-md-4">
-                    <div class="card h-100 shadow-sm border-0 rounded-3">
-                        <div class="card-body">
-                            <h5 class="card-title fw-bold">{{ $category->name }}</h5>
-                            <p class="text-muted">
-                                @if ($category->parent_id)
-                                    Subcategory of {{ $categories->find($category->parent_id)->name ?? 'Unknown' }}
-                                @else
-                                    Parent Category
-                                @endif
-                            </p>
-                        </div>
-                    </div>
+        <!-- Categories Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold mb-0">Menu Categories</h2>
+                    <span class="badge bg-primary rounded-pill">{{ count($categories) }} categories</span>
                 </div>
-            @endforeach
+                
+                @if ($categories->isEmpty())
+                    <div class="alert alert-info text-center rounded-3 shadow-sm py-4">
+                        <i class="bi bi-info-circle-fill me-2"></i>No categories available
+                    </div>
+                @else
+                    <div class="row g-4">
+                        @foreach ($categories as $category)
+                            <div class="col-md-4 col-lg-3">
+                                <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
+                                    <div class="card-header bg-light py-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h5 class="card-title fw-bold mb-0">{{ $category->name }}</h5>
+                                            <span class="badge bg-primary rounded-pill">
+                                                {{ $category->items_count ?? 0 }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body py-3">
+                                        <p class="text-muted mb-0">
+                                            @if ($category->parent_id)
+                                                <i class="bi bi-diagram-2 me-1"></i>Subcategory of 
+                                                <span class="fw-medium">{{ $categories->find($category->parent_id)->name ?? 'Unknown' }}</span>
+                                            @else
+                                                <i class="bi bi-collection me-1"></i>Parent Category
+                                            @endif
+                                        </p>
+                                    </div>
+                                    <div class="card-footer bg-transparent border-0 pt-0">
+                                        <div class="d-flex justify-content-end">
+                                            <button class="btn btn-sm btn-outline-primary me-2">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
         </div>
 
         <style>
-            /* Smooth inputs & card effects */
+            /* Enhanced Card Design */
             .card {
-                transition: box-shadow 0.3s ease;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                border: 1px solid rgba(0,0,0,0.05);
             }
-
+            
             .card:hover {
-                box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
+                transform: translateY(-5px);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.1);
             }
-
-            .form-control:focus,
-            .form-select:focus {
-                border-color: #007bff;
-                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
-                transition: all 0.2s ease-in-out;
-            }
-
-            /* Button styling */
-            .btn-primary {
-                background-color: #007bff;
-                border: none;
-                transition: background-color 0.2s ease-in-out;
-            }
-
-            .btn-primary:hover {
-                background-color: #0056b3;
-            }
-
-            /* Typography & Layout polish */
-            .card-title {
-                font-size: 1.5rem;
-                color: #333;
-            }
-
-            label {
-                font-weight: 500;
-                color: #444;
-            }
-
-            .card-header {
-                background-color: #f8f9fa;
-                padding: 1.25rem;
-                border-radius: 0.75rem 0.75rem 0 0;
-            }
-
-            .btn-primary {
-                background-color: #d9534f;
-                border-color: #d9534f;
-            }
-
-            .btn-primary:hover {
-                background-color: #c9302c;
-                border-color: #c9302c;
-            }
-
-            .form-control,
-            .form-select {
-                border-radius: 0.5rem;
-            }
-
-            .alert {
-                padding: 1.25rem;
+            
+            /* Improved Form Styling */
+            .form-control-lg, .form-select-lg {
+                padding: 0.75rem 1rem;
                 border-radius: 0.75rem;
             }
-
-            .table img {
-                border-radius: 0.5rem;
+            
+            /* Badge Enhancements */
+            .badge {
+                font-weight: 500;
+                letter-spacing: 0.5px;
             }
-
-            .btn-link {
-                color: #d9534f;
+            
+            /* Button Styles */
+            .btn {
+                border-radius: 0.75rem;
+                font-weight: 500;
+                transition: all 0.2s ease;
             }
-
-            .btn-link:hover {
-                color: #c9302c;
-                text-decoration: underline;
+            
+            .btn-lg {
+                padding: 0.75rem;
             }
-
-            .table-sm {
-                font-size: 0.85rem;
-            }
-
-            .table-borderless th,
-            .table-borderless td {
+            
+            /* Table Improvements */
+            .table-sm th, .table-sm td {
                 padding: 0.5rem;
             }
-
-            .badge {
-                font-size: 0.9rem;
-                padding: 0.5em 0.75em;
+            
+            /* Header Spacing */
+            .card-header {
+                padding: 1rem 1.5rem;
+            }
+            
+            /* Hover Effects */
+            .btn-outline-primary:hover {
+                background-color: #0d6efd;
+                color: white;
+            }
+            
+            /* Focus States */
+            .form-control:focus, .form-select:focus {
+                border-color: #86b7fe;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
             }
         </style>
 
-        <!-- Include Bootstrap Icons for alerts and chevrons -->
+        <!-- Include Bootstrap Icons -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     </div>
 @endsection
 @section('scripts')
-    <script >
+    <script>
         $(document).ready(function() {
+            // Subcategory dynamic loading
             document.getElementById('parent_category').addEventListener('change', function () {
-                const selectedValue = event.target.value; 
-                console.log('Selected Parent Category ID:', selectedValue);
-                var categories = @json($categories); // For numbers (without quotes)
-                // Filter categories based on the selected parent category
-                var sub_categories = categories.filter(category => category.parent_id == selectedValue);
-                document.getElementById('sub_category').innerHTML = '<option value="" >Select Sub Menu Categories</option>';
-                sub_categories.forEach(function (category) {
-                    var option = document.createElement('option');
-                    console.log('Sub Category ID:', category.name);
-                    option.value = category.id;
-                    option.textContent = category.name;
-                    document.getElementById('sub_category').appendChild(option);
-                });
+                const parentId = this.value;
+                const subSelect = document.getElementById('sub_category');
+                
+                if (parentId) {
+                    subSelect.disabled = false;
+                    subSelect.innerHTML = '<option value="">Loading...</option>';
+                    
+                    // AJAX call to fetch subcategories
+                    fetch(`/restaurant-admin/get-subcategories/${parentId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            subSelect.innerHTML = '<option value="">Select Subcategory</option>';
+                            data.forEach(category => {
+                                const option = document.createElement('option');
+                                option.value = category.id;
+                                option.textContent = category.name;
+                                subSelect.appendChild(option);
+                            });
+                        });
+                } else {
+                    subSelect.disabled = true;
+                    subSelect.innerHTML = '<option value="">Select parent first</option>';
+                }
             });
-
+            
+            // Initialize tooltips
+            $('[data-bs-toggle="tooltip"]').tooltip();
         });
     </script>
 @endsection
