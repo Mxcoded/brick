@@ -400,7 +400,7 @@ class RestaurantController extends Controller
     {
         $categories = MenuCategory::get();
         $parent_categories = $categories->whereNull('parent_id');
-        $orders = Order::with('orderItems.menuItem', 'table')->get();
+        $orders = Order::with('orderItems.menuItem')->get();
         return view('restaurant::admin.dashboard', compact('categories', 'parent_categories', 'orders'));
     }
 
