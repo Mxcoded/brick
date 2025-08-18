@@ -92,7 +92,8 @@ class RestaurantController extends Controller
                     $categories = collect([$category]);
                 }
             } else {
-                $categories = MenuCategory::with('menuItems')->get();
+                $categories = MenuCategory::with('menuItems')->with('childrenRecursive')->whereNull('parent_id')->get();
+
             }
             $category_names = $categories->whereNull('parent_id')->pluck('name')->toArray();
         } catch (\Exception $e) {
@@ -102,6 +103,9 @@ class RestaurantController extends Controller
             $category_names = [];
         }
 
+        //dd($categories[3]['childrenRecursive']['0']['menuItems']);
+        //dd($categories);
+        //dd($categories, $category_names, $type, $sourceModel);
         return view('restaurant::menu', compact('categories', 'category_names', 'type', 'sourceModel'));
     }
 
