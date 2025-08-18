@@ -57,11 +57,11 @@
                     </div>
                 </div>
             </template>
-            <template x-else x-for="category in categories" :key="category.name">
+            <template  x-for="category in categories" :key="category.name">
                 <template x-for="item in category.menu_items" :key="item.id">
                     <div class="col-md-6 offset-md-3 mb-3 mt-3"
                         x-show="activeTab === 'all' || activeTab === category.name.toLowerCase()">
-                        <div class="h-100 shadow-lg border-0 rounded-3 p-3">
+                        <div class="shadow-lg border-0 rounded-3 p-3 mt-3">
                             <div class="d-flex justify-content-between">
                                 <div class="d-flex">
                                     <div class="card-img-top text-center p-3" style="height: 200px; overflow: hidden;">
@@ -105,6 +105,62 @@
                         </div>
                     </div>
                 </template>
+            </template>
+            <template x-if="categories.length > 0">
+                <template x-for="category in categories" :key="category.name">
+                    <template x-if="category.children_recursive.length > 0 ">
+                        <template x-for="children in category.children_recursive" :key="children.id">
+                            <template x-for="child in children.menu_items" >
+                                <div class="col-md-6 offset-md-3 mb-3 mt-3"
+                                    x-show="activeTab === 'all' || activeTab === category.name.toLowerCase()">
+                                    <h1 class="text-center mt-4 mb-3" x-text="children.name"></h1>
+                                    <div class="shadow-lg border-0 rounded-3 p-3 mt-3">
+                                        <div class="d-flex justify-content-between">
+                                            <div class="d-flex">
+                                                <div class="card-img-top text-center p-3" style="height: 200px; overflow: hidden;">
+                                                    <div class="image-wrapper" x-data="{ loaded: false }">
+                                                        <div class="shimmer" x-show="!loaded"></div>
+                                                        <img :src="child.image ?
+                                                            '{{ asset('storage') }}/' + child.image :
+                                                            '{{ asset('storage/images/menudefaultimage.png') }}'"
+                                                            :alt="child.name" class="img-fluid rounded fade-in"
+                                                            style="max-height: 100%; object-fit: cover;" loading="lazy"
+                                                            @load="loaded = true">
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h5 class="card-title fw-bold" x-text="child.name"></h5>
+                                                    <p class="text-muted" x-text="child.description || 'No description available'"></p>
+                                                    <p class="fw-bold text-primary"
+                                                        x-text="`₦${Number(child.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`">
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <form
+                                                    @submit.prevent="$store.cart.add(child.id, instructions[child.id] || '', child.price, child.name)"
+                                                    method="POST" x-data="{ item_id: child.id, instructions: {}, price: child.price, name: child.name }">
+                                                    @csrf
+                                                    <input type="hidden" name="item_id" x-model="item_id">
+                                                    <input type="hidden" name="price" x-model="price">
+                                                    <input type="hidden" name="name" x-model="name">
+                                                    <div class="mb-3">
+                                                        <label :for="'instructions-' + child.id" class="form-label">Special
+                                                            Instructions</label>
+                                                        <textarea name="instructions" x-model="instructions[child.id]" :id="'instructions-' + child.id" class="form-control"
+                                                            rows="2"></textarea>
+                                                    </div>
+                                                    <button type="submit" class="btn w-100"
+                                                        style="background-color: #e4716e82; color: red">Add +</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                    </template>
+                </template>                 
             </template>
         </div>
 
@@ -345,6 +401,18 @@
                         });
                 }
             });
+            let cats = @json($categories);
+            
+            //console.log('Alpine store initialized:', cat[3].children_recursive[0].menu_items); // Debugging line to check the structure of categories
+            for (const childrens of cats) {
+                //console.log(childrens.children_recursive); // Outputs "red", "green", "blue"
+                for (const childs of childrens.children_recursive) {
+                    //console.log(childs); // Outputs "red", "green", "blue"
+                    for (const child of childs.menu_items) {
+                        console.log(child); // Outputs "red", "green", "blue"
+                    }
+                }
+            }
         });
     </script>
 @endpush
