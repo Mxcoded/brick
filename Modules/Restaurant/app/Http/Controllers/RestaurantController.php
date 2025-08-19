@@ -84,16 +84,17 @@ class RestaurantController extends Controller
         try {
             $categoryId = $request->query('category');
             if ($categoryId) {
-                $category = MenuCategory::with('menuItems')->find($categoryId);
+                $category = MenuCategory::with(['menuItems', 'childrenRecursive.menuItems'])->find($categoryId);
                 if (!$category) {
                     Session::flash('error', 'The selected category is not available.');
-                    $categories = MenuCategory::with('menuItems')->get();
+                    $categories = MenuCategory::with(['menuItems', 'childrenRecursive.menuItems'])->get();
                 } else {
                     $categories = collect([$category]);
                 }
             } else {
-                $categories = MenuCategory::with('menuItems')->with('childrenRecursive')->whereNull('parent_id')->get();
-
+                $categories = MenuCategory::with(['menuItems', 'childrenRecursive.menuItems'])
+                    ->whereNull('parent_id')
+                    ->get();
             }
             $category_names = $categories->whereNull('parent_id')->pluck('name')->toArray();
         } catch (\Exception $e) {
@@ -103,53 +104,124 @@ class RestaurantController extends Controller
             $category_names = [];
         }
 
-        //dd($categories[3]['childrenRecursive']['0']['menuItems']);
-        //dd($categories);
-        //dd($categories, $category_names, $type, $sourceModel);
         return view('restaurant::menu', compact('categories', 'category_names', 'type', 'sourceModel'));
     }
 
-    public function addToCart(Request $request, $type, $source = null)
+    public function addToCart(Request $request, $type = 'online', $sourceId = null)
     {
-        if (!in_array($type, $this->validTypes)) {
+        Log::info('addToCart called', [
+            'type' => $type,
+            'sourceId' => $sourceId,
+            'request_data' => $request->all(),
+        ]);
+        // Define valid types and fallback
+        $validTypes = ['online', 'table', 'room'];
+        if (!in_array($type, $validTypes)) {
+            Log::error('Invalid order type accessed: ' . $type);
             abort(404, 'Invalid order type.');
         }
-
-        $request->validate([
+        // Check if request contains 'index', redirect to updateCart
+        if ($request->has('index')) {
+            Log::warning('addToCart received index parameter, redirecting to updateCart', ['request_data' => $request->all()]);
+            return $this->updateCart($request, $type, $sourceId);
+        }
+        // Validate request data
+        $validated = $request->validate([
             'item_id' => 'required|exists:restaurant_menu_items,id',
             'quantity' => 'required|integer|min:1',
             'instructions' => 'nullable|string|max:255',
         ]);
 
-        if ($type === 'table' && !Table::find($source)) {
-            abort(404, 'Invalid table.');
+        // Validate source if required
+        if ($type === 'table' && !Table::find($sourceId)) {
+            Log::error('Invalid table ID accessed: ' . $sourceId);
+            abort(404, 'Invalid table ID.');
         }
-        if ($type === 'room' && !Room::find($source)) {
-            abort(404, 'Invalid room.');
+        if ($type === 'room' && !Room::find($sourceId)) {
+            Log::error('Invalid room ID accessed: ' . $sourceId);
+            abort(404, 'Invalid room ID.');
         }
-        if ($type === 'online' && $source) {
-            abort(404, 'Online orders do not require a source.');
+        if ($type === 'online' && $sourceId) {
+            Log::error('Online order accessed with source: ' . $sourceId);
+            abort(404, 'Online orders should not include a source ID.');
         }
 
-        $cartKey = $type . '_cart';
+        // Generate cart key
+        $cartKey = "{$type}_cart";
         $cart = session()->get($cartKey, []);
-        $newItem = [
-            'item_id' => $request->input('item_id'),
-            'quantity' => $request->input('quantity'),
-            'instructions' => $request->input('instructions', ''),
-        ];
+Log::info('Current cart contents', ['cart' => $cart]);
+        // Check for existing item with same instructions
+        foreach ($cart as $index => $item) {
+            if (
+                $item['item_id'] == $validated['item_id'] &&
+                ($item['instructions'] ?? '') === ($validated['instructions'] ?? '')
+            ) {
+                $cart[$index]['quantity'] += $validated['quantity'];
+                session()->put($cartKey, $cart);
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Item quantity updated in cart.',
+                        'cart' => $cart
+                    ]);
+                }
+                Log::info('Item quantity updated in cart', ['item_id' => $validated['item_id'], 'quantity' => $cart[$index]['quantity']]);
 
-        // Check for duplicate item with same instructions
-        if (collect($cart)->contains(fn($item) => $item['item_id'] == $newItem['item_id'] && $item['instructions'] == $newItem['instructions'])) {
-            return redirect()->back()->with('error', 'Item already exists in the cart with the same instructions.');
+                return redirect()->back()->with('success', 'Item quantity updated in cart.');
+            }
         }
 
-        $cart[] = $newItem;
+        // Add new item to cart
+        Log::info('Adding new item to cart', ['item_id' => $validated['item_id'], 'quantity' => $validated['quantity']]);
+        $menuItem = MenuItem::findOrFail($validated['item_id']);
+        $cart[] = [
+            'item_id' => $menuItem->id,
+            'name' => $menuItem->name,
+            'price' => $menuItem->price,
+            'quantity' => $validated['quantity'],
+            'instructions' => $validated['instructions'] ?? '',
+        ];
+        Log::info('New item added to cart', ['cart' => $cart]);
+
         session()->put($cartKey, $cart);
-
-        return redirect()->back()->with('success', 'Item added to cart!');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Item added to cart.',
+                'cart' => $cart
+            ]);
+            Log::info('Item added to cart', ['item_id' => $validated['item_id'], 'cart' => $cart]);
+        }
+        return redirect()->back()->with('success', 'Item added to cart.');
     }
+    public function getCart($type = 'online', $sourceId = null)
+    {
+        Log::info('getCart called', ['type' => $type, 'sourceId' => $sourceId]);
+        // Validate type and source
+        $validTypes = ['online', 'table', 'room'];
+        if (!in_array($type, $validTypes)) {
+            Log::error('Invalid order type accessed: ' . $type);
+            return response()->json(['success' => false, 'message' => 'Invalid order type'], 400);
+        }
 
+        if ($type === 'table' && !Table::find($sourceId)) {
+            Log::error('Invalid table accessed: ' . $sourceId);
+            return response()->json(['success' => false, 'message' => 'Invalid table'], 404);
+        }
+        if ($type === 'room' && !Room::find($sourceId)) {
+            Log::error('Invalid room accessed: ' . $sourceId);
+            return response()->json(['success' => false, 'message' => 'Invalid room'], 404);
+        }
+        if ($type === 'online' && $sourceId) {
+            Log::error('Online order accessed with source: ' . $sourceId);
+            return response()->json(['success' => false, 'message' => 'Online orders do not require a source'], 400);
+        }
+
+        $cartKey = $type === 'online' ? 'online_cart' : $type . '_cart';
+        $cart = session($cartKey, []);
+        Log::info('Cart retrieved', ['cart' => $cart]);
+        return response()->json(['success' => true, 'cart' => $cart]);
+    }
     public function addToOrder(Request $request, $type, $source = null)
     {
         if (!in_array($type, $this->validTypes)) {

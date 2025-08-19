@@ -2,417 +2,735 @@
 @section('title', 'Menu')
 
 @section('content')
-    <div class="container-fluid content py-4" x-data="{ activeTab: 'all', categories: {{ json_encode($categories) }}, categoryNames: {{ json_encode($category_names) }} }">
-        @if (session('error'))
-            <div class="alert alert-danger text-center rounded-3 shadow-sm">
-                <i class="bi bi-exclamation-circle me-2"></i>{{ session('error') }}
+    <div class="container-fluid py-5" x-data="{
+        activeTab: 'all',
+        search: '',
+        selectedCategory: '',
+        sortBy: 'name',
+        sortOptions: [
+            { value: 'name', label: 'Name A-Z' },
+            { value: 'price_asc', label: 'Price Low-High' },
+            { value: 'price_desc', label: 'Price High-Low' }
+        ],
+        categories: {{ json_encode($categories) }},
+        categoryNames: {{ json_encode($category_names) }},
+        instructions: {},
+        quickViewItem: null,
+        sidebarOpen: false,
+        getFilteredAndSortedItems(category) {
+            let items = category.menu_items.filter(item =>
+                !this.search ||
+                item.name.toLowerCase().includes(this.search.toLowerCase()) ||
+                (item.description && item.description.toLowerCase().includes(this.search.toLowerCase()))
+            );
+            if (this.sortBy === 'name') {
+                items.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (this.sortBy === 'price_asc') {
+                items.sort((a, b) => a.price - b.price);
+            } else if (this.sortBy === 'price_desc') {
+                items.sort((a, b) => b.price - a.price);
+            }
+            return items;
+        },
+        toggleSidebar() {
+            this.sidebarOpen = !this.sidebarOpen;
+        }
+    }">
+        <!-- Hero Section -->
+        <div class="hero-section mb-5">
+            <div class="hero-content text-center">
+                <h1 class="hero-title display-4 fw-bold text-dark animate__animated animate__fadeInDown">
+                    @if ($type === 'table')
+                        Menu - Table {{ $sourceModel->number }}
+                    @elseif ($type === 'room')
+                        Menu - Room {{ $sourceModel->name }}
+                    @else
+                        Online Menu
+                    @endif
+                </h1>
+                <p class="hero-subtitle lead text-muted animate__animated animate__fadeInUp">
+                    @if ($type === 'online')
+                        Discover extraordinary flavors crafted with passion and precision
+                    @else
+                        Browse and add your favorites to your cart
+                    @endif
+                </p>
+                <button class="btn btn-custom btn-primary-custom btn-lg pulse"
+                    @click="document.querySelector('.search-filter-section').scrollIntoView({ behavior: 'smooth' })">
+                    <i class="fas fa-arrow-down me-2"></i>Explore Menu
+                </button>
             </div>
-        @endif
-        <div class="text-center mb-5">
-            <h1 class="display-4 fw-bold text-dark">
-                @if ($type === 'table')
-                    Menu - Table {{ $sourceModel->number }}
-                @elseif ($type === 'room')
-                    Menu - Room {{ $sourceModel->name }}
-                @else
-                    Online Menu
-                @endif
-            </h1>
-            <p class="lead text-muted">
-                @if ($type === 'online')
-                    Explore our delicious offerings and order for delivery.
-                @else
-                    Explore our delicious offerings and add your favorites to the cart.
-                @endif
-            </p>
         </div>
 
-        <!-- Navigation Tabs -->
-        <nav class="flex mt-3 mb-3 nav-pills flex-column flex-sm-row menu-tab">
-            <ul class="justify-content-center nav">
-                <li role="button" class="nav-item">
-                    <a class="nav-link" @click="activeTab = 'all'"
-                        :class="{ 'active': activeTab === 'all', 'inactive-class': activeTab !== 'all' }">All</a>
-                </li>
-                <template x-for="category in categoryNames" :key="category">
-                    <li role="button" class="nav-item">
-                        <a class="nav-link" @click="activeTab = category.toLowerCase()"
-                            :class="{
-                                'active': activeTab === category.toLowerCase(),
-                                'inactive-class': activeTab !== category
-                                    .toLowerCase()
-                            }"
-                            x-text="category"></a>
-                    </li>
-                </template>
-            </ul>
-        </nav>
+        <!-- Success/Error Alerts -->
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show text-center glass-morphism rounded-3 shadow-sm"
+                role="alert">
+                <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger alert-dismissible fade show text-center glass-morphism rounded-3 shadow-sm"
+                role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
 
-        <!-- Menu Items -->
-        <div class="row g-4">
-            <template x-if="categories.length === 0">
-                <div class="col-12 text-center">
-                    <div class="alert alert-info rounded-3 shadow-sm">
-                        <i class="bi bi-info-circle me-2"></i>No menu items available at the moment.
+        <!-- Search and Filter Section -->
+        <div class="search-filter-section mx-auto mb-5" style="max-width: 1200px;">
+            <div class="row g-4 align-items-center">
+                <div class="col-lg-6">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" x-model="search" placeholder="Search delicious dishes..." class="form-control"
+                            aria-label="Search menu items">
                     </div>
                 </div>
-            </template>
-            <template  x-for="category in categories" :key="category.name">
-                <template x-for="item in category.menu_items" :key="item.id">
-                    <div class="col-md-6 offset-md-3 mb-3 mt-3"
-                        x-show="activeTab === 'all' || activeTab === category.name.toLowerCase()">
-                        <div class="shadow-lg border-0 rounded-3 p-3 mt-3">
-                            <div class="d-flex justify-content-between">
-                                <div class="d-flex">
-                                    <div class="card-img-top text-center p-3" style="height: 200px; overflow: hidden;">
-                                        <div class="image-wrapper" x-data="{ loaded: false }">
-                                            <div class="shimmer" x-show="!loaded"></div>
-                                            <img :src="item.image ?
-                                                '{{ asset('storage') }}/' + item.image :
-                                                '{{ asset('storage/images/menudefaultimage.png') }}'"
-                                                :alt="item.name" class="img-fluid rounded fade-in"
-                                                style="max-height: 100%; object-fit: cover;" loading="lazy"
-                                                @load="loaded = true">
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h5 class="card-title fw-bold" x-text="item.name"></h5>
-                                        <p class="text-muted" x-text="item.description || 'No description available'"></p>
-                                        <p class="fw-bold text-primary"
-                                            x-text="`₦${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`">
-                                        </p>
-                                    </div>
-                                </div>
-                                <div>
-                                    <form
-                                        @submit.prevent="$store.cart.add(item.id, instructions[item.id] || '', item.price, item.name)"
-                                        method="POST" x-data="{ item_id: item.id, instructions: {}, price: item.price, name: item.name }">
-                                        @csrf
-                                        <input type="hidden" name="item_id" x-model="item_id">
-                                        <input type="hidden" name="price" x-model="price">
-                                        <input type="hidden" name="name" x-model="name">
-                                        <div class="mb-3">
-                                            <label :for="'instructions-' + item.id" class="form-label">Special
-                                                Instructions</label>
-                                            <textarea name="instructions" x-model="instructions[item.id]" :id="'instructions-' + item.id" class="form-control"
-                                                rows="2"></textarea>
-                                        </div>
-                                        <button type="submit" class="btn w-100"
-                                            style="background-color: #e4716e82; color: red">Add +</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
+                <div class="col-lg-3">
+                    <select x-model="selectedCategory" class="form-select" aria-label="Filter by category">
+                        <option value="">All Categories</option>
+                        <template x-for="category in categories" :key="category.id">
+                            <option :value="category.id" x-text="category.name"></option>
+                        </template>
+                        <template x-for="category in categories" :key="category.id">
+                            <template x-for="sub in category.children_recursive" :key="sub.id">
+                                <option :value="sub.id" x-text="`${category.name} > ${sub.name}`"></option>
+                            </template>
+                        </template>
+                    </select>
+                </div>
+                <div class="col-lg-3">
+                    <select x-model="sortBy" class="form-select" aria-label="Sort by">
+                        <template x-for="option in sortOptions" :key="option.value">
+                            <option :value="option.value" x-text="option.label"></option>
+                        </template>
+                    </select>
+                </div>
+                <div class="col-12 d-lg-none text-center">
+                    <button class="btn btn-outline-primary w-100" @click="toggleSidebar">
+                        <i class="fas fa-list me-2"></i>Toggle Categories
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Layout -->
+        <div class="row" style="max-width: 1400px; margin: 0 auto;">
+            <!-- Category Sidebar -->
+            <div class="col-lg-3">
+                <div class="category-sidebar" :class="{ 'show': sidebarOpen }">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="fw-bold text-center m-0">
+                            <i class="fas fa-list-ul me-2 text-primary"></i>Categories
+                        </h5>
+                        <button class="btn btn-outline-secondary d-lg-none" @click="toggleSidebar">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <ul class="category-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" :class="{ 'active': activeTab === 'all' }"
+                                @click="activeTab = 'all'; selectedCategory = ''" aria-label="All categories">
+                                <i class="fas fa-th-large me-2"></i>All Items
+                            </a>
+                        </li>
+                        <template x-for="category in categories" :key="category.id">
+                            <li class="nav-item">
+                                <a class="nav-link" :class="{ 'active': activeTab === category.name.toLowerCase() }"
+                                    @click="activeTab = category.name.toLowerCase(); selectedCategory = category.id"
+                                    x-text="category.name" :aria-label="`Category: ${category.name}`"></a>
+                                <template x-if="category.children_recursive.length > 0">
+                                    <ul class="nav flex-column ms-3">
+                                        <template x-for="sub in category.children_recursive" :key="sub.id">
+                                            <li class="nav-item">
+                                                <a class="nav-link" :class="{ 'active': selectedCategory === sub.id }"
+                                                    @click="selectedCategory = sub.id" x-text="sub.name"
+                                                    :aria-label="`Sub-category: ${sub.name}`"></a>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Menu Grid -->
+            <div class="col-lg-9">
+                <!-- Empty State -->
+                <template x-if="categories.length === 0">
+                    <div class="alert alert-info text-center rounded-3 shadow-sm">
+                        <i class="bi bi-info-circle me-2"></i>No menu items available.
                     </div>
                 </template>
-            </template>
-            <template x-if="categories.length > 0">
-                <template x-for="category in categories" :key="category.name">
-                    <template x-if="category.children_recursive.length > 0 ">
-                        <template x-for="children in category.children_recursive" :key="children.id">
-                            <template x-for="child in children.menu_items" >
-                                <div class="col-md-6 offset-md-3 mb-3 mt-3"
-                                    x-show="activeTab === 'all' || activeTab === category.name.toLowerCase()">
-                                    <h1 class="text-center mt-4 mb-3" x-text="children.name"></h1>
-                                    <div class="shadow-lg border-0 rounded-3 p-3 mt-3">
-                                        <div class="d-flex justify-content-between">
-                                            <div class="d-flex">
-                                                <div class="card-img-top text-center p-3" style="height: 200px; overflow: hidden;">
-                                                    <div class="image-wrapper" x-data="{ loaded: false }">
-                                                        <div class="shimmer" x-show="!loaded"></div>
-                                                        <img :src="child.image ?
-                                                            '{{ asset('storage') }}/' + child.image :
-                                                            '{{ asset('storage/images/menudefaultimage.png') }}'"
-                                                            :alt="child.name" class="img-fluid rounded fade-in"
-                                                            style="max-height: 100%; object-fit: cover;" loading="lazy"
-                                                            @load="loaded = true">
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <h5 class="card-title fw-bold" x-text="child.name"></h5>
-                                                    <p class="text-muted" x-text="child.description || 'No description available'"></p>
-                                                    <p class="fw-bold text-primary"
-                                                        x-text="`₦${Number(child.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`">
-                                                    </p>
-                                                </div>
+
+                <!-- Featured Items Section -->
+                <template x-if="activeTab === 'all' && !selectedCategory">
+                    <div class="mb-5 fade-in">
+                        <div class="d-flex align-items-center mb-4">
+                            <h2 class="fw-bold text-gradient me-3">
+                                <i class="fas fa-star text-warning me-2"></i>Featured Dishes
+                            </h2>
+                            <div class="flex-grow-1"
+                                style="height: 2px; background: linear-gradient(90deg, var(--primary-color), transparent);">
+                            </div>
+                        </div>
+                        <div class="row g-4">
+                            <template x-for="category in categories" :key="category.id">
+                                <template x-for="item in getFilteredAndSortedItems(category).slice(0, 4)"
+                                    :key="item.id">
+                                    <div class="col-xl-4 col-lg-6 col-md-6">
+                                        <div class="menu-item-card h-100">
+                                            <div class="menu-image-container">
+                                                <img :src="item.image && item.image !== '' ? '{{ asset('storage') }}/' +
+                                                    item.image : '{{ asset('storage/images/menudefaultimage.png') }}'"
+                                                    :alt="item.name" class="menu-image">
+                                                <div class="image-overlay"></div>
+                                                <span class="price-badge"
+                                                    x-text="`₦${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}`"></span>
                                             </div>
-                                            <div>
+                                            <div class="p-3">
+                                                <h5 class="fw-bold mb-2" x-text="item.name"></h5>
+                                                <p class="text-muted mb-3"
+                                                    x-text="item.description || 'No description available'"></p>
                                                 <form
-                                                    @submit.prevent="$store.cart.add(child.id, instructions[child.id] || '', child.price, child.name)"
-                                                    method="POST" x-data="{ item_id: child.id, instructions: {}, price: child.price, name: child.name }">
+                                                    @submit.prevent="window.addToCart(item.id, item.name, item.price, $event.target.quantity.value, $event.target.instructions.value, '{{ route($type === 'online' ? 'restaurant.online.cart.add' : 'restaurant.cart.add', $type === 'online' ? [] : [$type, $sourceModel->id]) }}')">
                                                     @csrf
-                                                    <input type="hidden" name="item_id" x-model="item_id">
-                                                    <input type="hidden" name="price" x-model="price">
-                                                    <input type="hidden" name="name" x-model="name">
+                                                    <input type="hidden" name="item_id" :value="item.id">
                                                     <div class="mb-3">
-                                                        <label :for="'instructions-' + child.id" class="form-label">Special
-                                                            Instructions</label>
-                                                        <textarea name="instructions" x-model="instructions[child.id]" :id="'instructions-' + child.id" class="form-control"
-                                                            rows="2"></textarea>
+                                                        <label for="quantity-${item.id}"
+                                                            class="form-label small">Quantity</label>
+                                                        <input type="number" name="quantity" :id="`quantity-${item.id}`"
+                                                            class="form-control form-control-sm" value="1"
+                                                            min="1" required>
                                                     </div>
-                                                    <button type="submit" class="btn w-100"
-                                                        style="background-color: #e4716e82; color: red">Add +</button>
+                                                    <div class="mb-3">
+                                                        <label for="instructions-${item.id}"
+                                                            class="form-label small">Special Instructions</label>
+                                                        <textarea name="instructions" :id="`instructions-${item.id}`" class="form-control form-control-sm" rows="2"
+                                                            maxlength="255" placeholder="E.g., No onions"></textarea>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-custom btn-primary-custom w-100"
+                                                        :disabled="$store.cart.isAdding">
+                                                        <i class="fas"
+                                                            :class="$store.cart.isAdding ? 'fa-spinner fa-spin' : 'fa-plus'"></i>
+                                                        <span x-show="!$store.cart.isAdding">Add to Cart</span>
+                                                        <span x-show="$store.cart.isAdding">Adding...</span>
+                                                    </button>
                                                 </form>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </template>
                             </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Category Items -->
+                <template x-for="category in categories" :key="category.id">
+                    <template
+                        x-if="activeTab === category.name.toLowerCase() || selectedCategory === category.id || selectedCategory === ''">
+                        <div class="mb-5 fade-in">
+                            <div class="d-flex align-items-center mb-4">
+                                <h2 class="fw-bold text-gradient me-3" x-text="category.name"></h2>
+                                <div class="flex-grow-1"
+                                    style="height: 2px; background: linear-gradient(90deg, var(--primary-color), transparent);">
+                                </div>
+                            </div>
+                            <div class="row g-4">
+                                <template x-for="(item, index) in $store.cart.items" :key="item.item_id">
+                                    <div class="card mb-3 border-0 shadow-sm glass-morphism">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                                <div class="flex-grow-1">
+                                                    <h6 class="fw-bold mb-1" x-text="item.name || 'Unknown Item'"></h6>
+                                                    <p class="text-muted small mb-2" x-show="item.instructions"
+                                                        x-text="'Instructions: ' + (item.instructions || 'None')"></p>
+                                                    <p class="fw-semibold text-primary mb-0"
+                                                        x-text="item.price ? `₦${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })} each` : 'Price not available'">
+                                                    </p>
+                                                </div>
+                                                <form
+                                                    action="{{ route(
+                                                        isset($type) && $type === 'online' ? 'restaurant.online.cart.remove' : 'restaurant.cart.remove',
+                                                        isset($type) && $type !== 'online' ? [$type, $sourceModel->id ?? null] : [],
+                                                    ) }}"
+                                                    method="POST">
+                                                    @csrf
+                                                    <input type="hidden" name="index" :value="index">
+                                                    <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger rounded-circle"
+                                                        style="width: 35px; height: 35px;" aria-label="Remove item">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <form
+                                                    action="{{ route(
+                                                        isset($type) && $type === 'online' ? 'restaurant.online.cart.update' : 'restaurant.cart.update',
+                                                        isset($type) && $type !== 'online' ? [$type, $sourceModel->id ?? null] : [],
+                                                    ) }}"
+                                                    method="POST"
+                                                    @submit.prevent="updateCart($event, item.item_id, index)">
+                                                    @csrf
+                                                    <input type="hidden" name="index" :value="index">
+                                                    <div class="quantity-controls">
+                                                        <button type="button" class="quantity-btn"
+                                                            @click="if (item.quantity > 1) { item.quantity--; updateCart($event, item.item_id, index); }"
+                                                            aria-label="Decrease quantity">
+                                                            <i class="fas fa-minus"></i>
+                                                        </button>
+                                                        <input type="number" name="quantity"
+                                                            x-model.number="item.quantity"
+                                                            class="form-control form-control-sm w-75 d-inline text-center"
+                                                            min="1" required>
+                                                        <button type="button" class="quantity-btn"
+                                                            @click="item.quantity++; updateCart($event, item.item_id, index);"
+                                                            aria-label="Increase quantity">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                                <div class="text-end">
+                                                    <p class="fw-bold mb-0 h5 text-success"
+                                                        x-text="item.price && item.quantity ? `₦${Number(item.price * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : 'Total not available'">
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <!-- Subcategories -->
+                    <template x-for="sub in category.children_recursive" :key="sub.id">
+                        <template x-if="selectedCategory === sub.id">
+                            <div class="mb-5 fade-in">
+                                <div class="d-flex align-items-center mb-4">
+                                    <h2 class="fw-bold text-gradient me-3" x-text="sub.name"></h2>
+                                    <div class="flex-grow-1"
+                                        style="height: 2px; background: linear-gradient(90deg, var(--primary-color), transparent);">
+                                    </div>
+                                </div>
+                                <div class="row g-4">
+                                    <template x-for="item in getFilteredAndSortedItems(sub)" :key="item.id">
+                                        <div class="col-xl-4 col-lg-6 col-md-6">
+                                            <div class="menu-item-card h-100">
+                                                <div class="menu-image-container">
+                                                    <img :src="item.image && item.image !== '' ?
+                                                        '{{ asset('storage') }}/' + item.image :
+                                                        '{{ asset('storage/images/menudefaultimage.png') }}'"
+                                                        :alt="item.name" class="menu-image">
+                                                    <div class="image-overlay"></div>
+                                                    <span class="price-badge"
+                                                        x-text="`₦${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}`"></span>
+                                                </div>
+                                                <div class="p-3">
+                                                    <h5 class="fw-bold mb-2" x-text="item.name"></h5>
+                                                    <p class="text-muted mb-3"
+                                                        x-text="item.description || 'No description available'"></p>
+                                                    <form
+                                                        action="{{ route($type === 'online' ? 'restaurant.online.cart.add' : 'restaurant.cart.add', $type === 'online' ? [] : [$type, $sourceModel->id]) }}"
+                                                        method="POST"
+                                                        @submit.prevent="window.addToCart(item.id, item.name, item.price, $event.target.quantity.value, $event.target.instructions.value, $event.target.action); showSuccessMessage(`Added ${item.name} to cart`);">
+                                                        @csrf
+                                                        <input type="hidden" name="item_id" :value="item.id">
+                                                        <div class="mb-3">
+                                                            <label :for="`quantity-${item.id}`"
+                                                                class="form-label small">Quantity</label>
+                                                            <input type="number" name="quantity"
+                                                                :id="`quantity-${item.id}`"
+                                                                class="form-control form-control-sm" value="1"
+                                                                min="1" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label :for="`instructions-${item.id}`"
+                                                                class="form-label small">Special Instructions</label>
+                                                            <textarea name="instructions" :id="`instructions-${item.id}`" class="form-control form-control-sm" rows="2"
+                                                                maxlength="255" placeholder="E.g., No onions"></textarea>
+                                                        </div>
+                                                        <button type="submit"
+                                                            class="btn btn-custom btn-primary-custom w-100"
+                                                            :disabled="$store.cart.isAdding || $store.cart.isRefreshing">
+                                                            <i class="fas"
+                                                                :class="$store.cart.isAdding || $store.cart.isRefreshing ?
+                                                                    'fa-spinner fa-spin' : 'fa-plus'"></i>
+                                                            <span
+                                                                x-show="!($store.cart.isAdding || $store.cart.isRefreshing)">Add
+                                                                to Cart</span>
+                                                            <span
+                                                                x-show="$store.cart.isAdding || $store.cart.isRefreshing">Adding...</span>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
                         </template>
                     </template>
-                </template>                 
-            </template>
+                </template>
+            </div>
         </div>
-
-        <!-- Cart Modal -->
-        <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
-            <form class="modal-dialog" @submit.prevent="$store.cart.sendData()" method="POST"
-                action="{{ route($type === 'online' ? 'restaurant.online.cart.add' : 'restaurant.cart.add', $type === 'online' ? [] : [$type, $sourceModel->id]) }}">
-                @csrf
-                <div class="modal-content">
+        <!-- Quick View Modal -->
+        <div class="modal fade" id="quickViewModal" tabindex="-1" aria-labelledby="quickViewModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content glass-morphism">
                     <div class="modal-header">
-                        <h1 class="modal-title fs-5" id="cartModalLabel">Cart Order</h1>
+                        <h5 class="modal-title" id="quickViewModalLabel"
+                            x-text="quickViewItem ? quickViewItem.name : 'Item Details'"></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <template x-if="$store.cart.items.length === 0">
-                            <div class="alert alert-info text-center">Your cart is empty.</div>
-                        </template>
-                        <template x-for="(item, index) in $store.cart.items" :key="item.item_id">
-                            <div class="card p-3 mb-2 position-relative" :id="'cart-' + item.item_id" style="width: 100%;">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h5 x-text="item.name"></h5>
-                                        <p
-                                            x-text="`Price: ₦${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`">
-                                        </p>
-                                        <p x-text="`Instructions: ${item.instructions || 'None'}`"></p>
-                                        <p
-                                            x-text="`Total: ₦${Number(item.total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`">
-                                        </p>
-                                    </div>
-                                    <div class="d-flex align-items-center" style="height: 40px">
-                                        <button type="button" @click="$store.cart.minusQuantity(item.item_id)"
-                                            class="btn" style="background-color: #e4716e82; color: red">-</button>
-                                        <span x-text="item.quantity"
-                                            style="width: 40px; text-align: center; margin: 0 10px; padding: 5px"></span>
-                                        <button type="button" @click="$store.cart.addQuantity(item.item_id)"
-                                            class="btn" style="background-color: #e4716e82; color: red">+</button>
-                                    </div>
+                        <template x-if="quickViewItem">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <img :src="quickViewItem.image && quickViewItem.image.includes('storage') ? quickViewItem
+                                        .image : '/storage/images/menudefaultimage.png'"
+                                        :alt="quickViewItem.name" class="img-fluid rounded"
+                                        style="max-height: 300px; object-fit: cover;">
                                 </div>
-                                <button type="button" @click="$store.cart.remove(item.item_id)"
-                                    class="btn-close position-absolute" style="top: 10px; right: 10px"></button>
+                                <div class="col-md-6">
+                                    <h4 x-text="quickViewItem.name"></h4>
+                                    <p class="text-muted"
+                                        x-text="quickViewItem.description || 'No description available'"></p>
+                                    <p class="fw-bold">Price: ₦<span x-text="quickViewItem.price.toFixed(2)"></span></p>
+                                    <div class="mb-3">
+                                        <label for="quantity" class="form-label">Quantity</label>
+                                        <input type="number"
+                                            x-model.number="instructions[quickViewItem.id] ? instructions[quickViewItem.id].quantity : 1"
+                                            min="1" class="form-control form-control-sm w-50"
+                                            placeholder="Quantity">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="instructions" class="form-label">Special Instructions</label>
+                                        <textarea x-model="instructions[quickViewItem.id] ? instructions[quickViewItem.id].notes : ''" class="form-control"
+                                            rows="3" placeholder="Any special requests?"></textarea>
+                                    </div>
+                                    <button class="btn btn-primary-custom w-100"
+                                        @click="window.addToCart(
+                                quickViewItem.id,
+                                quickViewItem.name,
+                                quickViewItem.price,
+                                instructions[quickViewItem.id] ? parseInt(instructions[quickViewItem.id].quantity) : 1,
+                                instructions[quickViewItem.id] ? instructions[quickViewItem.id].notes : '',
+                                '{{ route($type === 'online' ? 'restaurant.online.cart.add' : 'restaurant.cart.add', $type === 'online' ? [] : [$type, $sourceModel->id]) }}'
+                            )">
+                                        <i class="fas fa-cart-plus me-2"></i>Add to Cart
+                                    </button>
+                                </div>
                             </div>
                         </template>
-                        <input type="hidden" name="order" x-model="JSON.stringify($store.cart.items)">
-                        <p>Total Items: <span x-text="$store.cart.items.length"></span></p>
-                        <p>
-                            Total Price:<span
-                                x-text="`₦${$store.cart.items.reduce((total, item) => total + Number(item.total), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`"></span>
-                        </p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Proceed</button>
+                        <template x-if="!quickViewItem">
+                            <p class="text-center">No item selected.</p>
+                        </template>
                     </div>
                 </div>
-            </form>
+            </div>
         </div>
-
-        <!-- Cart Number Indicator -->
-        <div id="cart-number" class="position-fixed bottom-0 end-0 m-3 p-2 bg-danger text-white rounded-circle"
-            style="display: none; width: 30px; height: 30px; text-align: center;" x-text="$store.cart.items.length"></div>
-
-        <!-- Styles -->
         <style>
-            body {
-                font-family: 'Futura', 'Arial', sans-serif;
+            .hero-section {
+                background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4');
+                background-size: cover;
+                background-position: center;
+                padding: 5rem 1rem;
+                border-radius: var(--border-radius);
+                margin-bottom: 2rem;
             }
 
-            .card {
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-                border-radius: 0.75rem;
+            .hero-content {
+                max-width: 800px;
+                margin: 0 auto;
             }
 
-            .card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+            .hero-title {
+                font-size: 3rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
             }
 
-            .card-img-top {
-                background-color: #f8f9fa;
-                border-radius: 0.75rem;
+            .hero-subtitle {
+                font-size: 1.25rem;
+                margin-bottom: 2rem;
             }
 
-            .btn-primary {
-                background-color: #d9534f;
-                border-color: #d9534f;
+            .alert-dismissible {
+                position: relative;
+                z-index: 1000;
+                max-width: 800px;
+                margin: 0 auto 1rem;
             }
 
-            .btn-primary:hover {
-                background-color: #c9302c;
-                border-color: #c9302c;
+            .search-filter-section {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px);
+                padding: 2rem;
+                border-radius: var(--border-radius);
+                box-shadow: var(--box-shadow);
+                margin-bottom: 2rem;
+                position: relative;
+                z-index: 10;
             }
 
             .form-control,
-            .form-select,
-            textarea {
-                border-radius: 0.5rem;
+            .form-select {
+                border: 2px solid rgba(0, 0, 0, 0.1);
+                border-radius: 50px;
+                padding: 0.8rem 1.5rem;
+                font-weight: 500;
+                transition: var(--transition);
+                background: rgba(255, 255, 255, 0.9);
             }
 
-            .alert {
-                padding: 1.25rem;
-                border-radius: 0.75rem;
+            .form-control:focus,
+            .form-select:focus {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.1);
+                background: white;
             }
 
-            .menu-tab .nav-link.active {
-                background-color: #e4716e82 !important;
-                color: red !important;
+            .input-group-text {
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                border-radius: 50px 0 0 50px;
             }
 
-            .nav-link {
-                color: #696969 !important;
+            .category-sidebar {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px);
+                border-radius: var(--border-radius);
+                padding: 1.5rem;
+                position: sticky;
+                top: 120px;
+                height: fit-content;
+                max-height: calc(100vh - 140px);
+                overflow-y: auto;
+                box-shadow: var(--box-shadow);
+                transition: var(--transition);
             }
 
-            .image-wrapper {
+            .category-sidebar.show {
+                left: 0;
+            }
+
+            .category-nav {
+                list-style: none;
+                padding: 0;
+            }
+
+            .category-nav .nav-item {
+                margin-bottom: 0.5rem;
+            }
+
+            .category-nav .nav-link {
+                padding: 0.8rem 1rem;
+                border-radius: 10px;
+                color: #666;
+                text-decoration: none;
+                transition: var(--transition);
                 position: relative;
+                overflow: hidden;
+            }
+
+            .category-nav .nav-link::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
                 width: 100%;
                 height: 100%;
+                background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+                transition: var(--transition);
+                z-index: -1;
             }
 
-            .shimmer {
+            .category-nav .nav-link:hover::before,
+            .category-nav .nav-link.active::before {
+                left: 0;
+            }
+
+            .category-nav .nav-link:hover,
+            .category-nav .nav-link.active {
+                color: white;
+                transform: translateX(5px);
+            }
+
+            .menu-item-card {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px);
+                border-radius: var(--border-radius);
+                padding: 1.5rem;
+                transition: var(--transition);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .menu-item-card:hover {
+                transform: translateY(-10px) scale(1.02);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            }
+
+            .menu-image-container {
+                position: relative;
+                height: 200px;
+                border-radius: 10px;
+                overflow: hidden;
+                margin-bottom: 1rem;
+            }
+
+            .menu-image {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                transition: var(--transition);
+            }
+
+            .menu-item-card:hover .menu-image {
+                transform: scale(1.1);
+            }
+
+            .image-overlay {
                 position: absolute;
                 top: 0;
                 left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-                background-size: 200% 100%;
-                animation: shimmer 1.5s infinite;
-                border-radius: 0.75rem;
-            }
-
-            @keyframes shimmer {
-                0% {
-                    background-position: -200% 0;
-                }
-
-                100% {
-                    background-position: 200% 0;
-                }
-            }
-
-            .fade-in {
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(45deg, rgba(0, 0, 0, 0.3), transparent);
                 opacity: 0;
-                transition: opacity 0.5s ease-in-out;
+                transition: var(--transition);
             }
 
-            .fade-in[x-cloak],
-            .fade-in[style*="display: none"] {
-                opacity: 0 !important;
+            .menu-item-card:hover .image-overlay {
+                opacity: 1;
             }
 
-            .fade-in:not([style*="display: none"]) {
-                opacity: 1 !important;
+            .price-badge {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: var(--primary-color);
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 20px;
+                font-weight: 600;
+                font-size: 0.9rem;
+            }
+
+            .btn-custom {
+                border: none;
+                border-radius: 50px;
+                padding: 0.8rem 2rem;
+                font-weight: 600;
+                transition: var(--transition);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .btn-custom::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                width: 0;
+                height: 0;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.3);
+                transition: var(--transition);
+                transform: translate(-50%, -50%);
+            }
+
+            .btn-custom:hover::before {
+                width: 300px;
+                height: 300px;
+            }
+
+            .btn-primary-custom {
+                background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+                color: white;
+            }
+
+            .btn-primary-custom:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 30px rgba(217, 83, 79, 0.3);
+            }
+
+            .form-control-sm,
+            .form-select {
+                border-radius: 0.5rem;
+            }
+
+            @media (max-width: 768px) {
+                .hero-title {
+                    font-size: 2.5rem;
+                }
+
+                .search-filter-section {
+                    padding: 1.5rem;
+                }
+
+                .category-sidebar {
+                    position: fixed;
+                    top: 0;
+                    left: -300px;
+                    width: 300px;
+                    height: 100vh;
+                    z-index: 1050;
+                    transition: var(--transition);
+                }
+
+                .category-sidebar.show {
+                    left: 0;
+                }
+
+                .menu-item-card {
+                    padding: 1rem;
+                }
+
+                .menu-image-container {
+                    height: 150px;
+                }
             }
         </style>
-
-        <!-- Bootstrap Icons -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     </div>
-@endsection
 
-@push('scripts')
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.store('cart', {
-                items: [],
-                add(item_id, instructions, price, name) {
-                    if (this.items.some(item => item.item_id === item_id && item.instructions ===
-                            instructions)) {
-                        alert('Item already exists in the cart with the same instructions.');
-                        return;
-                    }
-                    this.items.push({
-                        item_id,
-                        instructions: instructions || '',
-                        price: Number(price),
-                        total: Number(price),
-                        name,
-                        quantity: 1,
+    @push('scripts')
+        <script>
+            // Smooth scroll to menu section
+            document.querySelectorAll('.btn-custom.pulse').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelector('.search-filter-section').scrollIntoView({
+                        behavior: 'smooth'
                     });
-                    const cartNumber = document.getElementById('cart-number');
-                    cartNumber.style.display = 'block';
-                    cartNumber.innerText = this.items.length;
-                },
-                addQuantity(item_id) {
-                    const item = this.items.find(item => item.item_id === item_id);
-                    if (item) {
-                        item.quantity++;
-                        item.total = Number(item.price) * item.quantity;
-                    }
-                    this.updateCartNumber();
-                },
-                minusQuantity(item_id) {
-                    const item = this.items.find(item => item.item_id === item_id);
-                    if (item && item.quantity > 1) {
-                        item.quantity--;
-                        item.total = Number(item.price) * item.quantity;
-                    } else if (item && item.quantity === 1) {
-                        this.remove(item_id);
-                    }
-                    this.updateCartNumber();
-                },
-                remove(item_id) {
-                    this.items = this.items.filter(item => item.item_id !== item_id);
-                    const childElement = document.getElementById(`cart-${item_id}`);
-                    if (childElement && childElement.parentNode) {
-                        childElement.parentNode.removeChild(childElement);
-                    }
-                    this.updateCartNumber();
-                },
-                updateCartNumber() {
-                    const cartNumber = document.getElementById('cart-number');
-                    cartNumber.innerText = this.items.length;
-                    cartNumber.style.display = this.items.length > 0 ? 'block' : 'none';
-                },
-                sendData() {
-                    fetch("{{ route($type === 'online' ? 'restaurant.online.order.add' : 'restaurant.order.add', $type === 'online' ? [] : [$type, $sourceModel->id]) }}", {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify({
-                                order: this.items
-                            })
-                        })
-                        .then(response => {
-                            if (!response.ok) throw new Error('Network response was not ok');
-                            return response.json();
-                        })
-                        .then(data => {
-                            window.location.href =
-                                "{{ route($type === 'online' ? 'restaurant.online.cart' : 'restaurant.cart', $type === 'online' ? [] : [$type, $sourceModel->id]) }}";
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('An error occurred while submitting the order. Please try again.');
-                        });
-                }
+                });
             });
-            let cats = @json($categories);
-            
-            //console.log('Alpine store initialized:', cat[3].children_recursive[0].menu_items); // Debugging line to check the structure of categories
-            for (const childrens of cats) {
-                //console.log(childrens.children_recursive); // Outputs "red", "green", "blue"
-                for (const childs of childrens.children_recursive) {
-                    //console.log(childs); // Outputs "red", "green", "blue"
-                    for (const child of childs.menu_items) {
-                        console.log(child); // Outputs "red", "green", "blue"
-                    }
-                }
-            }
-        });
-    </script>
-@endpush
+
+            // // Initialize Alpine.js store for cart indicator (optional enhancement)
+            // document.addEventListener('alpine:init', () => {
+            //     Alpine.store('cart', {
+            //         items: [],
+            //         totalPrice: 0,
+            //         add(item) {
+            //             this.items.push(item);
+            //             this.updateTotal();
+            //         },
+            //         updateTotal() {
+            //             this.totalPrice = this.items.reduce((sum, item) => sum + (item.price * item.quantity),
+            //                 0);
+            //         }
+            //     });
+            // });
+        </script>
+    @endpush
+@endsection
