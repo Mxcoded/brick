@@ -55,6 +55,7 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
         })->name('order.confirm');
     });
     // General route for other types
+    Route::get('/{type}/{source?}/getcart', [RestaurantController::class, 'getCart'])->name('restaurant.cart.get');
     Route::get('/{type}/{source?}/menu', [RestaurantController::class, 'menu'])->name('restaurant.menu');
    
     Log::info('Restaurant menu route accessed: type=' . request()->type . ', source=' . request()->source);
