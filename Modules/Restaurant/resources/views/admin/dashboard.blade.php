@@ -40,7 +40,7 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-lg w-100 py-2 fw-bold">Add Category</button>
+                            <button type="submit" class="btn button btn-lg w-100 py-2 fw-bold">Add Category</button>
                         </form>
                     </div>
                 </div>
@@ -81,7 +81,7 @@
                                     <input type="file" name="image" id="image" class="form-control">
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-lg w-100 py-2 fw-bold mt-3">Add Item</button>
+                            <button type="submit" class="btn button btn-lg w-100 py-2 fw-bold mt-3">Add Item</button>
                         </form>
                     </div>
                 </div>

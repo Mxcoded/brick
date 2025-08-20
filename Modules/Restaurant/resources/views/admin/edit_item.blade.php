@@ -6,7 +6,7 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow-lg border-0 rounded-4">
-                 <div class="card-header bg-primary text-white py-3">
+                 <div class="card-header button text-white py-3">
                     <h2 class="card-title fw-bold mb-0">Edit Item: {{ $item->name }}</h2>
                 </div>
                 <div class="card-body p-4">
@@ -46,7 +46,7 @@
                         </div>
                         <div class="d-flex justify-content-end mt-4">
                             <a href="{{ route('dashboard') }}" class="btn btn-secondary btn-lg me-2">Cancel</a>
-                            <button type="submit" class="btn btn-primary btn-lg fw-bold">Update Item</button>
+                            <button type="submit" class="btn button btn-lg fw-bold">Update Item</button>
                         </div>
                     </form>
                 </div>
