@@ -149,7 +149,7 @@ class RestaurantController extends Controller
         // Generate cart key
         $cartKey = "{$type}_cart";
         $cart = session()->get($cartKey, []);
-Log::info('Current cart contents', ['cart' => $cart]);
+        Log::info('Current cart contents', ['cart' => $cart]);
         // Check for existing item with same instructions
         foreach ($cart as $index => $item) {
             if (
@@ -463,29 +463,72 @@ Log::info('Current cart contents', ['cart' => $cart]);
         $order->save();
         return redirect()->route('restaurant.waiter.dashboard')->with('success', 'Order accepted!');
     }
-
+   
     public function adminDashboard()
     {
-        $categories = MenuCategory::get();
+        $categories = MenuCategory::withCount('menuItems')->get();
         $parent_categories = $categories->whereNull('parent_id');
-        $orders = Order::with('orderItems.menuItem')->get();
-        return view('restaurant::admin.dashboard', compact('categories', 'parent_categories', 'orders'));
+        $menuItems = MenuItem::with('category')->get();
+        $orders = Order::with('orderItems.menuItem')->latest()->get();
+        return view('restaurant::admin.dashboard', compact('categories', 'parent_categories', 'menuItems', 'orders'));
     }
 
     public function addMenuCategory(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:restaurant_menu_categories,name',
             'parent_category' => 'nullable|exists:restaurant_menu_categories,id',
-            'sub_category' => 'nullable|exists:restaurant_menu_categories,id',
         ]);
 
-        $category = new MenuCategory();
-        $category->name = $request->input('name');
-        $category->parent_id = !empty($request->input('parent_category')) ? $request->input('parent_category') : $request->input('sub_category');
-        $category->save();
+        MenuCategory::create([
+            'name' => $request->input('name'),
+            'parent_id' => $request->input('parent_category'),
+        ]);
 
-        return redirect()->back()->with('success', 'Menu category added successfully!');
+        return redirect()->route('dashboard')->with('success', 'Menu category added successfully!');
+    }
+
+    // New Method
+    public function editMenuCategory(MenuCategory $category)
+    {
+        $parent_categories = MenuCategory::whereNull('parent_id')->where('id', '!=', $category->id)->get();
+        return view('restaurant::admin.edit_category', compact('category', 'parent_categories'));
+    }
+
+    // New Method
+    public function updateMenuCategory(Request $request, MenuCategory $category)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255|unique:restaurant_menu_categories,name,' . $category->id,
+            'parent_id' => 'nullable|exists:restaurant_menu_categories,id',
+        ]);
+
+        // Prevent a category from being its own parent
+        if ($request->input('parent_id') == $category->id) {
+            return redirect()->back()->with('error', 'A category cannot be its own parent.');
+        }
+
+        $category->update($request->all());
+
+        return redirect()->route('dashboard')->with('success', 'Menu category updated successfully!');
+    }
+
+    // New Method
+    public function deleteMenuCategory(MenuCategory $category)
+    {
+        // Prevent deletion if the category has items or subcategories
+        if ($category->menuItems()->count() > 0 || $category->children()->count() > 0) {
+            return redirect()->route('dashboard')->with('error', 'Cannot delete category. It contains items or subcategories.');
+        }
+
+        $category->delete();
+        return redirect()->route('dashboard')->with('success', 'Menu category deleted successfully!');
+    }
+
+    // New Method
+    public function getSubcategories(MenuCategory $category)
+    {
+        return response()->json($category->children);
     }
 
     public function addMenuItem(Request $request)
@@ -514,6 +557,51 @@ Log::info('Current cart contents', ['cart' => $cart]);
         return redirect()->back()->with('success', 'Menu item added successfully!');
     }
 
+    public function editMenuItem(MenuItem $item)
+    {
+        $categories = MenuCategory::all();
+        return view('restaurant::admin.edit_item', compact('item', 'categories'));
+    }
+
+    public function updateMenuItem(Request $request, MenuItem $item)
+    {
+        // ... (logic updated to use route model binding) ...
+        $request->validate([
+            'restaurant_menu_categories_id' => 'required|exists:restaurant_menu_categories,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'price' => 'required|numeric|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $item->restaurant_menu_categories_id = $request->input('restaurant_menu_categories_id');
+        $item->name = $request->input('name');
+        $item->description = $request->input('description');
+        $item->price = $request->input('price');
+
+        if ($request->hasFile('image')) {
+            if ($item->image) {
+                Storage::disk('public')->delete($item->image);
+            }
+            $path = $request->file('image')->store('dishes', 'public');
+            $item->image = $path;
+        }
+
+        $item->save();
+
+        return redirect()->route('dashboard')->with('success', 'Menu item updated successfully!');
+    }
+
+    // New Method
+    public function deleteMenuItem(MenuItem $item)
+    {
+        if ($item->image) {
+            Storage::disk('public')->delete($item->image);
+        }
+        $item->delete();
+        return redirect()->route('dashboard')->with('success', 'Menu item deleted successfully!');
+    }
+
     public function updateOrder(Request $request, $order)
     {
         $request->validate([
@@ -529,41 +617,5 @@ Log::info('Current cart contents', ['cart' => $cart]);
         $order->save();
 
         return redirect()->back()->with('success', 'Order updated successfully!');
-    }
-
-    public function editMenuItem($item)
-    {
-        $menuItem = MenuItem::findOrFail($item);
-        $categories = MenuCategory::all();
-        return view('restaurant::admin.edit_item', compact('menuItem', 'categories'));
-    }
-
-    public function updateMenuItem(Request $request, $item)
-    {
-        $request->validate([
-            'restaurant_menu_categories_id' => 'required|exists:restaurant_menu_categories,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'price' => 'required|numeric|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $menuItem = MenuItem::findOrFail($item);
-        $menuItem->restaurant_menu_categories_id = $request->input('restaurant_menu_categories_id');
-        $menuItem->name = $request->input('name');
-        $menuItem->description = $request->input('description');
-        $menuItem->price = $request->input('price');
-
-        if ($request->hasFile('image')) {
-            if ($menuItem->image) {
-                Storage::disk('public')->delete($menuItem->image);
-            }
-            $path = $request->file('image')->store('dishes', 'public');
-            $menuItem->image = $path;
-        }
-
-        $menuItem->save();
-
-        return redirect()->back()->with('success', 'Menu item updated successfully!');
     }
 }
