@@ -284,16 +284,6 @@ Log::info('Current cart contents', ['cart' => $cart]);
             'quantity' => 'required|integer|min:1',
         ]);
 
-        if ($type === 'table' && !Table::find($source)) {
-            abort(404, 'Invalid table.');
-        }
-        if ($type === 'room' && !Room::find($source)) {
-            abort(404, 'Invalid room.');
-        }
-        if ($type === 'online' && $source) {
-            abort(404, 'Online orders do not require a source.');
-        }
-
         $cartKey = $type . '_cart';
         $cart = session()->get($cartKey, []);
         $index = $request->input('index');
@@ -301,9 +291,15 @@ Log::info('Current cart contents', ['cart' => $cart]);
         if (isset($cart[$index])) {
             $cart[$index]['quantity'] = $request->input('quantity');
             session()->put($cartKey, $cart);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Cart updated!', 'cart' => array_values($cart)]);
+            }
             return redirect()->back()->with('success', 'Cart updated!');
         }
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => 'Invalid cart item.'], 404);
+        }
         return redirect()->back()->with('error', 'Invalid cart item.');
     }
 
@@ -317,16 +313,6 @@ Log::info('Current cart contents', ['cart' => $cart]);
             'index' => 'required|integer|min:0',
         ]);
 
-        if ($type === 'table' && !Table::find($source)) {
-            abort(404, 'Invalid table.');
-        }
-        if ($type === 'room' && !Room::find($source)) {
-            abort(404, 'Invalid room.');
-        }
-        if ($type === 'online' && $source) {
-            abort(404, 'Online orders do not require a source.');
-        }
-
         $cartKey = $type . '_cart';
         $cart = session()->get($cartKey, []);
         $index = $request->input('index');
@@ -335,9 +321,15 @@ Log::info('Current cart contents', ['cart' => $cart]);
             unset($cart[$index]);
             $cart = array_values($cart);
             session()->put($cartKey, $cart);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'message' => 'Item removed from cart!', 'cart' => $cart]);
+            }
             return redirect()->back()->with('success', 'Item removed from cart!');
         }
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => 'Invalid cart item.'], 404);
+        }
         return redirect()->back()->with('error', 'Invalid cart item.');
     }
 

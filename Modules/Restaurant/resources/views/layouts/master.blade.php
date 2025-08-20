@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,33 +13,31 @@
     <meta name="keywords" content="@yield('keywords', 'restaurant, food, menu, dining')">
     <meta name="author" content="@yield('author', 'Taste Restaurant')">
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Alpine.js -->
     <script src="https://unpkg.com/alpinejs@3.12.0/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/@alpinejs/persist@3.12.0/dist/cdn.min.js" defer></script>
 
     <style>
         :root {
-            --primary-color: #d9534f;
-            --primary-hover: #c9302c;
-            --secondary-color: #6c757d;
-            --success-color: #198754;
-            --warning-color: #fd7e14;
-            --info-color: #0dcaf0;
-            --light-color: #f8f9fa;
-            --dark-color: #212529;
-            --border-radius: 12px;
-            --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --primary-color: #d4af37;
+            /* Elegant gold */
+            --primary-hover: #bfa133;
+            --secondary-color: #7a8a99;
+            --success-color: #3ca67c;
+            --warning-color: #f4a261;
+            --info-color: #5ac8fa;
+            --light-color: #f4f5f7;
+            --dark-color: #1c1f26;
+            --border-radius: 14px;
+            --box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+            --transition: all 0.25s ease-in-out;
         }
 
         * {
@@ -47,16 +46,18 @@
             box-sizing: border-box;
         }
 
+
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, rgb(254, 254, 254) 0%, rgb(254, 145, 55) 100%);
+            background: linear-gradient(135deg, #fdfcfb 0%, #e8d9c7 50%, #d4af37 100%);
             min-height: 100vh;
             color: #333;
             overflow-x: hidden;
+            transition: var(--transition);
         }
 
         body.dark-mode {
-            background: linear-gradient(135deg, #1e3a8a, #3b0764);
+            background: linear-gradient(135deg, rgb(35, 35, 35) 0%, rgb(139, 69, 19) 50%, rgb(218, 165, 32) 100%);
             color: #e9ecef;
         }
 
@@ -65,13 +66,17 @@
         body.dark-mode .card,
         body.dark-mode .modal-content {
             background: rgba(30, 30, 30, 0.95);
+            color: #e0e0e0;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: var(--box-shadow);
+            border-radius: var(--border-radius);
         }
 
         body.dark-mode .text-muted {
             color: #adb5bd !important;
         }
- .landing-container {
+
+        .landing-container {
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -83,18 +88,35 @@
         }
 
         .card {
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 2rem;
-            max-width: 500px;
-            width: 100%;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .navbar {
-            background: rgba(255, 255, 255, 0.95) !important;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 24px;
             transition: var(--transition);
+        }
+
+        .button {
+            background-color: var(--primary-color);
+            color: #fff;
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 500;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+        }
+
+        .button:hover {
+            background-color: var(--primary-hover);
+            cursor: pointer;
+        }
+
+        .navbar {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--box-shadow);
+            padding: 16px 32px;
             position: sticky;
             top: 0;
             z-index: 1030;
@@ -116,7 +138,7 @@
 
         .nav-link:hover,
         .nav-link.active {
-            color: var(--primary-color) !important;
+            color: var(--light-color) !important;
         }
 
         .cart-indicator {
@@ -141,10 +163,6 @@
         .cart-indicator:hover {
             transform: scale(1.1);
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .cart-indicator.loading {
-            animation: pulse 1s infinite;
         }
 
         .cart-count {
@@ -180,14 +198,27 @@
         }
 
         @keyframes float {
-            0% { transform: translateY(100vh) rotate(0deg); }
-            100% { transform: translateY(-100px) rotate(360deg); }
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+            }
+
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+            }
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         .loading-shimmer {
@@ -197,8 +228,13 @@
         }
 
         @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
+            0% {
+                background-position: -200% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
         }
 
         .fade-in {
@@ -206,8 +242,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .modal-content {
@@ -264,6 +307,19 @@
             background: var(--primary-hover);
             transform: scale(1.1);
         }
+        
+        .quantity-input {
+            width: 50px !important;
+            text-align: center;
+            border: none;
+            background: transparent;
+            -moz-appearance: textfield;
+        }
+        .quantity-input::-webkit-outer-spin-button,
+        .quantity-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
 
         .modal-loading {
             display: flex;
@@ -276,6 +332,7 @@
             .modal-dialog {
                 margin: 0.5rem;
             }
+
             .navbar-brand {
                 font-size: 1.5rem;
             }
@@ -284,397 +341,302 @@
 
     @yield('head')
 </head>
+
 <body x-data="appData" x-bind:class="{ 'dark-mode': $store.persist.isDarkMode }">
-    <!-- Dynamic Cart Key -->
     @php
-        $cartKey = isset($type) ? ($type === 'online' ? 'online_cart' : $type . '_cart') : 'online_cart';
+        $type = $type ?? 'online';
+        $sourceId = $sourceModel->id ?? null;
+        $cartKey = $type === 'online' ? 'online_cart' : $type . '_cart';
+        $routeParams = $type !== 'online' ? ['type' => $type, 'source' => $sourceId] : [];
     @endphp
-@if (View::getSection('title') !== 'Welcome')
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('restaurant.landing') }}">Taste Restaurant</a>
-            <button class="navbar-toggler" type="button" @click="showMobileMenu = !showMobileMenu" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" x-bind:class="{ 'show': showMobileMenu }">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('restaurant.landing') }}">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route(
-                            isset($type) && $type === 'online' ? 'restaurant.online.menu' : (isset($type) ? 'restaurant.menu' : 'restaurant.online.menu'),
-                            isset($type) && $type !== 'online' ? [$type, $sourceModel->id ?? null] : []
-                        ) }}">Menu</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('restaurant.online.orders') }}">Order History</a>
-                    </li>
-                    <li class="nav-item">
-                        <button class="btn btn-outline-primary btn-sm rounded-pill" @click="$store.persist.isDarkMode = !$store.persist.isDarkMode" aria-label="Toggle dark mode">
-                            <i class="fas" :class="$store.persist.isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
-                            <span x-text="$store.persist.isDarkMode ? 'Light Mode' : 'Dark Mode'"></span>
-                        </button>
-                    </li>
-                </ul>
+
+    @if (View::getSection('title') !== 'Welcome')
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ route('restaurant.landing') }}">Taste Restaurant</a>
+                <button class="navbar-toggler" type="button" @click="showMobileMenu = !showMobileMenu"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" x-bind:class="{ 'show': showMobileMenu }">
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('restaurant.landing') }}">Home</a>
+                        </li>
+                        <li class="nav-item">
+                             <a class="nav-link" href="{{ route($type === 'online' ? 'restaurant.online.menu' : 'restaurant.menu', $routeParams) }}">Menu</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('restaurant.online.orders') }}">Order History</a>
+                        </li>
+                        <li class="nav-item">
+                            <button class="btn btn-outline-primary btn-sm rounded-pill"
+                                @click="$store.persist.isDarkMode = !$store.persist.isDarkMode"
+                                aria-label="Toggle dark mode">
+                                <i class="fas" :class="$store.persist.isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
+                                <span x-text="$store.persist.isDarkMode ? 'Light Mode' : 'Dark Mode'"></span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
             </div>
-        </div>
-    </nav>
-@endif
-    <!-- Floating Elements -->
+        </nav>
+    @endif
     <div class="floating-elements">
-        <div class="floating-element" style="left: 10%; top: 20%; width: 50px; height: 50px; background: var(--primary-color); border-radius: 50%;"></div>
-        <div class="floating-element" style="left: 80%; top: 60%; width: 70px; height: 70px; background: var(--secondary-color); border-radius: 50%;"></div>
-        <div class="floating-element" style="left: 30%; top: 80%; width: 40px; height: 40px; background: var(--success-color); border-radius: 50%;"></div>
+        <div class="floating-element"
+            style="left: 10%; top: 20%; width: 50px; height: 50px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-utensils" style="color: #fff; font-size: 20px;"></i>
+        </div>
+        <div class="floating-element"
+            style="left: 80%; top: 60%; width: 70px; height: 70px; background: var(--secondary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-coffee" style="color: #fff; font-size: 24px;"></i>
+        </div>
+        <div class="floating-element"
+            style="left: 30%; top: 80%; width: 40px; height: 40px; background: var(--success-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-concierge-bell" style="color: #fff; font-size: 16px;"></i>
+        </div>
+        <div class="floating-element"
+            style="left: 60%; top: 30%; width: 60px; height: 60px; background: var(--warning-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-wine-glass" style="color: #fff; font-size: 20px;"></i>
+        </div>
+        <div class="floating-element"
+            style="left: 20%; top: 50%; width: 80px; height: 80px; background: var(--info-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-ice-cream" style="color: #fff; font-size: 28px;"></i>
+        </div>
+        <div class="floating-element"
+            style="left: 50%; top: 50%; width: 100px; height: 100px; background: var(--dark-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-drumstick-bite" style="color: #fff; font-size: 32px;"></i>
+        </div>
+        <div class="floating-element"
+            style="left: 70%; top: 20%; width: 90px; height: 90px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-bread-slice" style="color: #fff; font-size: 30px;"></i>
+        </div>
+        <div class="floating-element"
+            style="left: 40%; top: 10%; width: 50px; height: 50px; background: var(--secondary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-cookie" style="color: #fff; font-size: 20px;"></i>
+        </div>
     </div>
 
-    <!-- Content -->
     @yield('content')
+    @if (View::getSection('title') !== 'Welcome')
+        <button class="cart-indicator" data-bs-toggle="modal" data-bs-target="#cartModal">
+            <i class="fas fa-shopping-cart"></i>
+            <span class="cart-count" x-show="$store.cart.items.length > 0" x-text="$store.cart.items.length"></span>
+        </button>
 
-    <!-- Cart Indicator -->
-    <button class="cart-indicator" data-bs-toggle="modal" data-bs-target="#cartModal" x-data="{ count: $store.cart.items.length }" :class="{ 'loading': $store.cart.isAdding || $store.cart.isRefreshing }" @click="$store.cart.refreshCart()">
-        <i class="fas" :class="$store.cart.isAdding || $store.cart.isRefreshing ? 'fa-spinner fa-spin' : 'fa-shopping-cart'"></i>
-        <span class="cart-count" x-text="count"></span>
-    </button>
-@if (View::getSection('title') !== 'Welcome')
-    <!-- Cart Modal -->
-    <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true" x-data="{ isLoading: false }" @show.bs.modal="$store.cart.refreshCart()">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-           <form action="{{ route(
-                isset($type) && $type === 'online' ? 'restaurant.online.order.submit' : 'restaurant.order.submit',
-                isset($type) && $type !== 'online' ? [$type, $sourceModel->id ?? null] : []
-            ) }}" method="POST">
-                @csrf
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="cartModalLabel">Your Cart</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <template x-if="$store.cart.isRefreshing || isLoading">
-                            <div class="modal-loading">
-                                <i class="fas fa-spinner fa-spin fa-3x text-muted"></i>
-                            </div>
-                        </template>
-                        <template x-if="!$store.cart.isRefreshing && !isLoading">
-                            <div>
-                               <template x-if="!Array.isArray($store.cart.items) || $store.cart.items.length === 0">
-                                    <div class="text-center py-5">
-                                        <i class="fas fa-shopping-cart text-muted mb-3" style="font-size: 4rem; opacity: 0.3;"></i>
-                                        <h5 class="text-muted">Your cart is empty</h5>
-                                        <p class="text-muted">Add some delicious items to get started!</p>
-                                    </div>
-                                </template>
-                                <template x-else>
-                                    <div class="cart-items">
-                                        <!-- Error/Success Alerts -->
-                                        @if (session('error'))
-                                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                                <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
-                                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                            </div>
-                                        @endif
-                                        @if (session('success'))
-                                            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                                <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-                                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                            </div>
-                                        @endif
-                                        <template x-for="(item, index) in $store.cart.items" :key="item.item_id">
-                                            <div class="card mb-3 border-0 shadow-sm glass-morphism">
-                                                <div class="card-body">
-                                                    <div class="d-flex justify-content-between align-items-start mb-3">
-                                                        <div class="flex-grow-1">
-                                                            <h6 class="fw-bold mb-1" x-text="item.name || 'Unknown Item'"></h6>
-                                                            <p class="text-muted small mb-2" x-show="item.instructions" x-text="'Instructions: ' + (item.instructions || 'None')"></p>
-                                                            <p class="fw-semibold text-primary mb-0" x-text="item.price ? `₦${Number(item.price).toLocaleString(undefined, { minimumFractionDigits: 2 })} each` : 'Price not available'"></p>
-                                                        </div>
-                                                        <form action="{{ route(
-                                                            isset($type) && $type === 'online' ? 'restaurant.online.cart.remove' : 'restaurant.cart.remove',
-                                                            isset($type) && $type !== 'online' ? [$type, $sourceModel->id ?? null] : []
-                                                        ) }}" method="POST">
-                                                            @csrf
-                                                            <input type="hidden" name="index" :value="index">
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle" style="width: 35px; height: 35px;" aria-label="Remove item">
+        <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true"
+            @show.bs.modal="$store.cart.refreshCart()">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <form action="{{ route($type === 'online' ? 'restaurant.online.order.submit' : 'restaurant.order.submit', $routeParams) }}" method="POST">
+                    @csrf
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="cartModalLabel">
+                                <i class="fas fa-shopping-cart me-2"></i> Your Cart
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="cart-alerts"></div>
+                            <template x-if="$store.cart.isLoading">
+                                <div class="modal-loading">
+                                    <i class="fas fa-spinner fa-spin fa-3x text-muted"></i>
+                                </div>
+                            </template>
+                            <template x-if="!$store.cart.isLoading">
+                                <div>
+                                    <template x-if="$store.cart.items.length === 0">
+                                        <div class="text-center py-5">
+                                            <i class="fas fa-shopping-cart text-muted mb-3" style="font-size: 4rem; opacity: 0.3;"></i>
+                                            <h5 class="text-muted">Your cart is empty</h5>
+                                            <p class="text-muted">Add some delicious items to get started!</p>
+                                        </div>
+                                    </template>
+                                    <template x-if="$store.cart.items.length > 0">
+                                        <div class="cart-items">
+                                            <template x-for="(item, index) in $store.cart.items" :key="index">
+                                                <div class="card mb-3 border-0 shadow-sm glass-morphism">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                                            <div class="flex-grow-1">
+                                                                <h6 class="fw-bold mb-1" x-text="item.name"></h6>
+                                                                <p class="text-muted small mb-2" x-show="item.instructions" x-text="'Instructions: ' + item.instructions"></p>
+                                                                <p class="fw-semibold text-primary mb-0" x-text="`₦${Number(item.price).toLocaleString()}`"></p>
+                                                            </div>
+                                                            <button type="button" @click="$store.cart.removeItem(index)" class="btn btn-sm btn-outline-danger rounded-circle" style="width: 35px; height: 35px;" aria-label="Remove item">
                                                                 <i class="fas fa-trash"></i>
                                                             </button>
-                                                        </form>
-                                                    </div>
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                     <form action="{{ route(
-                                                            isset($type) && $type === 'online' ? 'restaurant.online.cart.update' : 'restaurant.cart.update',
-                                                            isset($type) && $type !== 'online' ? [$type, $sourceModel->id ?? null] : []
-                                                        ) }}" method="POST" @submit.prevent="updateCart($event, item.item_id, index)">
-                                                            @csrf
-                                                            <input type="hidden" name="index" :value="index">
+                                                        </div>
+                                                        <div class="d-flex justify-content-between align-items-center">
                                                             <div class="quantity-controls">
-                                                                <button type="button" class="quantity-btn" @click="if (item.quantity > 1) { item.quantity--; updateCart($event, item.item_id, index); }" aria-label="Decrease quantity">
+                                                                <button type="button" class="quantity-btn" @click="$store.cart.updateQuantity(index, item.quantity - 1)" :disabled="item.quantity <= 1">
                                                                     <i class="fas fa-minus"></i>
                                                                 </button>
-                                                                <input type="number" name="quantity" x-model.number="item.quantity" class="form-control form-control-sm w-75 d-inline text-center" min="1" required>
-                                                                <button type="button" class="quantity-btn" @click="item.quantity++; updateCart($event, item.item_id, index);" aria-label="Increase quantity">
+                                                                <input type="number" x-model.number.debounce.500ms="item.quantity" @change="$store.cart.updateQuantity(index, item.quantity)" class="form-control form-control-sm quantity-input" min="1" required>
+                                                                <button type="button" class="quantity-btn" @click="$store.cart.updateQuantity(index, item.quantity + 1)">
                                                                     <i class="fas fa-plus"></i>
                                                                 </button>
                                                             </div>
-                                                        </form>
-                                                        <div class="text-end">
-                                                            <p class="fw-bold mb-0 h5 text-success" x-text="item.price && item.quantity ? `₦${Number(item.price * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : 'Total not available'"></p>
+                                                            <p class="fw-bold mb-0 h5 text-success" x-text="`₦${(item.price * item.quantity).toLocaleString()}`"></p>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </template>
-                                        <div class="cart-summary mt-4 p-3 glass-morphism rounded">
-                                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                                <span class="h5 mb-0">Total:</span>
-                                                <span class="h4 fw-bold text-success mb-0" x-text="$store.cart.totalPrice ? `₦${$store.cart.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : 'Total not available'"></span>
-                                            </div>
-                                            <div class="mb-3">
-                                                <div class="d-flex justify-content-between small text-muted mb-1">
-                                                    <span>Free delivery progress</span>
-                                                    <span x-text="$store.cart.totalPrice ? `₦${Math.max(0, 5000 - $store.cart.totalPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })} more needed` : 'N/A'"></span>
+                                            </template>
+                                            <div class="cart-summary mt-4 p-3 glass-morphism rounded">
+                                                 <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="h5 mb-0">Total:</span>
+                                                    <span class="h4 fw-bold text-success mb-0" x-text="`₦${$store.cart.totalPrice.toLocaleString()}`"></span>
                                                 </div>
-                                                <div class="progress" style="height: 8px;">
-                                                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
-                                                         :style="$store.cart.totalPrice ? `width: ${Math.min(($store.cart.totalPrice / 5000) * 100, 100)}%` : 'width: 0%'" 
-                                                         role="progressbar" 
-                                                         :aria-valuenow="$store.cart.totalPrice || 0" 
-                                                         aria-valuemin="0" 
-                                                         aria-valuemax="5000"></div>
-                                                </div>
-                                                <small class="text-muted" x-show="$store.cart.totalPrice >= 5000">
-                                                    <i class="fas fa-check-circle text-success me-1"></i>Congratulations! You qualify for free delivery!
-                                                </small>
                                             </div>
                                         </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </template>
-                        <input type="hidden" name="order" x-model="JSON.stringify($store.cart.items)">
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="modal-footer" x-show="$store.cart.items.length > 0 && !$store.cart.isLoading">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Continue Shopping</button>
+                            <button type="submit" class="btn btn-primary-custom btn-lg" :disabled="$store.cart.isSubmitting">
+                                <span x-show="!$store.cart.isSubmitting"><i class="fas fa-credit-card me-2"></i>Proceed to Checkout</span>
+                                <span x-show="$store.cart.isSubmitting"><i class="fas fa-spinner fa-spin me-2"></i>Processing...</span>
+                            </button>
+                        </div>
                     </div>
-                   <div class="modal-footer" x-show="$store.cart.items && Array.isArray($store.cart.items) && $store.cart.items.length > 0 && !$store.cart.isRefreshing && !isLoading">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Continue Shopping</button>
-                        <button type="submit" class="btn btn-primary-custom btn-lg" :disabled="$store.cart.isSubmitting || $store.cart.isAdding">
-                            <i class="fas fa-credit-card me-2"></i>
-                            <span x-show="!$store.cart.isSubmitting">Proceed to Checkout</span>
-                            <span x-show="$store.cart.isSubmitting">Processing...</span>
-                        </button>
-                    </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
-@endif
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.store('persist', {
-                isDarkMode: false
-            });
 
-            Alpine.store('cart', {
-                items: @json(session($cartKey, [])) || [],
-                totalPrice: 0,
-                isSubmitting: false,
-                isAdding: false,
-                isRefreshing: false,
-                debug: true, // Enable debug logging
-                init() {
-                    console.log('Cart store initialized with items:', this.items);
-                    this.ensureItemsArray();
-                    this.updateTotal();
-                    if (!this.items.length) {
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.store('persist', {
+                    isDarkMode: false
+                });
+
+                Alpine.store('cart', {
+                    items: [],
+                    isLoading: true,
+                    isSubmitting: false,
+                    routes: {
+                        add:    '{{ route($type === 'online' ? 'restaurant.online.cart.add' : 'restaurant.cart.add', $routeParams) }}',
+                        update: '{{ route($type === 'online' ? 'restaurant.online.cart.update' : 'restaurant.cart.update', $routeParams) }}',
+                        remove: '{{ route($type === 'online' ? 'restaurant.online.cart.remove' : 'restaurant.cart.remove', $routeParams) }}',
+                        get:    '{{ route($type === 'online' ? 'restaurant.online.cart' : 'restaurant.cart.get', $routeParams) }}'
+                    },
+                    
+                    init() {
                         this.refreshCart();
-                    }
-                },
-                ensureItemsArray() {
-                    if (!Array.isArray(this.items)) {
-                        console.warn('Items is not an array, resetting to empty array');
-                        this.items = [];
-                    }
-                },
-                updateTotal() {
-                    this.totalPrice = this.items.reduce((sum, item) => {
-                        const price = Number(item.price || 0);
-                        const quantity = Number(item.quantity || 0);
-                        return sum + (price * quantity);
-                    }, 0);
-                    console.log('Total price updated:', this.totalPrice);
-                },
-                addToCart(itemId, name, price, quantity, instructions, route) {
-                    console.log('Adding to cart:', { itemId, name, price, quantity, instructions, route });
-                    // Check for existing item
-                    const existingIndex = this.items.findIndex(
-                        item => item.item_id === itemId && item.instructions === (instructions || '')
-                    );
-                    if (existingIndex !== -1) {
-                        console.log('Item exists, incrementing quantity at index:', existingIndex);
-                        this.items[existingIndex].quantity += parseInt(quantity) || 1;
-                        this.updateCart(null, itemId, existingIndex, route);
-                        return;
-                    }
-                    // Add new item
-                    this.isAdding = true;
-                    const formData = new FormData();
-                    formData.append('item_id', itemId);
-                    formData.append('quantity', quantity);
-                    formData.append('instructions', instructions || '');
-                    formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-                    fetch(route, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'Accept': 'application/json'
+                    },
+                    
+                    get totalPrice() {
+                        return this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                    },
+
+                    async fetchApi(route, method, body) {
+                        try {
+                            const response = await fetch(route, {
+                                method: method,
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                },
+                                body: JSON.stringify(body)
+                            });
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return await response.json();
+                        } catch (error) {
+                            console.error('API Error:', error);
+                            this.showAlert('danger', 'An error occurred. Please try again.');
+                            return null;
                         }
-                    })
-                    .then(response => {
-                        console.log('addToCart response status:', response.status);
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('addToCart response data:', data);
-                        if (data.success) {
-                            this.items = Array.isArray(data.cart) ? data.cart : [];
-                            this.updateTotal();
-                            this.showAlert('success', `Added ${name} to cart`);
+                    },
+                    
+                    async addToCart(itemId, name, price, quantity, instructions) {
+                        this.isSubmitting = true;
+                        const data = await this.fetchApi(this.routes.add, 'POST', { item_id: itemId, quantity, instructions });
+                        if (data && data.success) {
+                            this.items = data.cart;
+                            this.showAlert('success', `${name} has been added to your cart.`);
+                            new bootstrap.Modal(document.getElementById('cartModal')).show();
                         } else {
-                            this.showAlert('danger', data.message || 'Failed to add item to cart');
+                            this.showAlert('danger', data?.message || 'Failed to add item.');
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error adding to cart:', error);
-                        this.showAlert('danger', 'An error occurred while adding to cart.');
-                    })
-                    .finally(() => {
-                        this.isAdding = false;
-                        console.log('Current cart items after add:', this.items);
-                    });
-                },
-                updateCart(event, itemId, index, route = null) {
-                    console.log('Updating cart:', { itemId, index, route });
-                    const form = event ? event.target.closest('form') : null;
-                    const updateRoute = route || form.action;
-                    const quantity = this.items[index].quantity;
-                    if (quantity < 1) {
-                        this.items[index].quantity = 1;
-                        return;
-                    }
-                    this.isSubmitting = true;
-                    const formData = new FormData();
-                    formData.append('index', index);
-                    formData.append('quantity', quantity);
-                    formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-                    fetch(updateRoute, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        console.log('updateCart response status:', response.status);
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('updateCart response data:', data);
-                        if (data.success) {
-                            this.items = Array.isArray(data.cart) ? data.cart : [];
-                            this.updateTotal();
-                            this.showAlert('success', 'Cart updated successfully');
-                        } else {
-                            this.showAlert('danger', data.message || 'Failed to update cart');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error updating cart:', error);
-                        this.showAlert('danger', 'An error occurred while updating the cart.');
-                    })
-                    .finally(() => {
                         this.isSubmitting = false;
-                        console.log('Current cart items after update:', this.items);
-                    });
-                },
-                refreshCart() {
-                    console.log('Refreshing cart');
-                    this.isRefreshing = true;
-                    const route = '{{ route(isset($type) && $type === 'online' ? 'restaurant.online.cart.get' : 'restaurant.cart.get', isset($type) && $type !== 'online' ? [$type, $sourceModel->id ?? null] : []) }}';
-                    fetch(route, {
-                        method: 'GET',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        console.log('refreshCart response status:', response.status);
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('refreshCart response data:', data);
-                        if (data.success) {
-                            this.items = Array.isArray(data.cart) ? data.cart : [];
-                            this.updateTotal();
-                            if (!this.items.length) {
-                                console.log('Cart is empty after refresh');
-                            }
+                    },
+
+                    async updateQuantity(index, quantity) {
+                        const originalQuantity = this.items[index].quantity;
+                        if (quantity < 1) return;
+
+                        this.items[index].quantity = quantity;
+                        this.isSubmitting = true;
+
+                        const data = await this.fetchApi(this.routes.update, 'POST', { index, quantity });
+                        if (data && data.success) {
+                            this.items = data.cart;
                         } else {
-                            this.showAlert('danger', data.message || 'Failed to refresh cart');
+                            this.items[index].quantity = originalQuantity; // Revert on failure
+                            this.showAlert('danger', data?.message || 'Failed to update cart.');
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error refreshing cart:', error);
-                        this.showAlert('danger', 'An error occurred while refreshing the cart.');
-                    })
-                    .finally(() => {
-                        this.isRefreshing = false;
-                        console.log('Current cart items after refresh:', this.items);
-                    });
-                },
-                showAlert(type, message) {
-                    console.log('Showing alert:', { type, message });
-                    const alert = document.createElement('div');
-                    alert.className = `alert alert-${type} alert-dismissible fade show`;
-                    alert.role = 'alert';
-                    alert.innerHTML = `
-                        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-                        ${message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    `;
-                    const modalBody = document.querySelector('#cartModal .modal-body');
-                    modalBody.insertBefore(alert, modalBody.firstChild);
-                    setTimeout(() => {
-                        if (alert.isConnected) {
-                            alert.classList.remove('show');
-                            setTimeout(() => alert.remove(), 150);
+                        this.isSubmitting = false;
+                    },
+
+                    async removeItem(index) {
+                        const originalItems = [...this.items];
+                        this.items.splice(index, 1);
+                        this.isSubmitting = true;
+                        
+                        const data = await this.fetchApi(this.routes.remove, 'POST', { index });
+                        if (data && data.success) {
+                            this.items = data.cart;
+                            this.showAlert('info', 'Item removed from cart.');
+                        } else {
+                            this.items = originalItems; // Revert on failure
+                            this.showAlert('danger', data?.message || 'Failed to remove item.');
                         }
-                    }, 3000);
-                }
+                        this.isSubmitting = false;
+                    },
+
+                    async refreshCart() {
+                        this.isLoading = true;
+                        try {
+                            const response = await fetch(this.routes.get, { headers: { 'Accept': 'application/json' }});
+                            if (!response.ok) throw new Error('Network error');
+                            const data = await response.json();
+                            if (data.success) {
+                                this.items = data.cart;
+                            }
+                        } catch(error) {
+                             console.error('Error refreshing cart:', error);
+                        } finally {
+                            this.isLoading = false;
+                        }
+                    },
+                    
+                    showAlert(type, message) {
+                        const alertContainer = document.getElementById('cart-alerts');
+                        if (!alertContainer) return;
+                        
+                        const alert = document.createElement('div');
+                        alert.className = `alert alert-${type} alert-dismissible fade show`;
+                        alert.role = 'alert';
+                        alert.innerHTML = `
+                            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                            ${message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        `;
+                        alertContainer.appendChild(alert);
+                        setTimeout(() => alert.remove(), 4000);
+                    }
+                });
+
+                Alpine.data('appData', () => ({
+                    showMobileMenu: false
+                }));
             });
-
-            Alpine.data('appData', () => ({
-                showMobileMenu: false
-            }));
-        });
-
-        window.addEventListener('load', () => {
-            if (!window.Alpine) {
-                console.error('Alpine.js not loaded. Check script tags in master.blade.php.');
-            }
-            window.addToCart = function(itemId, name, price, quantity, instructions, route) {
-                console.log('window.addToCart called:', { itemId, name, price, quantity, instructions, route });
-                Alpine.store('cart').addToCart(itemId, name, price, quantity, instructions, route);
-                const modal = new bootstrap.Modal(document.getElementById('cartModal'));
-                modal.show();
-            };
-        });
-    </script>
-
+        </script>
+    @endif
     @stack('scripts')
 </body>
+
 </html>
