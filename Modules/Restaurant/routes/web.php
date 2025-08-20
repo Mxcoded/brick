@@ -77,10 +77,20 @@ Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
 
 Route::prefix('restaurant-admin')->middleware(['web', 'auth'])->group(function () {
     Route::get('/dashboard', [RestaurantController::class, 'adminDashboard'])->name('dashboard');
+
+    // Menu Category CRUD
     Route::post('/dashboard/category/add', [RestaurantController::class, 'addMenuCategory'])->name('restaurant.admin.add-category');
+    Route::get('/dashboard/category/{category}/edit', [RestaurantController::class, 'editMenuCategory'])->name('restaurant.admin.edit-category');
+    Route::post('/dashboard/category/{category}/update', [RestaurantController::class, 'updateMenuCategory'])->name('restaurant.admin.update-category');
+    Route::post('/dashboard/category/{category}/delete', [RestaurantController::class, 'deleteMenuCategory'])->name('restaurant.admin.delete-category');
+    Route::get('/get-subcategories/{category}', [RestaurantController::class, 'getSubcategories'])->name('restaurant.admin.get-subcategories');
+
+    // Menu Item CRUD
     Route::post('/dashboard/item/add', [RestaurantController::class, 'addMenuItem'])->name('restaurant.admin.add-item');
     Route::get('/dashboard/item/{item}/edit', [RestaurantController::class, 'editMenuItem'])->name('restaurant.admin.edit-item');
     Route::post('/dashboard/item/{item}/update', [RestaurantController::class, 'updateMenuItem'])->name('restaurant.admin.update-item');
     Route::post('/dashboard/item/{item}/delete', [RestaurantController::class, 'deleteMenuItem'])->name('restaurant.admin.delete-item');
+
+    // Order Management
     Route::post('/order/{order}/update', [RestaurantController::class, 'updateOrder'])->name('restaurant.admin.order.update');
 });

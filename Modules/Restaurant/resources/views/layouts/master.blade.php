@@ -138,7 +138,7 @@
 
         .nav-link:hover,
         .nav-link.active {
-            color: var(--light-color) !important;
+            color: var(--primary-color) !important;
         }
 
         .cart-indicator {
