@@ -196,6 +196,7 @@ class RestaurantController extends Controller
     }
     public function getCart($type = 'online', $sourceId = null)
     {
+        
         Log::info('getCart called', ['type' => $type, 'sourceId' => $sourceId]);
         // Validate type and source
         $validTypes = ['online', 'table', 'room'];
