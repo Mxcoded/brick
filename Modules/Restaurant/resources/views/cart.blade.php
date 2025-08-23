@@ -53,14 +53,7 @@
                                             </td>
                                             <td>{{ $menuItem->name ?? 'Item not found' }}</td>
                                             <td>
-                                                <form action="{{ route($type === 'online' ? 'restaurant.online.cart.update' : 'restaurant.cart.update', $type === 'online' ? [] : [$type, $sourceModel->id]) }}" method="POST">
-                                                    @csrf
-                                                    <input type="hidden" name="index" value="{{ $index }}">
-                                                    <input type="number" name="quantity" value="{{ $quantity }}"
-                                                        min="1" class="form-control form-control-sm w-75 d-inline"
-                                                        required>
-                                                    <button type="submit" class="btn btn-primary btn-sm ms-2">Update</button>
-                                                </form>
+                                                {{ $quantity }}
                                             </td>
                                             <td>{{ $menuItem ? '₦' . number_format($menuItem->price, 2) : 'N/A' }}</td>
                                             <td>{{ $item['instructions'] ?: 'None' }}</td>

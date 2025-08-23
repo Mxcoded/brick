@@ -495,10 +495,16 @@
                         </div>
                         <div class="modal-footer" x-show="$store.cart.items.length > 0 && !$store.cart.isLoading">
                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Continue Shopping</button>
-                            <button type="submit" class="btn btn-primary-custom btn-lg" :disabled="$store.cart.isSubmitting">
-                                <span x-show="!$store.cart.isSubmitting"><i class="fas fa-credit-card me-2"></i>Proceed to Checkout</span>
-                                <span x-show="$store.cart.isSubmitting"><i class="fas fa-spinner fa-spin me-2"></i>Processing...</span>
-                            </button>
+                                @if ($type === 'online')
+                                    <button type="button" class="btn btn-primary-custom btn-lg" @click="$store.cart.redirectTo()"  :disabled="$store.cart.isSubmitting">
+                                        <span x-show="!$store.cart.isSubmitting"><i class="fas fa-credit-card me-2"></i>Proceed to Checkout</span>
+                                    </button>
+                                @else
+                                    <button type="submit" class="btn btn-primary-custom btn-lg" :disabled="$store.cart.isSubmitting">
+                                        <span x-show="!$store.cart.isSubmitting"><i class="fas fa-credit-card me-2"></i>Proceed to Checkout</span>
+                                        <span x-show="$store.cart.isSubmitting"><i class="fas fa-spinner fa-spin me-2"></i>Processing...</span>
+                                    </button>
+                                @endif
                         </div>
                     </div>
                 </form>
@@ -520,17 +526,21 @@
                         add:    '{{ route($type === 'online' ? 'restaurant.online.cart.add' : 'restaurant.cart.add', $routeParams) }}',
                         update: '{{ route($type === 'online' ? 'restaurant.online.cart.update' : 'restaurant.cart.update', $routeParams) }}',
                         remove: '{{ route($type === 'online' ? 'restaurant.online.cart.remove' : 'restaurant.cart.remove', $routeParams) }}',
-                        get:    '{{ route($type === 'online' ? 'restaurant.online.cart' : 'restaurant.cart.get', $routeParams) }}'
+                        get:    '{{ route($type === 'online' ? 'restaurant.online.cart.get' : 'restaurant.cart.get', $routeParams) }}',
+                        cart:   "{{ route($type === 'online' ? 'restaurant.online.cart' : 'restaurant.cart', $routeParams) }}"
                     },
                     
                     init() {
+                        
                         this.refreshCart();
                     },
                     
                     get totalPrice() {
                         return this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                     },
-
+                    redirectTo() {
+                        window.location.href = this.routes.cart;
+                    },
                     async fetchApi(route, method, body) {
                         try {
                             const response = await fetch(route, {
@@ -553,6 +563,12 @@
                     
                     async addToCart(itemId, name, price, quantity, instructions) {
                         this.isSubmitting = true;
+                        if (this.items.some(item => item.item_id === itemId)) {
+                            this.showAlert('info', `${name} is already in your cart.`);
+                            new bootstrap.Modal(document.getElementById('cartModal')).show();
+                            this.isSubmitting = false;
+                            return;
+                        }
                         const data = await this.fetchApi(this.routes.add, 'POST', { item_id: itemId, quantity, instructions });
                         if (data && data.success) {
                             this.items = data.cart;
@@ -607,6 +623,7 @@
                                 this.items = data.cart;
                             }
                         } catch(error) {
+                            console.log('Cart refreshed:', error);
                              console.error('Error refreshing cart:', error);
                         } finally {
                             this.isLoading = false;
