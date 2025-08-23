@@ -446,24 +446,89 @@ class RestaurantController extends Controller
         return view('restaurant::orders', compact('orders', 'phone'));
     }
 
+    /** Waiter Dashboard and Order Management start */
     public function waiterDashboard()
     {
-        $orders = Order::where('status', 'pending')
+        // Separate orders into pending and active for the new tabs
+        $pendingOrders = Order::where('status', 'pending')
             ->whereIn('type', ['table', 'room'])
             ->with('orderItems.menuItem')
             ->get();
-        return view('restaurant::waiter.dashboard', compact('orders'));
+
+        $activeOrders = Order::where('status', 'accepted')
+            ->whereIn('tracking_status', ['preparing', 'ready', 'served'])
+            ->whereIn('type', ['table', 'room'])
+            ->with('orderItems.menuItem')
+            ->get();
+
+        return view('restaurant::waiter.dashboard', compact('pendingOrders', 'activeOrders'));
     }
 
-    public function acceptOrder($order)
+    //method to handle accepted orders
+    public function acceptOrder(Order $order)
     {
-        $order = Order::findOrFail($order);
         $order->status = 'accepted';
-        $order->tracking_status = 'preparing';
+        $order->tracking_status = 'preparing'; // The first stage after acceptance
         $order->save();
-        return redirect()->route('restaurant.waiter.dashboard')->with('success', 'Order accepted!');
+        return redirect()->route('restaurant.waiter.dashboard')->with('success', "Order #{$order->id} accepted!");
     }
-   
+
+    // method to handle status updates from the dropdown
+    public function updateOrderStatus(Request $request, Order $order)
+    {
+        $request->validate([
+            'tracking_status' => 'required|in:preparing,ready,served,paid',
+            'status' => 'sometimes|in:completed'
+        ]);
+
+        $order->tracking_status = $request->input('tracking_status');
+
+        // If the form submitted a final status, update it
+        if ($request->has('status')) {
+            $order->status = $request->input('status');
+        }
+
+        $order->save();
+        return redirect()->route('restaurant.waiter.dashboard')->with('success', "Order #{$order->id} status updated.");
+    }
+    // New method to reject a pending order
+    public function rejectOrder(Request $request, Order $order)
+    {
+        // Ensure we can only reject a pending order
+        if ($order->status !== 'pending') {
+            return redirect()->back()->with('error', 'Only pending orders can be rejected.');
+        }
+
+        $request->validate(['reason' => 'required|string|max:255']);
+
+        $order->status = 'rejected';
+        $order->reason = $request->input('reason'); // Assumes you have a 'reason' column
+        $order->save();
+
+        return redirect()->route('restaurant.waiter.dashboard')->with('success', "Order #{$order->id} has been rejected.");
+    }
+
+    // New method to void an active order
+    public function voidOrder(Request $request, Order $order)
+    {
+        // Ensure we can only void an accepted order
+        if ($order->status !== 'accepted') {
+            return redirect()->back()->with('error', 'Only active orders can be voided.');
+        }
+
+        $request->validate(['reason' => 'required|string|max:255']);
+
+        $order->status = 'void';
+        $order->tracking_status = 'cancelled';
+        $order->reason = $request->input('reason'); // Assumes you have a 'reason' column
+        $order->save();
+
+        return redirect()->route('restaurant.waiter.dashboard')->with('success', "Order #{$order->id} has been voided.");
+    }
+
+   /**
+    * Admin function starting the dashboard
+    */
     public function adminDashboard()
     {
         $categories = MenuCategory::withCount('menuItems')->get();

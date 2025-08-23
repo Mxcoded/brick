@@ -22,6 +22,7 @@ class Order extends Model
         'customer_phone',
         'delivery_address',
         'status',
+        'reason', // New field for reason
         'tracking_status',
     ];
 
