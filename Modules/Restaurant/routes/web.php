@@ -73,6 +73,9 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
 Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
     Route::get('/dashboard', [RestaurantController::class, 'waiterDashboard'])->name('restaurant.waiter.dashboard');
     Route::post('/order/{order}/accept', [RestaurantController::class, 'acceptOrder'])->name('restaurant.waiter.accept');
+    Route::post('/order/{order}/update-status', [RestaurantController::class, 'updateOrderStatus'])->name('restaurant.waiter.update-status');
+    Route::post('/order/{order}/reject', [RestaurantController::class, 'rejectOrder'])->name('restaurant.waiter.reject');
+    Route::post('/order/{order}/void', [RestaurantController::class, 'voidOrder'])->name('restaurant.waiter.void');
 });
 
 Route::prefix('restaurant-admin')->middleware(['web', 'auth'])->group(function () {
