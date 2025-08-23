@@ -53,6 +53,8 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
         Route::get('order/confirm/{order}', function ($order, Request $request) {
             return app(RestaurantController::class)->confirmOrder('online', null, $order);
         })->name('order.confirm');
+        Route::get('/getcart', [RestaurantController::class, 'getCart'])->name('cart.get');
+
     });
     // General route for other types
     Route::get('/{type}/{source?}/getcart', [RestaurantController::class, 'getCart'])->name('restaurant.cart.get');
