@@ -89,8 +89,7 @@
                                             <i class="bi bi-chevron-down me-1"></i>View Details
                                         </button>
                                         <div class="collapse" id="activeOrderDetails{{ $order->id }}">
-                                            @include('restaurant::partials
-                                            ._order_details', ['order' => $order])
+                                            @include('restaurant::partials._order_details', ['order' => $order])
                                         </div>
                                     </div>
                                     <div class="card-footer bg-white border-0 p-3">
