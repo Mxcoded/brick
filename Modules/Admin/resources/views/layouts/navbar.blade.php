@@ -56,10 +56,22 @@
                                 <i class="fas fa-user me-1"></i> Leave Request
                             </a>
                         </li>
+                         <li>
+                            <a class="dropdown-item {{ request()->routeIs('staff.leaves.admin.apply') ? 'active' : '' }}"
+                                href="{{ route('staff.leaves.admin.apply') }}">
+                                <i class="fas fa-user me-1"></i> Apply on behalf
+                            </a>
+                        </li>
                             <li>
                                 <a class="dropdown-item {{ request()->routeIs('staff.leaves.create') ? 'active' : '' }}"
-                                    href="{{ route('staff.leaves.balance') }}">
-                                    <i class="fas fa-plus me-1"></i> Add Leave balance
+                                    href="{{ route('staff.leaves.admin.balances') }}">
+                                    <i class="fas fa-plus me-1"></i> manage Leave balance
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {{ request()->routeIs('staff.leaves.admin.history') ? 'active' : '' }}"
+                                    href="{{ route('staff.leaves.admin.history') }}">
+                                    <i class="fas fa-clock me-1"></i> manage Leave history
                                 </a>
                             </li>
                         @endcan
