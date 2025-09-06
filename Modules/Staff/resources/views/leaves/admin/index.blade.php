@@ -7,6 +7,16 @@
             <div class="card-header bg-secondary text-white">
                 <h5 class="mb-0">Pending Leave Requests</h5>
             </div>
+            @if (session('error'))
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
+            @if (session('success'))
+                <div class="alert alert-success">
+                    {{ session('success') }}
+                </div>
+            @endif
             <div class="card-body">
                 @if ($leaveRequests->isEmpty())
                     <p class="text-muted">No pending leave requests.</p>
@@ -34,13 +44,16 @@
                                         <td>{{ $request->days_count }}</td>
                                         <td>{{ $request->reason ?? 'N/A' }}</td>
                                         <td>
-                                            <form action="{{ route('staff.leaves.approve', $request->id) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('staff.leaves.approve', $request->id) }}" method="POST"
+                                                class="d-inline">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-success">Approve</button>
                                             </form>
-                                            <form action="{{ route('staff.leaves.reject', $request->id) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('staff.leaves.reject', $request->id) }}" method="POST"
+                                                class="d-inline">
                                                 @csrf
-                                                <input type="text" name="admin_note" placeholder="Rejection note" class="form-control d-inline-block w-auto">
+                                                <input type="text" name="admin_note" placeholder="Rejection note"
+                                                    class="form-control d-inline-block w-auto">
                                                 <button type="submit" class="btn btn-sm btn-danger">Reject</button>
                                             </form>
                                         </td>

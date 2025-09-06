@@ -22,6 +22,7 @@ class LeaveRequest extends Model
         'reason',
         'status',
         'admin_note',
+        'days_count', // New field for the number of leave days
     ];
 
     public function employee()
