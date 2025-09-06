@@ -184,22 +184,27 @@ class LeaveController extends Controller
     public function approveLeave($id)
     {
         $leaveRequest = LeaveRequest::findOrFail($id);
+
+        // It's safer to ensure days_count exists before approving.
+        if (is_null($leaveRequest->days_count)) {
+            return redirect()->back()->with('error', 'ERROR: Cannot approve leave because days_count is not calculated. Please run the backfill command or have the user re-submit the request.');
+        }
+
         $leaveRequest->update(['status' => 'approved']);
 
+        // BUG FIX: Use the year from the leave request's start_date, NOT the current year.
         $leaveBalance = $leaveRequest->employee->leaveBalances()
             ->where('leave_type', $leaveRequest->leave_type)
-            ->where('year', date('Y'))
+            ->where('year', Carbon::parse($leaveRequest->start_date)->year)
             ->first();
 
         if ($leaveBalance) {
-            $daysCount = $leaveRequest->days_count ?? (new \DateTime($leaveRequest->start_date))
-                ->diff(new \DateTime($leaveRequest->end_date))->days + 1;
-            $leaveBalance->increment('used_days', $daysCount);
-          
+            // We now only use the reliable days_count from the database.
+            // No more fallback to a buggy calculation.
+            $leaveBalance->increment('used_days', $leaveRequest->days_count);
         }
-        // Send notification email to the employee
-        Mail::to($leaveRequest->employee->email)->send(new LeaveRequestStatusUpdated($leaveRequest));
 
+        Mail::to($leaveRequest->employee->email)->send(new LeaveRequestStatusUpdated($leaveRequest));
         return redirect()->route('staff.leaves.admin')->with('success', 'Leave request approved.');
     }
 
