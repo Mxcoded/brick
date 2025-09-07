@@ -1,6 +1,6 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 
-@section('content')
+@section('page-content')
     <div class="container-fluid my-4">
         <div class="card shadow-sm mb-4">
             <div class="card-header">

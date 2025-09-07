@@ -1,4 +1,4 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 @section('current-breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">Create New Order</li>
 @endsection

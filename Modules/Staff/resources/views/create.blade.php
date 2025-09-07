@@ -1,11 +1,11 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 
 @section('current-breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">Add New Staff</li>
 @endsection
 
 @section('page-content')
-    <div class="container">
+    <div class="container-fluid my-4">
         <h1>Add New Staff</h1>
         <div class="mt-4">
             <a href="{{ route('staff.index') }}" class="btn btn-secondary">

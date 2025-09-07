@@ -1,4 +1,4 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 
 @section('current-breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('staff.index') }}">Staff</a></li>
@@ -6,7 +6,7 @@
 @endsection
 
 @section('page-content')
-    <div class="container my-5">
+    <div class="container-fluid my-4">
         <h1 class="mb-4 fw-bold text-dark">Staff Details</h1>
 
         <!-- Main Employee Card -->

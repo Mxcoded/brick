@@ -1,4 +1,4 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 
 @section('title', 'Create Task')
 @section('current-breadcrumb')
