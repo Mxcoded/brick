@@ -1,5 +1,4 @@
-<!-- Modules/Admin/Resources/views/roles/edit.blade.php -->
-@extends('admin::layouts.master')
+@extends('layouts.master')
 
 @section('current-breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('admin.roles.index') }}">Roles</a></li>

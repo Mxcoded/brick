@@ -1,7 +1,7 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 
-@section('content')
-<div class="container my-4">
+@section('page-content')
+<div class="container-fluid my-4">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Manage Employee Leave Balances ({{ $currentYear }})</h5>

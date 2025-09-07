@@ -1,11 +1,11 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 
-@section('content')
-<div class="container my-4">
+@section('page-content')
+<div class="container-fluid my-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-secondary text-white">
                     <h5 class="mb-0">Apply Leave on Behalf of an Employee</h5>
                 </div>
                 <div class="card-body">
@@ -69,7 +69,7 @@
                         </div>
 
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Submit Leave Request</button>
+                            <button type="submit" class="btn btn-warning">Submit Leave Request</button>
                         </div>
                     </form>
                 </div>

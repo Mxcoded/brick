@@ -1,7 +1,7 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 
-@section('content')
-<div class="container my-4">
+@section('page-content')
+<div class="container-fluid my-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>My Leave Dashboard</h1>
         <a href="{{ route('staff.leaves.request') }}" class="btn btn-primary">

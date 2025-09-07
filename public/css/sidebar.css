@@ -1,0 +1,104 @@
+/* --- Root variables for easy theming --- */
+:root {
+    --sidebar-bg: #1c1f26;
+    --sidebar-text: #b0b8c1;
+    --sidebar-text-hover: #ffffff;
+    --sidebar-brand-text: #ffffff;
+    --sidebar-active-bg: #ffd700;
+    /* Gold */
+    --sidebar-active-text: #1c1f26;
+    /* Dark text for high contrast on gold */
+    --sidebar-active-border: #ffd700;
+    /* Gold */
+    --sidebar-submenu-text: #c2c7d0;
+}
+
+body {
+    background-color: #f4f6f9;
+}
+
+#wrapper {
+    display: flex;
+    overflow-x: hidden;
+}
+
+#sidebar-wrapper {
+    background-color: var(--sidebar-bg);
+    min-height: 100vh;
+    width: 260px;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    transition: margin 0.3s ease;
+}
+
+#sidebar-wrapper .sidebar-heading {
+    padding: 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--sidebar-brand-text);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#sidebar-wrapper .list-group-item {
+    background-color: transparent;
+    color: var(--sidebar-text);
+    border: none;
+    padding: 1rem 1.5rem;
+    font-size: 0.95rem;
+    transition: all 0.25s ease;
+}
+
+#sidebar-wrapper .list-group-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--sidebar-text-hover);
+    transform: translateX(6px);
+}
+
+/* --- FIX: Unified Active State for Main and Sub Menus --- */
+#sidebar-wrapper .list-group-item.active {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text) !important;
+    /* Use !important to ensure override */
+    font-weight: 600;
+    border-left: 4px solid var(--sidebar-active-border);
+}
+
+#sidebar-wrapper .list-group-item.active i {
+    color: var(--sidebar-active-text);
+    /* Ensure icon color matches text */
+}
+
+/* --- Submenu specific styles --- */
+#sidebar-wrapper .submenu .list-group-item {
+    padding-left: 2rem;
+    /* Indent submenu items */
+    font-size: 0.9rem;
+    color: var(--sidebar-submenu-text);
+}
+
+/* Ensure active submenu items don't have a left border */
+#sidebar-wrapper .submenu .list-group-item.active {
+    border-left: none;
+}
+
+#page-content-wrapper {
+    width: 100%;
+}
+
+#wrapper.toggled #sidebar-wrapper {
+    margin-left: -260px;
+}
+
+@media (min-width: 768px) {
+    #sidebar-wrapper {
+        margin-left: 0;
+    }
+
+    #page-content-wrapper {
+        min-width: 0;
+        width: 100%;
+    }
+
+    #wrapper.toggled #sidebar-wrapper {
+        margin-left: -260px;
+    }
+}
