@@ -24,7 +24,7 @@ Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
     Route::prefix('leaves')->group(function () {
         // User Leave Routes
         Route::get('/', [LeaveController::class, 'leaveIndex']) // Changed
-            ->name('staff.leaves.index')->middleware('permission:staff-view');
+            ->name('staff.leaves.index')->middleware('permission:staff-view-leaves');
         Route::get('/request', [LeaveController::class, 'leaveRequestForm']) // Changed
             ->name('staff.leaves.request');
         Route::post('/request', [LeaveController::class, 'submitLeaveRequest']) // Changed
