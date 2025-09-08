@@ -66,29 +66,45 @@
             </div>
             <div class="modal-body">
                 <h6>Existing Balances for {{ $currentYear }}</h6>
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>Leave Type</th>
-                            <th>Total Days</th>
-                            <th>Used Days</th>
-                            <th>Remaining</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($employee->leaveBalances as $balance)
-                        <tr>
-                            <td>{{ $balance->leave_type }}</td>
-                            <td>{{ $balance->total_days }}</td>
-                            <td>{{ $balance->used_days }}</td>
-                            <td>{{ $balance->remaining_days }}</td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="4" class="text-center">No balances set for this year.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Leave Type</th>
+                                <th>Total</th>
+                                <th>Used</th>
+                                <th>Remaining</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($employee->leaveBalances as $balance)
+                            <tr>
+                                <td>{{ $balance->leave_type }}</td>
+                                <td>{{ $balance->total_days }}</td>
+                                <td>{{ $balance->used_days }}</td>
+                                <td>{{ $balance->remaining_days }}</td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <form action="{{ route('staff.leaves.admin.balances.reset', $balance->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to reset used days to 0 for this leave type?');">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-info" title="Reset Used Days"><i class="fas fa-sync-alt"></i></button>
+                                        </form>
+                                        <form action="{{ route('staff.leaves.admin.balances.delete', $balance->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to PERMANENTLY DELETE this leave type?');">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Leave Type"><i class="fas fa-trash-alt"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="5" class="text-center">No balances set for this year.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
                 <hr>
+
                 <h6>Update or Create Balance</h6>
                 <form action="{{ route('staff.leaves.admin.balances.update') }}" method="POST">
                     @csrf
@@ -97,18 +113,19 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="leave_type-{{ $employee->id }}" class="form-label">Leave Type</label>
-                            <select name="leave_type" id="leave_type-{{ $employee->id }}" class="form-select" required>
-                                <option value="Annual">Annual</option>
-                                <option value="Sick">Sick</option>
-                                <option value="Casual">Casual</option>
-                                <option value="Maternity">Maternity</option>
-                                <option value="Paternity">Paternity</option>
-                                <option value="Compassionate">Compassionate</option>
-                            </select>
+                            <input class="form-control" list="leaveTypeOptions" id="leave_type-{{ $employee->id }}" name="leave_type" placeholder="e.g., Annual or Study Leave" required>
+                            <datalist id="leaveTypeOptions">
+                                <option value="Annual">
+                                <option value="Sick">
+                                <option value="Casual">
+                                <option value="Maternity">
+                                <option value="Paternity">
+                                <option value="Compassionate">
+                            </datalist>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="total_days-{{ $employee->id }}" class="form-label">Set Total Days</label>
-                            <input type="number" name="total_days" id="total_days-{{ $employee->id }}" class="form-control" required min="0">
+                            <input type="number" name="total_days" id="total_days-{{ $employee->id }}" class="form-control" required min="0" placeholder="e.g., 21">
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Save Balance</button>

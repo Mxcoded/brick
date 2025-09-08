@@ -110,68 +110,7 @@ class LeaveController extends Controller
 
         return back()->with('success', 'The leave request has been successfully cancelled.');
     }
-    // Submit Leave Request
-    // public function submitLeaveRequest(Request $request)
-    // {
-    //     $user = Auth::user();
-    //     $employee = $user->employee;
-    //     if (!$employee) {
-    //         return redirect()->back()->with('error', 'You do not have an employee profile.');
-    //     }
-
-    //     // Validate leave request
-    //     $validated = $request->validate([
-    //         'staff_code' => 'required|integer|exists:employees,staff_code',
-    //         'leave_type' => 'required|string|in:Annual,Casual,Compassionate,Sick,Paternity,Maternity',
-    //         'start_date' => 'required|date|after_or_equal:today',
-    //         'end_date' => 'required|date|after_or_equal:start_date',
-    //         'reason' => 'nullable|string|max:1000',
-    //     ]);
-    //     $startDate = new \DateTime($validated['start_date']);
-    //     $endDate = new \DateTime($validated['end_date']);
-    //     $employeeId = Employee::where('staff_code', $validated['staff_code'])->value('id');
-    //     $overlappingLeave = LeaveRequest::where('employee_id', $employeeId)
-    //         ->where(function ($query) use ($startDate, $endDate) {
-    //             $query->whereBetween('start_date', [$startDate, $endDate])
-    //                 ->orWhereBetween('end_date', [$startDate, $endDate])
-    //                 ->orWhere(function ($query) use ($startDate, $endDate) {
-    //                     $query->where('start_date', '<=', $startDate)
-    //                         ->where('end_date', '>=', $endDate);
-    //                 });
-    //         })
-    //         ->whereIn('status', ['pending', 'approved'])
-    //         ->exists();
-
-    //     if ($overlappingLeave) {
-    //         return redirect()->back()->withErrors([
-    //             'start_date' => 'You already have a leave request that overlaps with this date range.'
-    //         ]);
-    //     }
-
-    //     $leaveBalance = LeaveBalance::where('employee_id', $employeeId)
-    //         ->where('leave_type', $validated['leave_type'])
-    //         ->where('year', date('Y'))
-    //         ->first();
-
-    //     if (!$leaveBalance) {
-    //         return redirect()->back()->withErrors(['leave_type' => 'No leave balance available for this type.']);
-    //     }
-
-    //     $daysRequested = $startDate->diff($endDate)->days + 1;
-
-    //     if ($leaveBalance->remaining_days < $daysRequested) {
-    //         return redirect()->back()->withErrors(['leave_type' => 'Insufficient leave balance.']);
-    //     }
-
-    //     LeaveRequest::create(array_merge($validated, [
-    //         'employee_id' => $employeeId,
-    //         'staff_code' => $validated['staff_code'],
-    //         'days_count' => $daysRequested,
-    //         'status' => 'pending',
-    //     ]));
-
-    //     return redirect()->route('staff.leaves.index')->with('success', 'Leave request submitted successfully.');
-    // }
+    
 
     // Admin Leave Management
     public function leaveAdminIndex()
@@ -270,6 +209,29 @@ class LeaveController extends Controller
 
         // Bug Fix: Corrected the redirect route name from 'staff.leave.balance' to 'staff.leaves.balance'
         return redirect()->route('staff.leaves.balance')->with('success', 'Leave balance created/updated successfully.');
+    }
+
+    /**
+     * Reset an employee's used leave days to zero.
+     */
+    public function resetBalance($id)
+    {
+        $balance = LeaveBalance::findOrFail($id);
+        $balance->used_days = 0;
+        $balance->save();
+
+        return back()->with('success', 'Leave balance has been successfully reset.');
+    }
+
+    /**
+     * Delete a leave type from an employee's balance record.
+     */
+    public function deleteBalance($id)
+    {
+        $balance = LeaveBalance::findOrFail($id);
+        $balance->delete();
+
+        return back()->with('success', 'Leave type has been successfully deleted.');
     }
 
     /**
