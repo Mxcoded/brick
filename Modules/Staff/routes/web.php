@@ -46,7 +46,14 @@ Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
             ->name('staff.leaves.admin.balances.update')
             ->middleware('permission:manage-leave-balances');
 
-        // Admin Leave Routes
+        Route::post('/admin/balances/{id}/reset', [LeaveController::class, 'resetBalance'])
+            ->name('staff.leaves.admin.balances.reset')
+            ->middleware('permission:manage-leave-balances');
+
+        Route::post('/admin/balances/{id}/delete', [LeaveController::class, 'deleteBalance'])
+            ->name('staff.leaves.admin.balances.delete')
+            ->middleware('permission:manage-leave-balances');
+            // Admin Leave Routes
         Route::get('/admin', [LeaveController::class, 'leaveAdminIndex']) // Changed
             ->name('staff.leaves.admin')
             ->middleware('permission:approve-leaves');
