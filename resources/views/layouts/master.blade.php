@@ -34,9 +34,8 @@
                                 BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub
                                     style="font-size:8pt;">v1.0</sub>
                             </a>
-                    </div> v1.0. All rights reserved.</p>
-                    <p class="mb-0 text-muted">™ Developed with ❤️ by IT Team <a href="https://www.brickspoint.com"
-                            target="_blank" rel="noopener">Brickspoint Technologies</a></p>
+                    . All rights reserved.</div></p> 
+                    <p class="mb-0 text-muted">™ Developed with ❤️ by IT Team </p>
                 </div>
             </footer>
         </div>
