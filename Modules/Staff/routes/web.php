@@ -2,73 +2,89 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Staff\Http\Controllers\StaffController;
+use Modules\Staff\Http\Controllers\LeaveController; // Add this line
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
 */
 
 // **Staff Resource Routes**
-// URLs: /staff, /staff/{id}, /staff/create, etc.
-// Purpose: CRUD operations for managing staff records
-// Accessible to authenticated users with 'admin' or 'staff' role and 'view-staff' permission
 Route::middleware(['web', 'auth'])
     ->resource('staff', StaffController::class)
     ->names('staff')->middleware('permission:staff-view');
 
 // **Staff Functionality Routes**
-// Base URL: /staff/*
-// Purpose: Staff user actions like dashboard, leave management, and approvals
-Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {    
+Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
     // Staff Dashboard
-    // URL: /staff/dashboard
-  Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('staff.dashboard');
-    // **Leave Management Routes**
-    // Base URL: /staff/leaves/*
-    Route::prefix('leaves')->group(function () {
-        // User Leave Routes (for staff to manage their own leaves)
-        Route::get('/', [StaffController::class, 'leaveIndex'])
-            ->name('staff.leaves.index')->middleware('permission:staff-view');
-        Route::get('/request', [StaffController::class, 'leaveRequestForm'])
-            ->name('staff.leaves.request');
-        Route::post('/request', [StaffController::class, 'submitLeaveRequest'])
-            ->name('staff.leaves.submit');
-    
+    Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('staff.dashboard');
 
-         // Leave Balance Route
-        Route::get('/balance', [StaffController::class, 'leaveBalance'])
+    // **Leave Management Routes** - NOW HANDLED BY LeaveController
+    Route::prefix('leaves')->group(function () {
+        // User Leave Routes
+        Route::get('/', [LeaveController::class, 'leaveIndex']) // Changed
+            ->name('staff.leaves.index')->middleware('permission:staff-view-leaves');
+        Route::get('/request', [LeaveController::class, 'leaveRequestForm']) // Changed
+            ->name('staff.leaves.request');
+        Route::post('/request', [LeaveController::class, 'submitLeaveRequest']) // Changed
+            ->name('staff.leaves.submit');
+        Route::post('/{id}/cancel', [LeaveController::class, 'cancelLeaveRequest'])
+            ->name('staff.leaves.cancel');
+            // Leave Balance Route
+        Route::get('admin/balance', [LeaveController::class, 'leaveBalance']) // Changed
             ->name('staff.leaves.balance')
             ->middleware('permission:manage-leaves');
-        Route::post('/balance', [StaffController::class, 'leaveBalanceSubmit'])
+        Route::post('admin/balance', [LeaveController::class, 'leaveBalanceSubmit']) // Changed
             ->name('staff.leaves.balance-submit')
             ->middleware('permission:manage-leaves');
+        Route::get('/admin/balances', [LeaveController::class, 'showBalancesAdmin'])
+            ->name('staff.leaves.admin.balances')
+            ->middleware('permission:manage-leave-balances');
 
-        // Admin Leave Routes (for managing all leaves)
-        Route::get('/admin', [StaffController::class, 'leaveAdminIndex'])
+        Route::post('/admin/balances', [LeaveController::class, 'updateBalanceAdmin'])
+            ->name('staff.leaves.admin.balances.update')
+            ->middleware('permission:manage-leave-balances');
+
+        Route::post('/admin/balances/{id}/reset', [LeaveController::class, 'resetBalance'])
+            ->name('staff.leaves.admin.balances.reset')
+            ->middleware('permission:manage-leave-balances');
+
+        Route::post('/admin/balances/{id}/delete', [LeaveController::class, 'deleteBalance'])
+            ->name('staff.leaves.admin.balances.delete')
+            ->middleware('permission:manage-leave-balances');
+            // Admin Leave Routes
+        Route::get('/admin', [LeaveController::class, 'leaveAdminIndex']) // Changed
             ->name('staff.leaves.admin')
             ->middleware('permission:approve-leaves');
-        Route::post('/admin/approve/{id}', [StaffController::class, 'approveLeave'])
+        Route::post('/admin/approve/{id}', [LeaveController::class, 'approveLeave']) // Changed
             ->name('staff.leaves.approve')
             ->middleware('permission:approve-leaves');
-        Route::post('/admin/reject/{id}', [StaffController::class, 'rejectLeave'])
+        Route::post('/admin/reject/{id}', [LeaveController::class, 'rejectLeave']) // Changed
             ->name('staff.leaves.reject')
             ->middleware('permission:approve-leaves');
-
-        // Leave Report Route
-        Route::get('/report', [StaffController::class, 'leaveReport'])
+        Route::post('/admin/{id}/cancel', [LeaveController::class, 'adminCancelLeaveRequest'])
+            ->name('staff.leaves.admin.cancel')
+            ->middleware('permission:approve-leaves');
+            // Leave Report Route
+        Route::get('/report', [LeaveController::class, 'leaveReport']) // Changed
             ->name('staff.leaves.report')
             ->middleware('permission:leave-reports');
+        // HR routes for applying on behalf of others
+        Route::get('/admin/apply', [LeaveController::class, 'showApplyForOtherForm'])
+            ->name('staff.leaves.admin.apply')
+            ->middleware('permission:apply-leave-for-others');
 
-    });
+        Route::post('/admin/apply', [LeaveController::class, 'submitLeaveForOther'])
+            ->name('staff.leaves.admin.submit')
+            ->middleware('permission:apply-leave-for-others');
+        Route::get('/admin/history', [LeaveController::class, 'showLeaveHistory'])
+            ->name('staff.leaves.admin.history')
+            ->middleware('permission:view-leave-history');
+        });
 
-    // **Approval Routes (Admin Only)**
-    // Base URL: /staff/approvals/*
+
+    // ** Staff Approval Routes (Admin Only)**
     Route::prefix('approvals')->middleware('role:admin|hr')->group(function () {
         Route::get('/', [StaffController::class, 'approvalIndex'])
             ->name('staff.approvals.index');
@@ -80,7 +96,6 @@ Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
 });
 
 // **Public Routes**
-// Purpose: Routes accessible without authentication
 Route::middleware('web')->group(function () {
     Route::get('/complete-registration', [StaffController::class, 'showCompleteRegistrationForm'])
         ->name('staff.complete-registration');

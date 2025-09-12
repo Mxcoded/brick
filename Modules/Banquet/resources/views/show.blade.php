@@ -1,10 +1,10 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 @section('current-breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">Order #{{ $order->order_id }}</li>
 @endsection
 
 @section('page-content')
-    <div class="container-fluid px-4">
+    <div class="container-fluid my-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="fw-bold display-5 text-primary">Order #{{ $order->order_id }}</h1>
             <a href="{{ route('banquet.orders.index') }}" class="btn btn-outline-secondary">

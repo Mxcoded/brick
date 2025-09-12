@@ -1,7 +1,7 @@
-@extends('gym::layouts.master')
+@extends('layouts.master')
 
-@section('content')
-    <div class="container">
+@section('page-content')
+    <div class="container-fluid my-4">
         <h1>Membership Details: #{{ $membership->id }}</h1>
 
         <!-- Membership Information -->

@@ -1,10 +1,10 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 @section('current-breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">Update Menu Item-#{{ $order->order_id }}</li>
 @endsection
 
 @section('page-content')
-<div class="container-fluid px-4">
+<div class="container-fluid my-4">
     <div class="d-flex justify-content-between align-items-center mb-5">
         <h1 class="fw-bold display-5 text-primary">
             <i class="fas fa-utensils me-3"></i>
