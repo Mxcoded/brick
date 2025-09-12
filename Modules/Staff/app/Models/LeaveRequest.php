@@ -22,6 +22,7 @@ class LeaveRequest extends Model
         'reason',
         'status',
         'admin_note',
+        'days_count', // New field for the number of leave days
     ];
 
     public function employee()
@@ -29,11 +30,11 @@ class LeaveRequest extends Model
         return $this->belongsTo(Employee::class);
     }
 
-    // Calculate number of leave days
-    public function getDaysCountAttribute()
-    {
-        return (new \DateTime($this->start_date))->diff(new \DateTime($this->end_date))->days + 1;
-    }
+    // // Calculate number of leave days
+    // public function getDaysCountAttribute()
+    // {
+    //     return (new \DateTime($this->start_date))->diff(new \DateTime($this->end_date))->days + 1;
+    // }
 
     // protected static function newFactory(): LeaveRequestFactory
     // {

@@ -1,5 +1,4 @@
-<!-- Modules/Admin/Resources/views/employees/create-user.blade.php -->
-@extends('admin::layouts.master')
+@extends('layouts.master')
 
 @section('current-breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">Create User Account</li>

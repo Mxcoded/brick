@@ -1,5 +1,4 @@
-<!-- Modules/Admin/Resources/views/permissions/edit.blade.php -->
-@extends('admin::layouts.master')
+@extends('layouts.master')
 
 @section('current-breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('admin.permissions.index') }}">Permissions</a></li>

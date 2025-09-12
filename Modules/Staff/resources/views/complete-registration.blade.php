@@ -1,7 +1,7 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 
-@section('content')
-<div class="container">
+@section('page-content')
+<div class="container-fluid my-4">
     <h1>Complete Your Registration</h1>
 
     @if(session('error'))

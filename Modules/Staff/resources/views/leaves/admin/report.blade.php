@@ -1,7 +1,7 @@
-@extends('staff::layouts.master')
+@extends('layouts.master')
 
-@section('content')
-    <div class="container my-4">
+@section('page-content')
+    <div class="container-fluid my-4">
         <h1 class="mb-4">Leave Report ({{ $year }})</h1>
         <form method="GET" class="mb-4">
             <div class="row g-3">

@@ -1,5 +1,4 @@
-<!-- Modules/Admin/Resources/views/permissions/index.blade.php -->
-@extends('admin::layouts.master')
+@extends('layouts.master')
 
 @section('current-breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">Permissions</li>

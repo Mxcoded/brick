@@ -1,7 +1,7 @@
-@extends('gym::layouts.master')
+@extends('layouts.master')
 
-@section('content')
-<div class="container py-5">
+@section('page-content')
+<div class="container-fluid my-4">
     <div class="form-container">
         <div class="form-header">
             <h1><i class="fas fa-cog me-2"></i>Manage Subscription Configurations</h1>
