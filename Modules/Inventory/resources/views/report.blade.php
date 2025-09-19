@@ -97,6 +97,7 @@
                                 <th>Date</th>
                                 <th>Item</th>
                                 <th>Store</th>
+                                <th>Department</th>
                                 <th>Quantity Used</th>
                                 <th>Used For</th>
                                 <th>Technician</th>
@@ -108,13 +109,14 @@
                                     <td>{{ $log->created_at->format('Y-m-d') }}</td>
                                     <td>{{ $log->item->description }}</td>
                                     <td>{{ $log->store->name }}</td>
+                                    <td>{{ $log->department->name ?? 'N/A' }}</td>
                                     <td>{{ $log->quantity_used }}</td>
                                     <td>{{ $log->used_for }}</td>
                                     <td>{{ $log->technician_name ?? 'N/A' }}</td>
                                 </tr>
                             @endforeach
                             @if ($usageLogs->isEmpty())
-                                <tr><td colspan="6" class="text-center">No usage logs found.</td></tr>
+                                <tr><td colspan="7" class="text-center">No usage logs found.</td></tr>
                             @endif
                         </tbody>
                     </table>
@@ -267,7 +269,7 @@
                                             <td>${stock.lot_number ?? 'N/A'}</td>
                                             <td>${stock.quantity}</td>
                                             <td>${stock.expiry_date ?? 'N/A'}</td>
-                                            <td>$${parseFloat(stock.total_cost).toFixed(2)}</td>
+                                            <td>₦${parseFloat(stock.total_cost).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         </tr>
                                     `;
                                     tableBody.append(row);

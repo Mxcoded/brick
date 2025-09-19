@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Inventory\Http\Controllers\InventoryController;
 use Modules\Inventory\Http\Controllers\SupplierController;
 use Modules\Inventory\Http\Controllers\StoreController;
+use Modules\Inventory\Http\Controllers\DepartmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,8 +41,13 @@ Route::group(['prefix' => 'inventory', 'as' => 'inventory.'], function () {
     // Store management
     Route::resource('stores', StoreController::class)->names('stores');
 
-    // API endpoint for store items
+    // Department management
+    Route::resource('departments', DepartmentController::class)->names('departments');
+
+    // API endpoint for store items and departments
     Route::get('/api/stores/{store}/items', [InventoryController::class, 'getStoreItems'])->name('api.stores.items');
+    Route::get('/api/stores/{store}/departments', [DepartmentController::class, 'getDepartmentsByStore'])->name('api.stores.departments');
+
 
     // Inventory reports
     Route::get('/report', [InventoryController::class, 'report'])->name('report');

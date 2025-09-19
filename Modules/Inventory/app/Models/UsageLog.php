@@ -33,4 +33,11 @@ class UsageLog extends Model
     {
         return $this->belongsTo(Store::class);
     }
+    /**
+     * Get the department where the item was used.
+     */
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
 }
