@@ -79,7 +79,8 @@
                 <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.usage') ? 'active' : '' }}" href="{{ route('inventory.usage') }}"><i class="fas fa-toolbox fa-fw me-3"></i>Record Usage</a>
                 <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.suppliers.index') ? 'active' : '' }}" href="{{ route('inventory.suppliers.index') }}"><i class="fas fa-truck-loading fa-fw me-3"></i>Manage Suppliers</a>
                 <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.stores.index') ? 'active' : '' }}" href="{{ route('inventory.stores.index') }}"><i class="fas fa-store fa-fw me-3"></i>Manage Stores</a>
-                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.report') ? 'active' : '' }}" href="{{ route('inventory.report') }}"><i class="fas fa-file fa-fw me-3"></i>Report</a>
+                 <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.departments.index') ? 'active' : '' }}" href="{{ route('inventory.departments.index') }}"><i class="fas fa-users fa-fw me-3"></i>Manage Departments</a>
+                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.report') ? 'active' : '' }}" href="{{ route('inventory.report') }}"><i class="fas fa-file fa-fw me-3"></i>Inventory Report</a>
             </div>
         </div>
         <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('maintenance.*') ? 'active' : '' }}" href="{{ route('maintenance.index') }}">

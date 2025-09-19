@@ -32,13 +32,22 @@
                             <small id="availableStock" class="form-text text-muted"></small>
                         </div>
                     </div>
-
+                    
                     <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="department_id" class="form-label">Department</label>
+                            <select class="form-select" id="department_id" name="department_id" required>
+                                <option value="">Select a department</option>
+                            </select>
+                        </div>
                         <div class="col-md-6 mb-3">
                             <label for="quantity_used" class="form-label">Quantity Used</label>
                             <input type="number" class="form-control" id="quantity_used" name="quantity_used" min="1" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
                             <label for="technician_name" class="form-label">Technician Name (Optional)</label>
                             <input type="text" class="form-control" id="technician_name" name="technician_name">
                         </div>
@@ -70,10 +79,39 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
-            // Function to check available stock
-            function checkStock() {
+            // Function to fetch departments for a given store
+            function fetchDepartments(storeId) {
+                const departmentDropdown = $('#department_id');
+                departmentDropdown.empty().append('<option value="">Loading departments...</option>');
+
+                $.ajax({
+                    url: `/inventory/api/stores/${storeId}/departments`, // We will create this API route
+                    method: 'GET',
+                    success: function(response) {
+                        departmentDropdown.empty().append('<option value="">Select a department</option>');
+                        if (response.length > 0) {
+                            response.forEach(department => {
+                                departmentDropdown.append(`<option value="${department.id}">${department.name}</option>`);
+                            });
+                        } else {
+                            departmentDropdown.empty().append('<option value="">No departments found</option>');
+                        }
+                    },
+                    error: function() {
+                        departmentDropdown.empty().append('<option value="">Error loading departments</option>');
+                    }
+                });
+            }
+
+            // Trigger stock check on item and store change
+            $('#item_id, #store_id').on('change', function() {
                 const itemId = $('#item_id').val();
                 const storeId = $('#store_id').val();
+                if (storeId) {
+                    fetchDepartments(storeId);
+                } else {
+                    $('#department_id').empty().append('<option value="">Select a department</option>');
+                }
 
                 if (itemId && storeId) {
                     $.ajax({
@@ -98,10 +136,7 @@
                 } else {
                     $('#availableStock').text('');
                 }
-            }
-
-            // Trigger stock check on item and store change
-            $('#item_id, #store_id').on('change', checkStock);
+            });
 
             $('#usageForm').on('submit', function(e) {
                 e.preventDefault();

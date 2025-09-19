@@ -14,6 +14,7 @@ use Modules\Inventory\Models\UsageLog;
 use Modules\Inventory\Models\Supplier;
 use Modules\Inventory\Models\RestockLog;
 use Modules\Inventory\Models\PriceHistory;
+use Modules\Inventory\Models\Department;
 use Illuminate\View\View;
 use Illuminate\Http\JsonResponse;
 
@@ -383,7 +384,8 @@ class InventoryController extends Controller
     {
         $items = Item::all();
         $stores = Store::all();
-        return view('inventory::usage', compact('items', 'stores'));
+        $departments = Department::all(); // Pass departments to the view
+        return view('inventory::usage', compact('items', 'stores', 'departments'));
     }
 
     /**
@@ -393,7 +395,8 @@ class InventoryController extends Controller
     {
         $stores = Store::all();
         $items = Item::all();
-        $usageLogs = UsageLog::with(['item', 'store'])->get();
+        // Eager load relationships for all reports
+        $usageLogs = UsageLog::with(['item', 'store', 'department'])->get();
         $restockLogs = RestockLog::with(['item', 'store'])->get();
         $transferLogs = Transfer::with(['item', 'fromStore', 'toStore'])->get();
         $priceHistory = PriceHistory::with(['item', 'supplier'])->orderBy('effective_date', 'desc')->get();
