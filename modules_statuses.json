@@ -7,5 +7,6 @@
     "Admin": true,
     "Website": true,
     "Tasks": true,
-    "Gym": true
+    "Gym": true,
+    "Frontdeskcrm": true
 }

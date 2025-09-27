@@ -22,7 +22,11 @@
         <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.dashboard', 'admin.dashboard') ? 'active' : '' }}" href="{{ route('home') }}">
             <i class="fas fa-home fa-fw me-3"></i>Home
         </a>
-
+@can('manage-registrations')
+    <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('frontdesk.registrations.*') ? 'active' : '' }}" href="{{ route('frontdesk.registrations.index') }}">
+        <i class="fas fa-bed fa-fw me-3"></i>Guest Registrations
+    </a>
+@endcan
         <a class="list-group-item list-group-item-action p-3 justify-content-between d-flex align-items-center" data-bs-toggle="collapse" href="#leavesSubmenu" role="button" aria-expanded="{{ request()->routeIs('staff.leaves.*') ? 'true' : 'false' }}" aria-controls="leavesSubmenu">
             <span><i class="fas fa-calendar-alt fa-fw me-3"></i>Leaves</span>
             <i class="fas fa-chevron-down fa-xs"></i>
