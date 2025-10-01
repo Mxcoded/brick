@@ -60,7 +60,8 @@
             <div class="col-12 text-center">
                 <div class="summary-item total-revenue">
                     <h3>Total Revenue</h3>
-                    <p>₦{{ number_format($totalRevenue, 2) }}</p>
+                    <p>₦{{ number_format($totalRevenue, 2) }}<small class="text-muted"> (excluding VAT and SC)</small></p>
+                    
                 </div>
             </div>
         </div>
