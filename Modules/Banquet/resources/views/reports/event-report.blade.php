@@ -27,7 +27,7 @@
         <div class="row">
             <div class="col-md-2 col-6 mb-3 mb-md-0">
                 <div class="summary-item">
-                    <h3>Total Events</h3>
+                    <h3>Total Registered Events</h3>
                     <p>{{ $summary['total_events'] }}</p>
                 </div>
             </div>
@@ -60,7 +60,9 @@
             <div class="col-12 text-center">
                 <div class="summary-item total-revenue">
                     <h3>Total Revenue</h3>
-                    <p>₦{{ number_format($totalRevenue, 2) }}<small class="text-muted"> (excluding VAT and SC)</small></p>
+                    <p>₦{{ number_format($totalRevenue, 2) }}<br>
+                        <small class="text-muted font-size-sm"> (Excluding VAT and SC)</small>
+                    </p>
                     
                 </div>
             </div>
