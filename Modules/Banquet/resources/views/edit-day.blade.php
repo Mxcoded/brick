@@ -1,6 +1,9 @@
-@extends('banquet::layouts.master')
+@extends('layouts.master')
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Edit Event Day(s)</li>
+@endsection
 
-@section('content')
+@section('page-content')
 <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="fw-bold display-5 text-primary">
@@ -30,7 +33,7 @@
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0"><i class="fas fa-calendar-alt text-primary"></i></span>
                         <input type="date" name="event_date" id="event_date" class="form-control" 
-                               value="{{ old('event_date', $day ? $day->event_date : '') }}" required>
+                               value="{{ old('event_date', optional($day->event_date)->format('Y-m-d')) }}" required>
                     </div>
                     @error('event_date') 
                         <div class="text-danger small mt-2">{{ $message }}</div>

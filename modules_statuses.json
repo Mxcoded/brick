@@ -4,5 +4,8 @@
     "Banquet": true,
     "Maintenance": true,
     "Auth": true,
-    "Admin": true
+    "Admin": true,
+    "Website": true,
+    "Tasks": true,
+    "Gym": true
 }

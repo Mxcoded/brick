@@ -9,12 +9,14 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Hash;
+use Modules\Banquet\Models\BanquetOrder;
 
 class AdminController extends Controller
 {
     public function index()
     {
-        return view('admin::dashboard');
+        $upcomingEvents = BanquetOrder::upcoming()->take(3)->get();
+        return view('admin::dashboard', compact('upcomingEvents'));
     }
 
     public function roles()
@@ -129,12 +131,16 @@ class AdminController extends Controller
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'role' => 'required|exists:roles,name'
+            'roles' => 'required|array|max:2',
+            'roles.*' => 'exists:roles,name',
         ]);
-        $user = User::find($request->user_id);
-        $user->syncRoles([$request->role]); // Replace existing roles with the new one
-        return redirect()->route('admin.users.index')->with('success', 'Role assigned successfully.');
+
+        $user = User::findOrFail($request->user_id);
+        $user->syncRoles($request->roles);
+
+        return redirect()->route('admin.users.index')->with('success', 'Roles assigned successfully.');
     }
+
     public function createUserFromEmployee()
     {
         $employees = Employee::doesntHave('user')->get(); // Employees without user accounts

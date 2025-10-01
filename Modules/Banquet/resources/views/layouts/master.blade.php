@@ -82,6 +82,10 @@
 .alert {
     border-radius: 0.5rem;
 }
+.summary-item.total-revenue p {
+    font-size: 24px;
+    color: #28a745;
+}
 
 </style>
 
@@ -89,7 +93,8 @@
 
 <body>
   <div class="container mt-4">
-        @yield('content')
+   
+    @yield('content')
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script><!-- Add your JavaScript files here -->
     @yield('scripts') <!-- This is where your scripts will be injected -->

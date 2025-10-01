@@ -1,7 +1,10 @@
-@extends('banquet::layouts.master')
+@extends('layouts.master')
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Order #{{ $order->order_id }}</li>
+@endsection
 
-@section('content')
-    <div class="container-fluid px-4">
+@section('page-content')
+    <div class="container-fluid my-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="fw-bold display-5 text-primary">Order #{{ $order->order_id }}</h1>
             <a href="{{ route('banquet.orders.index') }}" class="btn btn-outline-secondary">
@@ -67,7 +70,15 @@
                                 <small class="text-muted">Event Status</small>
                                 <div class="h6 mb-0 ">{{ $order->status }}</div>
                             </div>
-                            <i class="fas fa-sync text-success fs-4"></i>
+                            @if ($order->status == 'Pending')
+                                <i class="fas fa-sync text-warning fs-4"></i>
+                            @elseif($order->status == 'Completed')
+                                <i class="fas fa-check text-success fs-4"></i>
+                            @elseif($order->status == 'Confirmed')
+                                <i class="fas fa-calendar-check text-primary fs-4"></i>
+                            @elseif($order->status == 'Cancelled')
+                                <i class="fa-solid fa-calendar-xmark text-danger fs-4"></i>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -128,9 +139,11 @@
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0"><i class="fas fa-calendar-days me-2"></i>Event Schedule</h5>
+                @can('manage-banquet')
                 <a href="{{ route('banquet.orders.add-day', $order->order_id) }}" class="btn btn-light btn-sm">
                     <i class="fas fa-plus me-2"></i>Add Event Day
                 </a>
+                @endcan
             </div>
             <div class="card-body p-0">
                 @if ($order->eventDays->isEmpty())
@@ -179,6 +192,7 @@
                                             </span>
                                         </td>
                                         <td>
+                                            @can('manage-banquet')
                                             <div>
                                                 <a href="{{ route('banquet.orders.add-menu-item', [$order->order_id, $day->id]) }}"
                                                     class="btn btn-sm btn-outline-primary" title="Add Menu">
@@ -207,6 +221,7 @@
                                                     </button>
                                                 </form>
                                             </div>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @endforeach
@@ -250,6 +265,7 @@
                                                                     class="fas fa-{{ $item->meal_type === 'breakfast' ? 'sun' : 'moon' }} me-2"></i>
                                                                 {{ ucfirst($item->meal_type) }}
                                                             </h6>
+                                                            @can('manage-banquet')
                                                             <div>
                                                                 <a href="{{ route('banquet.orders.edit-menu-item', [$order->order_id, $day->id, $item->id]) }}"
                                                                     class="btn btn-sm btn-warning me-2"
@@ -268,6 +284,7 @@
                                                                     </button>
                                                                 </form>
                                                             </div>
+                                                            @endcan
                                                         </div>
                                                         <div class="card-body">
                                                             <div class="d-flex justify-content-between mb-3">

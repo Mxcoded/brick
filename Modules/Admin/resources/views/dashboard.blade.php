@@ -1,4 +1,4 @@
-@extends('admin::layouts.master')
+@extends('layouts.master')
 
 @section('current-breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
@@ -20,13 +20,13 @@
             </div>
         </div>
         <div class="col-md-6">
+            
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title">Recent Activity</h5>
                 </div>
-                <div class="card-body">
-                    <p>Recent activity here...</p>
-                </div>
+                @include('banquet::partials.upcomingevent')
+                
             </div>
         </div>
     </div>

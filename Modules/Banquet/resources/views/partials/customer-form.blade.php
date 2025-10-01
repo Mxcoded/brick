@@ -16,9 +16,12 @@
                     <div class="form-floating">
                         <input type="date" name="preparation_date" id="preparation_date"
                             class="form-control bg-light"
-                            value="{{ old('preparation_date', $order->preparation_date ?? now()->toDateString()) }}"
+                            value="{{ old('preparation_date', $order ? $order->preparation_date->toDateString() : now()->toDateString()) }}"
                             readonly required>
+<<<<<<< HEAD
                        
+=======
+>>>>>>> master
                         <label for="preparation_date" class="text-muted">Preparation Date</label>
                     </div>
                     @error('preparation_date')
@@ -27,19 +30,20 @@
                 </div>
                 <div class="col-md-6">
                     <div class="form-floating">
-                        <select name="status" id="event_status" class="form-select" required>
+                        <select name="status" id="status" class="form-select" required>
                             @foreach ($statuses as $status)
-                                <option value="{{ $status }}" {{ old('event_status', 'Pending') === $status ? 'selected' : '' }}>
+                                <option value="{{ $status }}"
+                                    {{ old('status', $order ? $order->status : 'Pending') === $status ? 'selected' : '' }}>
                                     {{ $status }}
                                 </option>
                             @endforeach
                         </select>
-                        <label for="event_status" class="text-muted">Event Status</label>
-                        @error('event_status') 
+                        <label for="status" class="text-muted">Event Status</label>
+                        @error('status')
                             <div class="text-danger small mt-2">{{ $message }}</div>
                         @enderror
                     </div>
-                  </div>
+                </div>
             </div>
         </div>
     </div>
@@ -222,7 +226,17 @@
                         @enderror
                     </div>
                 </div>
-                  
+                <div class="col-md-6">
+                <div class="form-floating">
+                    <input type="number" name="hall_rental_fees" id="hall_rental_fees" class="form-control"
+                        value="{{ old('hall_rental_fees', $order->hall_rental_fees ?? 0) }}" step="0.01" min="0">
+                    <label for="hall_rental_fees" class="text-muted">Hall Rental Fees (&#8358;)</label>
+                    @error('hall_rental_fees')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+
                 <div class="col-md-12">
                     <div class="alert alert-info mb-0">
                         <i class="fas fa-info-circle me-2"></i>
