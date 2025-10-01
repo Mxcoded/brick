@@ -715,6 +715,7 @@ class BanquetController extends Controller
 
         // Fetch orders with event days, customer, and menu items within the date range
         $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
+            ->where('status', 'Completed') // Add this line to filter by status
             ->whereBetween('preparation_date', [$startDate, $endDate])
             ->get();
         
