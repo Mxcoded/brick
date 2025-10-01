@@ -63,9 +63,11 @@ return new class extends Migration
             $table->timestamps();
 
             // Indexes
-            $table->index(['guest_id', 'guest_type_id', 'booking_source_id', 'group_master_id']);
-            $table->index(['check_in', 'check_out', 'stay_status', 'checkout_date']);
-            $table->index(['full_name', 'contact_number']);
+            $table->index(['guest_id', 'guest_type_id', 'booking_source_id', 'group_master_id'], 'reg_guest_type_booking_group_idx');
+
+            $table->index(['check_in', 'check_out', 'stay_status', 'checkout_date'], 'reg_checkin_checkout_status_idx');
+
+            $table->index(['full_name', 'contact_number'], 'reg_name_contact_idx');
         });
     }
 

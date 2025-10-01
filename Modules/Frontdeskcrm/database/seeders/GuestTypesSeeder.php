@@ -13,7 +13,7 @@ class GuestTypesSeeder extends Seeder
             ['name' => 'Individual', 'description' => 'Standard guest', 'color' => '#6c757d', 'discount_rate' => 0],
             ['name' => 'Corporate', 'description' => 'Business traveler', 'color' => '#007bff', 'discount_rate' => 5.00],
             ['name' => 'Leisure', 'description' => 'Vacationer', 'color' => '#28a745', 'discount_rate' => 0],
-            ['name' => 'VIP', 'description' => 'Loyalty member', 'color' => '#ffc107', 'discount_rate' => 10.00],
+            ['name' => 'VIP', 'description' => 'Loyalty/high-value', 'color' => '#ffc107', 'discount_rate' => 10.00],
             ['name' => 'Other', 'description' => 'Uncategorized', 'color' => '#dc3545', 'discount_rate' => 0],
         ];
 
