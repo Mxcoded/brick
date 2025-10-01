@@ -61,8 +61,6 @@
                 <div class="summary-item total-revenue">
                     <h3>Total Revenue</h3>
                     <p>₦{{ number_format($totalRevenue, 2) }}<br>
-                        <small class="text-muted font-size-sm"> vat: ₦{{ number_format($totalRevenue * 7.5 / 100, 2) }}<br>
-                        Total service charge: ₦{{ number_format($totalRevenue * 10 / 100, 2) }}</small>
                     </p>
                     
                 </div>
