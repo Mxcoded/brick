@@ -1,5 +1,4 @@
-<!-- Modules/Admin/Resources/views/permissions/index.blade.php -->
-@extends('admin::layouts.master')
+@extends('layouts.master')
 
 @section('current-breadcrumb')
     <li class="breadcrumb-item active" aria-current="page">Permissions</li>
@@ -59,7 +58,7 @@
                                                 </option>
                                             @endforeach
                                         </select>
-                                        <button type="submit" class="btn btn-sm btn-success" {{ $permission->roles->isEmpty() ? '' : 'disabled' }}>
+                                        <button type="submit" class="btn btn-sm btn-success">
                                             <i class="fas fa-link"></i> Assign
                                         </button>
                                     </form>

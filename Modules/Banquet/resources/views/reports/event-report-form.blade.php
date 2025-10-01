@@ -1,11 +1,14 @@
-@extends('banquet::layouts.master')
+@extends('staff::layouts.master')
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Report</li>
+@endsection
 
-@section('content')
+@section('page-content')
 <div class="container-fluid px-4">
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="fw-bold display-5 text-primary">
-            <i class="fas fa-file-pdf me-3"></i>Generate  Report
+            <i class="fas fa-file-pdf me-3"></i>Generate Banquet Report
         </h1>
         <!-- Back to Index Button -->
         <a href="{{ route('banquet.orders.index') }}" class="btn btn-outline-secondary">

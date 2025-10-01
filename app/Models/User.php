@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Modules\Staff\Models\Employee;
+use Modules\Website\Models\GuestProfile;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Support\Facades\Log;
 
@@ -52,6 +53,10 @@ class User extends Authenticatable
     public function employee()
     {
         return $this->hasOne(Employee::class);
+    }
+    public function guestProfile()
+    {
+        return $this->hasOne(GuestProfile::class);
     }
     public function hasRole($roles)
     {

@@ -1,6 +1,9 @@
-@extends('banquet::layouts.master')
+@extends('layouts.master')
+@section('current-breadcrumb')
+    <li class="breadcrumb-item active" aria-current="page">Add Menu Item(s)</li>
+@endsection
 
-@section('content')
+@section('page-content')
 <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mb-5">
         <h1 class="fw-bold display-5 text-primary">
@@ -94,7 +97,7 @@
                                    step="0.01" 
                                    min="0" 
                                    required>
-                            <label for="unit_price" class="text-muted">Unit Price ($)</label>
+                            <label for="unit_price" class="text-muted">Unit Price (&#8358;)</label>
                             @error('unit_price')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
@@ -103,7 +106,7 @@
                     <div class="col-12">
                         <div class="alert alert-info mb-0">
                             <i class="fas fa-calculator me-2"></i>
-                            Total Price: $<span id="total-price">0.00</span>
+                            Total Price: &#8358;<span id="total-price">0.00</span>
                         </div>
                     </div>
                 </div>
