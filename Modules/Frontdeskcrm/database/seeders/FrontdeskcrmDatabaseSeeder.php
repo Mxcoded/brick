@@ -11,6 +11,10 @@ class FrontdeskcrmDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            BookingSourcesSeeder::class,
+            GuestTypesSeeder::class,
+            GuestsSeeder::class,
+        ]);
     }
 }

@@ -20,7 +20,7 @@ class GuestsSeeder extends Seeder
                 'email' => 'john.doe@example.com',
                 'occupation' => 'Engineer',
                 'company_name' => 'Tech Corp',
-                'home_address' => '123 Main St, New York, NY',
+                'home_address' => '123 Main St, New York',
                 'emergency_name' => 'Jane Doe',
                 'emergency_relationship' => 'Spouse',
                 'emergency_contact' => '+1-555-5678',
@@ -36,26 +36,24 @@ class GuestsSeeder extends Seeder
                 'birthday' => '1990-12-01',
                 'email' => 'jane.smith@example.co.uk',
                 'occupation' => 'Manager',
-                'company_name' => null,
                 'home_address' => '456 High St, London',
                 'emergency_name' => 'Bob Smith',
                 'emergency_relationship' => 'Brother',
                 'emergency_contact' => '+44-20-8765-4321',
                 'last_visit_at' => now()->subMonth(),
                 'visit_count' => 1,
-                'opt_in_data_save' => false,
+                'opt_in_data_save' => true,
             ],
         ];
 
         foreach ($guests as $guestData) {
             $guest = Guest::create($guestData);
-            // Add sample prefs
             GuestPreference::create([
                 'guest_id' => $guest->id,
                 'preferences' => [
                     'preferred_room_type' => 'Deluxe',
                     'bb_included' => true,
-                    'dietary_notes' => 'Vegetarian',
+                    'language' => 'en', // For generated column
                 ],
             ]);
         }

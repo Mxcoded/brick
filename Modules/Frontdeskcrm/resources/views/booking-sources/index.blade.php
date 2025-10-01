@@ -1,9 +1,9 @@
 @extends('layouts.master')
 
 @section('page-content')
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between mb-4">
     <h4>Booking Sources</h4>
-    <a href="{{ route('frontdesk.booking-sources.create') }}" class="btn btn-primary">Add New Source</a>
+    <a href="{{ route('frontdesk.booking-sources.create') }}" class="btn btn-primary">Add New</a>
 </div>
 
 @if (session('success'))
@@ -40,6 +40,7 @@
                         <th>Type</th>
                         <th>Commission %</th>
                         <th>Bookings</th>
+                        <th>Revenue</th>
                         <th>Active</th>
                         <th>Actions</th>
                     </tr>
@@ -51,7 +52,8 @@
                         <td><span class="badge bg-secondary">{{ ucfirst($source->type ?? 'General') }}</span></td>
                         <td>{{ $source->commission_rate }}%</td>
                         <td>{{ $source->registrations_count }}</td>
-                        <td>{{ $source->is_active ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-warning">No</span>' }}</td>
+                        <td>&#8358;{{ number_format($source->total_revenue, 2) }}</td>
+                        <td>{{ $source->is_active ? 'Yes' : 'No' }}</td>
                         <td>
                             <a href="{{ route('frontdesk.booking-sources.show', $source) }}" class="btn btn-sm btn-info">View</a>
                             <a href="{{ route('frontdesk.booking-sources.edit', $source) }}" class="btn btn-sm btn-warning">Edit</a>
@@ -62,7 +64,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center">No sources yet.</td></tr>
+                    <tr><td colspan="7" class="text-center">No sources.</td></tr>
                     @endforelse
                 </tbody>
             </table>

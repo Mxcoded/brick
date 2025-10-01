@@ -15,10 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('guest_id')->constrained()->onDelete('cascade');
             $table->json('preferences')->nullable();
+            $table->string('language')->nullable()
+                ->storedAs("JSON_UNQUOTE(preferences->'$.language')");
             $table->timestamps();
 
             $table->index('guest_id');
-            $table->index('preferences'); // For JSON searches
+            $table->index('language'); // Indexing the generated column
         });
     }
 
