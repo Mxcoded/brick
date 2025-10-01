@@ -61,7 +61,7 @@
                 <div class="summary-item total-revenue">
                     <h3>Total Revenue</h3>
                     <p>₦{{ number_format($totalRevenue, 2) }}<br>
-                        <small class="text-muted font-size-sm"> (Excluding VAT and SC)</small>
+                        <small class="text-muted font-size-sm text-bg-danger">Note:* (Excluding VAT and S.C)</small>
                     </p>
                     
                 </div>
