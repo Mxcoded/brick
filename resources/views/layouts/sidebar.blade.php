@@ -71,7 +71,22 @@
                 </div>
             </div>
         @endcan
-        
+        <a class="list-group-item list-group-item-action p-3 justify-content-between d-flex align-items-center" data-bs-toggle="collapse" href="#inventorySubmenu" role="button" aria-expanded="{{ request()->routeIs('inventory.*') ? 'true' : 'false' }}" aria-controls="inventorySubmenu">
+            <span><i class="fas fa-warehouse fa-fw me-3"></i>Inventory</span>
+            <i class="fas fa-chevron-down fa-xs"></i>
+        </a>
+        <div class="collapse submenu {{ request()->routeIs('inventory.*') ? 'show' : '' }}" id="inventorySubmenu">
+            <div class="list-group list-group-flush">
+                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.index') ? 'active' : '' }}" href="{{ route('inventory.index') }}"><i class="fas fa-list-alt fa-fw me-3"></i>Dashboard</a>
+                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.create') ? 'active' : '' }}" href="{{ route('inventory.items.create') }}"><i class="fas fa-plus-circle fa-fw me-3"></i>Add New Item</a>
+                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.transfers.index') ? 'active' : '' }}" href="{{ route('inventory.transfers.index') }}"><i class="fas fa-exchange-alt fa-fw me-3"></i>Transfer Items</a>
+                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.usage') ? 'active' : '' }}" href="{{ route('inventory.usage') }}"><i class="fas fa-toolbox fa-fw me-3"></i>Record Usage</a>
+                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.suppliers.index') ? 'active' : '' }}" href="{{ route('inventory.suppliers.index') }}"><i class="fas fa-truck-loading fa-fw me-3"></i>Manage Suppliers</a>
+                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.stores.index') ? 'active' : '' }}" href="{{ route('inventory.stores.index') }}"><i class="fas fa-store fa-fw me-3"></i>Manage Stores</a>
+                 <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.departments.index') ? 'active' : '' }}" href="{{ route('inventory.departments.index') }}"><i class="fas fa-users fa-fw me-3"></i>Manage Departments</a>
+                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('inventory.report') ? 'active' : '' }}" href="{{ route('inventory.report') }}"><i class="fas fa-file fa-fw me-3"></i>Inventory Report</a>
+            </div>
+        </div>
         <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('maintenance.*') ? 'active' : '' }}" href="{{ route('maintenance.index') }}">
             <i class="fa fa-tools fa-fw me-3"></i>Maintenance Log
         </a>

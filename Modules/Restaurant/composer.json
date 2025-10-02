@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/restaurant",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Restaurant\\": "app/",
+            "Modules\\Restaurant\\Database\\Factories\\": "database/factories/",
+            "Modules\\Restaurant\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Restaurant\\Tests\\": "tests/"
+        }
+    }
+}
