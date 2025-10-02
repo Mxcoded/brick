@@ -1,0 +1,45 @@
+<?php
+
+namespace Modules\Restaurant\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+// use Modules\Restaurant\Database\Factories\MenuCategoryFactory;
+
+class MenuCategory extends Model
+{
+    use HasFactory;
+
+    /**
+     * The attributes that are mass assignable.
+     */
+    protected $fillable = ['name', 'parent_id'];
+    protected $table = 'restaurant_menu_categories';
+
+    public function menuItems()
+    {
+        return $this->hasMany(MenuItem::class, 'restaurant_menu_categories_id');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(MenuCategory::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(MenuCategory::class, 'parent_id');
+    }
+
+    public function childrenRecursive()
+    {
+        return $this->children()->with('menuItems');                
+    }
+
+    // protected static function newFactory(): MenuCategoryFactory
+    // {
+    //     // return MenuCategoryFactory::new();
+    // }
+}
+
+
