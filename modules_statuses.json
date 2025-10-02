@@ -8,6 +8,10 @@
     "Website": true,
     "Tasks": true,
     "Gym": true,
+<<<<<<< HEAD
+    "Frontdeskcrm": true
+=======
     "Inventory": true,
     "Restaurant": true
+>>>>>>> inventory
 }

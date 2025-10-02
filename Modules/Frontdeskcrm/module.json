@@ -1,0 +1,11 @@
+{
+    "name": "Frontdeskcrm",
+    "alias": "frontdeskcrm",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Frontdeskcrm\\Providers\\FrontdeskcrmServiceProvider"
+    ],
+    "files": []
+}
