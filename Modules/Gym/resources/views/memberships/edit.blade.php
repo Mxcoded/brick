@@ -552,3 +552,9 @@
     }
 </script>
 @endsection
+@section('styles')
+@include('gym::partials.styles')
+@endsection
+@section('page-scripts')
+@include('gym::partials.script')
+@endsection

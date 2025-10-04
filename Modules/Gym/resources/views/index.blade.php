@@ -119,6 +119,21 @@
                                            data-bs-toggle="tooltip" title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </a>
+                                        @can('manage-gym')
+                                        <a href="{{ route('gym.memberships.edit', $membership->id) }}" 
+                                           class="btn btn-sm btn-secondary btn-outline-dark"
+                                           data-bs-toggle="tooltip" title="Edit Membership">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form action="{{ route('gym.memberships.delete', $membership->id) }}" method="POST" class="d-inline"
+                                              onsubmit="return confirm('Are you sure you want to delete this membership?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger btn-outline-dark" data-bs-toggle="tooltip" title="Delete Membership">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                        @endcan
                                     </td>
                                 </tr>
                                 @endforeach
@@ -131,7 +146,7 @@
     </div>
 @endsection
 
-@push('scripts')
+@section('page-scripts')
     <!-- Include DataTables -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
@@ -163,9 +178,9 @@
             $('[data-bs-toggle="tooltip"]').tooltip();
         });
     </script>
-@endpush
+@endsection
 
-@push('styles')
+@section('styles')
     <style>
         .card {
             border-radius: 0.75rem;
@@ -189,4 +204,4 @@
             background-color: rgba(var(--bs-primary-rgb), 0.05);
         }
     </style>
-@endpush
+@endsection
