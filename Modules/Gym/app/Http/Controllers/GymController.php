@@ -253,7 +253,7 @@ class GymController extends Controller
 
             $remaining_balance = 0;
             if ($validated['payment_status'] === 'partial') {
-                $remaining_balance = $total_cost - $validated['payment_amount'];
+                $remaining_balance = $validated['payment_amount'] - $total_cost;
             }
 
             $existingPayment = Payment::where([
@@ -315,7 +315,7 @@ class GymController extends Controller
             $totalPaid = $membership->payments->sum('payment_amount');
 
             // Calculate remaining balance
-            $remainingBalance = $membership->total_cost - $totalPaid;
+            $remainingBalance = $totalPaid - $membership->total_cost;
 
             // Determine status based on payment and billing
             $status = 'Active';
