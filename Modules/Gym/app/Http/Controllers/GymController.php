@@ -110,7 +110,7 @@ class GymController extends Controller
             $config = SubscriptionConfig::first();
             if (!$config) {
                 Log::error('Subscription config not found');
-                return redirect()->back()->withErrors(['config' => 'Subscription configuration is missing. Please contact IT.']);
+                throw new \Exception('Subscription configuration is missing. Please run the appropriate seeder or configuration route to set the fees.');
             }
 
             $baseFee = match ($validated['subscription_plan']) {
@@ -336,7 +336,7 @@ class GymController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return redirect()->route('gym:.index')->with('error', 'Membership not found or an error occurred.');
+            return redirect()->route('gym.index')->with('error', 'Membership not found or an error occurred.');
         }
     }
 
@@ -395,10 +395,10 @@ class GymController extends Controller
                 'emergency_contact_relationship_1' => ['required', 'string', 'max:100'],
                 'emergency_contact_number_1' => ['required', 'string', 'max:20'],
                 'has_medical_conditions_1' => 'required|in:yes,no',
-            'medical_conditions_1' => 'required_if:has_medical_conditions_1,yes|nullable|string|max:1000',
-            'fitness_goals_1' => 'required|array|min:1',
-            'fitness_goals_1.*' => 'in:Weight Loss,Muscle Gain,General Fitness,Other',
-            'fitness_goals_other_1' => 'required_if:fitness_goals_1.*,Other|nullable|string|max:255',
+                'medical_conditions_1' => 'required_if:has_medical_conditions_1,yes|nullable|string|max:1000',
+                'fitness_goals_1' => 'required|array|min:1',
+                'fitness_goals_1.*' => 'in:Weight Loss,Muscle Gain,General Fitness,Other',
+                'fitness_goals_other_1' => 'required_if:fitness_goals_1.*,Other|nullable|string|max:255',
             ];
 
             if ($request->input('package_type') === 'couple') {
@@ -413,10 +413,10 @@ class GymController extends Controller
                     'emergency_contact_relationship_2' => ['required', 'string', 'max:100'],
                     'emergency_contact_number_2' => ['required', 'string', 'max:20'],
                     'has_medical_conditions_2' => 'required_if:package_type,couple|in:yes,no|nullable',
-            'medical_conditions_2' => 'required_if:has_medical_conditions_2,yes|nullable|string|max:1000',
-            'fitness_goals_2' => 'required_if:package_type,couple|array|min:1|nullable',
-            'fitness_goals_2.*' => 'in:Weight Loss,Muscle Gain,General Fitness,Other|nullable',
-            'fitness_goals_other_2' => 'required_if:fitness_goals_2.*,Other|nullable|string|max:255',
+                    'medical_conditions_2' => 'required_if:has_medical_conditions_2,yes|nullable|string|max:1000',
+                    'fitness_goals_2' => 'required_if:package_type,couple|array|min:1|nullable',
+                    'fitness_goals_2.*' => 'in:Weight Loss,Muscle Gain,General Fitness,Other|nullable',
+                    'fitness_goals_other_2' => 'required_if:fitness_goals_2.*,Other|nullable|string|max:255',
                 ]);
             }
 
@@ -425,7 +425,7 @@ class GymController extends Controller
             $config = SubscriptionConfig::first();
             if (!$config) {
                 Log::error('Subscription config not found');
-                return redirect()->back()->withErrors(['config' => 'Subscription configuration is missing. Please contact IT.']);
+                throw new \Exception('Subscription configuration is missing. Please run the appropriate seeder or configuration route to set the fees.');
             }
 
             $baseFee = match ($validated['subscription_plan']) {
