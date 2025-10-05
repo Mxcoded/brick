@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Carbon;
 
 class Registration extends Model
 {
@@ -70,19 +70,35 @@ class Registration extends Model
         parent::boot();
 
         static::saving(function ($registration) {
+            // Calculate nights if dates are set
             if ($registration->check_in && $registration->check_out) {
                 $registration->no_of_nights = $registration->check_in->diffInDays($registration->check_out);
             }
+
+            // Set registration date if empty
             if (empty($registration->registration_date)) {
-                $registration->registration_date = now()->toDateString();
+                $registration->registration_date = Carbon::now()->toDateString();
             }
-            // Auto-calc total_amount if not set
+
+            // Auto-calc total_amount if room_rate and nights are set
             if ($registration->room_rate && $registration->no_of_nights && !$registration->total_amount) {
                 $registration->total_amount = $registration->room_rate * $registration->no_of_nights;
             }
-            // Default stay_status if new
+
+            // Default stay_status for new records (overridable)
             if (is_null($registration->stay_status)) {
                 $registration->stay_status = 'checked_in';
+            }
+        });
+
+        static::creating(function ($registration) {
+            // Ensure defaults for drafts or new records
+            if ($registration->stay_status === 'draft_by_guest') {
+                $registration->room_type = $registration->room_type ?? 'Pending Assignment';
+                $registration->room_rate = $registration->room_rate ?? 0;
+                $registration->payment_method = $registration->payment_method ?? null;
+                $registration->front_desk_agent = $registration->front_desk_agent ?? 'Guest Self-Submitted';
+                $registration->total_amount = 0;
             }
         });
     }
@@ -113,6 +129,7 @@ class Registration extends Model
         return $this->hasMany(Registration::class, 'group_master_id');
     }
 
+    // Scopes
     public function scopeCheckedIn($query)
     {
         return $query->where('stay_status', 'checked_in');
@@ -121,5 +138,21 @@ class Registration extends Model
     public function scopeCheckedOut($query)
     {
         return $query->where('stay_status', 'checked_out');
+    }
+
+    public function scopeDraftByGuest($query)
+    {
+        return $query->where('stay_status', 'draft_by_guest');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereIn('stay_status', ['checked_in', 'draft_by_guest']);
+    }
+
+    // Accessors/Mutators if needed
+    public function getFullGuestNameAttribute()
+    {
+        return trim(($this->title ? $this->title . ' ' : '') . $this->full_name);
     }
 }

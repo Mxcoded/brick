@@ -15,6 +15,15 @@
                 <input type="text" name="full_name" x-model="formData.full_name" required class="form-input">
             </div>
             <div>
+                <label class="block text-sm font-medium mb-1">Gender</label>
+                <select name="gender" x-model="formData.gender" class="form-input">
+                    <option value="">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div>
                 <label class="block text-sm font-medium mb-1">Email</label>
                 <input type="email" name="email" x-model="formData.email" class="form-input" placeholder="guest@example.com">
             </div>

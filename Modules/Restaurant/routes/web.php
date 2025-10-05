@@ -60,7 +60,7 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
     Route::get('/{type}/{source?}/getcart', [RestaurantController::class, 'getCart'])->name('restaurant.cart.get');
     Route::get('/{type}/{source?}/menu', [RestaurantController::class, 'menu'])->name('restaurant.menu');
    
-    Log::info('Restaurant menu route accessed: type=' . request()->type . ', source=' . request()->source);
+    // Log::info('Restaurant menu route accessed: type=' . request()->type . ', source=' . request()->source);
    
     Route::post('/{type}/{source?}/cart/add', [RestaurantController::class, 'addToCart'])->name('restaurant.cart.add');
     Route::post('/{type}/{source?}/order/add', [RestaurantController::class, 'addToOrder'])->name('restaurant.order.add');

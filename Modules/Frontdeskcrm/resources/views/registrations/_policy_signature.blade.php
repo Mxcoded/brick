@@ -31,14 +31,15 @@
             </h2>
             <canvas 
                 id="signature-pad" 
-                width="400" 
-                height="150" 
-                class="w-full bg-base-white rounded-lg border-2 border-primary-medium shadow-inner"
+                class="w-full h-32 bg-base-white rounded-lg border-2 border-primary-medium shadow-inner cursor-crosshair touch-none select-none"
+                {{-- Drawing feedback: Crosshair cursor on desktop, prevent text select --}}
             ></canvas>
-            <input type="hidden" name="guest_signature" id="signature-input" x-ref="signatureInput" x-bind:required="currentStep === 3">
+            <input type="hidden" name="guest_signature" id="signature-input" required>
             <button type="button" @click.prevent="clearSignature()" class="mt-3 px-4 py-2 bg-primary-dark/80 text-base-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium">
                 Clear Signature
             </button>
+            {{-- Debug hint (remove in prod) --}}
+            <small class="text-primary-light block mt-1">Tip: Draw with mouse/finger. Resize window to test persistence.</small>
         </div>
     </div>
 </div>
