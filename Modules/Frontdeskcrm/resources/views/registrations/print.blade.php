@@ -13,7 +13,7 @@
 </head>
 <body>
     <h2>Brickspoint Aparthotel - Guest Registration Form</h2>
-    <p><strong>ID:</strong> {{ $registration->id }} | <strong>Date:</strong> {{ $registration->registration_date->format('M d, Y') }} | <strong>Agent:</strong> {{ $registration->front_desk_agent }}</p>
+<p><strong>ID:</strong> {{ $registration->id }} | <strong>Date:</strong> {{ $registration->registration_date->format('M d, Y') }} | <strong>Agent:</strong> {{ $registration->front_desk_agent ?? 'N/A' }}</p>
 
     <div class="section">
         <h3>Guest Details</h3>
@@ -44,11 +44,27 @@
     <div class="section">
         <h3>Policy Agreement</h3>
         <p>I agree to the hotel policies as outlined. <strong>Signed:</strong> [Embedded Signature Image Below]</p>
-        @if($registration->guest_signature)
-            <img src="{{ Storage::url($registration->guest_signature) }}" alt="Signature" class="signature">
-        @endif
-        <p><strong>Date Signed:</strong> {{ $registration->registration_date->format('M d, Y') }}</p>
-    </div>
+       @if($registration->guest_signature) and replace it
+<div class="section">
+    <h3>Policy Agreement</h3>
+    <p>I agree to the hotel policies as outlined. <strong>Signed:</strong> [Embedded Signature Image Below]</p>
+    @if($registration->guest_signature)
+        {{-- FIX: Use asset() or Storage::url() to correctly display the image from the storage link --}}
+        <img src="{{ asset('storage/' . $registration->guest_signature) }}" alt="Guest Signature" class="signature">
+    @else
+        <p>No Guest Signature Recorded.</p>
+    @endif
+</div>
+
+    @if($registration->is_group_lead)
+        <div class="section">
+            <h3>Group Members</h3>
+            <ul>
+                @foreach($registration->groupMembers as $member)
+                    <li>{{ $member->full_name }} ({{ $member->contact_number }}) - Room: {{ $member->room_assignment ?? 'TBD' }}</li>
+                @endforeach
+            </ul>
+</div>
 
     @if($registration->is_group_lead)
         <div class="section">
@@ -62,7 +78,11 @@
     @endif
 
     <footer style="text-align: center; margin-top: 40px; font-size: 10px; border-top: 1px solid #ccc; padding-top: 10px;">
-        Printed on {{ now()->format('M d, Y H:i') }} by {{ Auth::user()->name }} | Brickspoint Aparthotel
-    </footer>
+    @if($registration->stay_status !== 'draft_by_guest')
+        <p style="font-size: 11px; margin-bottom: 5px;">**Finalized by Front Desk Agent:** {{ $registration->front_desk_agent ?? 'N/A' }}</p>
+    @endif
+    {{-- Use the currently logged-in user for the print log, but use $registration->front_desk_agent for the official agent --}}
+    Printed on {{ now()->format('M d, Y H:i') }} by {{ Auth::user()->name }} | Brickspoint Aparthotel
+</footer>
 </body>
 </html>

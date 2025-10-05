@@ -7,6 +7,7 @@ use Modules\Frontdeskcrm\Http\Requests\StoreRegistrationRequest;
 use Modules\Frontdeskcrm\Models\Registration;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\GuestPreference;
 use Modules\Frontdeskcrm\Models\BookingSource;
@@ -22,13 +23,121 @@ class RegistrationController extends Controller
         return view('frontdeskcrm::registrations.index', compact('registrations'));
     }
 
+    public function show(Registration $registration)
+    {
+        $registration->load('guest', 'guestType', 'bookingSource', 'groupMaster', 'groupMembers');
+        return view('frontdeskcrm::registrations.show', compact('registration'));
+    }
+
+    /**
+     * Handles the old 'registrations.create' route, redirects to the explicit agent form.
+     */
     public function create()
+    {
+        return redirect()->route('frontdesk.registrations.agent-checkin');
+    }
+
+    /**
+     * Renders the Agent-facing Full Check-in Form (frontdesk.registrations.agent-checkin).
+     * Includes search bar and ALL mandatory booking fields.
+     */
+    public function showAgentCheckinForm()
     {
         $bookingSources = BookingSource::active()->get();
         $guestTypes = GuestType::active()->get();
-        $oldData = old() ?? []; // Capture old form data
+        $oldData = old() ?? [];
+        return view('frontdeskcrm::registrations.agent-checkin', compact('bookingSources', 'guestTypes', 'oldData'));
+    }
+
+    // --- GUEST DRAFT FLOW (Public-facing form for check-in draft) ---
+
+    /**
+     * Renders the Guest-facing Draft Form (using the 'create' view).
+     * This method would be mapped to a public, non-authenticated route if needed.
+     */
+    public function showGuestDraftForm()
+    {
+        $bookingSources = BookingSource::active()->get();
+        $guestTypes = GuestType::active()->get();
+        $oldData = old() ?? [];
         return view('frontdeskcrm::registrations.create', compact('bookingSources', 'guestTypes', 'oldData'));
     }
+
+    // --- DRAFT FINALIZATION FLOW ---
+
+    /**
+     * Renders the Agent-facing Form to finalize a guest draft.
+     */
+    public function showFinishDraftForm(Registration $registration)
+    {
+        if ($registration->stay_status !== 'draft_by_guest') {
+            return redirect()->route('frontdesk.registrations.show', $registration)->with('error', 'This registration is already finalized.');
+        }
+
+        $bookingSources = BookingSource::active()->get();
+        $guestTypes = GuestType::active()->get();
+        $oldData = $registration->toArray();
+
+        return view('frontdeskcrm::registrations.finalize-draft', compact('registration', 'bookingSources', 'guestTypes', 'oldData'));
+    }
+
+    /**
+     * Handles the Agent's submission to convert a draft to 'checked_in' status.
+     * Only updates booking/financial fields.
+     */
+    public function finishDraft(Request $request, Registration $registration)
+    {
+        if ($registration->stay_status !== 'draft_by_guest') {
+            return redirect()->route('frontdesk.registrations.show', $registration)->with('error', 'This registration is already finalized.');
+        }
+
+        // We validate the booking fields that were missing in the initial draft
+        $validated = $request->validate([
+            'room_type' => 'required|string|max:100',
+            'room_rate' => 'required|numeric|min:0',
+            'payment_method' => 'required|in:cash,pos,transfer',
+            'booking_source_id' => 'required|exists:booking_sources,id',
+            'guest_type_id' => 'required|exists:guest_types,id',
+            'check_in' => 'required|date',
+            'check_out' => 'required|date|after:check_in',
+            'no_of_guests' => 'required|integer|min:1',
+            'bed_breakfast' => 'nullable|boolean',
+            'is_group_lead' => 'nullable|boolean',
+            'group_members' => 'nullable|array',
+            'group_members.*.full_name' => 'required_if:is_group_lead,true|string|max:255',
+            'group_members.*.contact_number' => 'required_if:is_group_lead,true|string|max:20',
+        ]);
+
+        $validated['front_desk_agent'] = Auth::user()->name;
+        $validated['stay_status'] = 'checked_in';
+        $validated['agreed_to_policies'] = true;
+
+        // Calculate discount and total amount
+        $roomRate = floatval($validated['room_rate']);
+        $guestType = GuestType::find($validated['guest_type_id']);
+        if ($guestType && $guestType->discount_rate > 0) {
+            $roomRate *= (1 - ($guestType->discount_rate / 100));
+        }
+
+        $checkIn = \Carbon\Carbon::parse($validated['check_in']);
+        $checkOut = \Carbon\Carbon::parse($validated['check_out']);
+        $noOfNights = $checkIn->diffInDays($checkOut);
+
+        $validated['room_rate'] = $roomRate;
+        $validated['no_of_nights'] = $noOfNights;
+        $validated['total_amount'] = $roomRate * $noOfNights;
+
+        $registration->update($validated);
+
+        // Group handling (if applicable)
+        if ($registration->is_group_lead && $request->has('group_members')) {
+            // Logic for creating group members based on final booking details
+        }
+
+        return redirect()->route('frontdesk.registrations.show', $registration)
+            ->with('success', 'Registration draft finalized and guest checked in!');
+    }
+
 
     public function search(Request $request)
     {
@@ -66,16 +175,16 @@ class RegistrationController extends Controller
 
     public function store(StoreRegistrationRequest $request)
     {
-        $isGuestDraft = $request->input('is_guest_draft', false);
+        $isGuestDraft = $request->boolean('is_guest_draft', false);
 
         if ($isGuestDraft) {
-            // Guest submits minimal data, status is 'draft_by_guest'
+            // GUEST DRAFT SUBMISSION
             $registration = $this->handleStore($request, 'draft_by_guest', null);
             return redirect()->route('frontdesk.registrations.index')
                 ->with('success', 'Thank you! Your check-in draft has been submitted. Please see the front desk to finalize your booking.');
         }
 
-        // Default flow: Front desk agent submits the final check-in
+        // AGENT FULL CHECK-IN SUBMISSION
         $registration = $this->handleStore($request, 'checked_in', Auth::user()->name);
 
         return redirect()->route('frontdesk.registrations.show', $registration->id)
@@ -179,7 +288,7 @@ class RegistrationController extends Controller
             Storage::disk('public')->put($filename, $fileData);
             $data['guest_signature'] = $filename;
         }
-
+        Log::info('Signature preview: ' . substr($data['guest_signature'] ?? '', 0, 50));  // Logs first 50 chars
         $registration = Registration::create($data);
 
         // Group handling is only allowed during final check-in by staff
@@ -224,99 +333,6 @@ class RegistrationController extends Controller
         return $registration;
     }
 
-    // New method for front desk agent to finish a draft
-    public function finishDraft(Request $request, Registration $registration)
-    {
-        if ($registration->stay_status !== 'draft_by_guest') {
-            return redirect()->route('frontdesk.registrations.show', $registration)->with('error', 'This registration is already finalized.');
-        }
-
-        // Use a less strict validation for finishing the draft, as personal data is already there
-        $validated = $request->validate([
-            'room_type' => 'required|string|max:100',
-            'room_rate' => 'required|numeric|min:0',
-            'check_in' => 'required|date',
-            'check_out' => 'required|date|after:check_in',
-            'no_of_guests' => 'required|integer|min:1',
-            'payment_method' => 'required|in:cash,pos,transfer',
-            'booking_source_id' => 'required|exists:booking_sources,id',
-            'guest_type_id' => 'required|exists:guest_types,id',
-            'room_assignment' => 'nullable|string|max:50', // New field for staff to assign room
-
-            'bed_breakfast' => 'nullable|boolean',
-            'is_group_lead' => 'nullable|boolean',
-            'group_members' => 'nullable|array',
-            'group_members.*.full_name' => 'required_if:is_group_lead,true|string|max:255',
-            'group_members.*.contact_number' => 'required_if:is_group_lead,true|string|max:20',
-            'group_members.*.room_assignment' => 'nullable|string|max:50',
-        ]);
-
-        $validated['front_desk_agent'] = Auth::user()->name;
-        $validated['stay_status'] = 'checked_in';
-        $validated['agreed_to_policies'] = true; // Assume policy agreed via signature from draft
-
-        // Discount logic
-        $roomRate = $validated['room_rate'];
-        $guestType = GuestType::find($validated['guest_type_id']);
-        if ($guestType && $guestType->discount_rate > 0) {
-            $roomRate = $roomRate * (1 - ($guestType->discount_rate / 100));
-        }
-
-        // Calculate nights and total amount
-        $checkIn = \Carbon\Carbon::parse($validated['check_in']);
-        $checkOut = \Carbon\Carbon::parse($validated['check_out']);
-        $noOfNights = $checkIn->diffInDays($checkOut);
-
-        $validated['room_rate'] = $roomRate;
-        $validated['no_of_nights'] = $noOfNights;
-        $validated['total_amount'] = $roomRate * $noOfNights;
-
-        $registration->update($validated);
-
-        // Handle Group Members for the master registration (if applicable)
-        if ($registration->is_group_lead && $request->has('group_members')) {
-            // Logic to create group members (similar to handleStore's group creation)
-            // Note: You might want to implement a more complex sync here, but for now, we create new ones.
-            foreach ($request->input('group_members', []) as $member) {
-                if (empty($member['full_name']) || empty($member['contact_number'])) continue;
-
-                $subGuest = Guest::firstOrCreate(['contact_number' => $member['contact_number']], [
-                    'full_name' => $member['full_name'],
-                    'opt_in_data_save' => false,
-                    'visit_count' => 1,
-                ]);
-
-                $subData = [
-                    'guest_id' => $subGuest->id,
-                    'full_name' => $member['full_name'],
-                    'contact_number' => $member['contact_number'],
-                    'room_assignment' => $member['room_assignment'] ?? null,
-                    'group_master_id' => $registration->id,
-                    'is_group_lead' => false,
-                    'guest_type_id' => $validated['guest_type_id'],
-                    'booking_source_id' => $validated['booking_source_id'],
-                    'check_in' => $validated['check_in'],
-                    'check_out' => $validated['check_out'],
-                    'room_type' => $validated['room_type'],
-                    'room_rate' => $roomRate,
-                    'bed_breakfast' => $validated['bed_breakfast'] ?? false,
-                    'no_of_guests' => 1,
-                    'payment_method' => $validated['payment_method'],
-                    'agreed_to_policies' => true,
-                    'front_desk_agent' => $validated['front_desk_agent'],
-                    'registration_date' => now()->toDateString(),
-                    'stay_status' => 'checked_in',
-                    'no_of_nights' => $noOfNights,
-                    'total_amount' => $roomRate * $noOfNights,
-                ];
-                Registration::create($subData);
-            }
-        }
-
-
-        return redirect()->route('frontdesk.registrations.show', $registration)
-            ->with('success', 'Registration draft finalized and guest checked in!');
-    }
 
 
     // Print method (for PDF download)
@@ -330,6 +346,7 @@ class RegistrationController extends Controller
         return $pdf->download('registration-' . $registration->id . '.pdf');
     }
 
+   
     public function preview(Request $request, ?Registration $registration)
     {
         // Preview logic remains for staff use
