@@ -1,7 +1,7 @@
 <style>
 :root {
-    --primary: #4361ee;
-    --secondary: #3f37c9;
+    --primary: #2b2225;
+    --secondary: #3b312e;
     --accent: #4cc9f0;
     --light: #f8f9fa;
     --dark: #212529;
