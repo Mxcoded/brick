@@ -32,18 +32,14 @@
         id="checkinSubmenu">
         <div class="list-group list-group-flush">
             <a href="{{ route('frontdesk.registrations.index') }}"
-                class="list-group-item list-group-item-action p-3 {{ request()->routeIs('frontdesk.registrations.index') ? 'active' : '' }}">
+                class="list-group-item list-group-item-action p-3 {{ request()->routeIs('frontdesk.registrations.*') ? 'active' : '' }}">
                 <i class="fas fa-list fa-fw me-3"></i> Guest Registrations
             </a>
             <a class="list-group-item list-group-item-action p-3 text-white {{ request()->routeIs('frontdesk.registrations.agent-checkin') ? 'active' : '' }}"
-                href="{{ route('frontdesk.registrations.agent-checkin') }}">
+                href="{{ route('frontdesk.registrations.create') }}">
                 <i class="fas fa-user-plus fa-fw me-3"></i>New Check-In
             </a>
-            {{-- Optional: Add guest draft link if public access needed --}}
-            <a href="{{ route('frontdesk.registrations.create') }}" class="list-group-item list-group-item-action p-3 text-white"
-                target="_blank" rel="noopener">
-                <i class="fas fa-user-check fa-fw me-3"></i>Guest Draft Form (Public)
-            </a>
+          
         </div>
     </div>
 @endcan
