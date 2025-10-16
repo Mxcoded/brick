@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('nationality')->nullable();
             $table->string('contact_number')->unique();
             $table->date('birthday')->nullable();
+            $table->string('gender')->nullable();
             $table->string('email')->unique()->nullable();
             $table->string('occupation')->nullable();
             $table->string('company_name')->nullable();
@@ -26,7 +27,7 @@ return new class extends Migration
             $table->string('emergency_relationship')->nullable();
             $table->string('emergency_contact')->nullable();
             $table->timestamp('last_visit_at')->nullable();
-            $table->integer('visit_count')->default(1);
+            $table->integer('visit_count')->default(0);
             $table->boolean('opt_in_data_save')->default(true);
             $table->timestamps();
 

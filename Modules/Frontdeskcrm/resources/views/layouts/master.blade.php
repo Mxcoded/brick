@@ -7,321 +7,462 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>Frontdesk CRM - @yield('title', 'Dashboard')</title>
+    <title>Brickspoint Aparthotel - @yield('title', 'Guest Check-in')</title>
 
-    <meta name="description" content="{{ $description ?? '' }}">
-    <meta name="keywords" content="{{ $keywords ?? '' }}">
-    <meta name="author" content="{{ $author ?? '' }}">
+    <meta name="description" content="{{ $description ?? 'Luxury apartment hotel experience with premium amenities and personalized service' }}">
+    <meta name="keywords" content="{{ $keywords ?? 'aparthotel, luxury stay, business travel, vacation rental, premium accommodation' }}">
+    <meta name="author" content="{{ $author ?? 'Brickspoint Aparthotel' }}">
 
+    {{-- Core CSS Frameworks --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
+    {{-- Tailwind CSS with Enhanced Configuration --}}
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
-        // TAILWIND CONFIG WITH COLORHUNT PALETTE
+        // ENHANCED TAILWIND CONFIG WITH BRICKSPOINT BRAND COLORS
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
+                        // Primary Brand Colors
                         'primary-light': '#D9EAFD',
                         'primary-medium': '#BCCCDC',
                         'primary-dark': '#9AA6B2',
+                        'primary-brand': '#1a56db',
+                        'secondary-brand': '#059669',
+                        
+                        // Neutral Colors
                         'base-white': '#F8FAFC',
-                        'glass-bg': 'var(--glass-effect)',
-                        'glass-border': 'var(--glass-border)'
+                        'base-light': '#F1F5F9',
+                        'base-medium': '#64748B',
+                        'base-dark': '#334155',
+                        
+                        // Semantic Colors
+                        'success': '#10B981',
+                        'warning': '#F59E0B',
+                        'error': '#EF4444',
+                        'info': '#3B82F6',
+                        
+                        // Glass Effect Variables
+                        'glass-bg': 'rgba(217, 234, 253, 0.1)',
+                        'glass-border': 'rgba(154, 166, 178, 0.2)',
+                        'glass-dark': 'rgba(255, 255, 255, 0.1)'
+                    },
+                    fontFamily: {
+                        'sans': ['Figtree', 'ui-sans-serif', 'system-ui'],
+                        'brand': ['BrownSugar', 'ui-serif', 'Georgia'],
+                        'elegant': ['GothamLight', 'ui-sans-serif', 'system-ui'],
+                        'modern': ['FuturaLT', 'ui-sans-serif', 'system-ui']
+                    },
+                    backgroundImage: {
+                        'gradient-primary': 'linear-gradient(135deg, #1a56db 0%, #0e40a4 100%)',
+                        'gradient-success': 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                        'gradient-glass': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                        'hotel-pattern': "url('{{ asset('images/hotel-pattern.svg') }}')"
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+                        'smooth': '0 4px 20px 0 rgba(0, 0, 0, 0.1)',
+                        'floating': '0 20px 40px 0 rgba(0, 0, 0, 0.15)'
+                    },
+                    animation: {
+                        'pulse-soft': 'pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'fade-in': 'fadeIn 0.5s ease-in-out'
+                    },
+                    keyframes: {
+                        'pulse-soft': {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.8' }
+                        },
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        },
+                        'fadeIn': {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        }
                     }
                 }
             }
         }
     </script>
+
+    {{-- Custom Styles --}}
     <style>
         /* GLASS EFFECT STYLES */
         :root {
             --glass-effect: rgba(217, 234, 253, 0.1);
             --glass-border: rgba(154, 166, 178, 0.2);
+            --glass-dark: rgba(255, 255, 255, 0.1);
         }
+
+        /* Define Custom Local Fonts */
+        @font-face {
+            font-family: 'BrownSugar';
+            src: url("{{ asset('fonts/Brown Sugar .otf') }}") format('opentype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'GothamLight';
+            src: url("{{ asset('fonts/Gotham-Light.otf') }}") format('opentype');
+            font-weight: 300;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'FuturaLT';
+            src: url("{{ asset('fonts/FuturaLT-Light.ttf') }}") format('truetype');
+            font-weight: 300;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        /* Enhanced Base Styles */
         body {
-            background: linear-gradient(135deg, #F8FAFC 0%, #D9EAFD 100%);
+            background: linear-gradient(135deg, #F8FAFC 0%, #D9EAFD 50%, #EFF6FF 100%);
+            background-attachment: fixed;
+            font-family: 'Figtree', ui-sans-serif, system-ui;
+            min-height: 100vh;
+        }
+
+        /* Glass Morphism Effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Focus States */
+        .focus-brand:focus {
+            border-color: #1a56db;
+            box-shadow: 0 0 0 0.2rem rgba(26, 86, 219, 0.25);
+            outline: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #1a56db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Print Styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            body {
+                background: white !important;
+            }
+        }
+
+        /* High Contrast Support */
+        @media (prefers-contrast: high) {
+            .glass-card {
+                background: white;
+                backdrop-filter: none;
+                border: 2px solid black;
+            }
+        }
+
+        /* Reduced Motion Support */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            
+            html {
+                scroll-behavior: auto;
+            }
         }
     </style>
+
+    {{-- Favicon --}}
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+
+    {{-- Structured Data for SEO --}}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Hotel",
+        "name": "Brickspoint Aparthotel",
+        "description": "Luxury apartment hotel offering premium accommodations with personalized service",
+        "url": "{{ url('/') }}",
+        "logo": "{{ asset('images/logo.png') }}",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Abuja",
+            "addressCountry": "Nigeria"
+        },
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+2348099999620",
+            "contactType": "customer service"
+        }
+    }
+    </script>
 </head>
 
-<body class="min-h-screen bg-gradient-to-br from-base-white to-primary-light">
-    <nav class="bg-base-white shadow-lg p-4">
-        <div class="container mx-auto flex justify-between">
-            <h1 class="text-2xl font-bold text-primary-dark">Brickspoint Front Desk</h1>
-            <div class="space-x-4">
-                @auth
-                    <span>Welcome, {{ Auth::user()->name }}</span>
-                    <a href="{{ route('logout') }}" class="text-red-500 hover:underline">Logout</a>
-                @endauth
+<body class="min-h-screen bg-gradient-to-br from-base-white via-primary-light to-base-light font-sans antialiased">
+    {{-- Navigation Header --}}
+    <nav class="glass-nav shadow-smooth sticky top-0 z-50 no-print">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                {{-- Brand Logo & Name --}}
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center shadow-md">
+                        <i class="fas fa-building text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-base-dark font-brand">Brickspoint Aparthotel</h1>
+                        <p class="text-xs text-base-medium">Front Desk Portal</p>
+                    </div>
+                </div>
+
+                {{-- User Actions --}}
+                <div class="flex items-center space-x-4">
+                    @auth
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-primary-brand rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                {{ substr(Auth::user()->name, 0, 1) }}
+                            </div>
+                            <span class="text-base-dark font-medium hidden sm:inline">Welcome, {{ Auth::user()->name }}</span>
+                            <a href="{{ route('logout') }}" 
+                               class="text-error hover:text-red-700 transition-colors duration-200 font-medium flex items-center space-x-1"
+                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span class="hidden sm:inline">Logout</span>
+                            </a>
+                            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
+                                @csrf
+                            </form>
+                        </div>
+                    @else
+                        <div class="flex items-center space-x-3">
+                            <a href="{{ route('login') }}" class="text-primary-brand hover:text-primary-dark transition-colors duration-200 font-medium">
+                                Staff Login
+                            </a>
+                        </div>
+                    @endauth
+                </div>
             </div>
         </div>
     </nav>
-    <main class="container mx-auto py-8 px-4">
+
+    {{-- Main Content --}}
+    <main class="flex-1 py-8">
         @yield('page-content')
     </main>
-    @stack('page-scripts')
+
+    {{-- Footer --}}
+    <footer class="bg-base-dark text-white py-8 mt-12 no-print">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-0">
+                {{-- Contact Information --}}
+                {{-- <div>
+                    <h3 class="font-bold text-lg mb-4 font-brand">Brickspoint Aparthotel</h3>
+                    <div class="space-y-2 text-base-light">
+                        <p class="flex items-center space-x-2">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>24 Jose Marti Crescent, Abuja</span>
+                        </p>
+                        <p class="flex items-center space-x-2">
+                            <i class="fas fa-phone"></i>
+                            <span>+2348099999620</span>
+                        </p>
+                        <p class="flex items-center space-x-2">
+                            <i class="fas fa-envelope"></i>
+                            <span>info@brickspoint.com</span>
+                        </p>
+                    </div>
+                </div> --}}
+
+                {{-- Quick Links --}}
+                {{-- <div>
+                    <h3 class="font-bold text-lg mb-4">Quick Links</h3>
+                    <div class="space-y-2">
+                        <a href="#" class="text-base-light hover:text-white transition-colors block">About Us</a>
+                        <a href="#" class="text-base-light hover:text-white transition-colors block">Services</a>
+                        <a href="#" class="text-base-light hover:text-white transition-colors block">Contact</a>
+                        <a href="#" class="text-base-light hover:text-white transition-colors block">Privacy Policy</a>
+                    </div>
+                </div> --}}
+
+                {{-- Social Media --}}
+                {{-- <div>
+                    <h3 class="font-bold text-lg mb-4">Connect With Us</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-base-medium hover:bg-primary-brand rounded-full flex items-center justify-center transition-colors">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-base-medium hover:bg-primary-brand rounded-full flex items-center justify-center transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-base-medium hover:bg-primary-brand rounded-full flex items-center justify-center transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-base-medium hover:bg-primary-brand rounded-full flex items-center justify-center transition-colors">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    </div>
+                </div> --}}
+               <p class="text-center text-gray-700 text-lg md:text-xl font-medium leading-relaxed bg-gray-50 p-6 rounded-lg shadow-sm">
+  Thank you for using the <span class="font-semibold text-primary">Brickspoint Aparthotel Front Desk Portal</span>. We're committed to delivering exceptional service and a seamless experience for both our guests and staff.
+</p>
+            </div>
+            
+            {{-- Copyright --}}
+            <div class="border-t border-base-medium mt-8 pt-6 text-center text-base-light">
+                 <footer class=" p-3 mt-auto border-top">
+                <div class="container-fluid text-center">
+                    <div
+                        style="display: inline-block; padding: 10px 20px;   border-radius: 12px; background: var(--glass-effect); border: 1px solid var(--glass-border);box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), 
+                            -4px -4px 15px rgba(116, 114, 114, 1.2); transform: perspective(600px) rotateX(2deg); transition: var(--transition); margin-right: 15px;">
+                        <p class="mb-0 text-light">&copy; {{ date('Y') }}
+
+                            <a href="#"
+                                style="font-weight: 800; font-size: 1.4rem; color: #e1e9e2d6;  text-decoration: none; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                 ">
+                                BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub
+                                    style="font-size:8pt;">v1.0</sub>
+                            </a>
+                            . All rights reserved.
+                    </div>
+                    </p>
+                    <p class="mb-0 text-light">™ Developed with ❤️ by IT Team </p>
+                </div>
+            </footer>
+            </div>
+        </div>
+    </footer>
+
+    {{-- Scripts Section --}}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+    {{-- Global JavaScript --}}
     <script>
-        function formHandler(oldData, isGuestDraftMode) {
-            return {
-                searchQuery: '',
-                searchResults: [],
-                loading: false,
-                currentStep: 1,
-                isGuestDraft: isGuestDraftMode,
-                selectedGuestId: oldData.guest_id || null,
-                formData: oldData || {},
-                groupMembers: oldData.group_members || [],
-                isSubmitting: false,
-                signaturePad: null,
-                signatureData: [],  // Store raw data array for reliable restore
-                showReSign: false,  // For finalize re-signature toggle
-                reSignaturePad: null,
+        // Enhanced Global Functions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-dismiss alerts
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 300);
+                }, 5000);
+            });
 
-                init() {
-                    // Initialize formData structure
-                    this.formData = {
-                        ...{
-                            title: '',
-                            full_name: '',
-                            gender: '',
-                            email: '',
-                            contact_number: '',
-                            nationality: '',
-                            birthday: '',
-                            occupation: '',
-                            company_name: '',
-                            home_address: '',
-                            emergency_name: '',
-                            emergency_relationship: '',
-                            emergency_contact: '',
-                            room_type: '',
-                            room_rate: '',
-                            check_in: '{{ now()->format('Y-m-d') }}',
-                            check_out: '',
-                            no_of_guests: 1,
-                            bed_breakfast: false,
-                            payment_method: '',
-                            booking_source_id: '',
-                            guest_type_id: '',
-                            is_group_lead: false,
-                            agreed_to_policies: false,
-                            opt_in_data_save: true,
-                        },
-                        ...this.formData
-                    };
+            // Enhanced form handling
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="loading-spinner mr-2"></span>Processing...';
+                    }
+                });
+            });
 
-                    // Defer setup; signature inits on Step 3
-                    this.$nextTick(() => {
-                        if (this.formData.check_in && !this.formData.check_out) {
-                            const tomorrow = new Date(this.formData.check_in);
-                            tomorrow.setDate(tomorrow.getDate() + 1);
-                            this.formData.check_out = tomorrow.toISOString().split('T')[0];
-                        }
-                        this.$watch('formData.check_in', (value) => {
-                            if (value && !this.formData.check_out) {
-                                const tomorrow = new Date(value);
-                                tomorrow.setDate(tomorrow.getDate() + 1);
-                                this.formData.check_out = tomorrow.toISOString().split('T')[0];
-                            }
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
                         });
-                    });
-                },
-
-                // Search logic
-                async performSearch() {
-                    if (!this.searchQuery.trim()) return;
-                    this.loading = true;
-                    try {
-                        const response = await fetch(`/frontdesk/registrations/search?query=${encodeURIComponent(this.searchQuery)}`);
-                        if (!response.ok) throw new Error('Search failed');
-                        this.searchResults = await response.json();
-                    } catch (error) {
-                        console.error('Search failed:', error);
-                        this.searchResults = [];
                     }
-                    this.loading = false;
-                },
+                });
+            });
 
-                selectGuest(guest) {
-                    this.selectedGuestId = guest.id;
-                    const guestData = {
-                        title: guest.title || '',
-                        full_name: guest.full_name || '',
-                        gender: guest.gender || '',
-                        email: guest.email || '',
-                        contact_number: guest.contact_number || '',
-                        nationality: guest.nationality || '',
-                        birthday: guest.birthday || '',
-                        occupation: guest.occupation || '',
-                        company_name: guest.company_name || '',
-                        home_address: guest.home_address || '',
-                        emergency_name: guest.emergency_name || '',
-                        emergency_relationship: guest.emergency_relationship || '',
-                        emergency_contact: guest.emergency_contact || '',
-                        room_type: guest.preferred_room_type || '',
-                        bed_breakfast: !!guest.bb_included,
-                        check_in: '{{ now()->format('Y-m-d') }}',
-                        check_out: '',
-                        no_of_guests: 1,
-                        room_rate: '',
-                        payment_method: '',
-                        booking_source_id: '',
-                        guest_type_id: '',
-                    };
-                    Object.assign(this.formData, guestData);
-                    this.searchResults = [];
-                    this.searchQuery = '';
-                    this.$nextTick(() => {
-                        const bbCb = document.getElementById('bed_breakfast');
-                        if (bbCb) bbCb.checked = !!guest.bb_included;
-                        if (!this.isGuestDraft) {
-                            this.nextStep({ target: { closest: () => document.querySelector('form') } });
-                        }
-                    });
-                },
+            // Enhanced error handling
+            window.addEventListener('error', function(e) {
+                console.error('Application error:', e.error);
+                // You can add error reporting service here
+            });
 
-                // Step navigation
-                nextStep(e) {
-                    const form = e.target ? e.target.closest('form') : document.querySelector('form');
-                    const stepElement = form.querySelector(`div[x-show="currentStep === ${this.currentStep}"]`);
-
-                    if (!stepElement) {
-                        this.currentStep++;
-                        return;
-                    }
-
-                    const requiredFields = stepElement.querySelectorAll('[required]');
-                    for (let i = 0; i < requiredFields.length; i++) {
-                        const field = requiredFields[i];
-                        if (this.isGuestDraft && ['room_type', 'room_rate', 'payment_method', 'booking_source_id', 'guest_type_id'].includes(field.name)) {
-                            continue;
-                        }
-                        if ((field.type === 'checkbox' && !field.checked) || (!field.value.trim() && field.value !== '0')) {
-                            alert('Please fill in all required fields to proceed.');
-                            field.focus();
-                            return;
-                        }
-                    }
-
-                    this.currentStep++;
-                    if (this.currentStep === 3) {
-                        this.$nextTick(() => this.setupSignaturePad());
-                    }
-                },
-
-                prevStep() {
-                    this.currentStep--;
-                },
-
-                // Signature setup
-                setupSignaturePad() {
-                    const canvas = document.getElementById('signature-pad');
-                    if (!canvas) return;
-
-                    if (this.signaturePad) {
-                        this.signatureData = this.signaturePad.toData();
-                        this.signaturePad.off();
-                        delete this.signaturePad;
-                    }
-
-                    this.signaturePad = new SignaturePad(canvas, {
-                        backgroundColor: 'rgb(255, 255, 255)',
-                        penColor: 'rgb(0, 0, 0)',
-                        minWidth: 0.5,
-                        maxWidth: 2.5
-                    });
-
-                    const resizeCanvas = () => {
-                        if (!canvas || !this.signaturePad) return;
-                        this.signatureData = this.signaturePad.toData();
-
-                        const ratio = Math.max(window.devicePixelRatio || 1, 1);
-                        const rect = canvas.getBoundingClientRect();
-                        canvas.width = rect.width * ratio;
-                        canvas.height = rect.height * ratio;
-                        canvas.style.width = rect.width + 'px';
-                        canvas.style.height = rect.height + 'px';
-                        canvas.getContext('2d').scale(ratio, ratio);
-
-                        this.signaturePad.fromData(this.signatureData);
-                    };
-
-                    this.signaturePad.addEventListener('endStroke', () => {
-                        this.signatureData = this.signaturePad.toData();
-                        const input = document.getElementById('signature-input');
-                        if (input) input.value = this.signaturePad.toDataURL('image/png');
-                    });
-
-                    resizeCanvas();
-                    window.addEventListener('resize', resizeCanvas);
-
-                    if (this.signatureData && this.signatureData.length > 1) {
-                        this.signaturePad.fromData(this.signatureData);
-                    }
-                },
-
-                clearSignature() {
-                    if (this.signaturePad) {
-                        this.signaturePad.clear();
-                        this.signatureData = [];
-                        const input = document.getElementById('signature-input');
-                        if (input) input.value = '';
-                    }
-                },
-
-                // Re-signature for finalize
-                setupReSignaturePad() {
-                    const canvas = document.getElementById('re-signature-pad');
-                    if (!canvas) return;
-                    this.reSignaturePad = new SignaturePad(canvas, {
-                        backgroundColor: 'rgb(255, 255, 255)',
-                        penColor: 'rgb(0, 0, 0)',
-                        minWidth: 0.5,
-                        maxWidth: 2.5
-                    });
-                    // Add resize/endStroke similar to above
-                },
-
-                clearReSignature() {
-                    if (this.reSignaturePad) {
-                        this.reSignaturePad.clear();
-                        document.getElementById('re-signature-input').value = '';
-                    }
-                    this.showReSign = false;
-                },
-
-                // Finalize submit handler
-                handleFinalizeSubmit(event) {
-                    if (this.isSubmitting) return;
-                    const form = event.target.closest('form');
-                    if (!form.checkValidity()) {
-                        alert('Please review required fields.');
-                        return;
-                    }
-                    this.isSubmitting = true;
-                    // Update signature if re-signed
-                    if (this.reSignaturePad && !this.reSignaturePad.isEmpty()) {
-                        const input = document.querySelector('input[name="guest_signature"]');
-                        if (input) input.value = this.reSignaturePad.toDataURL();
-                    }
-                    setTimeout(() => form.submit(), 100);
-                },
-
-                // Group members
-                addGroupMember() {
-                    this.groupMembers.push({ full_name: '', contact_number: '', room_assignment: '' });
-                },
-
-                removeGroupMember(index) {
-                    this.groupMembers.splice(index, 1);
-                },
-            }
-        }
+            // Performance monitoring
+            window.addEventListener('load', function() {
+                const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                console.log('Page load time:', loadTime + 'ms');
+            });
+        });
     </script>
+
+    {{-- Page Specific Scripts --}}
+    @stack('page-scripts')
+
+    {{-- Analytics (Optional) --}}
+    @if(config('app.analytics_enabled'))
+    <script>
+        // Add your analytics script here
+    </script>
+    @endif
 </body>
 
 </html>

@@ -9,50 +9,66 @@ use Modules\Frontdeskcrm\Http\Controllers\GuestTypeController;
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
+|
+| This file defines all the routes for the Frontdesk CRM module.
+| The routes are separated into public (guest-facing) and authenticated
+| (agent-facing) groups for clarity and security.
+|
 */
 
-// --- 1. PUBLIC GUEST ROUTES (NO AUTH REQUIRED) ---
-// The store route must be public for guest drafts.
-Route::post('registrations', [RegistrationController::class, 'store'])->name('frontdesk.registrations.store');
+// =====================================================================
+// 1. PUBLIC GUEST ROUTES (ACCESSIBLE WITHOUT LOGIN)
+// =====================================================================
 
-// Guest Draft Form (public GET for unauthenticated access)
-Route::get('registrations/create', [RegistrationController::class, 'showGuestDraftForm'])->name('frontdesk.registrations.create');
+Route::prefix('checkin')->name('frontdesk.registrations.')->group(function () {
 
-// --- 2. AUTHENTICATED FRONTDESK ROUTES ---
-// Prefix all URLs with 'frontdesk' and all names with 'frontdesk.'
+    // The starting point for a guest at a kiosk/tablet (e.g., yourhotel.com/checkin).
+    // Shows the initial search form.
+    Route::get('/', [RegistrationController::class, 'create'])->name('create');
+
+    // Processes the guest's initial search for their profile.
+    Route::post('/search', [RegistrationController::class, 'handleGuestSearch'])->name('handle-search');
+
+    // Stores the guest's submitted draft registration.
+    Route::post('/', [RegistrationController::class, 'store'])->name('store');
+
+    // The "Thank You" page shown to the guest after they submit their draft.
+    Route::get('/thank-you', [RegistrationController::class, 'thankYou'])->name('thank-you');
+});
+
+
+// =====================================================================
+// 2. AUTHENTICATED AGENT ROUTES (REQUIRES LOGIN)
+// =====================================================================
+
 Route::middleware('auth')->prefix('frontdesk')->name('frontdesk.')->group(function () {
 
-    // REGISTRATIONS (GUEST/BOOKING MANAGEMENT)
-    // All URLs are prefixed with '/frontdesk/registrations' and named 'frontdesk.registrations.'
+    // --- REGISTRATION MANAGEMENT ---
     Route::prefix('registrations')->name('registrations.')->group(function () {
 
-        // CORE MANAGEMENT
+        // Agent's main dashboard showing all registrations.
         Route::get('/', [RegistrationController::class, 'index'])->name('index');
+
+        // Shows the form for an agent to finalize a guest's draft.
+        Route::get('/{registration}/finalize', [RegistrationController::class, 'showFinalizeForm'])->name('finalize.form');
+
+        // Processes the agent's submission of the finalization form.
+        Route::post('/{registration}/finalize', [RegistrationController::class, 'finalize'])->name('finalize');
+
+        // Displays the details of a single, completed registration.
         Route::get('/{registration}', [RegistrationController::class, 'show'])->name('show');
-        Route::delete('/{registration}', [RegistrationController::class, 'destroy'])->name('destroy');
 
-        // AGENT CHECK-IN FLOW
-        // NOTE: Removed the 'create' redirect route that was causing conflicts.
-        // The sidebar link MUST now point directly to frontdesk.registrations.agent-checkin
-
-        // 1. The actual Agent-facing form with search bar
-        // The URL is /frontdesk/registrations/agent-checkin
-        Route::get('/agent-checkin', [RegistrationController::class, 'showAgentCheckinForm'])->name('agent-checkin');
-
-        // DRAFT FINALIZATION FLOW
-        Route::get('/{registration}/finalize', [RegistrationController::class, 'showFinishDraftForm'])->name('finish-draft.form');
-        Route::post('/{registration}/finalize', [RegistrationController::class, 'finishDraft'])->name('finish-draft.store');
-
-        // UTILITY ROUTES
-        Route::get('/search', [RegistrationController::class, 'search'])->name('search');
-        Route::get('/preview/{registration?}', [RegistrationController::class, 'preview'])
-            ->where('registration', '[0-9]+')
-            ->name('preview');
-        Route::get('/print/{registration}', [RegistrationController::class, 'print'])->name('print');
-        Route::post('/{master}/add-member', [RegistrationController::class, 'addGroupMember'])->name('add-member');
+        // Generates a printable PDF of a registration.
+        Route::get('/{registration}/print', [RegistrationController::class, 'print'])->name('print');
+        // ** ADD THIS NEW ROUTE FOR CHECKOUT **
+        Route::post('/{registration}/checkout', [RegistrationController::class, 'checkout'])->name('checkout');
     });
 
-    // MASTER DATA MANAGEMENT
+    // --- MASTER DATA MANAGEMENT ---
+
+    // Routes for managing Booking Sources (e.g., Walk-in, Booking.com).
     Route::resource('booking-sources', BookingSourceController::class)->except(['show']);
+
+    // Routes for managing Guest Types (e.g., Corporate, VIP).
     Route::resource('guest-types', GuestTypeController::class)->except(['show']);
 });
