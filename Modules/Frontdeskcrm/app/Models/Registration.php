@@ -57,10 +57,6 @@ class Registration extends Model
                 $registration->no_of_nights = $registration->check_in->diffInDays($registration->check_out);
             }
 
-            if ($registration->room_rate && $registration->no_of_nights) {
-                $registration->total_amount = $registration->room_rate * $registration->no_of_nights;
-            }
-
     
         });
     }

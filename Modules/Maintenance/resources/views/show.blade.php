@@ -82,7 +82,7 @@
                                 <p class="value">
                                     @if ($maintenanceLog->cost_of_fixing)
                                         <span class="badge bg-success-100 text-success rounded-pill p-2">
-                                            ${{ number_format($maintenanceLog->cost_of_fixing, 2) }}
+                                            &#8358;{{ number_format($maintenanceLog->cost_of_fixing, 2) }}
                                         </span>
                                     @else
                                         <span class="badge bg-secondary-100 text-secondary rounded-pill p-2">
