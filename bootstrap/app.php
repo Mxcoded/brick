@@ -26,7 +26,7 @@ return Application::configure(basePath: __DIR__ . '/../')
     // ** ADD THIS ENTIRE BLOCK TO YOUR FILE **
     ->withSchedule(function (Schedule $schedule) {
         // Run the overstay process every day at 1:00 PM (13:00).
-        $schedule->command('hotel:process-overstays')->dailyAt('13:00');
+        $schedule->command('hotel:process-overstays')->dailyAt('18:00');
     })
     // ** END OF ADDED BLOCK **
     ->create();

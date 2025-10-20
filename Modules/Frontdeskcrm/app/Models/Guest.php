@@ -18,6 +18,7 @@ class Guest extends Model
         'contact_number',
         'birthday',
         'email',
+        'gender',
         'occupation',
         'company_name',
         'home_address',
