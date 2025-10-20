@@ -63,7 +63,17 @@ class ProcessOverstayedGuests extends Command
                 'no_of_nights' => $newNumberOfNights,
                 'total_amount' => $newTotalAmount,
             ]);
+            if ($registration->parent_registration_id) {
+                $leadRegistration = Registration::find($registration->parent_registration_id);
+                if ($leadRegistration) {
+                    // Recalculate the lead's total by summing its own bill + all children's bills
+                    $newLeadTotal = $leadRegistration->children()->sum('total_amount')
+                        + ($leadRegistration->room_rate * $leadRegistration->no_of_nights);
 
+                    $leadRegistration->update(['total_amount' => $newLeadTotal]);
+                    Log::info("Updated Group Lead #{$leadRegistration->id} total to {$newLeadTotal}.");
+                }
+            }
             $logMessage = "Extended stay for Registration #{$registration->id} (Guest: {$registration->full_name}). Old checkout: {$oldCheckoutDate}, New checkout: {$newCheckoutDate->format('Y-m-d')}. Bill updated.";
             $this->info($logMessage);
             Log::info($logMessage);

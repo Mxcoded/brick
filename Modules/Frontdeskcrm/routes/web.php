@@ -58,6 +58,12 @@ Route::middleware('auth')->prefix('frontdesk')->name('frontdesk.')->group(functi
         // Displays the details of a single, completed registration.
         Route::get('/{registration}', [RegistrationController::class, 'show'])->name('show');
 
+        // Adjusts the stay details (e.g., extending checkout date) for a registration.
+        Route::put('/{registration}/adjust-stay', [RegistrationController::class, 'adjustStay'])->name('adjust-stay');
+
+        // Retrieves active group members for a group registration.
+        Route::get('/{registration}/active-members', [RegistrationController::class, 'getActiveMembers'])->name('active-members');
+
         // Generates a printable PDF of a registration.
         Route::get('/{registration}/print', [RegistrationController::class, 'print'])->name('print');
         // ** ADD THIS NEW ROUTE FOR CHECKOUT **
