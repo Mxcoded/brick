@@ -4,6 +4,7 @@ namespace Modules\Frontdeskcrm\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Modules\Frontdeskcrm\Http\Requests\StoreRegistrationRequest;
+use Modules\Frontdeskcrm\Http\Requests\FinalizeRegistrationRequest;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\BookingSource;
@@ -168,68 +169,60 @@ class RegistrationController extends Controller
     /**
      * Process the agent's finalization form submission for individuals or groups.
      */
-    public function finalize(Request $request, Registration $registration)
+    public function finalize(FinalizeRegistrationRequest $request, Registration $registration)
     {
-        $validated = $request->validate([
-            // Overall booking details
-            'guest_type_id' => 'required|exists:guest_types,id',
-            'booking_source_id' => 'required|exists:booking_sources,id',
-            'payment_method' => 'required|string|in:cash,pos,transfer',
-
-            // Group Lead's specific details
-            'room_allocation' => 'required|string|max:255',
-            'room_rate' => 'required|numeric|min:0',
-            'bed_breakfast' => 'nullable|boolean',
-
-            // Group Members' specific details
-            'group_members' => 'nullable|array',
-            'group_members.*.room_allocation' => 'required|string|max:255',
-            'group_members.*.room_rate' => 'required|numeric|min:0',
-            'group_members.*.bed_breakfast' => 'nullable|boolean',
-        ]);
-
-        // --- Increment Visit Count for the Lead Guest ---
-        $guest = $registration->guest;
-        if ($guest && $registration->stay_status === 'draft_by_guest') {
-            $guest->increment('visit_count');
-            $guest->last_visit_at = now();
-            $guest->save();
-        }
-
-        $totalGroupAmount = 0;
+        // Use the validated data from your Form Request class
+        $validated = $request->validated();
         $nights = $registration->check_in->diffInDays($registration->check_out);
+        $billingType = $request->input('billing_type', 'consolidate');
 
-        // --- Update Group Members with their individual rates ---
-        if ($request->has('group_members')) {
-            foreach ($request->group_members as $id => $data) {
+        // --- 1. Process Group Members ---
+        if (isset($validated['group_members'])) {
+            foreach ($validated['group_members'] as $id => $data) {
                 $memberRegistration = Registration::find($id);
-                if ($memberRegistration && $memberRegistration->parent_registration_id === $registration->id) {
-
-                    $memberRate = $data['room_rate'];
-                    $memberBedBreakfast = isset($data['bed_breakfast']);
-                    $memberTotal = $memberRate * $nights;
-                    $totalGroupAmount += $memberTotal;
-
-                    $memberRegistration->update([
-                        'room_allocation' => $data['room_allocation'],
-                        'room_rate' => $memberRate,
-                        'bed_breakfast' => $memberBedBreakfast,
-                        'guest_type_id' => $validated['guest_type_id'],      // Inherit from lead
-                        'booking_source_id' => $validated['booking_source_id'], // Inherit from lead
-                        'payment_method' => $validated['payment_method'],   // Inherit from lead
-                        'status' => 'checked_in',
-                        'no_of_nights' => $nights,
-                        'total_amount' => $memberTotal,
-                        'finalized_by_agent_id' => Auth::id(),
-                    ]);
+                if (!$memberRegistration || $memberRegistration->parent_registration_id !== $registration->id) {
+                    continue; // Skip if member not found or doesn't belong to this group
                 }
+
+                // A) Handle No-Show Members
+                if ($data['status'] === 'no_show') {
+                    $memberRegistration->update([
+                        'stay_status' => 'no_show',
+                        'total_amount' => 0,
+                        'room_allocation' => null,
+                        'room_rate' => 0,
+                    ]);
+                    continue; // Move to the next member
+                }
+
+                // B) Handle Checked-in Members
+                $memberTotal = $data['room_rate'] * $nights;
+                $memberRegistration->update([
+                    'room_allocation' => $data['room_allocation'],
+                    'room_rate' => $data['room_rate'],
+                    'bed_breakfast' => isset($data['bed_breakfast']),
+                    'stay_status' => 'checked_in',
+                    'no_of_nights' => $nights,
+                    'total_amount' => $memberTotal,
+                    'finalized_by_agent_id' => Auth::id(),
+                    'guest_type_id' => $validated['guest_type_id'],
+                    'booking_source_id' => $validated['booking_source_id'],
+                ]);
             }
         }
 
-        // --- Update the Group Lead's Registration ---
+        // --- 2. Process Group Lead ---
         $leadRate = $validated['room_rate'];
-        $leadTotal = $leadRate * $nights;
-        $totalGroupAmount += $leadTotal;
+        $leadPersonalBill = $leadRate * $nights;
+        $finalLeadTotal = $leadPersonalBill;
+
+        // --- 3. Apply Billing Logic ---
+        if ($billingType === 'consolidate') {
+            // Add the sum of all *checked-in* children's bills to the lead's bill
+            $membersTotalBill = $registration->children()->where('stay_status', 'checked_in')->sum('total_amount');
+            $finalLeadTotal += $membersTotalBill;
+        }
+        // If billingType is 'individual', the lead's total is just their personal bill.
 
         $registration->update([
             'room_allocation' => $validated['room_allocation'],
@@ -238,19 +231,17 @@ class RegistrationController extends Controller
             'guest_type_id' => $validated['guest_type_id'],
             'booking_source_id' => $validated['booking_source_id'],
             'payment_method' => $validated['payment_method'],
+            'billing_type' => $billingType, // Save the billing choice
             'stay_status' => 'checked_in',
             'no_of_nights' => $nights,
-            // The lead's total amount is now the sum of the entire group's bill.
-            'total_amount' => $totalGroupAmount,
+            'total_amount' => $finalLeadTotal, // The final calculated total
             'finalized_by_agent_id' => Auth::id(),
         ]);
 
         return redirect()->route('frontdesk.registrations.show', $registration)
             ->with('success', 'Group check-in has been successfully finalized!');
     }
-
-
-
+   
 
     // ===================================================================
     // UTILITY & DISPLAY METHODS
@@ -304,13 +295,15 @@ class RegistrationController extends Controller
         $groupMembers = Registration::where('parent_registration_id', $registration->id)->get();
 
         // Calculate Group Financial Summary
-        $leadBill = ($registration->stay_status === 'checked_in') ? $registration->total_amount : 0;
         $membersBill = $groupMembers->where('stay_status', 'checked_in')->sum('total_amount');
+        $leadPersonalBill = $registration->room_rate * $registration->no_of_nights; // Calculate the lead's personal bill
 
         $groupFinancialSummary = [
-            'lead_bill' => $leadBill,
+            // This is clearer for the UI
+            'lead_personal_bill' => $leadPersonalBill,
             'members_bill' => $membersBill,
-            'total_outstanding' => $leadBill + $membersBill,
+            // The total outstanding is simply the lead's total_amount field, which holds the grand total
+            'total_outstanding' => $registration->total_amount,
         ];
 
         return view('frontdeskcrm::registrations.show', compact('registration', 'groupMembers', 'groupFinancialSummary'));
@@ -324,7 +317,13 @@ class RegistrationController extends Controller
         if ($registration->stay_status !== 'checked_in') {
             return back()->with('error', 'This guest is not currently checked-in.');
         }
-
+        // --- Increment Visit Count for the Lead Guest ---
+        $guest = $registration->guest;
+        if ($guest && $registration->stay_status === 'checked_in') {
+            $guest->increment('visit_count');
+            $guest->last_visit_at = now();
+            $guest->save();
+        }
         $registration->update(['stay_status' => 'checked_out']);
 
         $message = "Guest {$registration->full_name} has been successfully checked out.";
@@ -338,5 +337,96 @@ class RegistrationController extends Controller
         // If the lead was checked out, redirect to the index page.
         return redirect()->route('frontdesk.registrations.index')
             ->with('success', $message);
+    }
+    public function getActiveMembers(Registration $registration)
+    {
+        if (!$registration->is_group_lead) {
+            return response()->json([], 404);
+        }
+
+        $members = $registration->children()
+            ->where('stay_status', 'checked_in')
+            ->select('id', 'full_name', 'room_allocation')
+            ->get();
+
+        return response()->json($members);
+    }
+    /**
+     * Adjusts the stay duration for a guest or a selection of group members.
+     * This method handles individual adjustments, group lead adjustments,
+     * and selective group member extensions, ensuring all financial
+     * records are kept in sync.
+     *
+     * @param Request $request
+     * @param Registration $registration The primary registration being adjusted.
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function adjustStay(Request $request, Registration $registration)
+    {
+        // 1. VALIDATE THE INCOMING REQUEST
+        $validated = $request->validate([
+            'new_check_out' => 'required|date|after_or_equal:' . $registration->check_in->format('Y-m-d'),
+            'members_to_extend' => 'nullable|array',
+            'members_to_extend.*' => 'exists:registrations,id', // Ensure all provided IDs are valid registrations
+        ]);
+
+        $newCheckOut = Carbon::parse($validated['new_check_out']);
+
+        // Prevent unnecessary database writes if the date hasn't changed.
+        if ($newCheckOut->isSameDay($registration->check_out)) {
+            return back()->with('info', 'The new check-out date is the same as the current one. No changes were made.');
+        }
+
+        // 2. UPDATE THE PRIMARY REGISTRATION (THE ONE CLICKED BY THE AGENT)
+        $nights = $registration->check_in->diffInDays($newCheckOut);
+        $registration->update([
+            'check_out' => $newCheckOut,
+            'no_of_nights' => $nights,
+            'total_amount' => $registration->room_rate * $nights,
+        ]);
+
+        // 3. HANDLE GROUP MEMBER EXTENSIONS (IF APPLICABLE)
+        // This block only runs if the agent is adjusting the group lead and selected members.
+        if ($registration->is_group_lead && isset($validated['members_to_extend'])) {
+            $memberIds = $validated['members_to_extend'];
+
+            // Ensure we only update members that actually belong to this group lead for security.
+            $membersToUpdate = Registration::whereIn('id', $memberIds)
+                ->where('parent_registration_id', $registration->id)
+                ->get();
+
+            foreach ($membersToUpdate as $member) {
+                $memberNights = $member->check_in->diffInDays($newCheckOut);
+                $member->update([
+                    'check_out' => $newCheckOut,
+                    'no_of_nights' => $memberNights,
+                    'total_amount' => $member->room_rate * $memberNights,
+                ]);
+            }
+        }
+
+        // 4. FIND THE GROUP LEAD AND RECALCULATE THE ENTIRE GROUP'S BILL
+        // This ensures data integrity for ALL scenarios (individual, member, or group adjust).
+        $leadRegistration = null;
+        if ($registration->is_group_lead) {
+            $leadRegistration = $registration;
+        } elseif ($registration->parent_registration_id) {
+            $leadRegistration = $registration->parent; // Using the defined relationship
+        }
+
+        if ($leadRegistration) {
+            // Recalculate the lead's personal bill based on its own nights and rate.
+            $leadPersonalBill = $leadRegistration->room_rate * $leadRegistration->no_of_nights;
+
+            // Sum the total amounts of all children registrations.
+            $membersTotalBill = $leadRegistration->children()->sum('total_amount');
+
+            // The lead's new total amount is their bill plus all their members' bills.
+            $leadRegistration->update([
+                'total_amount' => $leadPersonalBill + $membersTotalBill
+            ]);
+        }
+
+        return back()->with('success', 'Stay details have been successfully updated.');
     }
 }
