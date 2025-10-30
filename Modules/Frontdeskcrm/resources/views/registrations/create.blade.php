@@ -51,7 +51,8 @@
                                         style="width: 50px; height: 50px; z-index: 3;">
                                         <i class="fas fa-{{ $data[1] }}"></i>
                                     </div>
-                                    <span class="step-label small fw-medium">{{ $data[0] }}</span>
+                                    {{-- UPDATED: Added d-none d-md-block to hide text on phones --}}
+                                    <span class="step-label small fw-medium d-none d-md-block">{{ $data[0] }}</span>
                                 </div>
                             @endforeach
                         </div>
@@ -152,7 +153,8 @@
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-md-4 mb-3">
+                                        {{-- UPDATED: col-md-4 to col-lg-4 --}}
+                                        <div class="col-lg-4 mb-3">
                                             <label for="title" class="form-label">Title</label>
                                             <select class="form-select @error('title') is-invalid @enderror" name="title"
                                                 id="title">
@@ -174,7 +176,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-8 mb-3">
+                                        {{-- UPDATED: col-md-8 to col-lg-8 --}}
+                                        <div class="col-lg-8 mb-3">
                                             <label for="full_name" class="form-label">Full Name <span
                                                     class="text-danger">*</span></label>
                                             <input type="text"
@@ -186,7 +189,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-6 mb-3">
+                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
+                                        <div class="col-lg-6 mb-3">
                                             <label for="email" class="form-label">Email Address</label>
                                             <div class="input-group">
                                                 <span class="input-group-text"><i
@@ -200,7 +204,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-6 mb-3">
+                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
+                                        <div class="col-lg-6 mb-3">
                                             <label for="contact_number" class="form-label">Contact Number <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
@@ -215,7 +220,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-6 mb-3">
+                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
+                                        <div class="col-lg-6 mb-3">
                                             <label for="nationality" class="form-label">Nationality</label>
                                             <select class="form-select @error('nationality') is-invalid @enderror"
                                                 name="nationality" id="nationality">
@@ -226,7 +232,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-6 mb-3">
+                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
+                                        <div class="col-lg-6 mb-3">
                                             <label for="birthday" class="form-label">Birthday</label>
                                             <input type="date"
                                                 class="form-control @error('birthday') is-invalid @enderror"
@@ -236,7 +243,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-6 mb-3">
+                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
+                                        <div class="col-lg-6 mb-3">
                                             <label for="gender" class="form-label">Gender</label>
                                             <select class="form-select @error('gender') is-invalid @enderror"
                                                 name="gender" id="gender">
@@ -255,7 +263,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-6 mb-3">
+                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
+                                        <div class="col-lg-6 mb-3">
                                             <label for="occupation" class="form-label">Occupation</label>
                                             <input type="text"
                                                 class="form-control @error('occupation') is-invalid @enderror"
@@ -266,7 +275,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-6 mb-3">
+                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
+                                        <div class="col-lg-6 mb-3">
                                             <label for="company_name" class="form-label">Company/Group</label>
                                             <input type="text"
                                                 class="form-control @error('company_name') is-invalid @enderror"
@@ -305,7 +315,8 @@
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-md-6 mb-3">
+                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
+                                        <div class="col-lg-6 mb-3">
                                             <label for="emergency_name" class="form-label">Contact Name</label>
                                             <input type="text"
                                                 class="form-control @error('emergency_name') is-invalid @enderror"
@@ -316,7 +327,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-6 mb-3">
+                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
+                                        <div class="col-lg-6 mb-3">
                                             <label for="emergency_contact" class="form-label">Contact Number</label>
                                             <div class="input-group">
                                                 <span class="input-group-text"><i
@@ -359,7 +371,8 @@
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-md-4 mb-3">
+                                        {{-- UPDATED: col-md-4 to col-lg-4 --}}
+                                        <div class="col-lg-4 mb-3">
                                             <label for="no_of_guests" class="form-label">Number of Guests <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
@@ -374,7 +387,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        {{-- UPDATED: col-md-4 to col-lg-4 --}}
+                                        <div class="col-lg-4 mb-3">
                                             <label for="check_in" class="form-label">Check-in Date <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
@@ -389,7 +403,8 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        {{-- UPDATED: col-md-4 to col-lg-4 --}}
+                                        <div class="col-lg-4 mb-3">
                                             <label for="check_out" class="form-label">Check-out Date <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
@@ -449,7 +464,8 @@
                                             @if (old('group_members'))
                                                 @foreach (old('group_members') as $index => $member)
                                                     <div class="row mb-2 gx-2 align-items-end">
-                                                        <div class="col-md-5">
+                                                        {{-- UPDATED: col-md-5 to col-lg-5 --}}
+                                                        <div class="col-lg-5">
                                                             <label class="form-label small">Full Name</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][full_name]"
@@ -457,7 +473,8 @@
                                                                 value="{{ $member['full_name'] ?? '' }}"
                                                                 placeholder="Member's Full Name" required>
                                                         </div>
-                                                        <div class="col-md-5">
+                                                        {{-- UPDATED: col-md-5 to col-lg-5 --}}
+                                                        <div class="col-lg-5">
                                                             <label class="form-label small">Contact Number</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][contact_number]"
@@ -465,7 +482,8 @@
                                                                 value="{{ $member['contact_number'] ?? '' }}"
                                                                 placeholder="Member's Contact">
                                                         </div>
-                                                        <div class="col-md-2">
+                                                        {{-- UPDATED: col-md-2 to col-lg-2 --}}
+                                                        <div class="col-lg-2">
                                                             <button type="button"
                                                                 class="btn btn-outline-danger btn-sm w-100"
                                                                 onclick="this.parentElement.parentElement.remove()">
@@ -514,9 +532,9 @@
                                                         class="fw-bold text-bg-yellow">3:00 PM</span> and check-out is at
                                                     <span class="fw-bold text-bg-yellow">12:00 noon</span>. Early check-in
                                                     and late check-out are subject to availability and may incur additional
-                                                    fees. After <b>5:00 PM</b>, a full rate applies. <b>No-shows</b> will be charged for a
+                                                    fees. After 5:00 PM, a full rate applies. No-shows will be charged for a
                                                     full day.</li>
-                                                <li class="mb-2"><b>Lost room keys will incur a fine.</b></li>
+                                                <li class="mb-2">Lost room keys will incur a fine.</li>
                                                 <li class="mb-2">Personal safes are available in each apartment. Please
                                                     use them to secure your valuables. Bricks Point is not liable for any
                                                     loss.</li>
@@ -826,17 +844,18 @@
             window.addGroupMember = function() {
                 const container = document.getElementById('group-members-container');
                 const index = container.children.length;
+                {{-- UPDATED: All col-md-* to col-lg-* in JS string --}}
                 const memberFields = `
             <div class="row mb-2 gx-2 align-items-end">
-                <div class="col-md-5">
+                <div class="col-lg-5">
                     <label class="form-label small">Full Name</label>
                     <input type="text" name="group_members[${index}][full_name]" class="form-control" placeholder="Member's Full Name" required>
                 </div>
-                <div class="col-md-5">
+                <div class="col-lg-5">
                     <label class="form-label small">Contact Number</label>
                     <input type="text" name="group_members[${index}][contact_number]" class="form-control" placeholder="Member's Contact">
                 </div>
-                <div class="col-md-2">
+                <div class="col-lg-2">
                     <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">
                         <i class="fas fa-times"></i>
                     </button>

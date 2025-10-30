@@ -269,8 +269,8 @@
             <div class="flex justify-between items-center">
                 {{-- Brand Logo & Name --}}
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center shadow-md">
-                        <i class="fas fa-building text-white text-lg"></i>
+                    <div class="w-12 h-12 bg-white-500 rounded-lg flex items-center justify-center shadow-md">
+                        <img src="{{ asset('storage/images/BrickspointLogo.png') }}" alt="Brickspoint Aparthotel" class="w-full h-full object-cover rounded-lg">
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-base-dark font-brand">Brickspoint Aparthotel</h1>
@@ -297,11 +297,11 @@
                             </form>
                         </div>
                     @else
-                        <div class="flex items-center space-x-3">
+                        {{-- <div class="flex items-center space-x-3">
                             <a href="{{ route('login') }}" class="text-primary-brand hover:text-primary-dark transition-colors duration-200 font-medium">
                                 Staff Login
                             </a>
-                        </div>
+                        </div> --}}
                     @endauth
                 </div>
             </div>
