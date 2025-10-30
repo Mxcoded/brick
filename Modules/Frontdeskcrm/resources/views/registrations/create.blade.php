@@ -514,9 +514,9 @@
                                                         class="fw-bold text-bg-yellow">3:00 PM</span> and check-out is at
                                                     <span class="fw-bold text-bg-yellow">12:00 noon</span>. Early check-in
                                                     and late check-out are subject to availability and may incur additional
-                                                    fees. After 5:00 PM, a full rate applies. No-shows will be charged for a
+                                                    fees. After <b>5:00 PM</b>, a full rate applies. <b>No-shows</b> will be charged for a
                                                     full day.</li>
-                                                <li class="mb-2">Lost room keys will incur a fine.</li>
+                                                <li class="mb-2"><b>Lost room keys will incur a fine.</b></li>
                                                 <li class="mb-2">Personal safes are available in each apartment. Please
                                                     use them to secure your valuables. Bricks Point is not liable for any
                                                     loss.</li>

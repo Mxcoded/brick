@@ -34,6 +34,9 @@
     <div class="section">
         <h3>Guest Details</h3>
         <div class="field"><span class="label">Full Name:</span> {{ $registration->title }} {{ $registration->full_name }}</div>
+        <div class="field"><span class="label">Birthday:</span> {{ $registration->birthday ? $registration->birthday->format('M d, Y') : 'N/A' }}</div>
+        <div class="field"><span class="label">Company Name:</span> {{ $registration->company_name ?? 'N/A' }}</div>
+        <div class="field"><span class="label">Home Address:</span> {{ $registration->home_address ?? 'N/A' }}</div>
         <div class="field"><span class="label">Email:</span> {{ $registration->email ?? 'N/A' }}</div>
         <div class="field"><span class="label">Contact:</span> {{ $registration->contact_number ?? 'N/A' }}</div>
         <div class="field"><span class="label">Nationality:</span> {{ $registration->guest->nationality ?? 'N/A' }}</div>
@@ -42,11 +45,20 @@
     <div class="section">
         <h3>Booking Information</h3>
         <div class="field"><span class="label">Room Allocation:</span> {{ $registration->room_allocation ?? 'TBD' }}</div>
+        <div class="field"><span class="label">Bed and Breakfast:</span> {{ $registration->bed_breakfast ? 'Yes' : 'No' }}</div>
         <div class="field"><span class="label">Room Rate:</span> &#8358;{{ number_format($registration->room_rate, 2) }} / night</div>
+        <div class="field"><span class="label">Payment Method:</span> {{ $registration->payment_method ?? 'N/A' }}</div>
         <div class="field"><span class="label">Check-in:</span> {{ $registration->check_in ? $registration->check_in->format('M d, Y') : 'N/A' }}</div>
         <div class="field"><span class="label">Check-out:</span> {{ $registration->check_out ? $registration->check_out->format('M d, Y') : 'N/A' }}</div>
         <div class="field"><span class="label">Nights:</span> {{ $registration->no_of_nights }}</div>
         <div class="field"><span class="label">Total Amount:</span> &#8358;{{ number_format($registration->total_amount, 2) }}</div>
+    </div>
+
+    <div class="section">
+        <h3>ICE Information</h3>
+        <div class="field"><span class="label">Name:</span> {{ $registration->emergency_name ?? 'N/A' }}</div>
+        <div class="field"><span class="label">Contact:</span> {{ $registration->emergency_contact ?? 'N/A' }}</div>
+        <div class="field"><span class="label">Relationship:</span> {{ $registration->emergency_relationship ?? 'N/A' }}</div>
     </div>
 
     <div class="section">
