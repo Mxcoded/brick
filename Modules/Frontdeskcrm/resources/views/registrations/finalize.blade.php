@@ -4,6 +4,16 @@
 
 @section('page-content')
     <div class="container my-5">
+        @if (session('error'))
+            <div class="alert alert-danger">
+                {{ session('error') }}
+            </div>
+        @endif
+        @if(session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
         <div class="row justify-content-center">
             <div class="col-lg-10">
                 <form action="{{ route('frontdesk.registrations.finalize', $registration) }}" method="POST">
@@ -102,7 +112,7 @@
                                                         </td>
                                                         <td>
                                                             <select class="form-select"
-                                                                name="group_members[{{ $member->id }}][status]" required>
+                                                                name="group_members[{{ $member->id }}][stay_status]" required>
                                                                 <option value="checked_in" selected>Check-in</option>
                                                                 <option value="no_show">No-Show</option>
                                                             </select>

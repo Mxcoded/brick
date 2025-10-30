@@ -185,7 +185,7 @@ class RegistrationController extends Controller
                 }
 
                 // A) Handle No-Show Members
-                if ($data['status'] === 'no_show') {
+                if ($data['stay_status'] === 'no_show') {
                     $memberRegistration->update([
                         'stay_status' => 'no_show',
                         'total_amount' => 0,

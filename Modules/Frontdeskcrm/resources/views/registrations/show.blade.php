@@ -41,8 +41,8 @@
         }
 
         // --- Guest Profile Enhancements ---
-        $guestAge = $registration->guest && $registration->guest->birthdate 
-            ? \Carbon\Carbon::parse($registration->guest->birthdate)->age 
+        $guestAge = $registration->guest && $registration->guest->birthday 
+            ? \Carbon\Carbon::parse($registration->guest->birthday)->age
             : null;
 
         // --- Confirmation Message Logic ---
@@ -191,8 +191,12 @@
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item"><strong>Email:</strong> {{ $registration->guest->email ?? 'N/A' }}</li>
                         <li class="list-group-item"><strong>Contact:</strong> {{ $registration->guest->contact_number ?? 'N/A' }}</li>
+                        <li class="list-group-item"><strong>Address:</strong> {{ $registration->guest->home_address ?? 'N/A' }}</li>
+                        <li class="list-group-item"><strong>Gender:</strong> {{ $registration->guest->gender ?? 'N/A' }}</li>
+                        <li class="list-group-item"><strong>Nationality:</strong> {{ $registration->guest->nationality ?? 'N/A' }}</li>
+                        <li class="list-group-item"><strong>Company:</strong> {{ $registration->guest->company_name ?? 'N/A' }}</li>
                         <li class="list-group-item"><strong>Birthdate:</strong>
-                            {{ $registration->guest->birthdate ? \Carbon\Carbon::parse($registration->guest->birthdate)->format('M d, Y') : 'N/A' }}
+                            {{ $registration->guest->birthday ? \Carbon\Carbon::parse($registration->guest->birthday)->format('M d, Y') : 'N/A' }}
                             @if($guestAge) <span class="text-muted">(Age: {{ $guestAge }})</span> @endif
                         </li>
                         <li class="list-group-item"><strong>Guest Status:</strong> 
