@@ -66,10 +66,7 @@ class RegistrationController extends Controller
      */
     public function store(StoreRegistrationRequest $request)
     {
-        // The StoreRegistrationRequest will handle validation.
-        // We assume is_guest_draft is true for this submission.
-
-        // 1. Find or Create the Guest Profile
+        // 1. Find or Create the Guest Profile for the LEAD GUEST
         $guest = Guest::firstOrCreate(
             ['contact_number' => $request->contact_number],
             $request->only([
@@ -88,7 +85,25 @@ class RegistrationController extends Controller
             ])
         );
 
-        // 2. Create the Draft Registration Record
+        // If the guest was found and details were blank, update them now
+        if ($guest->wasRecentlyCreated === false) {
+            $guest->update($request->only([
+                'title',
+                'full_name',
+                'nationality',
+                'birthday',
+                'email',
+                'gender',
+                'occupation',
+                'company_name',
+                'home_address',
+                'emergency_name',
+                'emergency_relationship',
+                'emergency_contact'
+            ]));
+        }
+
+        // 2. Create the Draft Registration Record for the LEAD GUEST
         $registrationData = $request->validated();
         $registrationData['guest_id'] = $guest->id;
         $registrationData['stay_status'] = 'draft_by_guest';
@@ -106,13 +121,36 @@ class RegistrationController extends Controller
         // Create the registration
         $registration = Registration::create($registrationData);
 
-        // If it's a group lead, handle group members
+        // 3. Handle Group Members
         if ($request->boolean('is_group_lead') && $request->has('group_members')) {
             foreach ($request->group_members as $memberData) {
-                // For simplicity, we create minimal registration records for members
+
+                // --- START OF THE FIX ---
+                // This block solves Problem 1 and Problem 2
+
+                $memberGuestId = null;
+
+                // Only search/create a guest if a contact number is provided
+                // This matches the DTO validation ('contact_number' => ['nullable', 'string'])
+                if (!empty($memberData['contact_number'])) {
+                    $memberGuest = Guest::firstOrCreate(
+                        ['contact_number' => $memberData['contact_number']],
+                        [
+                            'full_name' => $memberData['full_name'],
+                            // Add email if you ever add it to the group form
+                            // 'email' => $memberData['email'] ?? null 
+                        ]
+                    );
+                    $memberGuestId = $memberGuest->id;
+                }
+
+                // --- END OF THE FIX ---
+
+                // Create the child registration, now with the correct guest_id
                 Registration::create([
                     'full_name' => $memberData['full_name'],
                     'contact_number' => $memberData['contact_number'],
+                    'guest_id' => $memberGuestId, // <-- THE FIX IS APPLIED HERE
                     'parent_registration_id' => $registration->id,
                     'stay_status' => 'draft_by_guest', // Members are also drafts
                     'check_in' => $registration->check_in,
@@ -185,7 +223,7 @@ class RegistrationController extends Controller
                 }
 
                 // A) Handle No-Show Members
-                if ($data['stay_status'] === 'no_show') {
+                if ($data['status'] === 'no_show') {
                     $memberRegistration->update([
                         'stay_status' => 'no_show',
                         'total_amount' => 0,

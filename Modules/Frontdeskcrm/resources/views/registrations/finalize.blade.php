@@ -4,19 +4,9 @@
 
 @section('page-content')
     <div class="container my-5">
-        @if (session('error'))
-            <div class="alert alert-danger">
-                {{ session('error') }}
-            </div>
-        @endif
-        @if(session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
-        @endif
         <div class="row justify-content-center">
             <div class="col-lg-10">
-                <form action="{{ route('frontdesk.registrations.finalize', $registration) }}" method="POST">
+                <form action="{{ route('frontdesk.registrations.finalize', $registration) }}" method="POST" novalidate>
                     @csrf
                     <div class="card shadow-lg">
                         <div class="card-header bg-warning text-dark">
@@ -24,6 +14,20 @@
                             </h4>
                         </div>
                         <div class="card-body p-4">
+
+                            {{-- ====================================================== --}}
+                            {{-- NEW: CATCH-ALL ERROR NOTIFICATION --}}
+                            {{-- ====================================================== --}}
+                            @if ($errors->any())
+                                <div class="alert alert-danger mb-4" role="alert">
+                                    <strong>There were errors with your submission:</strong>
+                                    <ul>
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
 
                             {{-- SECTION 1: GUEST SUBMITTED DATA (REVIEW) --}}
                             <fieldset class="mb-4">
@@ -60,16 +64,26 @@
                                 <div class="row bg-light p-3 rounded border">
                                     <div class="col-md-4 mb-3">
                                         <label for="room_allocation" class="form-label">Room Allocation*</label>
-                                        <input type="text" class="form-control" name="room_allocation" required>
+                                        {{-- REMOVED 'required' --}}
+                                        <input type="text" class="form-control @error('room_allocation') is-invalid @enderror" name="room_allocation" value="{{ old('room_allocation') }}">
+                                        {{-- ADDED ERROR HANDLING --}}
+                                        @error('room_allocation')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label for="room_rate" class="form-label">Room Rate (per night)*</label>
-                                        <input type="number" step="0.01" class="form-control" name="room_rate" required>
+                                        {{-- REMOVED 'required' --}}
+                                        <input type="number" step="0.01" class="form-control @error('room_rate') is-invalid @enderror" name="room_rate" value="{{ old('room_rate') }}">
+                                        {{-- ADDED ERROR HANDLING --}}
+                                        @error('room_rate')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                     <div class="col-md-4 mb-3 d-flex align-items-end">
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="bed_breakfast"
-                                                value="1" id="bed_breakfast">
+                                                value="1" id="bed_breakfast" @checked(old('bed_breakfast'))>
                                             <label class="form-check-label" for="bed_breakfast">Bed & Breakfast</label>
                                         </div>
                                     </div>
@@ -94,28 +108,39 @@
                                                     <tr>
                                                         <td>{{ $member->full_name }}</td>
                                                         <td>
-                                                            <input type="text" class="form-control"
+                                                            {{-- Note the syntax for array error handling --}}
+                                                            <input type="text" class="form-control @error('group_members.' . $member->id . '.room_allocation') is-invalid @enderror"
                                                                 name="group_members[{{ $member->id }}][room_allocation]"
-                                                                placeholder="Room No." required>
+                                                                placeholder="Room No." value="{{ old('group_members.' . $member->id . '.room_allocation') }}">
+                                                            @error('group_members.' . $member->id . '.room_allocation')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
                                                         </td>
                                                         <td>
-                                                            <input type="number" step="0.01" class="form-control"
+                                                            <input type="number" step="0.01" class="form-control @error('group_members.' . $member->id . '.room_rate') is-invalid @enderror"
                                                                 name="group_members[{{ $member->id }}][room_rate]"
-                                                                placeholder="Rate" required>
+                                                                placeholder="Rate" value="{{ old('group_members.' . $member->id . '.room_rate') }}">
+                                                            @error('group_members.' . $member->id . '.room_rate')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
                                                         </td>
                                                         <td>
                                                             <div class="form-check">
                                                                 <input class="form-check-input" type="checkbox"
                                                                     name="group_members[{{ $member->id }}][bed_breakfast]"
-                                                                    value="1">
+                                                                    value="1" @checked(old('group_members.' . $member->id . '.bed_breakfast'))>
                                                             </div>
                                                         </td>
                                                         <td>
-                                                            <select class="form-select"
-                                                                name="group_members[{{ $member->id }}][stay_status]" required>
-                                                                <option value="checked_in" selected>Check-in</option>
-                                                                <option value="no_show">No-Show</option>
+                                                            <select class="form-select @error('group_members.' . $member->id . '.status') is-invalid @enderror"
+                                                                name="group_members[{{ $member->id }}][status]">
+                                                                {{-- Use old() to remember the selection --}}
+                                                                <option value="checked_in" @selected(old('group_members.' . $member->id . '.status', 'checked_in') == 'checked_in')>Check-in</option>
+                                                                <option value="no_show" @selected(old('group_members.' . $member->id . '.status') == 'no_show')>No-Show</option>
                                                             </select>
+                                                            @error('group_members.' . $member->id . '.status')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
                                                         </td>
                                                     </tr>
                                                 @endforeach
@@ -126,41 +151,52 @@
 
                                 <h6 class="mt-4">Overall Booking Details</h6>
                                 <div class="row">
-                                    {{-- WRAP THE BILLING DROPDOWN IN THIS IF STATEMENT --}}
                                     @if ($registration->is_group_lead)
                                         <div class="col-md-4 mb-3">
                                             <label for="billing_type" class="form-label">Billing Method*</label>
-                                            <select name="billing_type" class="form-select" required>
-                                                <option value="consolidate" selected>Consolidate on Group Lead</option>
-                                                <option value="individual">Individual Billing (Each Pays Own)</option>
+                                            <select name="billing_type" class="form-select @error('billing_type') is-invalid @enderror">
+                                                <option value="consolidate" @selected(old('billing_type', 'consolidate') == 'consolidate')>Consolidate on Group Lead</option>
+                                                <option value="individual" @selected(old('billing_type') == 'individual')>Individual Billing (Each Pays Own)</option>
                                             </select>
+                                            @error('billing_type')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
                                         </div>
                                     @endif
                                     <div class="col-md-4 mb-3">
                                         <label for="guest_type_id" class="form-label">Guest Type*</label>
-                                        <select name="guest_type_id" class="form-select" required>
+                                        <select name="guest_type_id" class="form-select @error('guest_type_id') is-invalid @enderror">
                                             @foreach ($guestTypes as $type)
-                                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                                <option value="{{ $type->id }}" @selected(old('guest_type_id') == $type->id)>{{ $type->name }}</option>
                                             @endforeach
                                         </select>
+                                        @error('guest_type_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label for="booking_source_id" class="form-label">Booking Source*</label>
-                                        <select name="booking_source_id" class="form-select" required>
+                                        <select name="booking_source_id" class="form-select @error('booking_source_id') is-invalid @enderror">
                                             @foreach ($bookingSources as $source)
-                                                <option value="{{ $source->id }}">{{ $source->name }}</option>
+                                                <option value="{{ $source->id }}" @selected(old('booking_source_id') == $source->id)>{{ $source->name }}</option>
                                             @endforeach
                                         </select>
+                                        @error('booking_source_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label for="payment_method" class="form-label">Payment Method*</label>
-                                        <select name="payment_method" class="form-select" required>
-                                            <option value="pos">POS</option>
-                                            <option value="cash">Cash</option>
-                                            <option value="transfer">Transfer</option>
-                                            <option value="credit_balance">Credit Balance</option>
-                                            <option value="credit">Credit from other branches</option>
+                                        <select name="payment_method" class="form-select @error('payment_method') is-invalid @enderror">
+                                            <option value="pos" @selected(old('payment_method') == 'pos')>POS</option>
+                                            <option value="cash" @selected(old('payment_method') == 'cash')>Cash</option>
+                                            <option value="transfer" @selected(old('payment_method') == 'transfer')>Transfer</option>
+                                            <option value="credit_balance" @selected(old('payment_method') == 'credit_balance')>Credit Balance</option>
+                                            <option value="credit" @selected(old('payment_method') == 'credit')>Credit from other branches</option>
                                         </select>
+                                        @error('payment_method')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                             </fieldset>
