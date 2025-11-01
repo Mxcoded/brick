@@ -47,10 +47,12 @@ class RegistrationController extends Controller
             ->first();
 
         if ($guest) {
+            // dd($guest->toArray());
             // Guest found, flash their data to the session and redirect back
             return redirect()->route('frontdesk.registrations.create')
                 ->with('guest_data', $guest->toArray())
                 ->withInput(); // Also flash the search query
+                dd ('$guest_data');
         } else {
             // No guest found, just flash the search query back
             return redirect()->route('frontdesk.registrations.create')

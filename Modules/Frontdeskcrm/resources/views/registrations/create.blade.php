@@ -10,7 +10,7 @@
                 <div class="text-center mb-5">
                     <div class="hotel-brand mb-3">
                         {{-- UPDATED: Removed Brown Sugar font style, switched to text-charcoal --}}
-                        <h1 class="text-charcoal text-5xl font-bold mb-2" style="font-size: 3.5rem; font-weight: 600;">
+                        <h1 class="text-charcoal text-5xl font-bold mb-2" style="font-family:BrownSugar; font-size: 2.5rem; font-weight: 600;">
                             Brickspoint Aparthotel
                         </h1>
                         <div class="welcome-badge">
@@ -71,7 +71,7 @@
                             </div>
                             <div class="flex-grow-1">
                                 <h4 class="mb-0">Guest Check-in Form</h4>
-                                <p class="mb-0 opacity-75">Complete your registration in just a few minutes</p>
+                                <p class="mb-0 opacity-75">Complete your check-in in just a few minutes</p>
                             </div>
                             @if (session()->has('guest_data') || session()->has('search_query'))
                                 <div class="flex-shrink-0">
@@ -178,6 +178,12 @@
                                                 <option value="Dr."
                                                     {{ old('title', $guestData['title'] ?? '') == 'Dr.' ? 'selected' : '' }}>
                                                     Dr.</option>
+                                                    <option value="Prof."
+                                                    {{ old('title', $guestData['title'] ?? '') == 'Prof.' ? 'selected' : '' }}>Prof.</option>
+                                                    <option value="Sen."
+                                                    {{ old('title', $guestData['title'] ?? '') == 'Sen.' ? 'selected' : '' }}>Sen.</option>
+                                                <option value="Hon."
+                                                    {{ old('title', $guestData['title'] ?? '') == 'Hon.' ? 'selected' : '' }}>Hon.</option> 
                                             </select>
                                             @error('title')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -240,7 +246,7 @@
                                             <input type="date"
                                                 class="form-control @error('birthday') is-invalid @enderror"
                                                 name="birthday"
-                                                value="{{ old('birthday', $guestData['birthday'] ?? '') }}">
+                                               value="{{ old('birthday', isset($guestData['birthday']) ? \Carbon\Carbon::parse($guestData['birthday'])->format('Y-m-d') : '') }}">
                                             @error('birthday')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror

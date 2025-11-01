@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link rel="preload" href="/fonts/Proxima Nova Regular.ttf" as="font" type="font/ttf" crossorigin="anonymous">
 
     {{-- Tailwind CSS with Enhanced Configuration --}}
     <script src="https://cdn.tailwindcss.com"></script>
@@ -121,6 +122,19 @@
             /* Soft Taupe/Beige */
         }
 
+        @font-face {
+            font-family: 'Proxima Nova';
+            src: url('/fonts/Proxima Nova Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'BrownSugar';
+            src: url('/fonts/Brown Sugar .ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
         /* 1. Font Setup */
         body {
             /* Use Proxima Nova first, then fall back to the system sans-serif stack */
@@ -175,6 +189,34 @@
         a:hover {
             color: #b38e56;
         }
+        .text-charcoal {
+            color: var(--brand-charcoal);
+            font-family: 'Proxima Nova';
+        }   
+
+        /* 4. Nav & Footer */
+        .glass-nav {
+            background-color: rgba(255, 255, 255, 0.85);
+            /* White background with slight transparency */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            /* For Safari */
+            border-bottom: 1px solid rgba(200, 161, 101, 0.3);
+            /* Subtle gold border */
+        }
+
+        .footer-link {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: #e1e9e2d6;
+            text-decoration: none;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .footer-link:hover {
+            color: var(--brand-white);
+        }
 
         /* Update progress bar colors */
         .progress-bar {
@@ -224,20 +266,22 @@
 </head>
 
 <body class="font-sans antialiased">
-    <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div class="min-h-screen">
+
         {{-- Navigation Header --}}
-        <nav class="glass-nav shadow-smooth sticky top-0 z-50 no-print">
+        <nav class="glass-nav shadow-sm sticky top-0 z-50 no-print">
             <div class="container mx-auto px-4 py-3">
                 <div class="flex justify-between items-center">
                     {{-- Brand Logo & Name --}}
                     <div class="flex items-center space-x-3">
-                        <div class="w-12 h-12 bg-white-500 rounded-lg flex items-center justify-center shadow-md">
+                        <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-md">
                             <img src="{{ asset('storage/images/BrickspointLogo.png') }}" alt="Brickspoint Aparthotel"
                                 class="w-full h-full object-cover rounded-lg">
                         </div>
                         <div>
-                            <h1 class="text-xl font-bold text-base-dark font-brand">Brickspoint Aparthotel</h1>
-                            <p class="text-xs text-base-medium">Front Desk Portal</p>
+                            {{-- UPDATED: Applied brand colors --}}
+                            <h1 class="text-xl font-bold text-charcoal">Brickspoint Boutique Aparthotel</h1>
+                            <p class="text-xs text-muted">Front Desk Portal</p>
                         </div>
                     </div>
 
@@ -245,14 +289,17 @@
                     <div class="flex items-center space-x-4">
                         @auth
                             <div class="flex items-center space-x-3">
+                                {{-- UPDATED: Applied brand colors --}}
                                 <div
-                                    class="w-8 h-8 bg-primary-brand rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                    class="w-8 h-8 bg-gold rounded-full flex items-center justify-center text-white text-sm font-medium">
                                     {{ substr(Auth::user()->name, 0, 1) }}
                                 </div>
-                                <span class="text-base-dark font-medium hidden sm:inline">Welcome,
+                                <span class="text-charcoal font-medium hidden sm:inline">Welcome,
                                     {{ Auth::user()->name }}</span>
+
+                                {{-- UPDATED: Applied brand colors (using default <a> tag styling) --}}
                                 <a href="{{ route('logout') }}"
-                                    class="text-error hover:text-red-700 transition-colors duration-200 font-medium flex items-center space-x-1"
+                                    class="text-red-600 hover:text-red-800 transition-colors duration-200 font-medium flex items-center space-x-1"
                                     onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                                     <i class="fas fa-sign-out-alt"></i>
                                     <span class="hidden sm:inline">Logout</span>
@@ -263,10 +310,10 @@
                             </div>
                         @else
                             {{-- <div class="flex items-center space-x-3">
-                            <a href="{{ route('login') }}" class="text-primary-brand hover:text-primary-dark transition-colors duration-200 font-medium">
+                            <a href="{{ route('login') }}" class="font-medium">
                                 Staff Login
                             </a>
-                        </div> --}}
+                            </div> --}}
                         @endauth
                     </div>
                 </div>
@@ -279,159 +326,83 @@
         </main>
 
         {{-- Footer --}}
-        <footer class="bg-base-dark text-white py-8 mt-12 no-print">
+        {{-- UPDATED: Applied bg-charcoal and text-white --}}
+        <footer class="bg-charcoal text-white py-8 mt-12 no-print">
             <div class="container mx-auto px-4">
-                <div class="grid grid-cols-1 md:grid-cols-1 gap-0">
-                    {{-- Contact Information --}}
-                    {{-- <div>
-                    <h3 class="font-bold text-lg mb-4 font-brand">Brickspoint Aparthotel</h3>
-                    <div class="space-y-2 text-base-light">
-                        <p class="flex items-center space-x-2">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span>24 Jose Marti Crescent, Abuja</span>
-                        </p>
-                        <p class="flex items-center space-x-2">
-                            <i class="fas fa-phone"></i>
-                            <span>+2348099999620</span>
-                        </p>
-                        <p class="flex items-center space-x-2">
-                            <i class="fas fa-envelope"></i>
-                            <span>info@brickspoint.com</span>
-                        </p>
-                    </div>
-                </div> --}}
-
-                    {{-- Quick Links --}}
-                    {{-- <div>
-                    <h3 class="font-bold text-lg mb-4">Quick Links</h3>
-                    <div class="space-y-2">
-                        <a href="#" class="text-base-light hover:text-white transition-colors block">About Us</a>
-                        <a href="#" class="text-base-light hover:text-white transition-colors block">Services</a>
-                        <a href="#" class="text-base-light hover:text-white transition-colors block">Contact</a>
-                        <a href="#" class="text-base-light hover:text-white transition-colors block">Privacy Policy</a>
-                    </div>
-                </div> --}}
-
-                    {{-- Social Media --}}
-                    {{-- <div>
-                    <h3 class="font-bold text-lg mb-4">Connect With Us</h3>
-                    <div class="flex space-x-4">
-                        <a href="#" class="w-10 h-10 bg-base-medium hover:bg-primary-brand rounded-full flex items-center justify-center transition-colors">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-base-medium hover:bg-primary-brand rounded-full flex items-center justify-center transition-colors">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-base-medium hover:bg-primary-brand rounded-full flex items-center justify-center transition-colors">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-base-medium hover:bg-primary-brand rounded-full flex items-center justify-center transition-colors">
-                            <i class="fab fa-linkedin-in"></i>
-                        </a>
-                    </div>
-                </div> --}}
-                    <p
-                        class="text-center text-gray-700 text-lg md:text-xl font-medium leading-relaxed bg-gray-50 p-6 rounded-lg shadow-sm">
-                        Thank you for using the <span class="font-semibold text-primary">Brickspoint Aparthotel Front
-                            Desk Portal</span>. We're committed to delivering exceptional service and a seamless
-                        experience for both our guests and staff.
-                    </p>
-                </div>
+                {{-- Thank You Message --}}
+                {{-- <p UPDATED: Applied brand colors
+                    class="text-center text-charcoal text-lg md:text-xl font-medium leading-relaxed bg-white p-6 rounded-lg shadow-sm">
+                    Thank you for using the <span class="font-semibold text-gold">Brickspoint Aparthotel Front
+                        Desk Portal</span>. We're committed to delivering exceptional service and a seamless
+                    experience for both our guests and staff.
+                </p> --}}
 
                 {{-- Copyright --}}
-                <div class="border-t border-base-medium mt-8 pt-6 text-center text-base-light">
-                    <footer class=" p-3 mt-auto border-top">
-                        <div class="container-fluid text-center">
-                            <div
-                                style="display: inline-block; padding: 10px 20px;   border-radius: 12px; background: var(--glass-effect); border: 1px solid var(--glass-border);box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), 
-                            -4px -4px 15px rgba(116, 114, 114, 1.2); transform: perspective(600px) rotateX(2deg); transition: var(--transition); margin-right: 15px;">
-                                <p class="mb-0 text-light">&copy; {{ date('Y') }}
-
-                                    <a href="#"
-                                        style="font-weight: 800; font-size: 1.4rem; color: #e1e9e2d6;  text-decoration: none; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                 ">
-                                        BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub
-                                            style="font-size:8pt;">v1.0</sub>
-                                    </a>
-                                    . All rights reserved.
-                            </div>
-                            </p>
-                            <p class="mb-0 text-light">™ Developed with ❤️ by IT Team </p>
-                        </div>
-                    </footer>
+                <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
+                    <div
+                        style="display: inline-block; padding: 10px 20px; border-radius: 12px; border: 1px solid var(--glass-border); margin-right: 15px;">
+                        <p class="mb-0 text-light">
+                            &copy; {{ date('Y') }}
+                            <a href="#" class="footer-link">
+                                BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub
+                                    style="font-size:8pt;">v1.0</sub>
+                            </a>
+                            . All rights reserved.
+                        </p>
+                    </div>
+                    <p class="mb-0 text-light mt-2">™ Developed with ❤️ by IT Team </p>
                 </div>
             </div>
         </footer>
     </div>
-        {{-- Scripts Section --}}
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-        <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 
-        {{-- Global JavaScript --}}
-        <script>
-            // Enhanced Global Functions
-            document.addEventListener('DOMContentLoaded', function() {
-                // Auto-dismiss alerts
-                const alerts = document.querySelectorAll('.alert');
-                alerts.forEach(alert => {
-                    setTimeout(() => {
-                        alert.style.opacity = '0';
-                        setTimeout(() => alert.remove(), 300);
-                    }, 5000);
-                });
+    {{-- Scripts Section --}}
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 
-                // Enhanced form handling
-                const forms = document.querySelectorAll('form');
-                forms.forEach(form => {
-                    form.addEventListener('submit', function(e) {
-                        const submitBtn = this.querySelector('button[type="submit"]');
-                        if (submitBtn) {
-                            submitBtn.disabled = true;
-                            submitBtn.innerHTML =
-                                '<span class="loading-spinner mr-2"></span>Processing...';
-                        }
-                    });
-                });
+    {{-- Global JavaScript --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-dismiss alerts
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 300);
+                }, 5000);
+            });
 
-                // Smooth scrolling for anchor links
-                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                    anchor.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        const target = document.querySelector(this.getAttribute('href'));
-                        if (target) {
-                            target.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'start'
-                            });
-                        }
-                    });
-                });
-
-                // Enhanced error handling
-                window.addEventListener('error', function(e) {
-                    console.error('Application error:', e.error);
-                    // You can add error reporting service here
-                });
-
-                // Performance monitoring
-                window.addEventListener('load', function() {
-                    const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
-                    console.log('Page load time:', loadTime + 'ms');
+            // Enhanced form handling
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML =
+                            '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                    }
                 });
             });
-        </script>
 
-        {{-- Page Specific Scripts --}}
-        @stack('page-scripts')
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
 
-        {{-- Analytics (Optional) --}}
-        @if (config('app.analytics_enabled'))
-            <script>
-                // Add your analytics script here
-            </script>
-        @endif
+    {{-- Page Specific Scripts --}}
+    @stack('page-scripts')
+
 </body>
 
 </html>
