@@ -40,7 +40,7 @@ return new class extends Migration
             $table->tinyInteger('no_of_guests')->default(1);
             $table->date('check_out')->nullable();
             $table->tinyInteger('no_of_nights')->nullable();
-            $table->enum('payment_method', ['cash', 'pos', 'transfer'])->nullable()->default('cash');
+            $table->string('payment_method')->nullable()->default('cash');
 
             // Group Bookings
             $table->foreignId('parent_registration_id')->nullable()->constrained('registrations')->onDelete('cascade');
