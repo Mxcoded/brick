@@ -9,8 +9,10 @@
 
     <title>Brickspoint Aparthotel - @yield('title', 'Guest Check-in')</title>
 
-    <meta name="description" content="{{ $description ?? 'Luxury apartment hotel experience with premium amenities and personalized service' }}">
-    <meta name="keywords" content="{{ $keywords ?? 'aparthotel, luxury stay, business travel, vacation rental, premium accommodation' }}">
+    <meta name="description"
+        content="{{ $description ?? 'Luxury apartment hotel experience with premium amenities and personalized service' }}">
+    <meta name="keywords"
+        content="{{ $keywords ?? 'aparthotel, luxury stay, business travel, vacation rental, premium accommodation' }}">
     <meta name="author" content="{{ $author ?? 'Brickspoint Aparthotel' }}">
 
     {{-- Core CSS Frameworks --}}
@@ -36,19 +38,19 @@
                         'primary-dark': '#9AA6B2',
                         'primary-brand': '#1a56db',
                         'secondary-brand': '#059669',
-                        
+
                         // Neutral Colors
                         'base-white': '#F8FAFC',
                         'base-light': '#F1F5F9',
                         'base-medium': '#64748B',
                         'base-dark': '#334155',
-                        
+
                         // Semantic Colors
                         'success': '#10B981',
                         'warning': '#F59E0B',
                         'error': '#EF4444',
                         'info': '#3B82F6',
-                        
+
                         // Glass Effect Variables
                         'glass-bg': 'rgba(217, 234, 253, 0.1)',
                         'glass-border': 'rgba(154, 166, 178, 0.2)',
@@ -78,16 +80,30 @@
                     },
                     keyframes: {
                         'pulse-soft': {
-                            '0%, 100%': { opacity: '1' },
-                            '50%': { opacity: '0.8' }
+                            '0%, 100%': {
+                                opacity: '1'
+                            },
+                            '50%': {
+                                opacity: '0.8'
+                            }
                         },
                         'float': {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-10px)' }
+                            '0%, 100%': {
+                                transform: 'translateY(0px)'
+                            },
+                            '50%': {
+                                transform: 'translateY(-10px)'
+                            }
                         },
                         'fadeIn': {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                            '0%': {
+                                opacity: '0',
+                                transform: 'translateY(10px)'
+                            },
+                            '100%': {
+                                opacity: '1',
+                                transform: 'translateY(0)'
+                            }
                         }
                     }
                 }
@@ -97,141 +113,86 @@
 
     {{-- Custom Styles --}}
     <style>
-        /* GLASS EFFECT STYLES */
         :root {
-            --glass-effect: rgba(217, 234, 253, 0.1);
-            --glass-border: rgba(154, 166, 178, 0.2);
-            --glass-dark: rgba(255, 255, 255, 0.1);
+            --brand-white: #FFFFFF;
+            --brand-gold: #C8A165;
+            --brand-charcoal: #333333;
+            --brand-neutral: #f4f1ed;
+            /* Soft Taupe/Beige */
         }
 
-        /* Define Custom Local Fonts */
-        @font-face {
-            font-family: 'BrownSugar';
-            src: url("{{ asset('fonts/Brown Sugar .otf') }}") format('opentype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        @font-face {
-            font-family: 'GothamLight';
-            src: url("{{ asset('fonts/Gotham-Light.otf') }}") format('opentype');
-            font-weight: 300;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        @font-face {
-            font-family: 'FuturaLT';
-            src: url("{{ asset('fonts/FuturaLT-Light.ttf') }}") format('truetype');
-            font-weight: 300;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        /* Enhanced Base Styles */
+        /* 1. Font Setup */
         body {
-            background: linear-gradient(135deg, #F8FAFC 0%, #D9EAFD 50%, #EFF6FF 100%);
-            background-attachment: fixed;
-            font-family: 'Figtree', ui-sans-serif, system-ui;
-            min-height: 100vh;
+            /* Use Proxima Nova first, then fall back to the system sans-serif stack */
+            font-family: 'Proxima Nova', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Helvetica Neue", sans-serif;
+            color: var(--brand-charcoal);
+            background-color: var(--brand-neutral);
+            /* Use soft neutral for the page background */
         }
 
-        /* Glass Morphism Effect */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        /* 2. Helper Classes */
+        .text-gold {
+            color: var(--brand-gold);
         }
 
-        .glass-nav {
-            background: rgba(255, 255, 255, 0.95) !important;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        .bg-gold {
+            background-color: var(--brand-gold) !important;
         }
 
-        /* Smooth Scrolling */
-        html {
-            scroll-behavior: smooth;
+        .bg-charcoal {
+            background-color: var(--brand-charcoal) !important;
         }
 
-        /* Focus States */
-        .focus-brand:focus {
-            border-color: #1a56db;
-            box-shadow: 0 0 0 0.2rem rgba(26, 86, 219, 0.25);
-            outline: none;
+        /* 3. Component Overrides */
+        .btn-gold {
+            background-color: var(--brand-gold);
+            color: var(--brand-white);
+            border-color: var(--brand-gold);
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
+        .btn-gold:hover {
+            background-color: #b38e56;
+            /* A slightly darker gold for hover */
+            color: var(--brand-white);
+            border-color: #b38e56;
         }
 
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
+        .btn-outline-gold {
+            color: var(--brand-gold);
+            border-color: var(--brand-gold);
         }
 
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
+        .btn-outline-gold:hover {
+            background-color: var(--brand-gold);
+            color: var(--brand-white);
         }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+        /* Ensure links use the brand colors */
+        a {
+            color: var(--brand-gold);
         }
 
-        /* Loading Animation */
-        .loading-spinner {
-            border: 2px solid #f3f4f6;
-            border-top: 2px solid #1a56db;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
+        a:hover {
+            color: #b38e56;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        /* Update progress bar colors */
+        .progress-bar {
+            background-color: var(--brand-gold);
         }
 
-        /* Print Styles */
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-            
-            body {
-                background: white !important;
-            }
+        .step.active .step-icon {
+            background-color: var(--brand-gold) !important;
+            color: var(--brand-white) !important;
+            transform: scale(1.1);
         }
 
-        /* High Contrast Support */
-        @media (prefers-contrast: high) {
-            .glass-card {
-                background: white;
-                backdrop-filter: none;
-                border: 2px solid black;
-            }
-        }
-
-        /* Reduced Motion Support */
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-            
-            html {
-                scroll-behavior: auto;
-            }
+        .step.active .step-label {
+            color: var(--brand-gold);
+            font-weight: 600;
         }
     </style>
+    @stack('page-styles')
 
     {{-- Favicon --}}
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
@@ -262,63 +223,67 @@
     </script>
 </head>
 
-<body class="min-h-screen bg-gradient-to-br from-base-white via-primary-light to-base-light font-sans antialiased">
-    {{-- Navigation Header --}}
-    <nav class="glass-nav shadow-smooth sticky top-0 z-50 no-print">
-        <div class="container mx-auto px-4 py-3">
-            <div class="flex justify-between items-center">
-                {{-- Brand Logo & Name --}}
-                <div class="flex items-center space-x-3">
-                    <div class="w-12 h-12 bg-white-500 rounded-lg flex items-center justify-center shadow-md">
-                        <img src="{{ asset('storage/images/BrickspointLogo.png') }}" alt="Brickspoint Aparthotel" class="w-full h-full object-cover rounded-lg">
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-bold text-base-dark font-brand">Brickspoint Aparthotel</h1>
-                        <p class="text-xs text-base-medium">Front Desk Portal</p>
-                    </div>
-                </div>
-
-                {{-- User Actions --}}
-                <div class="flex items-center space-x-4">
-                    @auth
-                        <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 bg-primary-brand rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                {{ substr(Auth::user()->name, 0, 1) }}
-                            </div>
-                            <span class="text-base-dark font-medium hidden sm:inline">Welcome, {{ Auth::user()->name }}</span>
-                            <a href="{{ route('logout') }}" 
-                               class="text-error hover:text-red-700 transition-colors duration-200 font-medium flex items-center space-x-1"
-                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                <i class="fas fa-sign-out-alt"></i>
-                                <span class="hidden sm:inline">Logout</span>
-                            </a>
-                            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
-                                @csrf
-                            </form>
+<body class="font-sans antialiased">
+    <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+        {{-- Navigation Header --}}
+        <nav class="glass-nav shadow-smooth sticky top-0 z-50 no-print">
+            <div class="container mx-auto px-4 py-3">
+                <div class="flex justify-between items-center">
+                    {{-- Brand Logo & Name --}}
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-white-500 rounded-lg flex items-center justify-center shadow-md">
+                            <img src="{{ asset('storage/images/BrickspointLogo.png') }}" alt="Brickspoint Aparthotel"
+                                class="w-full h-full object-cover rounded-lg">
                         </div>
-                    @else
-                        {{-- <div class="flex items-center space-x-3">
+                        <div>
+                            <h1 class="text-xl font-bold text-base-dark font-brand">Brickspoint Aparthotel</h1>
+                            <p class="text-xs text-base-medium">Front Desk Portal</p>
+                        </div>
+                    </div>
+
+                    {{-- User Actions --}}
+                    <div class="flex items-center space-x-4">
+                        @auth
+                            <div class="flex items-center space-x-3">
+                                <div
+                                    class="w-8 h-8 bg-primary-brand rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                    {{ substr(Auth::user()->name, 0, 1) }}
+                                </div>
+                                <span class="text-base-dark font-medium hidden sm:inline">Welcome,
+                                    {{ Auth::user()->name }}</span>
+                                <a href="{{ route('logout') }}"
+                                    class="text-error hover:text-red-700 transition-colors duration-200 font-medium flex items-center space-x-1"
+                                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span class="hidden sm:inline">Logout</span>
+                                </a>
+                                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
+                                    @csrf
+                                </form>
+                            </div>
+                        @else
+                            {{-- <div class="flex items-center space-x-3">
                             <a href="{{ route('login') }}" class="text-primary-brand hover:text-primary-dark transition-colors duration-200 font-medium">
                                 Staff Login
                             </a>
                         </div> --}}
-                    @endauth
+                        @endauth
+                    </div>
                 </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    {{-- Main Content --}}
-    <main class="flex-1 py-8">
-        @yield('page-content')
-    </main>
+        {{-- Main Content --}}
+        <main>
+            @yield('page-content')
+        </main>
 
-    {{-- Footer --}}
-    <footer class="bg-base-dark text-white py-8 mt-12 no-print">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-1 gap-0">
-                {{-- Contact Information --}}
-                {{-- <div>
+        {{-- Footer --}}
+        <footer class="bg-base-dark text-white py-8 mt-12 no-print">
+            <div class="container mx-auto px-4">
+                <div class="grid grid-cols-1 md:grid-cols-1 gap-0">
+                    {{-- Contact Information --}}
+                    {{-- <div>
                     <h3 class="font-bold text-lg mb-4 font-brand">Brickspoint Aparthotel</h3>
                     <div class="space-y-2 text-base-light">
                         <p class="flex items-center space-x-2">
@@ -336,8 +301,8 @@
                     </div>
                 </div> --}}
 
-                {{-- Quick Links --}}
-                {{-- <div>
+                    {{-- Quick Links --}}
+                    {{-- <div>
                     <h3 class="font-bold text-lg mb-4">Quick Links</h3>
                     <div class="space-y-2">
                         <a href="#" class="text-base-light hover:text-white transition-colors block">About Us</a>
@@ -347,8 +312,8 @@
                     </div>
                 </div> --}}
 
-                {{-- Social Media --}}
-                {{-- <div>
+                    {{-- Social Media --}}
+                    {{-- <div>
                     <h3 class="font-bold text-lg mb-4">Connect With Us</h3>
                     <div class="flex space-x-4">
                         <a href="#" class="w-10 h-10 bg-base-medium hover:bg-primary-brand rounded-full flex items-center justify-center transition-colors">
@@ -365,104 +330,108 @@
                         </a>
                     </div>
                 </div> --}}
-               <p class="text-center text-gray-700 text-lg md:text-xl font-medium leading-relaxed bg-gray-50 p-6 rounded-lg shadow-sm">
-  Thank you for using the <span class="font-semibold text-primary">Brickspoint Aparthotel Front Desk Portal</span>. We're committed to delivering exceptional service and a seamless experience for both our guests and staff.
-</p>
-            </div>
-            
-            {{-- Copyright --}}
-            <div class="border-t border-base-medium mt-8 pt-6 text-center text-base-light">
-                 <footer class=" p-3 mt-auto border-top">
-                <div class="container-fluid text-center">
-                    <div
-                        style="display: inline-block; padding: 10px 20px;   border-radius: 12px; background: var(--glass-effect); border: 1px solid var(--glass-border);box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), 
-                            -4px -4px 15px rgba(116, 114, 114, 1.2); transform: perspective(600px) rotateX(2deg); transition: var(--transition); margin-right: 15px;">
-                        <p class="mb-0 text-light">&copy; {{ date('Y') }}
-
-                            <a href="#"
-                                style="font-weight: 800; font-size: 1.4rem; color: #e1e9e2d6;  text-decoration: none; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                 ">
-                                BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub
-                                    style="font-size:8pt;">v1.0</sub>
-                            </a>
-                            . All rights reserved.
-                    </div>
+                    <p
+                        class="text-center text-gray-700 text-lg md:text-xl font-medium leading-relaxed bg-gray-50 p-6 rounded-lg shadow-sm">
+                        Thank you for using the <span class="font-semibold text-primary">Brickspoint Aparthotel Front
+                            Desk Portal</span>. We're committed to delivering exceptional service and a seamless
+                        experience for both our guests and staff.
                     </p>
-                    <p class="mb-0 text-light">™ Developed with ❤️ by IT Team </p>
                 </div>
-            </footer>
+
+                {{-- Copyright --}}
+                <div class="border-t border-base-medium mt-8 pt-6 text-center text-base-light">
+                    <footer class=" p-3 mt-auto border-top">
+                        <div class="container-fluid text-center">
+                            <div
+                                style="display: inline-block; padding: 10px 20px;   border-radius: 12px; background: var(--glass-effect); border: 1px solid var(--glass-border);box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), 
+                            -4px -4px 15px rgba(116, 114, 114, 1.2); transform: perspective(600px) rotateX(2deg); transition: var(--transition); margin-right: 15px;">
+                                <p class="mb-0 text-light">&copy; {{ date('Y') }}
+
+                                    <a href="#"
+                                        style="font-weight: 800; font-size: 1.4rem; color: #e1e9e2d6;  text-decoration: none; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                 ">
+                                        BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub
+                                            style="font-size:8pt;">v1.0</sub>
+                                    </a>
+                                    . All rights reserved.
+                            </div>
+                            </p>
+                            <p class="mb-0 text-light">™ Developed with ❤️ by IT Team </p>
+                        </div>
+                    </footer>
+                </div>
             </div>
-        </div>
-    </footer>
+        </footer>
+    </div>
+        {{-- Scripts Section --}}
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
 
-    {{-- Scripts Section --}}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+        {{-- Global JavaScript --}}
+        <script>
+            // Enhanced Global Functions
+            document.addEventListener('DOMContentLoaded', function() {
+                // Auto-dismiss alerts
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    setTimeout(() => {
+                        alert.style.opacity = '0';
+                        setTimeout(() => alert.remove(), 300);
+                    }, 5000);
+                });
 
-    {{-- Global JavaScript --}}
-    <script>
-        // Enhanced Global Functions
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-dismiss alerts
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                setTimeout(() => {
-                    alert.style.opacity = '0';
-                    setTimeout(() => alert.remove(), 300);
-                }, 5000);
-            });
+                // Enhanced form handling
+                const forms = document.querySelectorAll('form');
+                forms.forEach(form => {
+                    form.addEventListener('submit', function(e) {
+                        const submitBtn = this.querySelector('button[type="submit"]');
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.innerHTML =
+                                '<span class="loading-spinner mr-2"></span>Processing...';
+                        }
+                    });
+                });
 
-            // Enhanced form handling
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                form.addEventListener('submit', function(e) {
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    if (submitBtn) {
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<span class="loading-spinner mr-2"></span>Processing...';
-                    }
+                // Smooth scrolling for anchor links
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const target = document.querySelector(this.getAttribute('href'));
+                        if (target) {
+                            target.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }
+                    });
+                });
+
+                // Enhanced error handling
+                window.addEventListener('error', function(e) {
+                    console.error('Application error:', e.error);
+                    // You can add error reporting service here
+                });
+
+                // Performance monitoring
+                window.addEventListener('load', function() {
+                    const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                    console.log('Page load time:', loadTime + 'ms');
                 });
             });
+        </script>
 
-            // Smooth scrolling for anchor links
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                });
-            });
+        {{-- Page Specific Scripts --}}
+        @stack('page-scripts')
 
-            // Enhanced error handling
-            window.addEventListener('error', function(e) {
-                console.error('Application error:', e.error);
-                // You can add error reporting service here
-            });
-
-            // Performance monitoring
-            window.addEventListener('load', function() {
-                const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
-                console.log('Page load time:', loadTime + 'ms');
-            });
-        });
-    </script>
-
-    {{-- Page Specific Scripts --}}
-    @stack('page-scripts')
-
-    {{-- Analytics (Optional) --}}
-    @if(config('app.analytics_enabled'))
-    <script>
-        // Add your analytics script here
-    </script>
-    @endif
+        {{-- Analytics (Optional) --}}
+        @if (config('app.analytics_enabled'))
+            <script>
+                // Add your analytics script here
+            </script>
+        @endif
 </body>
 
 </html>

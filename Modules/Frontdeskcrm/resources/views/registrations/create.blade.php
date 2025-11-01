@@ -9,11 +9,13 @@
                 {{-- Welcome Header --}}
                 <div class="text-center mb-5">
                     <div class="hotel-brand mb-3">
-                        <h1 class="text-gray-400 text-5xl font-bold mb-2" style="font-family: 'BrownSugar', sans-serif;">
+                        {{-- UPDATED: Removed Brown Sugar font style, switched to text-charcoal --}}
+                        <h1 class="text-charcoal text-5xl font-bold mb-2" style="font-size: 3.5rem; font-weight: 600;">
                             Brickspoint Aparthotel
                         </h1>
                         <div class="welcome-badge">
-                            <span class="badge fs-6 px-4 py-2 rounded-pill shadow-sm" style="background-color: #2b2225;">
+                            {{-- UPDATED: Switched to new bg-charcoal class --}}
+                            <span class="badge fs-6 px-4 py-2 rounded-pill shadow-sm bg-charcoal">
                                 <i class="fas fa-star me-2"></i>Welcome to Your Stay
                             </span>
                         </div>
@@ -41,8 +43,9 @@
                         <div class="d-flex justify-content-between position-relative">
                             <div class="progress-bar position-absolute top-0 start-0 end-0"
                                 style="height: 4px; background: #e9ecef; z-index: 1;"></div>
+                            {{-- UPDATED: Removed inline bg-success, will be handled by CSS in layout --}}
                             <div class="progress-bar position-absolute top-0 start-0"
-                                style="height: 4px; background: var(--bs-success); z-index: 2; width: 0%;"
+                                style="height: 4px; z-index: 2; width: 0%;"
                                 id="form-progress"></div>
 
                             @foreach ([1 => ['Personal Info', 'user'], 2 => ['Emergency Contact', 'phone-alt'], 3 => ['Stay Details', 'calendar-day'], 4 => ['Group Info', 'users'], 5 => ['Review & Sign', 'file-signature']] as $step => $data)
@@ -51,7 +54,6 @@
                                         style="width: 50px; height: 50px; z-index: 3;">
                                         <i class="fas fa-{{ $data[1] }}"></i>
                                     </div>
-                                    {{-- UPDATED: Added d-none d-md-block to hide text on phones --}}
                                     <span class="step-label small fw-medium d-none d-md-block">{{ $data[0] }}</span>
                                 </div>
                             @endforeach
@@ -61,7 +63,8 @@
 
                 {{-- Main Card --}}
                 <div class="card shadow-lg border-0 overflow-hidden">
-                    <div class="card-header text-white py-4" style="background: linear-gradient(90deg, #2b2225, #2b2225);">
+                    {{-- UPDATED: Switched to new bg-charcoal class --}}
+                    <div class="card-header text-white py-4 bg-charcoal">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
                                 <i class="fas fa-feather-alt fa-2x me-3"></i>
@@ -72,19 +75,22 @@
                             </div>
                             @if (session()->has('guest_data') || session()->has('search_query'))
                                 <div class="flex-shrink-0">
-                                    <span class="badge bg-white text-success fs-6">Step <span id="current-step">1</span> of
+                                    {{-- UPDATED: Switched text-success to text-gold --}}
+                                    <span class="badge bg-white text-gold fs-6">Step <span id="current-step">1</span> of
                                         5</span>
                                 </div>
                             @endif
                         </div>
                     </div>
 
-                    <div class="card-body p-4 p-md-5">
+                    {{-- UPDATED: Set card body to white to contrast with page background --}}
+                    <div class="card-body p-4 p-md-5 bg-white">
                         {{-- STAGE 1: SEARCH FORM --}}
                         @if (!session()->has('guest_data') && !session()->has('search_query'))
                             <div class="text-center py-4">
                                 <div class="search-icon mb-4">
-                                    <i class="fas fa-search fa-3x  mb-3" style="color: #2b2225;"></i>
+                                    {{-- UPDATED: Changed icon color to gold --}}
+                                    <i class="fas fa-search fa-3x  mb-3 text-gold"></i>
                                 </div>
                                 <h3 class="fw-bold mb-3">Find Your Profile</h3>
                                 <p class="text-muted mb-4">Enter your email or contact number to quickly retrieve your
@@ -107,8 +113,8 @@
                                             @enderror
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn btn-lg px-5 py-3"
-                                        style="background-color: #2b2225; color: white; transition: background-color 0.4s;">
+                                    {{-- UPDATED: Replaced inline style with btn-gold class --}}
+                                    <button type="submit" class="btn btn-gold btn-lg px-5 py-3">
                                         <span class="fw-bold">Continue</span>
                                         <i class="fas fa-arrow-right ms-2"></i>
                                     </button>
@@ -141,19 +147,20 @@
                                 {{-- Step 1: Personal Details --}}
                                 <div class="form-step" id="step-1">
                                     <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
+                                        {{-- UPDATED: text-primary to text-gold --}}
+                                        <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-user me-2"></i>Personal Details
+                                            {{-- UPDATED: bg-success to bg-light border --}}
                                             @if ($guestData)
-                                                <span class="badge bg-success ms-2">Welcome back!</span>
+                                                <span class="badge bg-light text-dark border ms-2">Welcome back!</span>
                                             @else
-                                                <span class="badge bg-warning ms-2">New Guest</span>
+                                                <span class="badge bg-light text-dark border ms-2">New Guest</span>
                                             @endif
                                         </h5>
                                         <p class="text-muted">Tell us a bit about yourself</p>
                                     </div>
 
                                     <div class="row">
-                                        {{-- UPDATED: col-md-4 to col-lg-4 --}}
                                         <div class="col-lg-4 mb-3">
                                             <label for="title" class="form-label">Title</label>
                                             <select class="form-select @error('title') is-invalid @enderror" name="title"
@@ -176,7 +183,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-8 to col-lg-8 --}}
                                         <div class="col-lg-8 mb-3">
                                             <label for="full_name" class="form-label">Full Name <span
                                                     class="text-danger">*</span></label>
@@ -189,7 +195,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
                                         <div class="col-lg-6 mb-3">
                                             <label for="email" class="form-label">Email Address</label>
                                             <div class="input-group">
@@ -204,7 +209,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
                                         <div class="col-lg-6 mb-3">
                                             <label for="contact_number" class="form-label">Contact Number <span
                                                     class="text-danger">*</span></label>
@@ -220,7 +224,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
                                         <div class="col-lg-6 mb-3">
                                             <label for="nationality" class="form-label">Nationality</label>
                                             <select class="form-select @error('nationality') is-invalid @enderror"
@@ -232,7 +235,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
                                         <div class="col-lg-6 mb-3">
                                             <label for="birthday" class="form-label">Birthday</label>
                                             <input type="date"
@@ -243,7 +245,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
                                         <div class="col-lg-6 mb-3">
                                             <label for="gender" class="form-label">Gender</label>
                                             <select class="form-select @error('gender') is-invalid @enderror"
@@ -263,7 +264,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
                                         <div class="col-lg-6 mb-3">
                                             <label for="occupation" class="form-label">Occupation</label>
                                             <input type="text"
@@ -275,7 +275,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
                                         <div class="col-lg-6 mb-3">
                                             <label for="company_name" class="form-label">Company/Group</label>
                                             <input type="text"
@@ -299,7 +298,8 @@
 
                                     <div class="d-flex justify-content-between mt-4">
                                         <div></div>
-                                        <button type="button" class="btn btn-success next-step" data-next="2">
+                                        {{-- UPDATED: btn-success to btn-gold --}}
+                                        <button type="button" class="btn btn-gold next-step" data-next="2">
                                             Continue to Emergency Contact <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
                                     </div>
@@ -308,14 +308,14 @@
                                 {{-- Step 2: Emergency Contact --}}
                                 <div class="form-step d-none" id="step-2">
                                     <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
+                                        {{-- UPDATED: text-primary to text-gold --}}
+                                        <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-phone-alt me-2"></i>Emergency Contact
                                         </h5>
                                         <p class="text-muted">Who should we contact in case of emergency?</p>
                                     </div>
 
                                     <div class="row">
-                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
                                         <div class="col-lg-6 mb-3">
                                             <label for="emergency_name" class="form-label">Contact Name</label>
                                             <input type="text"
@@ -327,7 +327,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-6 to col-lg-6 --}}
                                         <div class="col-lg-6 mb-3">
                                             <label for="emergency_contact" class="form-label">Contact Number</label>
                                             <div class="input-group">
@@ -355,7 +354,8 @@
                                             data-prev="1">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Personal Details
                                         </button>
-                                        <button type="button" class="btn btn-success next-step" data-next="3">
+                                        {{-- UPDATED: btn-success to btn-gold --}}
+                                        <button type="button" class="btn btn-gold next-step" data-next="3">
                                             Continue to Stay Details <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
                                     </div>
@@ -364,14 +364,14 @@
                                 {{-- Step 3: Stay Details --}}
                                 <div class="form-step d-none" id="step-3">
                                     <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
+                                        {{-- UPDATED: text-primary to text-gold --}}
+                                        <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-calendar-day me-2"></i>Stay Details
                                         </h5>
                                         <p class="text-muted">Tell us about your stay with us</p>
                                     </div>
 
                                     <div class="row">
-                                        {{-- UPDATED: col-md-4 to col-lg-4 --}}
                                         <div class="col-lg-4 mb-3">
                                             <label for="no_of_guests" class="form-label">Number of Guests <span
                                                     class="text-danger">*</span></label>
@@ -387,7 +387,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-4 to col-lg-4 --}}
                                         <div class="col-lg-4 mb-3">
                                             <label for="check_in" class="form-label">Check-in Date <span
                                                     class="text-danger">*</span></label>
@@ -403,7 +402,6 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        {{-- UPDATED: col-md-4 to col-lg-4 --}}
                                         <div class="col-lg-4 mb-3">
                                             <label for="check_out" class="form-label">Check-out Date <span
                                                     class="text-danger">*</span></label>
@@ -427,29 +425,29 @@
                                             data-prev="2">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Emergency Contact
                                         </button>
-                                        <button type="button" class="btn btn-success next-step" data-next="4">
-                                            Continue to Group Booking <i class="fas fa-arrow-right ms-2"></i>
+                                        {{-- UPDATED: btn-success to btn-gold --}}
+                                        <button type="button" class="btn btn-gold next-step" data-next="4">
+                                            Continue to Additional Rooms <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
                                     </div>
                                 </div>
 
-
-                                {{-- Step 4: Group Booking (Reworded for Clarity) --}}
+                                {{-- Step 4: Group Booking (Reworded) --}}
                                 <div class="form-step d-none" id="step-4">
                                     <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
+                                        {{-- UPDATED: text-primary to text-gold and text --}}
+                                        <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-users me-2"></i>Additional Rooms & Guests
                                         </h5>
-                                        <p class="text-muted">Let us know if you need more than one room or are booking for
-                                            others.</p>
+                                        <p class="text-muted">Let us know if you need more than one room or are booking for others.</p>
                                     </div>
 
-                                    {{-- UPDATED: This label is much clearer --}}
                                     <div class="form-check mb-4">
                                         <input class="form-check-input @error('is_group_lead') is-invalid @enderror"
                                             type="checkbox" id="is_group_lead" name="is_group_lead" value="1"
                                             {{ old('is_group_lead') ? 'checked' : '' }}
                                             onchange="toggleGroupMembers(this.checked)">
+                                        {{-- UPDATED: Wording --}}
                                         <label class="form-check-label fw-medium" for="is_group_lead">
                                             I am booking for more than one room OR for other people.
                                         </label>
@@ -460,13 +458,11 @@
 
                                     <div id="group-members-section"
                                         style="display: {{ old('is_group_lead') ? 'block' : 'none' }};">
-
-                                        {{-- UPDATED: This helper text explains the workaround --}}
+                                        {{-- UPDATED: Wording --}}
                                         <p class="text-muted small mb-3">
                                             Please add the primary guest for each additional room.
                                             <br>
-                                            <strong>If you need a second room for yourself, please click "Add Room" and
-                                                enter your own name and contact number again.</strong>
+                                            <strong>If you need a second room for yourself, please click "Add Room" and enter your own name and contact number again.</strong>
                                         </p>
 
                                         <div id="group-members-container">
@@ -475,8 +471,8 @@
                                                 @foreach (old('group_members') as $index => $member)
                                                     <div class="row mb-2 gx-2 align-items-end">
                                                         <div class="col-lg-5">
-                                                            <label class="form-label small">Full Name (for this
-                                                                room)</label>
+                                                            {{-- UPDATED: Wording --}}
+                                                            <label class="form-label small">Full Name (for this room)</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][full_name]"
                                                                 class="form-control"
@@ -484,8 +480,8 @@
                                                                 placeholder="Guest's Full Name" required>
                                                         </div>
                                                         <div class="col-lg-5">
-                                                            <label class="form-label small">Contact Number
-                                                                (optional)</label>
+                                                            {{-- UPDATED: Wording --}}
+                                                            <label class="form-label small">Contact Number (optional)</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][contact_number]"
                                                                 class="form-control"
@@ -503,8 +499,8 @@
                                                 @endforeach
                                             @endif
                                         </div>
-                                        {{-- UPDATED: Button text --}}
-                                        <button type="button" class="btn btn-outline-primary btn-sm mt-2"
+                                        {{-- UPDATED: btn-outline-primary to btn-outline-gold and text --}}
+                                        <button type="button" class="btn btn-outline-gold btn-sm mt-2"
                                             onclick="addGroupMember()">
                                             <i class="fas fa-plus me-1"></i> Add Room / Guest
                                         </button>
@@ -515,7 +511,8 @@
                                             data-prev="3">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Stay Details
                                         </button>
-                                        <button type="button" class="btn btn-success next-step" data-next="5">
+                                        {{-- UPDATED: btn-success to btn-gold --}}
+                                        <button type="button" class="btn btn-gold next-step" data-next="5">
                                             Continue to Review & Sign <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
                                     </div>
@@ -524,14 +521,16 @@
                                 {{-- Step 5: Policy and Signature --}}
                                 <div class="form-step d-none" id="step-5">
                                     <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
+                                        {{-- UPDATED: text-primary to text-gold --}}
+                                        <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-file-signature me-2"></i>Review & Signature
                                         </h5>
                                         <p class="text-muted">Almost done! Please review and sign</p>
                                     </div>
 
                                     <div class="policy-agreement mb-4">
-                                        <h6 class="fw-bold mb-3 text-bg-danger">Policy Agreement</h6>
+                                        {{-- UPDATED: text-bg-danger to a neutral style --}}
+                                        <h6 class="fw-bold mb-3 border-bottom pb-2">Policy Agreement</h6>
                                         <div class="border rounded p-3 bg-light"
                                             style="max-height: 200px; overflow-y: auto;">
                                             <ul class="mb-0">
@@ -539,12 +538,11 @@
                                                     stays, Bricks Point reserves the right to revert to the RACK RATE if
                                                     checkout occurs before the agreed duration.</li>
                                                 <li class="mb-2">Check-in is at <span
-                                                        class="fw-bold text-bg-yellow">3:00 PM</span> and check-out is at
-                                                    <span class="fw-bold text-bg-yellow">12:00 noon</span>. Early check-in
+                                                        class="fw-bold text-dark">3:00 PM</span> and check-out is at
+                                                    <span class="fw-bold text-dark">12:00 noon</span>. Early check-in
                                                     and late check-out are subject to availability and may incur additional
                                                     fees. After 5:00 PM, a full rate applies. No-shows will be charged for a
-                                                    full day.
-                                                </li>
+                                                    full day.</li>
                                                 <li class="mb-2">Lost room keys will incur a fine.</li>
                                                 <li class="mb-2">Personal safes are available in each apartment. Please
                                                     use them to secure your valuables. Bricks Point is not liable for any
@@ -613,7 +611,8 @@
                                             data-prev="4">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Group Booking
                                         </button>
-                                        <button type="submit" class="btn btn-success btn-lg px-4" id="submit-btn">
+                                        {{-- UPDATED: btn-success to btn-gold --}}
+                                        <button type="submit" class="btn btn-gold btn-lg px-4" id="submit-btn">
                                             <i class="fas fa-check-circle me-2"></i>Submit for Final Review
                                         </button>
                                     </div>
@@ -632,6 +631,7 @@
         </div>
     </div>
 
+    {{-- UPDATED: Added a new <style> section to apply branding to this page's specific elements --}}
     <style>
         .signature-pad-container {
             position: relative;
@@ -659,15 +659,15 @@
             gap: 8px;
         }
 
-        .step.active .step-icon {
-            background-color: #198754 !important;
-            color: white !important;
-            transform: scale(1.1);
+        /* Form control focus color */
+        .form-control:focus, .form-select:focus {
+            border-color: var(--brand-gold);
+            box-shadow: 0 0 0 0.25rem rgba(200, 161, 101, 0.25);
         }
 
-        .step.active .step-label {
-            color: #198754;
-            font-weight: 600;
+        .form-check-input:checked {
+            background-color: var(--brand-gold);
+            border-color: var(--brand-gold);
         }
     </style>
 @endsection
@@ -824,7 +824,8 @@
 
                 signaturePad = new SignaturePad(canvas, {
                     backgroundColor: 'rgb(255, 255, 255)',
-                    penColor: 'rgb(0, 0, 255)',
+                    // UPDATED: Pen color to charcoal
+                    penColor: 'rgb(51, 51, 51)', 
                     minWidth: 1,
                     maxWidth: 3,
                 });
@@ -855,25 +856,24 @@
             window.addGroupMember = function() {
                 const container = document.getElementById('group-members-container');
                 const index = container.children.length;
-                
-                // UPDATED: All text labels and placeholders to match the new logic
+                // UPDATED: Labels and placeholders to match new wording
                 const memberFields = `
-                <div class="row mb-2 gx-2 align-items-end">
-                    <div class="col-lg-5">
-                        <label class="form-label small">Full Name (for this room)</label>
-                        <input type="text" name="group_members[${index}][full_name]" class="form-control" placeholder="Guest's Full Name" required>
-                    </div>
-                    <div class="col-lg-5">
-                        <label class="form-label small">Contact Number (optional)</label>
-                        <input type="text" name="group_members[${index}][contact_number]" class="form-control" placeholder="Guest's Contact">
-                    </div>
-                    <div class="col-lg-2">
-                        <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">
-                            <i class="fas fa-times"></i> Remove
-                        </button>
-                    </div>
+            <div class="row mb-2 gx-2 align-items-end">
+                <div class="col-lg-5">
+                    <label class="form-label small">Full Name (for this room)</label>
+                    <input type="text" name="group_members[${index}][full_name]" class="form-control" placeholder="Guest's Full Name" required>
                 </div>
-                `;
+                <div class="col-lg-5">
+                    <label class="form-label small">Contact Number (optional)</label>
+                    <input type="text" name="group_members[${index}][contact_number]" class="form-control" placeholder="Guest's Contact">
+                </div>
+                <div class="col-lg-2">
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i> Remove
+                    </button>
+                </div>
+            </div>
+        `;
                 container.insertAdjacentHTML('beforeend', memberFields);
             }
 
