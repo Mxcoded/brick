@@ -154,7 +154,7 @@
                     <p style="margin: 0;">Phone: (123) 456-7890 | Email: info@brickspoint.com</p> --}}
                 </td>
                 <td style="border: 0; text-align: right; vertical-align: top;">
-                    <h2 style="margin: 0; font-size: 16px;">Guest Registration Folio</h2>
+                    <h2 style="margin: 0; font-size: 16px;">Guest Check-in Registration Form</h2>
                     <p style="margin: 2px 0;"><strong>Reg ID:</strong> {{ $registration->id }}</p>
                     <p style="margin: 2px 0;"><strong>Print Date:</strong> {{ now()->format('M d, Y H:i A') }} <br> by {{ Auth::user()->name }}</p>
                 </td>

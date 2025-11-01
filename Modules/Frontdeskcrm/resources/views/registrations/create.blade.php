@@ -433,22 +433,25 @@
                                     </div>
                                 </div>
 
-                                {{-- Step 4: Group Booking --}}
+
+                                {{-- Step 4: Group Booking (Reworded for Clarity) --}}
                                 <div class="form-step d-none" id="step-4">
                                     <div class="step-header mb-4">
                                         <h5 class="fw-bold text-primary mb-2">
-                                            <i class="fas fa-users me-2"></i>Group Booking
+                                            <i class="fas fa-users me-2"></i>Additional Rooms & Guests
                                         </h5>
-                                        <p class="text-muted">Traveling with others? Let us know</p>
+                                        <p class="text-muted">Let us know if you need more than one room or are booking for
+                                            others.</p>
                                     </div>
 
+                                    {{-- UPDATED: This label is much clearer --}}
                                     <div class="form-check mb-4">
                                         <input class="form-check-input @error('is_group_lead') is-invalid @enderror"
                                             type="checkbox" id="is_group_lead" name="is_group_lead" value="1"
                                             {{ old('is_group_lead') ? 'checked' : '' }}
                                             onchange="toggleGroupMembers(this.checked)">
                                         <label class="form-check-label fw-medium" for="is_group_lead">
-                                            I am checking in with a group and I am the group lead.
+                                            I am booking for more than one room OR for other people.
                                         </label>
                                         @error('is_group_lead')
                                             <div class="invalid-feedback">{{ $message }}</div>
@@ -457,46 +460,53 @@
 
                                     <div id="group-members-section"
                                         style="display: {{ old('is_group_lead') ? 'block' : 'none' }};">
-                                        <p class="text-muted small mb-3">Please add the full name and contact number for
-                                            each member in your group.</p>
+
+                                        {{-- UPDATED: This helper text explains the workaround --}}
+                                        <p class="text-muted small mb-3">
+                                            Please add the primary guest for each additional room.
+                                            <br>
+                                            <strong>If you need a second room for yourself, please click "Add Room" and
+                                                enter your own name and contact number again.</strong>
+                                        </p>
+
                                         <div id="group-members-container">
                                             {{-- Repopulate group members from old input --}}
                                             @if (old('group_members'))
                                                 @foreach (old('group_members') as $index => $member)
                                                     <div class="row mb-2 gx-2 align-items-end">
-                                                        {{-- UPDATED: col-md-5 to col-lg-5 --}}
                                                         <div class="col-lg-5">
-                                                            <label class="form-label small">Full Name</label>
+                                                            <label class="form-label small">Full Name (for this
+                                                                room)</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][full_name]"
                                                                 class="form-control"
                                                                 value="{{ $member['full_name'] ?? '' }}"
-                                                                placeholder="Member's Full Name" required>
+                                                                placeholder="Guest's Full Name" required>
                                                         </div>
-                                                        {{-- UPDATED: col-md-5 to col-lg-5 --}}
                                                         <div class="col-lg-5">
-                                                            <label class="form-label small">Contact Number</label>
+                                                            <label class="form-label small">Contact Number
+                                                                (optional)</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][contact_number]"
                                                                 class="form-control"
                                                                 value="{{ $member['contact_number'] ?? '' }}"
-                                                                placeholder="Member's Contact">
+                                                                placeholder="Guest's Contact">
                                                         </div>
-                                                        {{-- UPDATED: col-md-2 to col-lg-2 --}}
                                                         <div class="col-lg-2">
                                                             <button type="button"
                                                                 class="btn btn-outline-danger btn-sm w-100"
                                                                 onclick="this.parentElement.parentElement.remove()">
-                                                                <i class="fas fa-times"></i>
+                                                                <i class="fas fa-times"></i> Remove
                                                             </button>
                                                         </div>
                                                     </div>
                                                 @endforeach
                                             @endif
                                         </div>
+                                        {{-- UPDATED: Button text --}}
                                         <button type="button" class="btn btn-outline-primary btn-sm mt-2"
                                             onclick="addGroupMember()">
-                                            <i class="fas fa-plus me-1"></i> Add Member
+                                            <i class="fas fa-plus me-1"></i> Add Room / Guest
                                         </button>
                                     </div>
 
@@ -533,7 +543,8 @@
                                                     <span class="fw-bold text-bg-yellow">12:00 noon</span>. Early check-in
                                                     and late check-out are subject to availability and may incur additional
                                                     fees. After 5:00 PM, a full rate applies. No-shows will be charged for a
-                                                    full day.</li>
+                                                    full day.
+                                                </li>
                                                 <li class="mb-2">Lost room keys will incur a fine.</li>
                                                 <li class="mb-2">Personal safes are available in each apartment. Please
                                                     use them to secure your valuables. Bricks Point is not liable for any
@@ -844,24 +855,25 @@
             window.addGroupMember = function() {
                 const container = document.getElementById('group-members-container');
                 const index = container.children.length;
-                {{-- UPDATED: All col-md-* to col-lg-* in JS string --}}
+                
+                // UPDATED: All text labels and placeholders to match the new logic
                 const memberFields = `
-            <div class="row mb-2 gx-2 align-items-end">
-                <div class="col-lg-5">
-                    <label class="form-label small">Full Name</label>
-                    <input type="text" name="group_members[${index}][full_name]" class="form-control" placeholder="Member's Full Name" required>
+                <div class="row mb-2 gx-2 align-items-end">
+                    <div class="col-lg-5">
+                        <label class="form-label small">Full Name (for this room)</label>
+                        <input type="text" name="group_members[${index}][full_name]" class="form-control" placeholder="Guest's Full Name" required>
+                    </div>
+                    <div class="col-lg-5">
+                        <label class="form-label small">Contact Number (optional)</label>
+                        <input type="text" name="group_members[${index}][contact_number]" class="form-control" placeholder="Guest's Contact">
+                    </div>
+                    <div class="col-lg-2">
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
+                    </div>
                 </div>
-                <div class="col-lg-5">
-                    <label class="form-label small">Contact Number</label>
-                    <input type="text" name="group_members[${index}][contact_number]" class="form-control" placeholder="Member's Contact">
-                </div>
-                <div class="col-lg-2">
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-        `;
+                `;
                 container.insertAdjacentHTML('beforeend', memberFields);
             }
 
