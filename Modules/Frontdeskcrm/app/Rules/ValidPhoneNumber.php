@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Rules;
+namespace Modules\Frontdeskcrm\Rules;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Http;

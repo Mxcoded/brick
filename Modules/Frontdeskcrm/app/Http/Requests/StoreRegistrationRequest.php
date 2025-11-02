@@ -5,7 +5,7 @@ namespace Modules\Frontdeskcrm\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
-use App\Rules\ValidPhoneNumber;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 
 class StoreRegistrationRequest extends FormRequest
 {

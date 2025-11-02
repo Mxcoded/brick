@@ -128,6 +128,7 @@
             font-weight: normal;
             font-style: normal;
         }
+
         @font-face {
             font-family: 'BrownSugar';
             src: url('/fonts/Brown Sugar .ttf') format('truetype');
@@ -137,7 +138,6 @@
 
         /* 1. Font Setup */
         body {
-            /* Use Proxima Nova first, then fall back to the system sans-serif stack */
             font-family: 'Proxima Nova', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Helvetica Neue", sans-serif;
             color: var(--brand-charcoal);
             background-color: var(--brand-neutral);
@@ -146,7 +146,7 @@
 
         /* 2. Helper Classes */
         .text-gold {
-            color: var(--brand-gold);
+            color: var(--brand-gold) !important;
         }
 
         .bg-gold {
@@ -155,6 +155,10 @@
 
         .bg-charcoal {
             background-color: var(--brand-charcoal) !important;
+        }
+
+        .text-charcoal {
+            color: var(--brand-charcoal) !important;
         }
 
         /* 3. Component Overrides */
@@ -181,7 +185,6 @@
             color: var(--brand-white);
         }
 
-        /* Ensure links use the brand colors */
         a {
             color: var(--brand-gold);
         }
@@ -189,10 +192,6 @@
         a:hover {
             color: #b38e56;
         }
-        .text-charcoal {
-            color: var(--brand-charcoal);
-            font-family: 'Proxima Nova';
-        }   
 
         /* 4. Nav & Footer */
         .glass-nav {
