@@ -9,12 +9,10 @@
                 {{-- Welcome Header --}}
                 <div class="text-center mb-5">
                     <div class="hotel-brand mb-3">
-                        {{-- UPDATED: Removed Brown Sugar font style, switched to text-charcoal --}}
-                        <h1 class="text-charcoal text-5xl font-bold mb-2" style="font-family:BrownSugar; font-size: 2.5rem; font-weight: 600;">
+                        <h1 class="text-charcoal text-5xl font-bold mb-2" style="font-size: 3.5rem; font-weight: 600;">
                             Brickspoint Aparthotel
                         </h1>
                         <div class="welcome-badge">
-                            {{-- UPDATED: Switched to new bg-charcoal class --}}
                             <span class="badge fs-6 px-4 py-2 rounded-pill shadow-sm bg-charcoal">
                                 <i class="fas fa-star me-2"></i>Welcome to Your Stay
                             </span>
@@ -38,12 +36,12 @@
                 @endif
 
                 {{-- Progress Tracker --}}
-                @if (session()->has('guest_data') || session()->has('search_query'))
+                {{-- UPDATED: This condition now checks for errors, so the progress bar shows on a validation fail --}}
+                @if (session()->has('guest_data') || session()->has('search_query') || $errors->any())
                     <div class="progress-tracker mb-5">
                         <div class="d-flex justify-content-between position-relative">
                             <div class="progress-bar position-absolute top-0 start-0 end-0"
                                 style="height: 4px; background: #e9ecef; z-index: 1;"></div>
-                            {{-- UPDATED: Removed inline bg-success, will be handled by CSS in layout --}}
                             <div class="progress-bar position-absolute top-0 start-0"
                                 style="height: 4px; z-index: 2; width: 0%;"
                                 id="form-progress"></div>
@@ -63,7 +61,6 @@
 
                 {{-- Main Card --}}
                 <div class="card shadow-lg border-0 overflow-hidden">
-                    {{-- UPDATED: Switched to new bg-charcoal class --}}
                     <div class="card-header text-white py-4 bg-charcoal">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
@@ -71,11 +68,11 @@
                             </div>
                             <div class="flex-grow-1">
                                 <h4 class="mb-0">Guest Check-in Form</h4>
-                                <p class="mb-0 opacity-75">Complete your check-in in just a few minutes</p>
+                                <p class="mb-0 opacity-75">Complete your registration in just a few minutes</p>
                             </div>
-                            @if (session()->has('guest_data') || session()->has('search_query'))
+                            {{-- UPDATED: This condition now checks for errors --}}
+                            @if (session()->has('guest_data') || session()->has('search_query') || $errors->any())
                                 <div class="flex-shrink-0">
-                                    {{-- UPDATED: Switched text-success to text-gold --}}
                                     <span class="badge bg-white text-gold fs-6">Step <span id="current-step">1</span> of
                                         5</span>
                                 </div>
@@ -83,13 +80,15 @@
                         </div>
                     </div>
 
-                    {{-- UPDATED: Set card body to white to contrast with page background --}}
                     <div class="card-body p-4 p-md-5 bg-white">
                         {{-- STAGE 1: SEARCH FORM --}}
-                        @if (!session()->has('guest_data') && !session()->has('search_query'))
+                        {{-- ====================================================== --}}
+                        {{-- THE FIX FOR DATA LOSS IS HERE --}}
+                        {{-- Added '&& !$errors->any()' to the condition --}}
+                        {{-- ====================================================== --}}
+                        @if (!session()->has('guest_data') && !session()->has('search_query') && !$errors->any())
                             <div class="text-center py-4">
                                 <div class="search-icon mb-4">
-                                    {{-- UPDATED: Changed icon color to gold --}}
                                     <i class="fas fa-search fa-3x  mb-3 text-gold"></i>
                                 </div>
                                 <h3 class="fw-bold mb-3">Find Your Profile</h3>
@@ -113,7 +112,6 @@
                                             @enderror
                                         </div>
                                     </div>
-                                    {{-- UPDATED: Replaced inline style with btn-gold class --}}
                                     <button type="submit" class="btn btn-gold btn-lg px-5 py-3">
                                         <span class="fw-bold">Continue</span>
                                         <i class="fas fa-arrow-right ms-2"></i>
@@ -122,6 +120,7 @@
                             </div>
                         @else
                             {{-- STAGE 2: MULTI-STEP REGISTRATION FORM --}}
+                            {{-- This 'else' block will now correctly show on validation error --}}
                             @if (session('status'))
                                 <div class="alert alert-info d-flex align-items-center">
                                     <i class="fas fa-info-circle me-2"></i>
@@ -135,7 +134,9 @@
 
                                 @php
                                     $guestData = session('guest_data', []);
+                                    // Use old('search_query') first if it exists from a failed validation
                                     $searchQuery = old('search_query', session('search_query', ''));
+                                    
                                     $email = Str::contains($searchQuery, '@')
                                         ? $searchQuery
                                         : $guestData['email'] ?? '';
@@ -147,12 +148,10 @@
                                 {{-- Step 1: Personal Details --}}
                                 <div class="form-step" id="step-1">
                                     <div class="step-header mb-4">
-                                        {{-- UPDATED: text-primary to text-gold --}}
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-user me-2"></i>Personal Details
-                                            {{-- UPDATED: bg-success to bg-light border --}}
-                                            @if ($guestData)
-                                                <span class="badge bg-light text-dark border ms-2">Welcome back!</span>
+                                            @if ($guestData || old('contact_number'))
+                                                <span class="badge bg-light text-dark border ms-2">Welcome!</span>
                                             @else
                                                 <span class="badge bg-light text-dark border ms-2">New Guest</span>
                                             @endif
@@ -178,12 +177,6 @@
                                                 <option value="Dr."
                                                     {{ old('title', $guestData['title'] ?? '') == 'Dr.' ? 'selected' : '' }}>
                                                     Dr.</option>
-                                                    <option value="Prof."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Prof.' ? 'selected' : '' }}>Prof.</option>
-                                                    <option value="Sen."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Sen.' ? 'selected' : '' }}>Sen.</option>
-                                                <option value="Hon."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Hon.' ? 'selected' : '' }}>Hon.</option> 
                                             </select>
                                             @error('title')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -226,8 +219,13 @@
                                                     name="contact_number" value="{{ old('contact_number', $contact) }}"
                                                     required placeholder="+1 234 567 8900">
                                             </div>
+                                            {{-- ====================================================== --}}
+                                            {{-- NEW: Added helper text for phone number format --}}
+                                            {{-- ====================================================== --}}
                                             @error('contact_number')
                                                 <div class="invalid-feedback">{{ $message }}</div>
+                                            @else
+                                                <small class="form-text text-muted">Please provide a valid number. (e.g., 0809... or +234 809...)</small>
                                             @enderror
                                         </div>
                                         <div class="col-lg-6 mb-3">
@@ -246,7 +244,7 @@
                                             <input type="date"
                                                 class="form-control @error('birthday') is-invalid @enderror"
                                                 name="birthday"
-                                               value="{{ old('birthday', isset($guestData['birthday']) ? \Carbon\Carbon::parse($guestData['birthday'])->format('Y-m-d') : '') }}">
+                                                value="{{ old('birthday', $guestData['birthday'] ?? '') }}">
                                             @error('birthday')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -304,7 +302,6 @@
 
                                     <div class="d-flex justify-content-between mt-4">
                                         <div></div>
-                                        {{-- UPDATED: btn-success to btn-gold --}}
                                         <button type="button" class="btn btn-gold next-step" data-next="2">
                                             Continue to Emergency Contact <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
@@ -314,7 +311,6 @@
                                 {{-- Step 2: Emergency Contact --}}
                                 <div class="form-step d-none" id="step-2">
                                     <div class="step-header mb-4">
-                                        {{-- UPDATED: text-primary to text-gold --}}
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-phone-alt me-2"></i>Emergency Contact
                                         </h5>
@@ -360,7 +356,6 @@
                                             data-prev="1">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Personal Details
                                         </button>
-                                        {{-- UPDATED: btn-success to btn-gold --}}
                                         <button type="button" class="btn btn-gold next-step" data-next="3">
                                             Continue to Stay Details <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
@@ -370,7 +365,6 @@
                                 {{-- Step 3: Stay Details --}}
                                 <div class="form-step d-none" id="step-3">
                                     <div class="step-header mb-4">
-                                        {{-- UPDATED: text-primary to text-gold --}}
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-calendar-day me-2"></i>Stay Details
                                         </h5>
@@ -431,7 +425,6 @@
                                             data-prev="2">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Emergency Contact
                                         </button>
-                                        {{-- UPDATED: btn-success to btn-gold --}}
                                         <button type="button" class="btn btn-gold next-step" data-next="4">
                                             Continue to Additional Rooms <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
@@ -441,7 +434,6 @@
                                 {{-- Step 4: Group Booking (Reworded) --}}
                                 <div class="form-step d-none" id="step-4">
                                     <div class="step-header mb-4">
-                                        {{-- UPDATED: text-primary to text-gold and text --}}
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-users me-2"></i>Additional Rooms & Guests
                                         </h5>
@@ -451,9 +443,8 @@
                                     <div class="form-check mb-4">
                                         <input class="form-check-input @error('is_group_lead') is-invalid @enderror"
                                             type="checkbox" id="is_group_lead" name="is_group_lead" value="1"
-                                            {{ old('is_group_lead') ? 'checked' : '' }}
+                                            @checked(old('is_group_lead'))
                                             onchange="toggleGroupMembers(this.checked)">
-                                        {{-- UPDATED: Wording --}}
                                         <label class="form-check-label fw-medium" for="is_group_lead">
                                             I am booking for more than one room OR for other people.
                                         </label>
@@ -464,7 +455,6 @@
 
                                     <div id="group-members-section"
                                         style="display: {{ old('is_group_lead') ? 'block' : 'none' }};">
-                                        {{-- UPDATED: Wording --}}
                                         <p class="text-muted small mb-3">
                                             Please add the primary guest for each additional room.
                                             <br>
@@ -477,22 +467,26 @@
                                                 @foreach (old('group_members') as $index => $member)
                                                     <div class="row mb-2 gx-2 align-items-end">
                                                         <div class="col-lg-5">
-                                                            {{-- UPDATED: Wording --}}
                                                             <label class="form-label small">Full Name (for this room)</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][full_name]"
-                                                                class="form-control"
+                                                                class="form-control @error('group_members.' . $index . '.full_name') is-invalid @enderror"
                                                                 value="{{ $member['full_name'] ?? '' }}"
                                                                 placeholder="Guest's Full Name" required>
+                                                            @error('group_members.' . $index . '.full_name')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
                                                         </div>
                                                         <div class="col-lg-5">
-                                                            {{-- UPDATED: Wording --}}
                                                             <label class="form-label small">Contact Number (optional)</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][contact_number]"
-                                                                class="form-control"
+                                                                class="form-control @error('group_members.' . $index . '.contact_number') is-invalid @enderror"
                                                                 value="{{ $member['contact_number'] ?? '' }}"
                                                                 placeholder="Guest's Contact">
+                                                            @error('group_members.' . $index . '.contact_number')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
                                                         </div>
                                                         <div class="col-lg-2">
                                                             <button type="button"
@@ -505,7 +499,6 @@
                                                 @endforeach
                                             @endif
                                         </div>
-                                        {{-- UPDATED: btn-outline-primary to btn-outline-gold and text --}}
                                         <button type="button" class="btn btn-outline-gold btn-sm mt-2"
                                             onclick="addGroupMember()">
                                             <i class="fas fa-plus me-1"></i> Add Room / Guest
@@ -517,7 +510,6 @@
                                             data-prev="3">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Stay Details
                                         </button>
-                                        {{-- UPDATED: btn-success to btn-gold --}}
                                         <button type="button" class="btn btn-gold next-step" data-next="5">
                                             Continue to Review & Sign <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
@@ -527,7 +519,6 @@
                                 {{-- Step 5: Policy and Signature --}}
                                 <div class="form-step d-none" id="step-5">
                                     <div class="step-header mb-4">
-                                        {{-- UPDATED: text-primary to text-gold --}}
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-file-signature me-2"></i>Review & Signature
                                         </h5>
@@ -535,7 +526,6 @@
                                     </div>
 
                                     <div class="policy-agreement mb-4">
-                                        {{-- UPDATED: text-bg-danger to a neutral style --}}
                                         <h6 class="fw-bold mb-3 border-bottom pb-2">Policy Agreement</h6>
                                         <div class="border rounded p-3 bg-light"
                                             style="max-height: 200px; overflow-y: auto;">
@@ -591,7 +581,7 @@
                                         <input type="checkbox"
                                             class="form-check-input @error('agreed_to_policies') is-invalid @enderror"
                                             name="agreed_to_policies" id="agreed_to_policies" value="1"
-                                            {{ old('agreed_to_policies') ? 'checked' : '' }} required>
+                                            @checked(old('agreed_to_policies')) required>
                                         <label class="form-check-label fw-medium" for="agreed_to_policies">
                                             I have read and agree to the hotel's policies and privacy terms. <span
                                                 class="text-danger">*</span>
@@ -604,7 +594,7 @@
                                     <div class="form-check mb-4">
                                         <input class="form-check-input" type="checkbox" name="opt_in_data_save"
                                             id="opt_in_data_save" value="1"
-                                            {{ old('opt_in_data_save', true) ? 'checked' : '' }}>
+                                            @checked(old('opt_in_data_save', true))>
                                         <label class="form-check-label" for="opt_in_data_save">
                                             Save my information for faster check-ins in the future.
                                         </label>
@@ -617,7 +607,6 @@
                                             data-prev="4">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Group Booking
                                         </button>
-                                        {{-- UPDATED: btn-success to btn-gold --}}
                                         <button type="submit" class="btn btn-gold btn-lg px-4" id="submit-btn">
                                             <i class="fas fa-check-circle me-2"></i>Submit for Final Review
                                         </button>
@@ -637,7 +626,6 @@
         </div>
     </div>
 
-    {{-- UPDATED: Added a new <style> section to apply branding to this page's specific elements --}}
     <style>
         .signature-pad-container {
             position: relative;
@@ -665,7 +653,6 @@
             gap: 8px;
         }
 
-        /* Form control focus color */
         .form-control:focus, .form-select:focus {
             border-color: var(--brand-gold);
             box-shadow: 0 0 0 0.25rem rgba(200, 161, 101, 0.25);
@@ -748,6 +735,11 @@
                 for (let field of requiredFields) {
                     // Skip validation for hidden fields (like signature)
                     if (field.type === 'hidden') continue;
+                    
+                    // Skip validation for fields in a hidden group section
+                    if (field.closest('#group-members-section') && field.closest('#group-members-section').style.display === 'none') {
+                        continue;
+                    }
 
                     let fieldValid = true;
 
@@ -761,15 +753,29 @@
                         isValid = false;
                         field.classList.add('is-invalid');
 
-                        if (!field.nextElementSibling || !field.nextElementSibling.classList.contains(
-                                'invalid-feedback')) {
-                            const feedback = document.createElement('div');
+                        // Find or create the invalid-feedback message
+                        let feedback = field.parentNode.querySelector('.invalid-feedback');
+                        if (!feedback) {
+                            feedback = document.createElement('div');
                             feedback.className = 'invalid-feedback';
-                            feedback.textContent = 'This field is required.';
                             field.parentNode.appendChild(feedback);
                         }
+                        feedback.textContent = 'This field is required.';
+
                     } else {
                         field.classList.remove('is-invalid');
+                    }
+                }
+                
+                // Special validation for signature
+                if(step === 5) {
+                    if (signaturePad && signaturePad.isEmpty() && !document.getElementById('signature-data').value) {
+                         document.querySelector('.signature-pad-container').classList.add('is-invalid');
+                         document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display = 'block';
+                         isValid = false;
+                    } else {
+                         document.querySelector('.signature-pad-container').classList.remove('is-invalid');
+                         document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display = 'none';
                     }
                 }
 
@@ -782,14 +788,15 @@
                             block: 'center'
                         });
                     }
-                    alert('Please fill in all required fields before continuing.');
+                    // alert('Please fill in all required fields before continuing.');
                 }
 
                 return isValid;
             }
 
             function updateProgress() {
-                const progress = (currentStep / 5) * 100;
+                const totalSteps = 5;
+                const progress = (currentStep / totalSteps) * 100;
                 const progressBar = document.getElementById('form-progress');
                 if (progressBar) {
                     progressBar.style.width = `${progress}%`;
@@ -825,12 +832,18 @@
 
                 // Set canvas dimensions
                 const container = canvas.parentElement;
+                
+                // Ensure canvas is visible before getting offsetWidth
+                if (container.offsetWidth === 0) {
+                    setTimeout(initSignaturePad, 100); // Try again
+                    return;
+                }
+                
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
 
                 signaturePad = new SignaturePad(canvas, {
                     backgroundColor: 'rgb(255, 255, 255)',
-                    // UPDATED: Pen color to charcoal
                     penColor: 'rgb(51, 51, 51)', 
                     minWidth: 1,
                     maxWidth: 3,
@@ -841,10 +854,17 @@
                 if (oldSignature) {
                     signaturePad.fromDataURL(oldSignature);
                     placeholder.style.display = 'none';
+                    document.getElementById('signature-data').value = oldSignature;
                 }
 
                 signaturePad.addEventListener('beginStroke', () => {
                     placeholder.style.display = 'none';
+                });
+
+                signaturePad.addEventListener('endStroke', () => {
+                    document.getElementById('signature-data').value = signaturePad.toDataURL();
+                     document.querySelector('.signature-pad-container').classList.remove('is-invalid');
+                     document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display = 'none';
                 });
 
                 document.getElementById('clear-signature').addEventListener('click', () => {
@@ -862,7 +882,6 @@
             window.addGroupMember = function() {
                 const container = document.getElementById('group-members-container');
                 const index = container.children.length;
-                // UPDATED: Labels and placeholders to match new wording
                 const memberFields = `
             <div class="row mb-2 gx-2 align-items-end">
                 <div class="col-lg-5">
@@ -891,29 +910,25 @@
 
                     // Validate all steps before submission
                     let allValid = true;
+                    let firstInvalidStep = 0;
+                    
                     for (let step = 1; step <= 5; step++) {
                         if (!validateStep(step)) {
                             allValid = false;
-                            showStep(step);
-                            break;
+                            if (firstInvalidStep === 0) {
+                                firstInvalidStep = step;
+                            }
                         }
                     }
 
                     if (!allValid) {
                         e.preventDefault();
+                        showStep(firstInvalidStep); // Jump to the first step with an error
                         alert('Please fix all validation errors before submitting.');
                         return;
                     }
 
-                    // Validate signature
-                    if (signaturePad && signaturePad.isEmpty()) {
-                        e.preventDefault();
-                        alert('Please provide your signature before submitting.');
-                        showStep(5);
-                        return;
-                    }
-
-                    // Set signature data
+                    // Set signature data one last time
                     if (signaturePad && !signaturePad.isEmpty()) {
                         document.getElementById('signature-data').value = signaturePad.toDataURL();
                     }
