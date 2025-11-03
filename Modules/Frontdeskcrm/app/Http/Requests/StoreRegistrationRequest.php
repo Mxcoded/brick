@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Frontdeskcrm\Rules\ValidEmail;
 
 class StoreRegistrationRequest extends FormRequest
 {
@@ -30,8 +31,10 @@ class StoreRegistrationRequest extends FormRequest
             'email' => [
                 'nullable',
                 'email',
+                
                 'max:255',
-                $isGuestDraft ? '' : 'unique:guests,email'  // Assume unique on guests table
+                $isGuestDraft ? '' : 'unique:guests,email',
+                new ValidEmail  // Assume unique on guests table
             ],
             'occupation' => ['nullable', 'string', 'max:255'],
             'company_name' => ['nullable', 'string', 'max:255'],
@@ -94,6 +97,8 @@ class StoreRegistrationRequest extends FormRequest
                 'group_members' => ['nullable', 'array', 'max:10'],  // Rare for drafts, but allow
                 'group_members.*.full_name' => ['nullable', 'string', 'max:255'],
                 'group_members.*.contact_number' => ['nullable', 'string', 'max:20', new ValidPhoneNumber],
+                // We should add email validation for group members too
+                'group_members.*.email' => ['nullable', 'email', new ValidEmail],
                 'group_members.*.room_assignment' => ['nullable', 'string', 'max:50'],
                 'stay_status' => Rule::in(['draft_by_guest']),  // Enforce for drafts
             ]);
