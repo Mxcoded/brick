@@ -16,6 +16,9 @@ return [
     'numverify' => [
         'key' => env('NUMVERIFY_ACCESS_KEY'),
     ],
+    'abstract_api' => [
+        'key' => env('ABSTRACT_EMAIL_API_KEY'),
+    ],
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],
