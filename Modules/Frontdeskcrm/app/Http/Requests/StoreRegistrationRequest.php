@@ -24,7 +24,7 @@ class StoreRegistrationRequest extends FormRequest
             'full_name' => ['required', 'string', 'max:255'],
             'gender' => ['nullable', 'in:male,female,other'],  // Added gender validation
             'nationality' => ['nullable', 'string', 'max:100'],
-            'contact_number' => ['required', 'string', 'max:20', 'phone:international', new ValidPhoneNumber],
+            'contact_number' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'birthday' => ['nullable', 'date'],
             // Allow duplicate email if it's a guest draft; otherwise, unique on guests
             'email' => [
