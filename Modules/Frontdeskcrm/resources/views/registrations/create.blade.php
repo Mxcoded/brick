@@ -43,8 +43,7 @@
                             <div class="progress-bar position-absolute top-0 start-0 end-0"
                                 style="height: 4px; background: #e9ecef; z-index: 1;"></div>
                             <div class="progress-bar position-absolute top-0 start-0"
-                                style="height: 4px; z-index: 2; width: 0%;"
-                                id="form-progress"></div>
+                                style="height: 4px; z-index: 2; width: 0%;" id="form-progress"></div>
 
                             @foreach ([1 => ['Personal Info', 'user'], 2 => ['Emergency Contact', 'phone-alt'], 3 => ['Stay Details', 'calendar-day'], 4 => ['Group Info', 'users'], 5 => ['Review & Sign', 'file-signature']] as $step => $data)
                                 <div class="step" data-step="{{ $step }}">
@@ -136,7 +135,7 @@
                                     $guestData = session('guest_data', []);
                                     // Use old('search_query') first if it exists from a failed validation
                                     $searchQuery = old('search_query', session('search_query', ''));
-                                    
+
                                     $email = Str::contains($searchQuery, '@')
                                         ? $searchQuery
                                         : $guestData['email'] ?? '';
@@ -201,11 +200,15 @@
                                                         class="fas fa-envelope text-muted"></i></span>
                                                 <input type="email"
                                                     class="form-control @error('email') is-invalid @enderror"
-                                                    name="email" value="{{ old('email', $email) }}"
-                                                    placeholder="you@example.com">
+                                                    id="email" {{-- We need this ID --}} name="email"
+                                                    value="{{ old('email', $email) }}" placeholder="you@example.com">
                                             </div>
                                             @error('email')
                                                 <div class="invalid-feedback">{{ $message }}</div>
+                                            @else
+                                                {{-- NEW: Add a helper block for suggestions --}}
+                                                <div id="email-suggestion" class="form-text text-gold fw-bold"
+                                                    style="cursor: pointer; display: none;"></div>
                                             @enderror
                                         </div>
                                         <div class="col-lg-6 mb-3">
@@ -225,7 +228,8 @@
                                             @error('contact_number')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @else
-                                                <small class="form-text text-muted">Please provide a valid number. (e.g., 0809... or +234 809...)</small>
+                                                <small class="form-text text-muted">Please provide a valid number. (e.g.,
+                                                    0809... or +234 809...)</small>
                                             @enderror
                                         </div>
                                         <div class="col-lg-6 mb-3">
@@ -437,14 +441,14 @@
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-users me-2"></i>Additional Rooms & Guests
                                         </h5>
-                                        <p class="text-muted">Let us know if you need more than one room or are booking for others.</p>
+                                        <p class="text-muted">Let us know if you need more than one room or are booking for
+                                            others.</p>
                                     </div>
 
                                     <div class="form-check mb-4">
                                         <input class="form-check-input @error('is_group_lead') is-invalid @enderror"
                                             type="checkbox" id="is_group_lead" name="is_group_lead" value="1"
-                                            @checked(old('is_group_lead'))
-                                            onchange="toggleGroupMembers(this.checked)">
+                                            @checked(old('is_group_lead')) onchange="toggleGroupMembers(this.checked)">
                                         <label class="form-check-label fw-medium" for="is_group_lead">
                                             I am booking for more than one room OR for other people.
                                         </label>
@@ -455,10 +459,12 @@
 
                                     <div id="group-members-section"
                                         style="display: {{ old('is_group_lead') ? 'block' : 'none' }};">
+
                                         <p class="text-muted small mb-3">
                                             Please add the primary guest for each additional room.
                                             <br>
-                                            <strong>If you need a second room for yourself, please click "Add Room" and enter your own name and contact number again.</strong>
+                                            <strong>If you need a second room for yourself, please click "Add Room" and
+                                                enter your own name and contact number again.</strong>
                                         </p>
 
                                         <div id="group-members-container">
@@ -466,8 +472,9 @@
                                             @if (old('group_members'))
                                                 @foreach (old('group_members') as $index => $member)
                                                     <div class="row mb-2 gx-2 align-items-end">
-                                                        <div class="col-lg-5">
-                                                            <label class="form-label small">Full Name (for this room)</label>
+                                                        <div class="col-lg-4"> {{-- Changed to 4 --}}
+                                                            <label class="form-label small">Full Name (for this
+                                                                room)</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][full_name]"
                                                                 class="form-control @error('group_members.' . $index . '.full_name') is-invalid @enderror"
@@ -477,8 +484,10 @@
                                                                 <div class="invalid-feedback">{{ $message }}</div>
                                                             @enderror
                                                         </div>
-                                                        <div class="col-lg-5">
-                                                            <label class="form-label small">Contact Number (optional)</label>
+                                                        <div class="col-lg-4"> {{-- Changed to 4 --}}
+                                                            <label class="form-label small">Contact Number
+                                                                (optional)
+                                                            </label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][contact_number]"
                                                                 class="form-control @error('group_members.' . $index . '.contact_number') is-invalid @enderror"
@@ -488,11 +497,26 @@
                                                                 <div class="invalid-feedback">{{ $message }}</div>
                                                             @enderror
                                                         </div>
-                                                        <div class="col-lg-2">
+
+                                                        {{-- === NEW EMAIL FIELD === --}}
+                                                        <div class="col-lg-3"> {{-- Changed to 3 --}}
+                                                            <label class="form-label small">Email (optional)</label>
+                                                            <input type="email"
+                                                                name="group_members[{{ $index }}][email]"
+                                                                class="form-control @error('group_members.' . $index . '.email') is-invalid @enderror"
+                                                                value="{{ $member['email'] ?? '' }}"
+                                                                placeholder="Guest's Email">
+                                                            @error('group_members.' . $index . '.email')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                        {{-- === END NEW FIELD === --}}
+
+                                                        <div class="col-lg-1"> {{-- Changed to 1 --}}
                                                             <button type="button"
                                                                 class="btn btn-outline-danger btn-sm w-100"
                                                                 onclick="this.parentElement.parentElement.remove()">
-                                                                <i class="fas fa-times"></i> Remove
+                                                                <i class="fas fa-times"></i>
                                                             </button>
                                                         </div>
                                                     </div>
@@ -533,12 +557,13 @@
                                                 <li class="mb-2">The agreed rate is valid for this stay only. For long
                                                     stays, Bricks Point reserves the right to revert to the RACK RATE if
                                                     checkout occurs before the agreed duration.</li>
-                                                <li class="mb-2">Check-in is at <span
-                                                        class="fw-bold text-dark">3:00 PM</span> and check-out is at
+                                                <li class="mb-2">Check-in is at <span class="fw-bold text-dark">3:00
+                                                        PM</span> and check-out is at
                                                     <span class="fw-bold text-dark">12:00 noon</span>. Early check-in
                                                     and late check-out are subject to availability and may incur additional
                                                     fees. After 5:00 PM, a full rate applies. No-shows will be charged for a
-                                                    full day.</li>
+                                                    full day.
+                                                </li>
                                                 <li class="mb-2">Lost room keys will incur a fine.</li>
                                                 <li class="mb-2">Personal safes are available in each apartment. Please
                                                     use them to secure your valuables. Bricks Point is not liable for any
@@ -593,8 +618,7 @@
 
                                     <div class="form-check mb-4">
                                         <input class="form-check-input" type="checkbox" name="opt_in_data_save"
-                                            id="opt_in_data_save" value="1"
-                                            @checked(old('opt_in_data_save', true))>
+                                            id="opt_in_data_save" value="1" @checked(old('opt_in_data_save', true))>
                                         <label class="form-check-label" for="opt_in_data_save">
                                             Save my information for faster check-ins in the future.
                                         </label>
@@ -653,7 +677,8 @@
             gap: 8px;
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             border-color: var(--brand-gold);
             box-shadow: 0 0 0 0.25rem rgba(200, 161, 101, 0.25);
         }
@@ -735,9 +760,10 @@
                 for (let field of requiredFields) {
                     // Skip validation for hidden fields (like signature)
                     if (field.type === 'hidden') continue;
-                    
+
                     // Skip validation for fields in a hidden group section
-                    if (field.closest('#group-members-section') && field.closest('#group-members-section').style.display === 'none') {
+                    if (field.closest('#group-members-section') && field.closest('#group-members-section').style
+                        .display === 'none') {
                         continue;
                     }
 
@@ -766,16 +792,19 @@
                         field.classList.remove('is-invalid');
                     }
                 }
-                
+
                 // Special validation for signature
-                if(step === 5) {
-                    if (signaturePad && signaturePad.isEmpty() && !document.getElementById('signature-data').value) {
-                         document.querySelector('.signature-pad-container').classList.add('is-invalid');
-                         document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display = 'block';
-                         isValid = false;
+                if (step === 5) {
+                    if (signaturePad && signaturePad.isEmpty() && !document.getElementById('signature-data')
+                        .value) {
+                        document.querySelector('.signature-pad-container').classList.add('is-invalid');
+                        document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display =
+                            'block';
+                        isValid = false;
                     } else {
-                         document.querySelector('.signature-pad-container').classList.remove('is-invalid');
-                         document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display = 'none';
+                        document.querySelector('.signature-pad-container').classList.remove('is-invalid');
+                        document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display =
+                            'none';
                     }
                 }
 
@@ -832,19 +861,19 @@
 
                 // Set canvas dimensions
                 const container = canvas.parentElement;
-                
+
                 // Ensure canvas is visible before getting offsetWidth
                 if (container.offsetWidth === 0) {
                     setTimeout(initSignaturePad, 100); // Try again
                     return;
                 }
-                
+
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
 
                 signaturePad = new SignaturePad(canvas, {
                     backgroundColor: 'rgb(255, 255, 255)',
-                    penColor: 'rgb(51, 51, 51)', 
+                    penColor: 'rgb(51, 51, 51)',
                     minWidth: 1,
                     maxWidth: 3,
                 });
@@ -863,8 +892,9 @@
 
                 signaturePad.addEventListener('endStroke', () => {
                     document.getElementById('signature-data').value = signaturePad.toDataURL();
-                     document.querySelector('.signature-pad-container').classList.remove('is-invalid');
-                     document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display = 'none';
+                    document.querySelector('.signature-pad-container').classList.remove('is-invalid');
+                    document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display =
+                        'none';
                 });
 
                 document.getElementById('clear-signature').addEventListener('click', () => {
@@ -884,20 +914,24 @@
                 const index = container.children.length;
                 const memberFields = `
             <div class="row mb-2 gx-2 align-items-end">
-                <div class="col-lg-5">
-                    <label class="form-label small">Full Name (for this room)</label>
-                    <input type="text" name="group_members[${index}][full_name]" class="form-control" placeholder="Guest's Full Name" required>
+                    <div class="col-lg-4">
+                        <label class="form-label small">Full Name (for this room)</label>
+                        <input type="text" name="group_members[${index}][full_name]" class="form-control" placeholder="Guest's Full Name" required>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="form-label small">Contact Number (optional)</label>
+                        <input type="text" name="group_members[${index}][contact_number]" class="form-control" placeholder="Guest's Contact">
+                    </div>
+                    <div class="col-lg-3">
+                        <label class="form-label small">Email (optional)</label>
+                        <input type="email" name="group_members[${index}][email]" class="form-control" placeholder="Guest's Email">
+                    </div>
+                    <div class="col-lg-1">
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="col-lg-5">
-                    <label class="form-label small">Contact Number (optional)</label>
-                    <input type="text" name="group_members[${index}][contact_number]" class="form-control" placeholder="Guest's Contact">
-                </div>
-                <div class="col-lg-2">
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">
-                        <i class="fas fa-times"></i> Remove
-                    </button>
-                </div>
-            </div>
         `;
                 container.insertAdjacentHTML('beforeend', memberFields);
             }
@@ -911,7 +945,7 @@
                     // Validate all steps before submission
                     let allValid = true;
                     let firstInvalidStep = 0;
-                    
+
                     for (let step = 1; step <= 5; step++) {
                         if (!validateStep(step)) {
                             allValid = false;
@@ -964,5 +998,53 @@
                 showStep({{ $firstErrorStep }});
             @endif
         });
+        // (Inside the <script> tag at the bottom)
+
+        // A simple 'Did you mean?' function for common email typos
+        function checkEmailTypos() {
+            const emailField = document.getElementById('email');
+            const suggestionEl = document.getElementById('email-suggestion');
+            if (!emailField || !suggestionEl) return;
+
+            // List of common domains
+            const commonDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'];
+
+            emailField.addEventListener('blur', function() {
+                const email = this.value;
+                if (!email.includes('@')) {
+                    suggestionEl.style.display = 'none';
+                    return;
+                }
+
+                const [local, domain] = email.split('@');
+
+                // Simple check (a real library is more advanced)
+                if (domain === 'gmial.com' || domain === 'gamil.com') {
+                    showSuggestion('gmail.com');
+                } else if (domain === 'yaho.com' || domain === 'yhoo.com') {
+                    showSuggestion('yahoo.com');
+                } else {
+                    suggestionEl.style.display = 'none';
+                }
+            });
+
+            function showSuggestion(correctedDomain) {
+                const emailField = document.getElementById('email');
+                const suggestionEl = document.getElementById('email-suggestion');
+                const correctedEmail = emailField.value.split('@')[0] + '@' + correctedDomain;
+
+                suggestionEl.innerHTML = `Did you mean: ${correctedEmail}?`;
+                suggestionEl.style.display = 'block';
+
+                // If they click the suggestion, fix the email for them
+                suggestionEl.onclick = function() {
+                    emailField.value = correctedEmail;
+                    suggestionEl.style.display = 'none';
+                };
+            }
+        }
+
+        // Run our new function
+        checkEmailTypos();
     </script>
 @endpush
