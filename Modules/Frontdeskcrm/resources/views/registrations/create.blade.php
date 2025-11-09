@@ -9,8 +9,8 @@
                 {{-- Welcome Header --}}
                 <div class="text-center mb-5">
                     <div class="hotel-brand mb-3">
-                        <h1 class="text-charcoal text-5xl font-bold mb-2" style="font-size: 3.5rem; font-weight: 600;">
-                            Brickspoint Aparthotel
+                        <h1 class="text-charcoal text-5xl font-bold mb-2" style="font-family: Brownsugar; font-size: 1.75rem; font-weight: 600;">
+                            Brickspoint Boutique Aparthotel
                         </h1>
                         <div class="welcome-badge">
                             <span class="badge fs-6 px-4 py-2 rounded-pill shadow-sm bg-charcoal">
@@ -150,7 +150,7 @@
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-user me-2"></i>Personal Details
                                             @if ($guestData || old('contact_number'))
-                                                <span class="badge bg-light text-dark border ms-2">Welcome!</span>
+                                                <span class="badge bg-light text-dark border ms-2">Welcome back {{ $guestData['title'] ?? old('title') }} {{ $guestData['name'] ?? old('name') }}!</span>
                                             @else
                                                 <span class="badge bg-light text-dark border ms-2">New Guest</span>
                                             @endif
@@ -1019,7 +1019,7 @@
                 const [local, domain] = email.split('@');
 
                 // Simple check (a real library is more advanced)
-                if (domain === 'gmial.com' || domain === 'gamil.com') {
+                if (domain === 'gmial.com' || domain === 'gamil.com' || domain === 'gmail.con' || domain === 'gmaill.com'|| domain === 'gmail.cm') {
                     showSuggestion('gmail.com');
                 } else if (domain === 'yaho.com' || domain === 'yhoo.com') {
                     showSuggestion('yahoo.com');
