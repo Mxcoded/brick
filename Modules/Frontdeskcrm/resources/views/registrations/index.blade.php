@@ -6,9 +6,13 @@
 <div class="container-fluid my-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3><i class="fas fa-bed me-2"></i>Guest Registrations</h3>
-        <a href="{{ route('frontdesk.registrations.create') }}" class="btn btn-primary">
-            <i class="fas fa-user-plus me-2"></i>New Check-In
-        </a>
+        {{-- ====================================================== --}}
+            {{-- NEW "WALK-IN" BUTTON (Feature) --}}
+            {{-- ====================================================== --}}
+            <a href="{{ route('frontdesk.registrations.createWalkin') }}" class="btn btn-gold">
+                <i class="fas fa-plus me-1"></i> New Walk-in
+            </a>
+            {{-- ====================================================== --}}
     </div>
 
     @if (session('success'))
@@ -63,15 +67,26 @@
                                     <a href="{{ route('frontdesk.registrations.finalize.form', $reg) }}" class="btn btn-warning btn-sm">
                                         <i class="fas fa-check-double me-1"></i> Finalize
                                     </a>
-                                @else
-                                    <a href="{{ route('frontdesk.registrations.show', $reg) }}" class="btn btn-info btn-sm">
-                                        <i class="fas fa-eye me-1"></i> View
-                                    </a>
-                                    <a href="{{ route('frontdesk.registrations.print', $reg) }}" class="btn btn-secondary btn-sm" target="_blank">
-                                        <i class="fas fa-print me-1"></i> Print
-                                    </a>
-                                @endif
-                            </td>
+                                {{-- ====================================================== --}}
+                                            {{-- NEW "DELETE" BUTTON (Feature) --}}
+                                            {{-- ====================================================== --}}
+                                            <form action="{{ route('frontdesk.registrations.destroy', $reg) }}" method="POST" class="d-inline"
+                                                onsubmit="return confirm('Are you sure you want to delete this draft? This cannot be undone.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                            {{-- ====================================================== --}}
+                                            
+                                        @else
+                                            <a href="{{ route('frontdesk.registrations.show', $reg) }}"
+                                                class="btn btn-info btn-sm">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                        @endif
+                                    </td>
                         </tr>
                         @empty
                         <tr>

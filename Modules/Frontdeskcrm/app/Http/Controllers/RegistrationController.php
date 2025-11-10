@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Modules\Frontdeskcrm\Rules\ValidEmail;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 
 class RegistrationController extends Controller
 {
@@ -188,7 +190,60 @@ class RegistrationController extends Controller
             ->paginate(15);
         return view('frontdeskcrm::registrations.index', compact('registrations'));
     }
+    // --- NEW "WALK-IN" FEATURE (Scenario 3) ---
 
+    /**
+     * Show the agent a simple form to create a new walk-in guest.
+     */
+    public function createWalkin()
+    {
+        // This view would be a simplified version of 'create.blade.php'
+        // For now, we will re-use the 'create' view but with a flag.
+        return view('frontdeskcrm::registrations.create-walkin');
+        // We need to create this new view file
+    }
+
+    /**
+     * Store the new walk-in guest and registration.
+     * This bypasses the signature/policy steps and immediately creates a draft.
+     */
+    public function storeWalkin(Request $request)
+    {
+        // Use a simpler validation for walk-ins
+        $validated = $request->validate([
+            'full_name' => ['required', 'string', 'max:255'],
+            'contact_number' => ['required', 'string', 'max:100', new ValidPhoneNumber],
+            'email' => ['nullable', 'email', new ValidEmail],
+            'check_in' => ['required', 'date'],
+            'check_out' => ['required', 'date', 'after_or_equal:check_in'],
+        ]);
+
+        // Find or Create the Guest Profile
+        $guest = Guest::firstOrCreate(
+            ['contact_number' => $validated['contact_number']],
+            [
+                'full_name' => $validated['full_name'],
+                'email' => $validated['email'] ?? null,
+            ]
+        );
+
+        // Create the Draft Registration Record
+        $registration = Registration::create([
+            'guest_id' => $guest->id,
+            'full_name' => $guest->full_name,
+            'contact_number' => $guest->contact_number,
+            'email' => $guest->email,
+            'check_in' => $validated['check_in'],
+            'check_out' => $validated['check_out'],
+            'stay_status' => 'draft_by_guest', // <-- Set as draft
+            'no_of_guests' => 1,
+            'agreed_to_policies' => true, // Agent is responsible
+        ]);
+
+        // Redirect to the finalize form to assign a room and rate
+        return redirect()->route('frontdesk.registrations.showFinalizeForm', $registration)
+            ->with('success', 'Walk-in guest created. Please finalize the registration.');
+    }
     /**
      * Show the form for an agent to finalize a draft.
      */
@@ -281,7 +336,60 @@ class RegistrationController extends Controller
         return redirect()->route('frontdesk.registrations.show', $registration)
             ->with('success', 'Group check-in has been successfully finalized!');
     }
-   
+    // --- NEW "NO-SHOW" FIX (The Gap) ---
+
+    /**
+     * Re-opens a 'no_show' or 'checked_out' registration to be finalized again.
+     */
+    public function reopen(Registration $registration)
+    {
+        // Only allow reopening for 'no-show' or 'checked_out'
+        if ($registration->stay_status !== 'no_show' && $registration->stay_status !== 'checked_out') {
+            return back()->with('error', 'Only no-show or checked-out guests can be re-opened.');
+        }
+
+        // If it's a child, re-open the parent instead
+        if ($registration->parent_registration_id) {
+            $registration = $registration->parent;
+        }
+
+        // Reset all children (group members) to 'draft_by_guest'
+        $registration->children()->update([
+            'stay_status' => 'draft_by_guest',
+        ]);
+
+        // Reset the parent to 'draft_by_guest'
+        $registration->update([
+            'stay_status' => 'draft_by_guest',
+        ]);
+
+        return redirect()->route('frontdesk.registrations.finalize.form', $registration)
+            ->with('success', 'Registration has been re-opened. Please finalize it again.');
+    }
+
+    // --- NEW "DELETE DRAFT" FEATURE ---
+
+    /**
+     * Deletes a draft registration and its members.
+     */
+    public function destroy(Registration $registration)
+    {
+        // Security check: Only allow deleting drafts.
+        if ($registration->stay_status !== 'draft_by_guest') {
+            return back()->with('error', 'Only draft registrations can be deleted.');
+        }
+
+        // If it's a lead, delete all its children (group members) first
+        if ($registration->is_group_lead) {
+            $registration->children()->delete();
+        }
+
+        // Delete the main registration
+        $registration->delete();
+
+        return redirect()->route('frontdesk.registrations.index')
+            ->with('success', 'Draft registration has been deleted.');
+    }   
 
     // ===================================================================
     // UTILITY & DISPLAY METHODS
