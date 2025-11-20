@@ -154,10 +154,8 @@
                                             <tr>
                                                 <td>{{ $member->full_name }}</td>
                                                 <td>{{ $member->room_allocation ?? 'N/A' }}</td>
-                                                <td>{{ $member->room_rate ? number_format($member->room_rate, 2) : 'N/A' }}
-                                                </td>
-                                                <td>{{ $member->total_amount ? number_format($member->total_amount, 2) : 'N/A' }}
-                                                </td>
+                                                <td>{{ $member->room_rate ? number_format($member->room_rate, 2) : 'N/A' }}</td>
+                                                <td>{{ $member->total_amount ? number_format($member->total_amount, 2) : 'N/A' }}</td>
                                                 <td>
                                                     @if ($member->stay_status == 'checked_in')
                                                         <span class="badge bg-success">Checked In</span>
