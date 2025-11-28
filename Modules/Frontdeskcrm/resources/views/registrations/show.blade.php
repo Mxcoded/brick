@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('title', 'Registration Details')
+@section('title', 'View Registration')
 
 @section('page-content')
     <div class="container-fluid my-4">
@@ -202,6 +202,7 @@
                                 </table>
                             </div>
                         </div>
+                    </div>
                 @endif
             </div>
 
