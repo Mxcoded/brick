@@ -170,9 +170,7 @@
                                                     @endif
                                                 </td>
                                                 <td>
-                                                    {{-- ====================================================== --}}
                                                     {{-- THE "NO-SHOW" FIX --}}
-                                                    {{-- ====================================================== --}}
                                                     @if ($member->stay_status == 'checked_in')
                                                         <form
                                                             action="{{ route('frontdesk.registrations.checkout', $member) }}"
