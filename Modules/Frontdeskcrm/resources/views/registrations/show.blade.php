@@ -154,8 +154,10 @@
                                             <tr>
                                                 <td>{{ $member->full_name }}</td>
                                                 <td>{{ $member->room_allocation ?? 'N/A' }}</td>
-                                                <td>{{ $member->room_rate ? number_format($member->room_rate, 2) : 'N/A' }}</td>
-                                                <td>{{ $member->total_amount ? number_format($member->total_amount, 2) : 'N/A' }}</td>
+                                                <td>{{ $member->room_rate ? number_format($member->room_rate, 2) : 'N/A' }}
+                                                </td>
+                                                <td>{{ $member->total_amount ? number_format($member->total_amount, 2) : 'N/A' }}
+                                                </td>
                                                 <td>
                                                     @if ($member->stay_status == 'checked_in')
                                                         <span class="badge bg-success">Checked In</span>
@@ -221,7 +223,8 @@
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center">Active
                                     Members' Bill:
-                                    <span>&#8358;{{ number_format($groupFinancialSummary['members_bill'], 2) }}</span></li>
+                                    <span>&#8358;{{ number_format($groupFinancialSummary['members_bill'], 2) }}</span>
+                                </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-center fw-bold">Total
                                     Outstanding Bill:
                                     <span>&#8358;{{ number_format($groupFinancialSummary['total_outstanding'], 2) }}</span>
