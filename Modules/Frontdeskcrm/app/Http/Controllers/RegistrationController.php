@@ -241,7 +241,7 @@ class RegistrationController extends Controller
         ]);
 
         // Redirect to the finalize form to assign a room and rate
-        return redirect()->route('frontdesk.registrations.showFinalizeForm', $registration)
+        return redirect()->route('frontdesk.registrations.finalize.form', $registration)
             ->with('success', 'Walk-in guest created. Please finalize the registration.');
     }
     /**
