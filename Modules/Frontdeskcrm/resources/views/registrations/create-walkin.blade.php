@@ -14,6 +14,14 @@
                         </div>
                         <div class="card-body p-4">
 
+                            {{-- ADDED: Success Message Block --}}
+                            @if (session('success'))
+                                <div class="alert alert-success mb-4">
+                                    {{ session('success') }}
+                                </div>
+                            @endif
+
+                            {{-- Error Message Block --}}
                             @if ($errors->any())
                                 <div class="alert alert-danger mb-4" role="alert">
                                     <strong>Please fix the errors:</strong>
@@ -45,6 +53,19 @@
                                     <label for="email" class="form-label">Email Address</label>
                                     <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" placeholder="optional@email.com">
                                     @error('email')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                {{-- Added Gender Field --}}
+                                <div class="col-md-6 mb-3">
+                                    <label for="gender" class="form-label">Gender</label>
+                                    <select class="form-select @error('gender') is-invalid @enderror" name="gender">
+                                        <option value="" selected disabled>Select Gender...</option>
+                                        <option value="male" @selected(old('gender') == 'male')>Male</option>
+                                        <option value="female" @selected(old('gender') == 'female')>Female</option>
+                                        <option value="other" @selected(old('gender') == 'other')>Other</option>
+                                    </select>
+                                    @error('gender')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
