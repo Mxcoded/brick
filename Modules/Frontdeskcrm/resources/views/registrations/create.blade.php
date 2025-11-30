@@ -9,7 +9,8 @@
                 {{-- Welcome Header --}}
                 <div class="text-center mb-5">
                     <div class="hotel-brand mb-3">
-                        <h1 class="text-charcoal text-5xl font-bold mb-2" style="font-family: Brownsugar; font-size: 1.75rem; font-weight: 600;">
+                        <h1 class="text-charcoal text-5xl font-bold mb-2"
+                            style="font-family: Brownsugar; font-size: 1.75rem; font-weight: 600;">
                             Brickspoint Boutique Aparthotel
                         </h1>
                         <div class="welcome-badge">
@@ -20,7 +21,13 @@
                     </div>
                     <p class="lead text-muted mt-3">Let's get you settled in quickly and comfortably</p>
                 </div>
-
+                {{-- Display Success Messages --}}
+                @if (session('success'))
+                    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
                 {{-- Display Validation Errors --}}
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -85,7 +92,12 @@
                         {{-- THE FIX FOR DATA LOSS IS HERE --}}
                         {{-- Added '&& !$errors->any()' to the condition --}}
                         {{-- ====================================================== --}}
-                        @if (!session()->has('guest_data') && !session()->has('search_query') && !$errors->any())
+                        {{-- UPDATED: Added !session()->has('returning_guest') to ensure returning guests see the form --}}
+                        @if (
+                            !session()->has('guest_data') &&
+                                !session()->has('search_query') &&
+                                !session()->has('returning_guest') &&
+                                !$errors->any())
                             <div class="text-center py-4">
                                 <div class="search-icon mb-4">
                                     <i class="fas fa-search fa-3x  mb-3 text-gold"></i>
@@ -119,255 +131,281 @@
                             </div>
                         @else
                             {{-- STAGE 2: MULTI-STEP REGISTRATION FORM --}}
-                            {{-- This 'else' block will now correctly show on validation error --}}
-                            @if (session('status'))
-                                <div class="alert alert-info d-flex align-items-center">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    {{ session('status') }}
+
+                            {{-- === SECURITY BRIDGE START === --}}
+                            @if (session()->has('returning_guest'))
+                                <div class="alert alert-success border-left-success" role="alert">
+                                    <h4 class="alert-heading"><i class="fas fa-user-check me-2"></i>Welcome Back,
+                                        {{ session('returning_guest.name') }}!</h4>
+                                    <p>We found your profile. For your security, your full details are hidden.</p>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Phone:</strong> {{ session('returning_guest.masked_phone') }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Email:</strong> {{ session('returning_guest.masked_email') }}
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <p class="mb-0 text-muted small">Not you? Or need to update your info?</p>
+                                        <a href="{{ route('frontdesk.registrations.create', ['clear' => 1]) }}"
+                                            class="btn btn-outline-danger btn-sm mt-1">
+                                            <i class="fas fa-times me-1"></i> Clear & Start Over
+                                        </a>
+                                    </div>
                                 </div>
                             @endif
+                            {{-- === SECURITY BRIDGE END === --}}
 
                             <form action="{{ route('frontdesk.registrations.store') }}" method="POST" id="checkin-form">
                                 @csrf
                                 <input type="hidden" name="is_guest_draft" value="1">
+                                {{-- IF RETURNING: SKIP STEPS 1 & 2 --}}
+                                @if (!session()->has('returning_guest'))
+                                    @php
+                                        $guestData = session('guest_data', []);
+                                        // Use old('search_query') first if it exists from a failed validation
+                                        $searchQuery = old('search_query', session('search_query', ''));
 
-                                @php
-                                    $guestData = session('guest_data', []);
-                                    // Use old('search_query') first if it exists from a failed validation
-                                    $searchQuery = old('search_query', session('search_query', ''));
+                                        $email = Str::contains($searchQuery, '@')
+                                            ? $searchQuery
+                                            : $guestData['email'] ?? '';
+                                        $contact = !Str::contains($searchQuery, '@')
+                                            ? $searchQuery
+                                            : $guestData['contact_number'] ?? '';
+                                    @endphp
 
-                                    $email = Str::contains($searchQuery, '@')
-                                        ? $searchQuery
-                                        : $guestData['email'] ?? '';
-                                    $contact = !Str::contains($searchQuery, '@')
-                                        ? $searchQuery
-                                        : $guestData['contact_number'] ?? '';
-                                @endphp
-
-                                {{-- Step 1: Personal Details --}}
-                                <div class="form-step" id="step-1">
-                                    <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-gold mb-2">
-                                            <i class="fas fa-user me-2"></i>Personal Details
-                                            @if ($guestData || old('contact_number'))
-                                                <span class="badge bg-light text-dark border ms-2">Welcome back {{ $guestData['title'] ?? old('title') }} {{ $guestData['name'] ?? old('name') }}!</span>
-                                            @else
-                                                <span class="badge bg-light text-dark border ms-2">New Guest</span>
-                                            @endif
-                                        </h5>
-                                        <p class="text-muted">Tell us a bit about yourself</p>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-lg-4 mb-3">
-                                            <label for="title" class="form-label">Title</label>
-                                            <select class="form-select @error('title') is-invalid @enderror" name="title"
-                                                id="title">
-                                                <option value="">Select...</option>
-                                                <option value="Mr."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Mr.' ? 'selected' : '' }}>
-                                                    Mr.</option>
-                                                <option value="Ms."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Ms.' ? 'selected' : '' }}>
-                                                    Ms.</option>
-                                                <option value="Mrs."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Mrs.' ? 'selected' : '' }}>
-                                                    Mrs.</option>
-                                                <option value="Dr."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Dr.' ? 'selected' : '' }}>
-                                                    Dr.</option>
-                                            </select>
-                                            @error('title')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                    {{-- Step 1: Personal Details --}}
+                                    <div class="form-step" id="step-1">
+                                        <div class="step-header mb-4">
+                                            <h5 class="fw-bold text-gold mb-2">
+                                                <i class="fas fa-user me-2"></i>Personal Details
+                                                @if ($guestData || old('contact_number'))
+                                                    <span class="badge bg-light text-dark border ms-2">Welcome back
+                                                        {{ $guestData['title'] ?? old('title') }}
+                                                        {{ $guestData['name'] ?? old('name') }}!</span>
+                                                @else
+                                                    <span class="badge bg-light text-dark border ms-2">New Guest</span>
+                                                @endif
+                                            </h5>
+                                            <p class="text-muted">Tell us a bit about yourself</p>
                                         </div>
-                                        <div class="col-lg-8 mb-3">
-                                            <label for="full_name" class="form-label">Full Name <span
-                                                    class="text-danger">*</span></label>
-                                            <input type="text"
-                                                class="form-control @error('full_name') is-invalid @enderror"
-                                                name="full_name"
-                                                value="{{ old('full_name', $guestData['full_name'] ?? '') }}" required
-                                                placeholder="Your full name as per ID">
-                                            @error('full_name')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="email" class="form-label">Email Address</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i
-                                                        class="fas fa-envelope text-muted"></i></span>
-                                                <input type="email"
-                                                    class="form-control @error('email') is-invalid @enderror"
-                                                    id="email" {{-- We need this ID --}} name="email"
-                                                    value="{{ old('email', $email) }}" placeholder="you@example.com">
+
+                                        <div class="row">
+                                            <div class="col-lg-4 mb-3">
+                                                <label for="title" class="form-label">Title</label>
+                                                <select class="form-select @error('title') is-invalid @enderror"
+                                                    name="title" id="title">
+                                                    <option value="">Select...</option>
+                                                    <option value="Mr."
+                                                        {{ old('title', $guestData['title'] ?? '') == 'Mr.' ? 'selected' : '' }}>
+                                                        Mr.</option>
+                                                    <option value="Ms."
+                                                        {{ old('title', $guestData['title'] ?? '') == 'Ms.' ? 'selected' : '' }}>
+                                                        Ms.</option>
+                                                    <option value="Mrs."
+                                                        {{ old('title', $guestData['title'] ?? '') == 'Mrs.' ? 'selected' : '' }}>
+                                                        Mrs.</option>
+                                                    <option value="Dr."
+                                                        {{ old('title', $guestData['title'] ?? '') == 'Dr.' ? 'selected' : '' }}>
+                                                        Dr.</option>
+                                                </select>
+                                                @error('title')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
                                             </div>
-                                            @error('email')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @else
-                                                {{-- NEW: Add a helper block for suggestions --}}
-                                                <div id="email-suggestion" class="form-text text-gold fw-bold"
-                                                    style="cursor: pointer; display: none;"></div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="contact_number" class="form-label">Contact Number <span
-                                                    class="text-danger">*</span></label>
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i
-                                                        class="fas fa-phone text-muted"></i></span>
-                                                <input type="tel"
-                                                    class="form-control @error('contact_number') is-invalid @enderror"
-                                                    name="contact_number" value="{{ old('contact_number', $contact) }}"
-                                                    required placeholder="+1 234 567 8900">
+                                            <div class="col-lg-8 mb-3">
+                                                <label for="full_name" class="form-label">Full Name <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="text"
+                                                    class="form-control @error('full_name') is-invalid @enderror"
+                                                    name="full_name"
+                                                    value="{{ old('full_name', $guestData['full_name'] ?? '') }}" required
+                                                    placeholder="Your full name as per ID">
+                                                @error('full_name')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
                                             </div>
-                                            {{-- ====================================================== --}}
-                                            {{-- NEW: Added helper text for phone number format --}}
-                                            {{-- ====================================================== --}}
-                                            @error('contact_number')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @else
-                                                <small class="form-text text-muted">Please provide a valid number. (e.g.,
-                                                    0809... or +234 809...)</small>
-                                            @enderror
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="nationality" class="form-label">Nationality</label>
-                                            <select class="form-select @error('nationality') is-invalid @enderror"
-                                                name="nationality" id="nationality">
-                                                <option value="">Select a Country...</option>
-                                                @include('frontdeskcrm::registrations._countries_options')
-                                            </select>
-                                            @error('nationality')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="birthday" class="form-label">Birthday</label>
-                                            <input type="date"
-                                                class="form-control @error('birthday') is-invalid @enderror"
-                                                name="birthday"
-                                                value="{{ old('birthday', $guestData['birthday'] ?? '') }}">
-                                            @error('birthday')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="gender" class="form-label">Gender</label>
-                                            <select class="form-select @error('gender') is-invalid @enderror"
-                                                name="gender" id="gender">
-                                                <option value="">Select Gender...</option>
-                                                <option value="male"
-                                                    {{ old('gender', $guestData['gender'] ?? '') == 'male' ? 'selected' : '' }}>
-                                                    Male</option>
-                                                <option value="female"
-                                                    {{ old('gender', $guestData['gender'] ?? '') == 'female' ? 'selected' : '' }}>
-                                                    Female</option>
-                                                <option value="other"
-                                                    {{ old('gender', $guestData['gender'] ?? '') == 'other' ? 'selected' : '' }}>
-                                                    Other</option>
-                                            </select>
-                                            @error('gender')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="occupation" class="form-label">Occupation</label>
-                                            <input type="text"
-                                                class="form-control @error('occupation') is-invalid @enderror"
-                                                name="occupation"
-                                                value="{{ old('occupation', $guestData['occupation'] ?? '') }}"
-                                                placeholder="Your profession">
-                                            @error('occupation')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="company_name" class="form-label">Company/Group</label>
-                                            <input type="text"
-                                                class="form-control @error('company_name') is-invalid @enderror"
-                                                name="company_name"
-                                                value="{{ old('company_name', $guestData['company_name'] ?? '') }}"
-                                                placeholder="Your company or organization">
-                                            @error('company_name')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-12 mb-3">
-                                            <label for="home_address" class="form-label">Home Address</label>
-                                            <textarea class="form-control @error('home_address') is-invalid @enderror" name="home_address" rows="2"
-                                                placeholder="Your complete home address">{{ old('home_address', $guestData['home_address'] ?? '') }}</textarea>
-                                            @error('home_address')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="d-flex justify-content-between mt-4">
-                                        <div></div>
-                                        <button type="button" class="btn btn-gold next-step" data-next="2">
-                                            Continue to Emergency Contact <i class="fas fa-arrow-right ms-2"></i>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {{-- Step 2: Emergency Contact --}}
-                                <div class="form-step d-none" id="step-2">
-                                    <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-gold mb-2">
-                                            <i class="fas fa-phone-alt me-2"></i>Emergency Contact
-                                        </h5>
-                                        <p class="text-muted">Who should we contact in case of emergency?</p>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="emergency_name" class="form-label">Contact Name</label>
-                                            <input type="text"
-                                                class="form-control @error('emergency_name') is-invalid @enderror"
-                                                name="emergency_name"
-                                                value="{{ old('emergency_name', $guestData['emergency_name'] ?? '') }}"
-                                                placeholder="Full name of emergency contact">
-                                            @error('emergency_name')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-lg-6 mb-3">
-                                            <label for="emergency_contact" class="form-label">Contact Number</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i
-                                                        class="fas fa-phone text-muted"></i></span>
-                                                <input type="tel"
-                                                    class="form-control @error('emergency_contact') is-invalid @enderror"
-                                                    name="emergency_contact"
-                                                    value="{{ old('emergency_contact', $guestData['emergency_contact'] ?? '') }}"
-                                                    placeholder="Emergency contact number">
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="email" class="form-label">Email Address</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-envelope text-muted"></i></span>
+                                                    <input type="email"
+                                                        class="form-control @error('email') is-invalid @enderror"
+                                                        id="email" {{-- We need this ID --}} name="email"
+                                                        value="{{ old('email', $email) }}" placeholder="you@example.com">
+                                                </div>
+                                                @error('email')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @else
+                                                    {{-- NEW: Add a helper block for suggestions --}}
+                                                    <div id="email-suggestion" class="form-text text-gold fw-bold"
+                                                        style="cursor: pointer; display: none;"></div>
+                                                @enderror
                                             </div>
-                                            @error('emergency_contact')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="contact_number" class="form-label">Contact Number <span
+                                                        class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-phone text-muted"></i></span>
+                                                    <input type="tel"
+                                                        class="form-control @error('contact_number') is-invalid @enderror"
+                                                        name="contact_number"
+                                                        value="{{ old('contact_number', $contact) }}" required
+                                                        placeholder="+1 234 567 8900">
+                                                </div>
+                                                {{-- ====================================================== --}}
+                                                {{-- NEW: Added helper text for phone number format --}}
+                                                {{-- ====================================================== --}}
+                                                @error('contact_number')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @else
+                                                    <small class="form-text text-muted">Please provide a valid number. (e.g.,
+                                                        0809... or +234 809...)</small>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="nationality" class="form-label">Nationality</label>
+                                                <select class="form-select @error('nationality') is-invalid @enderror"
+                                                    name="nationality" id="nationality">
+                                                    <option value="">Select a Country...</option>
+                                                    @include('frontdeskcrm::registrations.partials._countries_options')
+                                                </select>
+                                                @error('nationality')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="birthday" class="form-label">Birthday</label>
+                                                <input type="date"
+                                                    class="form-control @error('birthday') is-invalid @enderror"
+                                                    name="birthday"
+                                                    value="{{ old('birthday', $guestData['birthday'] ?? '') }}">
+                                                @error('birthday')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="gender" class="form-label">Gender</label>
+                                                <select class="form-select @error('gender') is-invalid @enderror"
+                                                    name="gender" id="gender">
+                                                    <option value="">Select Gender...</option>
+                                                    <option value="male"
+                                                        {{ old('gender', $guestData['gender'] ?? '') == 'male' ? 'selected' : '' }}>
+                                                        Male</option>
+                                                    <option value="female"
+                                                        {{ old('gender', $guestData['gender'] ?? '') == 'female' ? 'selected' : '' }}>
+                                                        Female</option>
+                                                    <option value="other"
+                                                        {{ old('gender', $guestData['gender'] ?? '') == 'other' ? 'selected' : '' }}>
+                                                        Other</option>
+                                                </select>
+                                                @error('gender')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="occupation" class="form-label">Occupation</label>
+                                                <input type="text"
+                                                    class="form-control @error('occupation') is-invalid @enderror"
+                                                    name="occupation"
+                                                    value="{{ old('occupation', $guestData['occupation'] ?? '') }}"
+                                                    placeholder="Your profession">
+                                                @error('occupation')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="company_name" class="form-label">Company/Group</label>
+                                                <input type="text"
+                                                    class="form-control @error('company_name') is-invalid @enderror"
+                                                    name="company_name"
+                                                    value="{{ old('company_name', $guestData['company_name'] ?? '') }}"
+                                                    placeholder="Your company or organization">
+                                                @error('company_name')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <label for="home_address" class="form-label">Home Address</label>
+                                                <textarea class="form-control @error('home_address') is-invalid @enderror" name="home_address" rows="2"
+                                                    placeholder="Your complete home address">{{ old('home_address', $guestData['home_address'] ?? '') }}</textarea>
+                                                @error('home_address')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between mt-4">
+                                            <div></div>
+                                            <button type="button" class="btn btn-gold next-step" data-next="2">
+                                                Continue to Emergency Contact <i class="fas fa-arrow-right ms-2"></i>
+                                            </button>
                                         </div>
                                     </div>
 
-                                    <div class="alert alert-info mt-3">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        This information is kept confidential and used only for emergency situations.
-                                    </div>
+                                    {{-- Step 2: Emergency Contact --}}
+                                    <div class="form-step d-none" id="step-2">
+                                        <div class="step-header mb-4">
+                                            <h5 class="fw-bold text-gold mb-2">
+                                                <i class="fas fa-phone-alt me-2"></i>Emergency Contact
+                                            </h5>
+                                            <p class="text-muted">Who should we contact in case of emergency?</p>
+                                        </div>
 
-                                    <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-outline-secondary prev-step"
-                                            data-prev="1">
-                                            <i class="fas fa-arrow-left me-2"></i>Back to Personal Details
-                                        </button>
-                                        <button type="button" class="btn btn-gold next-step" data-next="3">
-                                            Continue to Stay Details <i class="fas fa-arrow-right ms-2"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                                        <div class="row">
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="emergency_name" class="form-label">Contact Name</label>
+                                                <input type="text"
+                                                    class="form-control @error('emergency_name') is-invalid @enderror"
+                                                    name="emergency_name"
+                                                    value="{{ old('emergency_name', $guestData['emergency_name'] ?? '') }}"
+                                                    placeholder="Full name of emergency contact">
+                                                @error('emergency_name')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="emergency_contact" class="form-label">Contact Number</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-phone text-muted"></i></span>
+                                                    <input type="tel"
+                                                        class="form-control @error('emergency_contact') is-invalid @enderror"
+                                                        name="emergency_contact"
+                                                        value="{{ old('emergency_contact', $guestData['emergency_contact'] ?? '') }}"
+                                                        placeholder="Emergency contact number">
+                                                </div>
+                                                @error('emergency_contact')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
 
-                                {{-- Step 3: Stay Details --}}
-                                <div class="form-step d-none" id="step-3">
+                                        <div class="alert alert-info mt-3">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            This information is kept confidential and used only for emergency situations.
+                                        </div>
+
+                                        <div class="d-flex justify-content-between mt-4">
+                                            <button type="button" class="btn btn-outline-secondary prev-step"
+                                                data-prev="1">
+                                                <i class="fas fa-arrow-left me-2"></i>Back to Personal Details
+                                            </button>
+                                            <button type="button" class="btn btn-gold next-step" data-next="3">
+                                                Continue to Stay Details <i class="fas fa-arrow-right ms-2"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endif
+                                {{-- Step 3: Stay Details (ALWAYS SHOW) --}}
+                                {{-- IMPORTANT: If returning, make this ID "step-1" so JS shows it first --}}
+                                <div class="form-step {{ session()->has('returning_guest') ? '' : 'd-none' }}"
+                                    id="{{ session()->has('returning_guest') ? 'step-1' : 'step-3' }}">
+
                                     <div class="step-header mb-4">
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-calendar-day me-2"></i>Stay Details
@@ -425,12 +463,19 @@
                                     </div>
 
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-outline-secondary prev-step"
-                                            data-prev="2">
-                                            <i class="fas fa-arrow-left me-2"></i>Back to Emergency Contact
-                                        </button>
+                                        @if (!session()->has('returning_guest'))
+                                            <button type="button" class="btn btn-outline-secondary prev-step"
+                                                data-prev="2">
+                                                <i class="fas fa-arrow-left me-2"></i>Back
+                                            </button>
+                                        @else
+                                            <div></div> {{-- Spacer for returning guest --}}
+                                        @endif
+
+                                        {{-- If returning, next step is 2 (Group), otherwise 4 --}}
+                                        {{-- FIXED: Always go to Step 4 next, since Step 2 is skipped for returning guests --}}
                                         <button type="button" class="btn btn-gold next-step" data-next="4">
-                                            Continue to Additional Rooms <i class="fas fa-arrow-right ms-2"></i>
+                                            Continue <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -441,7 +486,8 @@
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-users me-2"></i>Additional Rooms & Guests
                                         </h5>
-                                        <p class="text-muted">Let us know if you need more than one room or are booking for
+                                        <p class="text-muted">Let us know if you need more than one room or are booking
+                                            for
                                             others.</p>
                                     </div>
 
@@ -554,24 +600,31 @@
                                         <div class="border rounded p-3 bg-light"
                                             style="max-height: 200px; overflow-y: auto;">
                                             <ul class="mb-0">
-                                                <li class="mb-2">The agreed rate is valid for this stay only. For long
+                                                <li class="mb-2">The agreed rate is valid for this stay only. For
+                                                    long
                                                     stays, Bricks Point reserves the right to revert to the RACK RATE if
                                                     checkout occurs before the agreed duration.</li>
                                                 <li class="mb-2">Check-in is at <span class="fw-bold text-dark">3:00
                                                         PM</span> and check-out is at
                                                     <span class="fw-bold text-dark">12:00 noon</span>. Early check-in
-                                                    and late check-out are subject to availability and may incur additional
-                                                    fees. After 5:00 PM, a full rate applies. No-shows will be charged for a
+                                                    and late check-out are subject to availability and may incur
+                                                    additional
+                                                    fees. After 5:00 PM, a full rate applies. No-shows will be charged
+                                                    for a
                                                     full day.
                                                 </li>
                                                 <li class="mb-2">Lost room keys will incur a fine.</li>
-                                                <li class="mb-2">Personal safes are available in each apartment. Please
-                                                    use them to secure your valuables. Bricks Point is not liable for any
+                                                <li class="mb-2">Personal safes are available in each apartment.
+                                                    Please
+                                                    use them to secure your valuables. Bricks Point is not liable for
+                                                    any
                                                     loss.</li>
-                                                <li class="mb-2">If you sustain an injury or experience loss/damage to
+                                                <li class="mb-2">If you sustain an injury or experience loss/damage
+                                                    to
                                                     property during your stay, please notify hotel management before
                                                     departure. Any related claims will be governed by the laws of the
-                                                    country where the hotel is located, and its courts will have exclusive
+                                                    country where the hotel is located, and its courts will have
+                                                    exclusive
                                                     jurisdiction.</li>
                                                 <li class="mb-0">By signing this form, you agree to abide by our
                                                     policies.</li>
@@ -639,7 +692,8 @@
                             </form>
 
                             <div class="text-center mt-4">
-                                <a href="{{ route('frontdesk.registrations.create') }}" class="btn btn-link">
+                                <a href="{{ route('frontdesk.registrations.create', ['clear' => 1]) }}"
+                                    class="btn btn-link">
                                     <i class="fas fa-redo me-1"></i> Start Over
                                 </a>
                             </div>
@@ -1019,7 +1073,8 @@
                 const [local, domain] = email.split('@');
 
                 // Simple check (a real library is more advanced)
-                if (domain === 'gmial.com' || domain === 'gamil.com' || domain === 'gmail.con' || domain === 'gmaill.com'|| domain === 'gmail.cm') {
+                if (domain === 'gmial.com' || domain === 'gamil.com' || domain === 'gmail.con' || domain ===
+                    'gmaill.com' || domain === 'gmail.cm') {
                     showSuggestion('gmail.com');
                 } else if (domain === 'yaho.com' || domain === 'yhoo.com') {
                     showSuggestion('yahoo.com');

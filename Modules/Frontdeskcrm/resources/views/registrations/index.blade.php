@@ -21,7 +21,51 @@
     @if (session('error'))
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
+{{-- Search & Filter Toolbar --}}
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-3">
+            <form action="{{ route('frontdesk.registrations.index') }}" method="GET" class="row g-2 align-items-end">
+                
+                {{-- Search Input --}}
+                <div class="col-md-4">
+                    <label for="search" class="form-label small text-muted fw-bold">Search Guest</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" name="search" class="form-control border-start-0" 
+                            placeholder="Name, Phone, or Email..." value="{{ request('search') }}">
+                    </div>
+                </div>
 
+                {{-- Status Filter --}}
+                <div class="col-md-3">
+                    <label for="status" class="form-label small text-muted fw-bold">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="draft_by_guest" @selected(request('status') == 'draft_by_guest')>Pending Finalization</option>
+                        <option value="checked_in" @selected(request('status') == 'checked_in')>Checked In</option>
+                        <option value="checked_out" @selected(request('status') == 'checked_out')>Checked Out</option>
+                        <option value="no_show" @selected(request('status') == 'no_show')>No Show</option>
+                    </select>
+                </div>
+
+                {{-- Date Filter --}}
+                <div class="col-md-3">
+                    <label for="date" class="form-label small text-muted fw-bold">Check-in Date</label>
+                    <input type="date" name="date" class="form-control" value="{{ request('date') }}">
+                </div>
+
+                {{-- Actions --}}
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-dark w-100" title="Apply Filters">
+                        Filter
+                    </button>
+                    <a href="{{ route('frontdesk.registrations.index') }}" class="btn btn-outline-secondary w-50" title="Clear">
+                        <i class="fas fa-undo"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="table-responsive">

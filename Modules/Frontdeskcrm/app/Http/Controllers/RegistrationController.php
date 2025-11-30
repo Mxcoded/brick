@@ -23,145 +23,292 @@ class RegistrationController extends Controller
     // =====================================================================
 
     /**
-     * Show the initial guest check-in form (search box).
-     * This is the public starting point.
+     * Show the initial guest check-in form.
+     * Updated to handle session clearing.
      */
-    public function create()
+    public function create(Request $request)
     {
+        // If the URL has ?clear=1, wipe the session and redirect clean
+        if ($request->has('clear')) {
+            session()->forget(['returning_guest', 'guest_data', 'search_query']);
+            return redirect()->route('frontdesk.registrations.create');
+        }
+
         return view('frontdeskcrm::registrations.create');
     }
 
     /**
      * Handle the initial search from the guest.
-     * Finds a guest and reloads the create form with pre-filled data.
+     * SECURE VERSION: Normalizes phone, clears old sessions, and masks data.
      */
     public function handleGuestSearch(Request $request)
     {
+        // 1. Validate
         $request->validate([
             'search_query' => 'required|string|max:255',
         ]);
 
+        // 2. CRITICAL FIX: Clear any previous "Returning Guest" session immediately
+        session()->forget('returning_guest');
+
         $query = $request->input('search_query');
 
-        // Search for a guest by email or contact number
+        // 3. CRITICAL FIX: Normalize input if it looks like a phone number
+        // This ensures typing "080..." finds the guest saved as "+23480..."
+        $normalizedQuery = $query;
+        $cleanQuery = preg_replace('/[\s\-\(\)]+/', '', $query);
+        if (preg_match('/^0[7-9][0-1][0-9]{8}$/', $cleanQuery)) {
+            $normalizedQuery = '+234' . substr($cleanQuery, 1);
+        }
+
+        // 4. Search (Check both exact input and normalized version)
         $guest = Guest::where('email', $query)
             ->orWhere('contact_number', $query)
+            ->orWhere('contact_number', $normalizedQuery) // Check normalized phone
             ->first();
 
         if ($guest) {
-            // dd($guest->toArray());
-            // Guest found, flash their data to the session and redirect back
+            // Found! Securely store ID and show Masked Data
+            $maskedEmail = $guest->email ? preg_replace('/(?<=.).(?=.*@)/', '*', $guest->email) : 'N/A';
+            // Show last 4 digits for verification
+            $phoneLen = strlen($guest->contact_number);
+            $maskedPhone = '******' . substr($guest->contact_number, -4);
+
+            session([
+                'returning_guest' => [
+                    'id' => $guest->id,
+                    'name' => $guest->full_name,
+                    'masked_email' => $maskedEmail,
+                    'masked_phone' => $maskedPhone,
+                ]
+            ]);
+
             return redirect()->route('frontdesk.registrations.create')
-                ->with('guest_data', $guest->toArray())
-                ->withInput(); // Also flash the search query
-                dd ('$guest_data');
+                ->with('success', "Welcome back, {$guest->full_name}! Please confirm your stay details.");
         } else {
-            // No guest found, just flash the search query back
+            // Not Found: User is truly new (or needs to update info)
             return redirect()->route('frontdesk.registrations.create')
                 ->with('search_query', $query)
-                ->with('stay_status', 'No guest found. Please fill out the form to register.')
+                ->with('status', 'No profile found. Please create a new registration.')
                 ->withInput();
         }
     }
 
     /**
      * Store the guest's submitted draft registration.
-     * This is where the two-stage process begins.
      */
     public function store(StoreRegistrationRequest $request)
     {
-        // 1. Find or Create the Guest Profile for the LEAD GUEST
-        $guest = Guest::firstOrCreate(
-            ['contact_number' => $request->contact_number],
-            $request->only([
-                'title',
-                'full_name',
-                'nationality',
-                'birthday',
-                'email',
-                'gender',
-                'occupation',
-                'company_name',
-                'home_address',
-                'emergency_name',
-                'emergency_relationship',
-                'emergency_contact'
-            ])
-        );
+        $validated = $request->validated();
 
-        // If the guest was found and details were blank, update them now
-        if ($guest->wasRecentlyCreated === false) {
-            $guest->update($request->only([
-                'title',
-                'full_name',
-                'nationality',
-                'birthday',
-                'email',
-                'gender',
-                'occupation',
-                'company_name',
-                'home_address',
-                'emergency_name',
-                'emergency_relationship',
-                'emergency_contact'
-            ]));
+        // =================================================================
+        // 1. DATA PREPARATION & NORMALIZATION
+        // =================================================================
+
+        $normalizePhone = function ($phone) {
+            if (!$phone) return null;
+            $phone = preg_replace('/[\s\-\(\)]+/', '', $phone);
+            if (preg_match('/^0[7-9][0-1][0-9]{8}$/', $phone)) {
+                $phone = '+234' . substr($phone, 1);
+            }
+            return $phone;
+        };
+
+        // Extract inputs safely (they might be null if hidden in the form)
+        $inputPhone = isset($validated['contact_number']) ? $normalizePhone($validated['contact_number']) : null;
+        $inputName  = $validated['full_name'] ?? null;
+        $inputEmail = $validated['email'] ?? null;
+
+        // Fields that might be hidden for returning guests but need saving/updating
+        $inputTitle       = $validated['title'] ?? null;
+        $inputBirthday    = $validated['birthday'] ?? null;
+        $inputGender      = $validated['gender'] ?? null;
+        $inputNationality = $validated['nationality'] ?? null;
+        $inputOccupation  = $validated['occupation'] ?? null;
+        $inputCompany     = $validated['company_name'] ?? null;
+        $inputAddress     = $validated['home_address'] ?? null;
+        $inputEmergName   = $validated['emergency_name'] ?? null;
+        $inputEmergContact = $validated['emergency_contact'] ?? null;
+
+        // =================================================================
+        // 2. GUEST RESOLUTION (FIND OR PREPARE)
+        // =================================================================
+
+        $guest = null;
+
+        // A) Check Secure Session (Returning Guest)
+        if (session()->has('returning_guest')) {
+            $guest = Guest::find(session('returning_guest')['id']);
+
+            if ($guest) {
+                // FALLBACK: If form fields were hidden, use existing DB values
+                if (empty($inputPhone))       $inputPhone       = $guest->contact_number;
+                if (empty($inputName))        $inputName        = $guest->full_name;
+                if (empty($inputEmail))       $inputEmail       = $guest->email;
+                if (empty($inputTitle))       $inputTitle       = $guest->title;
+                if (empty($inputBirthday))    $inputBirthday    = $guest->birthday;
+                if (empty($inputGender))      $inputGender      = $guest->gender;
+                if (empty($inputNationality)) $inputNationality = $guest->nationality;
+                if (empty($inputOccupation))  $inputOccupation  = $guest->occupation;
+                if (empty($inputCompany))     $inputCompany     = $guest->company_name;
+                if (empty($inputAddress))     $inputAddress     = $guest->home_address;
+                if (empty($inputEmergName))   $inputEmergName   = $guest->emergency_name;
+                if (empty($inputEmergContact)) $inputEmergContact = $guest->emergency_contact;
+            }
         }
 
-        // 2. Create the Draft Registration Record for the LEAD GUEST
-        $registrationData = $request->validated();
-        $registrationData['guest_id'] = $guest->id;
-        $registrationData['stay_status'] = 'draft_by_guest';
+        // B) Search by Phone (New Guest fallback or Session Expired)
+        if (!$guest && $inputPhone) {
+            $guest = Guest::where('contact_number', $inputPhone)->first();
+        }
 
-        // Handle the signature image
-        if ($request->has('guest_signature')) {
-            $signatureImage = $request->input('guest_signature');
-            $signatureImage = str_replace('data:image/png;base64,', '', $signatureImage);
-            $signatureImage = str_replace(' ', '+', $signatureImage);
+        // =================================================================
+        // 3. PERSISTENCE (UPDATE OR CREATE GUEST)
+        // =================================================================
+
+        if ($guest) {
+            // === RETURNING GUEST UPDATE ===
+
+            // Check for Email Conflict if email is changing
+            if (!empty($inputEmail) && $inputEmail !== $guest->email) {
+                $emailTaken = Guest::where('email', $inputEmail)
+                    ->where('id', '!=', $guest->id)
+                    ->exists();
+
+                // Only update email if not taken
+                if (!$emailTaken) {
+                    $guest->email = $inputEmail;
+                }
+            }
+
+            // Update profile with resolved values (Merged Input + DB Fallback)
+            $guest->update([
+                'title'             => $inputTitle,
+                'full_name'         => $inputName,
+                'nationality'       => $inputNationality,
+                'birthday'          => $inputBirthday,
+                'gender'            => $inputGender,
+                'occupation'        => $inputOccupation,
+                'company_name'      => $inputCompany,
+                'home_address'      => $inputAddress,
+                'emergency_name'    => $inputEmergName,
+                'emergency_contact' => $inputEmergContact,
+            ]);
+        } else {
+            // === NEW GUEST CREATE ===
+
+            // Explicit Email Conflict Check for new records
+            if (!empty($inputEmail)) {
+                if (Guest::where('email', $inputEmail)->exists()) {
+                    return back()->withInput()->withErrors([
+                        'email' => 'This email address is already registered to another guest profile.'
+                    ]);
+                }
+            }
+
+            $guest = Guest::create([
+                'title'             => $inputTitle,
+                'full_name'         => $inputName,
+                'contact_number'    => $inputPhone,
+                'email'             => $inputEmail,
+                'birthday'          => $inputBirthday,
+                'gender'            => $inputGender,
+                'nationality'       => $inputNationality,
+                'occupation'        => $inputOccupation,
+                'company_name'      => $inputCompany,
+                'home_address'      => $inputAddress,
+                'emergency_name'    => $inputEmergName,
+                'emergency_contact' => $inputEmergContact,
+            ]);
+        }
+
+        // =================================================================
+        // 4. REGISTRATION SNAPSHOT
+        // =================================================================
+
+        $registrationData = [
+            'guest_id'          => $guest->id,
+            'stay_status'       => 'draft_by_guest',
+            // Snapshot all current resolved data
+            'title'             => $guest->title,
+            'full_name'         => $guest->full_name,
+            'contact_number'    => $guest->contact_number,
+            'email'             => $guest->email,
+            'nationality'       => $guest->nationality,
+            'birthday'          => $guest->birthday,
+            'gender'            => $guest->gender,
+            'occupation'        => $guest->occupation,
+            'company_name'      => $guest->company_name,
+            'home_address'      => $guest->home_address,
+            'emergency_name'    => $guest->emergency_name,
+            'emergency_relationship' => null, // Add if you have this field in form
+            'emergency_contact' => $guest->emergency_contact,
+
+            // Stay Specifics
+            'check_in'          => $validated['check_in'],
+            'check_out'         => $validated['check_out'],
+            'no_of_guests'      => $validated['no_of_guests'],
+            'is_group_lead'     => $request->boolean('is_group_lead'),
+            'agreed_to_policies' => true,
+            'opt_in_data_save'  => $request->boolean('opt_in_data_save'),
+        ];
+
+        // Handle Signature
+        if (!empty($validated['guest_signature'])) {
+            $signatureImage = $validated['guest_signature'];
+            if (str_contains($signatureImage, ',')) {
+                $signatureImage = explode(',', $signatureImage)[1];
+            }
+            $signatureImage = base64_decode($signatureImage);
             $imageName = 'signatures/' . uniqid() . '.png';
-            Storage::disk('public')->put($imageName, base64_decode($signatureImage));
+            Storage::disk('public')->put($imageName, $signatureImage);
             $registrationData['guest_signature'] = $imageName;
         }
 
-        // Create the registration
         $registration = Registration::create($registrationData);
 
-        // 3. Handle Group Members
-        if ($request->boolean('is_group_lead') && $request->has('group_members')) {
-            foreach ($request->group_members as $memberData) {
+        // =================================================================
+        // 5. GROUP MEMBERS PROCESSING
+        // =================================================================
 
-                // --- START OF THE FIX ---
-                // This block solves Problem 1 and Problem 2
+        if ($request->boolean('is_group_lead') && !empty($validated['group_members'])) {
+            foreach ($validated['group_members'] as $memberData) {
 
+                $memberPhone = $normalizePhone($memberData['contact_number'] ?? null);
                 $memberGuestId = null;
 
-                // Only search/create a guest if a contact number is provided
-                // This matches the DTO validation ('contact_number' => ['nullable', 'string'])
-                if (!empty($memberData['contact_number'])) {
+                // Create/Update basic guest profile for member if phone provided
+                if ($memberPhone) {
                     $memberGuest = Guest::firstOrCreate(
-                        ['contact_number' => $memberData['contact_number']],
+                        ['contact_number' => $memberPhone],
                         [
                             'full_name' => $memberData['full_name'],
-                            // Add email if you ever add it to the group form
-                            // 'email' => $memberData['email'] ?? null 
+                            'email'     => $memberData['email'] ?? null,
                         ]
                     );
+
+                    // Always ensure name is up to date
+                    if ($memberGuest->full_name !== $memberData['full_name']) {
+                        $memberGuest->update(['full_name' => $memberData['full_name']]);
+                    }
                     $memberGuestId = $memberGuest->id;
                 }
 
-                // --- END OF THE FIX ---
-
-                // Create the child registration, now with the correct guest_id
                 Registration::create([
-                    'full_name' => $memberData['full_name'],
-                    'contact_number' => $memberData['contact_number'],
-                    'guest_id' => $memberGuestId, // <-- THE FIX IS APPLIED HERE
                     'parent_registration_id' => $registration->id,
-                    'stay_status' => 'draft_by_guest', // Members are also drafts
-                    'check_in' => $registration->check_in,
-                    'check_out' => $registration->check_out,
+                    'guest_id'       => $memberGuestId,
+                    'full_name'      => $memberData['full_name'],
+                    'contact_number' => $memberPhone,
+                    'email'          => $memberData['email'] ?? null,
+                    'check_in'       => $registration->check_in,
+                    'check_out'      => $registration->check_out,
+                    'stay_status'    => 'draft_by_guest',
                 ]);
             }
         }
+
+        // Clean up session
+        session()->forget('returning_guest');
 
         return redirect()->route('frontdesk.registrations.thank-you');
     }
@@ -180,14 +327,43 @@ class RegistrationController extends Controller
     // =====================================================================
 
     /**
-     * Display the agent's dashboard of all registrations.
+     * Display the agent's dashboard of all registrations with Search & Filter.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $registrations = Registration::with('guest')
-            ->whereNull('parent_registration_id') // Only show group leads/individuals
-            ->latest()
-            ->paginate(15);
+        $query = Registration::with('guest')
+            ->whereNull('parent_registration_id'); // Only show group leads/individuals
+
+        // 1. Search Filter (Name, Contact, Email)
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                // Search in Registration Snapshot
+                $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('contact_number', 'like', "%{$search}%")
+                    // Search in Linked Guest Profile (for email or updated info)
+                    ->orWhereHas('guest', function ($guestQ) use ($search) {
+                        $guestQ->where('full_name', 'like', "%{$search}%")
+                            ->orWhere('contact_number', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // 2. Status Filter
+        if ($request->filled('status')) {
+            $query->where('stay_status', $request->input('status'));
+        }
+
+        // 3. Date Filter (Optional but helpful: Filter by Check-in date)
+        if ($request->filled('date')) {
+            $query->whereDate('check_in', $request->input('date'));
+        }
+
+        $registrations = $query->latest()
+            ->paginate(15)
+            ->appends($request->all()); // Keep search params in pagination links
+
         return view('frontdeskcrm::registrations.index', compact('registrations'));
     }
     // --- NEW "WALK-IN" FEATURE (Scenario 3) ---
@@ -205,44 +381,94 @@ class RegistrationController extends Controller
 
     /**
      * Store the new walk-in guest and registration.
-     * This bypasses the signature/policy steps and immediately creates a draft.
      */
     public function storeWalkin(Request $request)
     {
-        // Use a simpler validation for walk-ins
+        // 1. Validate Input
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'contact_number' => ['required', 'string', 'max:100', new ValidPhoneNumber],
             'email' => ['nullable', 'email', new ValidEmail],
+            'gender' => ['nullable', 'string', 'in:male,female,other'],
             'check_in' => ['required', 'date'],
             'check_out' => ['required', 'date', 'after_or_equal:check_in'],
         ]);
 
-        // Find or Create the Guest Profile
-        $guest = Guest::firstOrCreate(
-            ['contact_number' => $validated['contact_number']],
-            [
-                'full_name' => $validated['full_name'],
-                'email' => $validated['email'] ?? null,
-            ]
-        );
+        // 2. Normalize Phone Number
+        $phone = $validated['contact_number'];
+        $phone = preg_replace('/[\s\-\(\)]+/', '', $phone);
+        if (preg_match('/^0[7-9][0-1][0-9]{8}$/', $phone)) {
+            $phone = '+234' . substr($phone, 1);
+        }
+        $validated['contact_number'] = $phone;
 
-        // Create the Draft Registration Record
+        // 3. Search for Guest
+        $guest = Guest::where('contact_number', $validated['contact_number'])->first();
+        $message = '';
+
+        if ($guest) {
+            // === RETURNING GUEST ===
+
+            // Check for Email Conflict
+            if (!empty($validated['email']) && $validated['email'] !== $guest->email) {
+                $emailExists = Guest::where('email', $validated['email'])
+                    ->where('id', '!=', $guest->id)
+                    ->exists();
+
+                if ($emailExists) {
+                    // FIX: Throw Exception to ensure error is displayed
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'email' => ['This email address is already registered to a different guest profile.'],
+                    ]);
+                }
+                $guest->email = $validated['email'];
+            }
+
+            // Update details
+            $guest->full_name = $validated['full_name'];
+            $guest->gender = $validated['gender'] ?? $guest->gender;
+            $guest->save();
+
+            $message = "Welcome back, {$guest->full_name}! Registration created.";
+        } else {
+            // === NEW GUEST ===
+
+            if (!empty($validated['email'])) {
+                if (Guest::where('email', $validated['email'])->exists()) {
+                    // FIX: Throw Exception to ensure error is displayed
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'email' => ['This email address is already in use by another guest.'],
+                    ]);
+                }
+            }
+
+            $guest = Guest::create([
+                'full_name' => $validated['full_name'],
+                'contact_number' => $validated['contact_number'],
+                'gender' => $validated['gender'] ?? null,
+                'email' => $validated['email'] ?? null,
+                'title' => '',
+            ]);
+
+            $message = "New guest profile created.";
+        }
+
+        // 4. Create Registration Snapshot
         $registration = Registration::create([
             'guest_id' => $guest->id,
-            'full_name' => $guest->full_name,
-            'contact_number' => $guest->contact_number,
-            'email' => $guest->email,
+            'full_name' => $validated['full_name'],
+            'contact_number' => $validated['contact_number'],
+            'gender' => $validated['gender'] ?? null,
+            'email' => $validated['email'] ?? $guest->email,
             'check_in' => $validated['check_in'],
             'check_out' => $validated['check_out'],
-            'stay_status' => 'draft_by_guest', // <-- Set as draft
+            'stay_status' => 'draft_by_guest',
             'no_of_guests' => 1,
-            'agreed_to_policies' => true, // Agent is responsible
+            'agreed_to_policies' => true,
         ]);
 
-        // Redirect to the finalize form to assign a room and rate
         return redirect()->route('frontdesk.registrations.finalize.form', $registration)
-            ->with('success', 'Walk-in guest created. Please finalize the registration.');
+            ->with('success', $message);
     }
     /**
      * Show the form for an agent to finalize a draft.

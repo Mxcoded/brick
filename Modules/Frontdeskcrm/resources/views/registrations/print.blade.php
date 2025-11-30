@@ -148,13 +148,13 @@
                         <img src="data:image/png;base64,{{ $logoBase64 }}" alt="Logo" class="logo">
                     @endif
                 </td>
-                <td style="border: 0; text-align: left; padding-left: 15px;">
-                    <h1 style="margin: 0; font-size: 20px;">Brickspoint Aparthotel</h1>
+                <td style="border: 0; text-align: center; padding-left: 15px;">
+                    <h1 style="margin: 0; font-size: 20px;">Guest Check-in Registration Form</h1>
                     {{-- <p style="margin: 0;">123 Hotel Address, City, Country</p>
                     <p style="margin: 0;">Phone: (123) 456-7890 | Email: info@brickspoint.com</p> --}}
                 </td>
                 <td style="border: 0; text-align: right; vertical-align: top;">
-                    <h2 style="margin: 0; font-size: 16px;">Guest Check-in Registration Form</h2>
+                    <h2 style="margin: 0; font-size: 16px;"></h2>
                     <p style="margin: 2px 0;"><strong>Reg ID:</strong> {{ $registration->id }}</p>
                     <p style="margin: 2px 0;"><strong>Print Date:</strong> {{ now()->format('M d, Y H:i A') }} <br> by {{ Auth::user()->name }}</p>
                 </td>
