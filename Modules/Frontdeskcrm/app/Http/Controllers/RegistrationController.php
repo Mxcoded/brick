@@ -15,6 +15,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Website\Models\Room;
 
 class RegistrationController extends Controller
 {
@@ -519,18 +520,66 @@ class RegistrationController extends Controller
         $groupMembers = Registration::where('parent_registration_id', $registration->id)->get();
         $bookingSources = BookingSource::where('is_active', true)->get();
         $guestTypes = GuestType::where('is_active', true)->get();
+        // --- NEW: Fetch Rooms ---
+        // In a real app, you might want to only fetch rooms that are currently available
+        // But for the dropdown, we usually fetch all active rooms and let the validation handle conflicts,
+        // OR we filter them visually. Let's fetch all for the dropdown.
+        $rooms = Room::orderBy('name')->get();
 
-        return view('frontdeskcrm::registrations.finalize', compact('registration', 'groupMembers', 'bookingSources', 'guestTypes'));
+        return view('frontdeskcrm::registrations.finalize', compact('registration', 'groupMembers', 'bookingSources', 'guestTypes', 'rooms'));
     }
     /**
      * Process the agent's finalization form submission for individuals or groups.
      */
     public function finalize(FinalizeRegistrationRequest $request, Registration $registration)
     {
-        // Use the validated data from your Form Request class
         $validated = $request->validated();
         $nights = $registration->check_in->diffInDays($registration->check_out);
         $billingType = $request->input('billing_type', 'consolidate');
+
+        // =========================================================
+        // 1. ROBUST AVAILABILITY CHECK (Using Room ID)
+        // =========================================================
+
+        // Helper: Check if a specific Room ID is occupied
+        $checkAvailability = function ($roomId, $checkIn, $checkOut, $ignoreRegId = null) {
+            if (!$roomId) return false;
+
+            return Registration::where('room_id', $roomId) // <--- Check ID, not string
+                ->where('stay_status', 'checked_in')
+                ->where('id', '!=', $ignoreRegId)
+                ->where(function ($query) use ($checkIn, $checkOut) {
+                    $query->whereBetween('check_in', [$checkIn, $checkOut])
+                        ->orWhereBetween('check_out', [$checkIn, $checkOut])
+                        ->orWhere(function ($q) use ($checkIn, $checkOut) {
+                            $q->where('check_in', '<=', $checkIn)
+                                ->where('check_out', '>=', $checkOut);
+                        });
+                })->exists();
+        };
+
+        // A) Check Lead Room
+        if ($checkAvailability($validated['room_id'], $registration->check_in, $registration->check_out, $registration->id)) {
+            // Get room name for error message
+            $roomName = Room::find($validated['room_id'])?->name ?? 'Selected Room';
+            return back()->withInput()->withErrors([
+                'room_id' => "$roomName is already occupied for these dates."
+            ]);
+        }
+
+        // B) Check Member Rooms
+        if (isset($validated['group_members'])) {
+            foreach ($validated['group_members'] as $id => $data) {
+                if ($data['status'] === 'no_show') continue;
+
+                if ($checkAvailability($data['room_id'], $registration->check_in, $registration->check_out, $id)) {
+                    $roomName = Room::find($data['room_id'])?->name ?? 'Selected Room';
+                    return back()->withInput()->withErrors([
+                        "group_members.{$id}.room_id" => "$roomName (Member Room) is already occupied."
+                    ]);
+                }
+            }
+        }
 
         // --- 1. Process Group Members ---
         if (isset($validated['group_members'])) {

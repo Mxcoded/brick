@@ -4,6 +4,7 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Modules\Frontdeskcrm\Models\Registration;
 // use Modules\Website\Database\Factories\RoomFactory;
 
 class Room extends Model
@@ -39,6 +40,10 @@ class Room extends Model
     public function bookings()
     {
         return $this->hasMany(Booking::class);
+    }
+    public function registrations()
+    {
+        return $this->hasMany(Registration::class);
     }
     // protected static function newFactory(): RoomFactory
     // {

@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('registrations', function (Blueprint $table) {
+            $table->foreignId('room_id')->nullable()->after('room_allocation')->constrained('rooms')->nullOnDelete();
             $table->timestamp('actual_checkout_at')->nullable()->after('check_out');
             $table->foreignId('checked_out_by_agent_id')->nullable()->after('finalized_by_agent_id')->constrained('users')->onDelete('set null');
         });
@@ -24,6 +25,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('registrations', function (Blueprint $table) {
+            $table->dropForeign(['room_id']);
+            $table->dropColumn('room_id');
             $table->dropColumn(['actual_checkout_at', 'checked_out_by_agent_id']);
         });
     }
