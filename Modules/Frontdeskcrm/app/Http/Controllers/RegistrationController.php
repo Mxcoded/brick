@@ -508,10 +508,10 @@ class RegistrationController extends Controller
     }
     /**
      * Show the form for an agent to finalize a draft.
+     * UPDATED: Now fetches Rooms from the Website module.
      */
     public function showFinalizeForm(Registration $registration)
     {
-        // dd($registration->stay_status);
         if ($registration->stay_status !== 'draft_by_guest') {
             return redirect()->route('frontdesk.registrations.show', $registration)
                 ->with('error', 'This registration has already been finalized.');
@@ -520,16 +520,21 @@ class RegistrationController extends Controller
         $groupMembers = Registration::where('parent_registration_id', $registration->id)->get();
         $bookingSources = BookingSource::where('is_active', true)->get();
         $guestTypes = GuestType::where('is_active', true)->get();
-        // --- NEW: Fetch Rooms ---
-        // In a real app, you might want to only fetch rooms that are currently available
-        // But for the dropdown, we usually fetch all active rooms and let the validation handle conflicts,
-        // OR we filter them visually. Let's fetch all for the dropdown.
+
+        // --- NEW: Fetch Real Rooms for the Dropdown ---
         $rooms = Room::orderBy('name')->get();
 
-        return view('frontdeskcrm::registrations.finalize', compact('registration', 'groupMembers', 'bookingSources', 'guestTypes', 'rooms'));
+        return view('frontdeskcrm::registrations.finalize', compact(
+            'registration',
+            'groupMembers',
+            'bookingSources',
+            'guestTypes',
+            'rooms' // <--- Passed to view
+        ));
     }
     /**
-     * Process the agent's finalization form submission for individuals or groups.
+     * Process the agent's finalization.
+     * UPDATED: Validates using Room ID (ERP Logic).
      */
     public function finalize(FinalizeRegistrationRequest $request, Registration $registration)
     {
@@ -538,14 +543,14 @@ class RegistrationController extends Controller
         $billingType = $request->input('billing_type', 'consolidate');
 
         // =========================================================
-        // 1. ROBUST AVAILABILITY CHECK (Using Room ID)
+        // 1. ERP AVAILABILITY CHECK (Using Room ID)
         // =========================================================
 
-        // Helper: Check if a specific Room ID is occupied
+        // Helper to check if a specific Room ID is occupied
         $checkAvailability = function ($roomId, $checkIn, $checkOut, $ignoreRegId = null) {
             if (!$roomId) return false;
 
-            return Registration::where('room_id', $roomId) // <--- Check ID, not string
+            return Registration::where('room_id', $roomId)
                 ->where('stay_status', 'checked_in')
                 ->where('id', '!=', $ignoreRegId)
                 ->where(function ($query) use ($checkIn, $checkOut) {
@@ -559,9 +564,11 @@ class RegistrationController extends Controller
         };
 
         // A) Check Lead Room
-        if ($checkAvailability($validated['room_id'], $registration->check_in, $registration->check_out, $registration->id)) {
-            // Get room name for error message
-            $roomName = Room::find($validated['room_id'])?->name ?? 'Selected Room';
+        // We use 'room_id' from request, falling back to null if they entered manual text
+        $leadRoomId = $request->input('room_id');
+
+        if ($leadRoomId && $checkAvailability($leadRoomId, $registration->check_in, $registration->check_out, $registration->id)) {
+            $roomName = Room::find($leadRoomId)?->name ?? 'Selected Room';
             return back()->withInput()->withErrors([
                 'room_id' => "$roomName is already occupied for these dates."
             ]);
@@ -570,10 +577,12 @@ class RegistrationController extends Controller
         // B) Check Member Rooms
         if (isset($validated['group_members'])) {
             foreach ($validated['group_members'] as $id => $data) {
-                if ($data['status'] === 'no_show') continue;
+                if (($data['status'] ?? '') === 'no_show') continue;
 
-                if ($checkAvailability($data['room_id'], $registration->check_in, $registration->check_out, $id)) {
-                    $roomName = Room::find($data['room_id'])?->name ?? 'Selected Room';
+                $memberRoomId = $data['room_id'] ?? null;
+
+                if ($memberRoomId && $checkAvailability($memberRoomId, $registration->check_in, $registration->check_out, $id)) {
+                    $roomName = Room::find($memberRoomId)?->name ?? 'Selected Room';
                     return back()->withInput()->withErrors([
                         "group_members.{$id}.room_id" => "$roomName (Member Room) is already occupied."
                     ]);
@@ -581,29 +590,35 @@ class RegistrationController extends Controller
             }
         }
 
-        // --- 1. Process Group Members ---
+        // =========================================================
+        // 2. PROCESSING & SAVING
+        // =========================================================
+
+        // --- Process Group Members ---
+        $membersTotalBill = 0;
+
         if (isset($validated['group_members'])) {
             foreach ($validated['group_members'] as $id => $data) {
                 $memberRegistration = Registration::find($id);
                 if (!$memberRegistration || $memberRegistration->parent_registration_id !== $registration->id) {
-                    continue; // Skip if member not found or doesn't belong to this group
+                    continue;
                 }
 
-                // A) Handle No-Show Members
-                if ($data['status'] === 'no_show') {
+                if (($data['status'] ?? '') === 'no_show') {
                     $memberRegistration->update([
                         'stay_status' => 'no_show',
                         'total_amount' => 0,
+                        'room_id' => null,
                         'room_allocation' => null,
                         'room_rate' => 0,
                     ]);
-                    continue; // Move to the next member
+                    continue;
                 }
 
-                // B) Handle Checked-in Members
                 $memberTotal = $data['room_rate'] * $nights;
                 $memberRegistration->update([
-                    'room_allocation' => $data['room_allocation'],
+                    'room_id' => $data['room_id'] ?? null, // <--- Save ID
+                    'room_allocation' => $data['room_allocation'] ?? null, // Save text name as backup
                     'room_rate' => $data['room_rate'],
                     'bed_breakfast' => isset($data['bed_breakfast']),
                     'stay_status' => 'checked_in',
@@ -613,33 +628,34 @@ class RegistrationController extends Controller
                     'guest_type_id' => $validated['guest_type_id'],
                     'booking_source_id' => $validated['booking_source_id'],
                 ]);
+
+                if ($memberRegistration->stay_status === 'checked_in') {
+                    $membersTotalBill += $memberTotal;
+                }
             }
         }
 
-        // --- 2. Process Group Lead ---
+        // --- Process Group Lead ---
         $leadRate = $validated['room_rate'];
         $leadPersonalBill = $leadRate * $nights;
         $finalLeadTotal = $leadPersonalBill;
 
-        // --- 3. Apply Billing Logic ---
         if ($billingType === 'consolidate') {
-            // Add the sum of all *checked-in* children's bills to the lead's bill
-            $membersTotalBill = $registration->children()->where('stay_status', 'checked_in')->sum('total_amount');
             $finalLeadTotal += $membersTotalBill;
         }
-        // If billingType is 'individual', the lead's total is just their personal bill.
 
         $registration->update([
-            'room_allocation' => $validated['room_allocation'],
+            'room_id' => $request->input('room_id'), // <--- Save ID
+            'room_allocation' => $validated['room_allocation'], // Keep text for now
             'room_rate' => $leadRate,
             'bed_breakfast' => $request->boolean('bed_breakfast'),
             'guest_type_id' => $validated['guest_type_id'],
             'booking_source_id' => $validated['booking_source_id'],
             'payment_method' => $validated['payment_method'],
-            'billing_type' => $billingType, // Save the billing choice
+            'billing_type' => $billingType,
             'stay_status' => 'checked_in',
             'no_of_nights' => $nights,
-            'total_amount' => $finalLeadTotal, // The final calculated total
+            'total_amount' => $finalLeadTotal,
             'finalized_by_agent_id' => Auth::id(),
         ]);
 
