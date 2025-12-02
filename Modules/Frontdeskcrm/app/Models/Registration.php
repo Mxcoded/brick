@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Modules\Website\Models\Room;
 
 class Registration extends Model
 {
@@ -34,6 +35,7 @@ class Registration extends Model
         'emergency_relationship',
         'room_type',
         'room_allocation',
+        'room_id',
         'room_rate',
         'bed_breakfast',
         'check_in',
@@ -104,5 +106,9 @@ class Registration extends Model
     public function checkedOutBy(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class, 'checked_out_by_agent_id');
+    }
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(Room::class);
     }
 }
