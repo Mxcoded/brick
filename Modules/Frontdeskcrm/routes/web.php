@@ -50,6 +50,7 @@ Route::middleware('auth')->prefix('frontdesk')->name('frontdesk.')->group(functi
         Route::get('/', [RegistrationController::class, 'index'])->name('dashboard');
         Route::get('registrations', [RegistrationController::class, 'index'])->name('index');
         // --- NEW "WALK-IN" ROUTE (Feature) ---
+        Route::get('/lookup-guest', [RegistrationController::class, 'lookupGuest'])->name('lookup');
         Route::get('/create-walkin', [RegistrationController::class, 'createWalkin'])->name('createWalkin');
         Route::post('/store-walkin', [RegistrationController::class, 'storeWalkin'])->name('storeWalkin');
 

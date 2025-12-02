@@ -9,18 +9,68 @@
 
     <title>Staff Module - {{ config('app.name', 'Staff Management') }}</title>
 
+    <!-- Fonts -->
+    <link href="https://fonts.cdnfonts.com/css/proxima-nova" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    
+    <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
+
+    <style>
+        :root {
+            --bs-body-font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
+        }
+        
+        body {
+            font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
+            color: #333333;
+        }
+        
+        /* Gold accent color styling */
+        .text-gold {
+            color: #C8A165 !important;
+        }
+        
+        .bg-gold {
+            background-color: #C8A165 !important;
+        }
+        
+        .btn-gold {
+            background-color: #C8A165;
+            border-color: #C8A165;
+            color: white;
+        }
+        
+        .btn-gold:hover {
+            background-color: #b08c54;
+            border-color: #b08c54;
+            color: white;
+        }
+        
+        .btn-outline-gold {
+            border-color: #C8A165;
+            color: #C8A165;
+        }
+        
+        .btn-outline-gold:hover {
+            background-color: #C8A165;
+            border-color: #C8A165;
+            color: white;
+        }
+        
+        .border-gold {
+            border-color: #C8A165 !important;
+        }
+    </style>
 
     @yield('styles')
 </head>
 
-<body>
+<body style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif; color: #333333;">
 
     {{-- This will now be the injection point for our entire master layout --}}
     @yield('content')

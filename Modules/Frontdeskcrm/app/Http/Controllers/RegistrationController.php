@@ -380,6 +380,41 @@ class RegistrationController extends Controller
     }
 
     /**
+     * AJAX Lookup for Walk-in form.
+     * Finds a guest by phone number to auto-fill the agent's form.
+     */
+    public function lookupGuest(Request $request)
+    {
+        $phone = $request->query('phone');
+
+        if (!$phone) {
+            return response()->json(['found' => false]);
+        }
+
+        // 1. Normalize Phone (Same logic as store)
+        $phone = preg_replace('/[\s\-\(\)]+/', '', $phone);
+        if (preg_match('/^0[7-9][0-1][0-9]{8}$/', $phone)) {
+            $phone = '+234' . substr($phone, 1);
+        }
+
+        // 2. Search
+        $guest = Guest::where('contact_number', $phone)->first();
+
+        if ($guest) {
+            return response()->json([
+                'found' => true,
+                'guest' => [
+                    'full_name' => $guest->full_name,
+                    'email' => $guest->email,
+                    'gender' => $guest->gender,
+                    // Add any other fields you want to auto-fill
+                ]
+            ]);
+        }
+
+        return response()->json(['found' => false]);
+    }
+    /**
      * Store the new walk-in guest and registration.
      */
     public function storeWalkin(Request $request)
@@ -685,30 +720,85 @@ class RegistrationController extends Controller
 
     /**
      * Manually check a guest out (works for both lead and members).
+     * Now handles Early Departure (Truncating dates) and Audit Trail.
      */
     public function checkout(Registration $registration)
     {
         if ($registration->stay_status !== 'checked_in') {
             return back()->with('error', 'This guest is not currently checked-in.');
         }
-        // --- Increment Visit Count for the Lead Guest ---
+
+        // 1. Capture Current Time & Agent
+        $now = now();
+        $updates = [
+            'stay_status' => 'checked_out',
+            'actual_checkout_at' => $now,
+            'checked_out_by_agent_id' => Auth::id(),
+        ];
+
+        // 2. HANDLE EARLY CHECKOUT (The "Stays Still Count" Fix)
+        // If today is BEFORE the planned check_out date, we must truncate the stay.
+        // This frees up the room for tomorrow and corrects the revenue.
+        if ($now->startOfDay()->lt($registration->check_out->startOfDay())) {
+
+            // Set new checkout date to TODAY (or keep it if they leave late)
+            $newCheckOutDate = $now;
+
+            // Recalculate Nights (Minimum 1 night charged if they leave immediately)
+            $nights = $registration->check_in->diffInDays($newCheckOutDate);
+            if ($nights < 1) $nights = 1;
+
+            $updates['check_out'] = $newCheckOutDate;
+            $updates['no_of_nights'] = $nights;
+
+            // Recalculate Bill (Rate * Actual Nights)
+            // Note: If you have extra services (food, laundry), this logic might need
+            // to be 'existing_total - (refund_amount)' instead. 
+            // For now, we assume Room Rate * Nights.
+            $updates['total_amount'] = $registration->room_rate * $nights;
+        }
+
+        // 3. Apply Updates
+        $registration->update($updates);
+
+        // 4. Update Guest History
         $guest = $registration->guest;
-        if ($guest && $registration->stay_status === 'checked_in') {
+        if ($guest) {
             $guest->increment('visit_count');
-            $guest->last_visit_at = now();
+            $guest->last_visit_at = $now;
             $guest->save();
         }
-        $registration->update(['stay_status' => 'checked_out']);
 
-        $message = "Guest {$registration->full_name} has been successfully checked out.";
+        // 5. Handle Group Children (If this is a Lead)
+        // If the Lead checks out, strictly speaking, the group might still be there.
+        // But usually, if the Lead pays/closes the bill, everyone is done.
+        // OPTIONAL: Auto-checkout children
+        if ($registration->is_group_lead) {
+            foreach ($registration->children as $child) {
+                if ($child->stay_status === 'checked_in') {
+                    // Recursive call or manual update? 
+                    // Manual update is safer to avoid infinite redirects
+                    $child->update([
+                        'stay_status' => 'checked_out',
+                        'actual_checkout_at' => $now,
+                        'checked_out_by_agent_id' => Auth::id(),
+                        'check_out' => $updates['check_out'] ?? $child->check_out, // Sync dates if early
+                    ]);
+                }
+            }
+        }
 
-        // If a member was checked out, redirect back to the group lead's page.
+        $message = "Guest {$registration->full_name} checked out successfully.";
+        if (isset($updates['total_amount'])) {
+            $message .= " Bill adjusted for early departure.";
+        }
+
+        // Redirect logic
         if ($registration->parent_registration_id) {
             return redirect()->route('frontdesk.registrations.show', $registration->parent_registration_id)
                 ->with('success', $message);
         }
 
-        // If the lead was checked out, redirect to the index page.
         return redirect()->route('frontdesk.registrations.index')
             ->with('success', $message);
     }

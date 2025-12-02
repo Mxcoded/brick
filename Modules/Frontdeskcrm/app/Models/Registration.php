@@ -46,13 +46,16 @@ class Registration extends Model
         'finalized_by_agent_id',
         'agreed_to_policies',
         'guest_signature',
-        'registration_date'
+        'registration_date',
+        'actual_checkout_at',       // <--- ADD THIS
+        'checked_out_by_agent_id',  // <--- ADD THIS
     ];
 
     protected $casts = [
         'check_in' => 'date',
         'check_out' => 'date',
         'registration_date' => 'date',
+        'actual_checkout_at' => 'datetime', // <--- ADD THIS
         'birthdate' => 'date',
         'bed_breakfast' => 'boolean',
         'is_group_lead' => 'boolean',
@@ -96,5 +99,10 @@ class Registration extends Model
     public function children(): HasMany
     {
         return $this->hasMany(Registration::class, 'parent_registration_id');
+    }
+    
+    public function checkedOutBy(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'checked_out_by_agent_id');
     }
 }
