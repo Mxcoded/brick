@@ -11,7 +11,7 @@
             @include('layouts.navbar')
 
             {{-- This new div will grow to fill all available space, pushing the footer down --}}
-            <div class="container-fluid p-4 flex-grow-1">
+            <div class="container-fluid p-4 flex-grow-1" style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;">
                 @yield('page-content')
             </div>
 
@@ -23,7 +23,7 @@
                         <p class="mb-0 text-muted">&copy; {{ date('Y') }}
 
                             <a href="home"
-                                style="font-weight: 800; font-size: 1.4rem; color: #130707;  text-decoration: none; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                                style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif; font-weight: 800; font-size: 1.4rem; color: #C8A165;  text-decoration: none; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
                  ">
                                 BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub
                                     style="font-size:8pt;">v1.0</sub>
@@ -31,7 +31,7 @@
                             . All rights reserved.
                     </div>
                     </p>
-                    <p class="mb-0 text-muted">™ Developed with ❤️ by IT Team </p>
+                    <p class="mb-0 text-muted" style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;">™ Developed with ❤️ by IT Team </p>
                 </div>
             </footer>
         </div>
