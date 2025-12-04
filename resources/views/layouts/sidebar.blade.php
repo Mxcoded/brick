@@ -24,7 +24,7 @@
                 data-bs-toggle="collapse" href="#checkinSubmenu" role="button"
                 aria-expanded="{{ request()->routeIs('frontdesk.registrations.*') ? 'true' : 'false' }}"
                 aria-controls="checkinSubmenu" style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
-                <span><i class="fas fa-bed fa-fw me-3"></i> Check-In Management</span>
+                <span><i class="fas fa-bed fa-fw me-3"></i> FrontDesk Portal</span>
                 <i class="fas fa-chevron-down fa-xs"></i>
             </a>
 
@@ -32,11 +32,11 @@
                 id="checkinSubmenu">
                 <div class="list-group list-group-flush">
                     <a href="{{ route('frontdesk.registrations.index') }}"
-                        class="list-group-item list-group-item-action p-3 {{ request()->routeIs('frontdesk.registrations.*') ? 'active' : '' }}" style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
+                        class="list-group-item list-group-item-action p-3 {{ request()->routeIs('frontdesk.registrations.index') ? 'active' : '' }}" style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
                         <i class="fas fa-list fa-fw me-3"></i> Guest Registrations
                     </a>
-                    <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('frontdesk.registrations.agent-checkin') ? 'active' : '' }}"
-                        href="{{ route('frontdesk.registrations.create') }}" style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
+                    <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('frontdesk.registrations.createWalkin') ? 'active' : '' }}"
+                        href="{{ route('frontdesk.registrations.createWalkin') }}" style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
                         <i class="fas fa-user-plus fa-fw me-3"></i>New Check-In
                     </a>
 
