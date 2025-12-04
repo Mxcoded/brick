@@ -666,31 +666,41 @@ class RegistrationController extends Controller
 
     /**
      * Re-opens a 'no_show' or 'checked_out' registration to be finalized again.
+     * UPDATED: Clears audit trails to prevent data corruption.
      */
     public function reopen(Registration $registration)
     {
-        // Only allow reopening for 'no-show' or 'checked_out'
+        // 1. Validation
         if ($registration->stay_status !== 'no_show' && $registration->stay_status !== 'checked_out') {
             return back()->with('error', 'Only no-show or checked-out guests can be re-opened.');
         }
 
-        // If it's a child, re-open the parent instead
+        // 2. Resolve Group Lead (Always reopen from the top down)
         if ($registration->parent_registration_id) {
             $registration = $registration->parent;
         }
 
-        // Reset all children (group members) to 'draft_by_guest'
-        $registration->children()->update([
+        // 3. Define the Reset State
+        // We must clear the checkout timestamps so the system treats them as 'active' again.
+        $resetData = [
             'stay_status' => 'draft_by_guest',
-        ]);
+            'actual_checkout_at' => null,       // <--- CRITICAL FIX
+            'checked_out_by_agent_id' => null,  // <--- CRITICAL FIX
+            // We KEEP 'room_id' and 'check_in/out' dates. 
+            // The finalize() method will validate if the room is still free.
+        ];
 
-        // Reset the parent to 'draft_by_guest'
-        $registration->update([
-            'stay_status' => 'draft_by_guest',
-        ]);
+        // 4. Reset Children (Group Members)
+        // Note: This resets EVERYONE. If you want to keep 'no_show' members as 'no_show',
+        // you would need a more complex loop here. For now, resetting all is safer 
+        // to ensure the agent reviews everyone.
+        $registration->children()->update($resetData);
+
+        // 5. Reset Parent
+        $registration->update($resetData);
 
         return redirect()->route('frontdesk.registrations.finalize.form', $registration)
-            ->with('success', 'Registration has been re-opened. Please finalize it again.');
+            ->with('success', 'Registration has been re-opened. Please review room availability and finalize.');
     }
 
     // --- NEW "DELETE DRAFT" FEATURE ---
