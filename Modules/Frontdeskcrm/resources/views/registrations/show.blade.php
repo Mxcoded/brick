@@ -4,20 +4,44 @@
 
 @section('page-content')
     <div class="container-fluid py-4">
-        @php
+       @php
             // ### CALCULATIONS FOR ENHANCED UX ###
             $isGroupLead = $registration->is_group_lead;
 
-            // --- Stay Progress Calculation ---
-            $today = \Carbon\Carbon::today();
-            $checkIn = $registration->check_in;
-            $checkOut = $registration->check_out;
-            $totalNights = $registration->no_of_nights > 0 ? $registration->no_of_nights : 1;
+            // --- Robust Stay Progress Calculation ---
+            $today = \Carbon\Carbon::now()->startOfDay();
+            
+            // Ensure dates are valid objects and strip time for accurate day-diffs
+            $checkIn = $registration->check_in ? $registration->check_in->copy()->startOfDay() : $today;
+            $checkOut = $registration->check_out ? $registration->check_out->copy()->startOfDay() : $today->copy()->addDay();
 
-            $daysPassed = $checkIn->isPast() ? $today->diffInDays($checkIn) : 0;
-            $daysRemaining = $today->diffInDays($checkOut, false);
-            $progress = round(($daysPassed / $totalNights) * 100);
-            if ($progress < 0) $progress = 0;
+            // 1. Calculate Total Duration (Dynamic)
+            $totalNights = $checkIn->diffInDays($checkOut);
+            if ($totalNights < 1) $totalNights = 1; // Prevent division by zero
+
+            // 2. Calculate Days Passed
+            if ($today->lt($checkIn)) {
+                $daysPassed = 0; // Future stay
+            } elseif ($today->gte($checkOut)) {
+                $daysPassed = $totalNights; // Completed stay
+            } else {
+                $daysPassed = $checkIn->diffInDays($today); // Ongoing
+            }
+
+            // 3. Calculate Days Remaining
+            $daysRemaining = $totalNights - $daysPassed;
+            if ($daysRemaining < 0) $daysRemaining = 0;
+
+            // 4. Calculate Percentage
+            $progress = 0;
+            if ($totalNights > 0) {
+                $progress = round(($daysPassed / $totalNights) * 100);
+            }
+            
+            // UX FIX: If Checked-In but on Day 1 (0%), show 5% so the bar is visible
+            if ($registration->stay_status === 'checked_in' && $progress < 5) {
+                $progress = 5;
+            }
             if ($progress > 100) $progress = 100;
 
             // --- Dynamic Status Badge Logic ---
@@ -25,10 +49,10 @@
             $statusText = ucfirst(str_replace('_', ' ', $registration->stay_status));
 
             if ($registration->stay_status === 'checked_in') {
-                if ($checkOut->isToday()) {
+                if ($checkOut->isSameDay($today)) {
                     $statusBadgeClass = 'bg-warning text-dark';
                     $statusText = 'Departing Today';
-                } elseif ($checkOut->isPast()) {
+                } elseif ($checkOut->lt($today)) {
                     $statusBadgeClass = 'bg-danger';
                     $statusText = 'Overstayed';
                 } else {
@@ -40,8 +64,7 @@
             }
 
             // --- Guest Profile Enhancements ---
-            $guestAge =
-                $registration->guest && $registration->guest->birthday
+            $guestAge = $registration->guest && $registration->guest->birthday
                     ? \Carbon\Carbon::parse($registration->guest->birthday)->age
                     : null;
 
