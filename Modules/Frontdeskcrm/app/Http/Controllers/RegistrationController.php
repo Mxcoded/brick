@@ -658,9 +658,27 @@ class RegistrationController extends Controller
             'total_amount' => $finalLeadTotal,
             'finalized_by_agent_id' => Auth::id(),
         ]);
+        // =========================================================
+        // 3. PARENT BILL SYNC (For Late Arrivals)
+        // =========================================================
+        // If we just finalized a Child, and the group uses Consolidated Billing,
+        // we must update the Parent's total amount to include this new person.
 
+        if ($registration->parent_registration_id) {
+            $parent = $registration->parent;
+
+            // Recalculate Parent's Total (Lead Personal + All Children)
+            if ($parent && $parent->billing_type === 'consolidate') {
+                $leadPersonalBill = $parent->room_rate * $parent->no_of_nights;
+                $allChildrenBill = $parent->children()->where('stay_status', 'checked_in')->sum('total_amount');
+
+                $parent->update([
+                    'total_amount' => $leadPersonalBill + $allChildrenBill
+                ]);
+            }
+        }
         return redirect()->route('frontdesk.registrations.show', $registration)
-            ->with('success', 'Group check-in has been successfully finalized!');
+            ->with('success', 'Check-in finalized successfully!');
     }
     // --- NEW "NO-SHOW" FIX (The Gap) ---
 
@@ -892,6 +910,7 @@ class RegistrationController extends Controller
     }
     /**
      * Adjusts the stay duration for a guest or a selection of group members.
+     * UPDATED: Now prevents extending into an occupied date (Double Booking).
      * This method handles individual adjustments, group lead adjustments,
      * and selective group member extensions, ensuring all financial
      * records are kept in sync.
@@ -900,72 +919,151 @@ class RegistrationController extends Controller
      * @param Registration $registration The primary registration being adjusted.
      * @return \Illuminate\Http\RedirectResponse
      */
+   
     public function adjustStay(Request $request, Registration $registration)
     {
         // 1. VALIDATE THE INCOMING REQUEST
         $validated = $request->validate([
             'new_check_out' => 'required|date|after_or_equal:' . $registration->check_in->format('Y-m-d'),
             'members_to_extend' => 'nullable|array',
-            'members_to_extend.*' => 'exists:registrations,id', // Ensure all provided IDs are valid registrations
+            'members_to_extend.*' => 'exists:registrations,id',
         ]);
 
         $newCheckOut = Carbon::parse($validated['new_check_out']);
 
-        // Prevent unnecessary database writes if the date hasn't changed.
+        // Prevent unnecessary database writes
         if ($newCheckOut->isSameDay($registration->check_out)) {
             return back()->with('info', 'The new check-out date is the same as the current one. No changes were made.');
         }
 
-        // 2. UPDATE THE PRIMARY REGISTRATION (THE ONE CLICKED BY THE AGENT)
+        // =========================================================
+        // 2. AVAILABILITY CHECK (Prevent Conflicts on Extension)
+        // =========================================================
+
+        // Helper: Check if a room is occupied between the *current* checkout and *new* checkout
+        // We only care if we are extending (New Date > Old Date)
+        $checkConflict = function ($roomId, $currentCheckOut, $newCheckOut, $ignoreRegId) {
+            if (!$roomId || $newCheckOut->lte($currentCheckOut)) return false;
+
+            return Registration::where('room_id', $roomId)
+                ->where('stay_status', 'checked_in')
+                ->where('id', '!=', $ignoreRegId)
+                ->where(function ($query) use ($currentCheckOut, $newCheckOut) {
+                    // Check if any booking starts or stays during the extension period
+                    // Interval: [Old Checkout, New Checkout]
+                    $query->whereBetween('check_in', [$currentCheckOut, $newCheckOut])
+                        ->orWhereBetween('check_out', [$currentCheckOut, $newCheckOut])
+                        ->orWhere(function ($q) use ($currentCheckOut, $newCheckOut) {
+                            $q->where('check_in', '<=', $currentCheckOut)
+                                ->where('check_out', '>=', $newCheckOut);
+                        });
+                })->exists();
+        };
+
+        // A) Check Lead Guest Conflict
+        if ($checkConflict($registration->room_id, $registration->check_out, $newCheckOut, $registration->id)) {
+            $roomName = $registration->room?->name ?? 'the room';
+            return back()->with('error', "Cannot extend stay. $roomName is booked by another guest during this period.");
+        }
+
+        // B) Check Selected Group Members Conflict
+        if ($registration->is_group_lead && isset($validated['members_to_extend'])) {
+            $membersToUpdate = Registration::whereIn('id', $validated['members_to_extend'])
+                ->where('parent_registration_id', $registration->id)
+                ->get();
+
+            foreach ($membersToUpdate as $member) {
+                if ($checkConflict($member->room_id, $member->check_out, $newCheckOut, $member->id)) {
+                    $memberRoom = $member->room?->name ?? 'their room';
+                    return back()->with('error', "Cannot extend stay for {$member->full_name}. $memberRoom is booked by another guest.");
+                }
+            }
+        } else {
+            // Empty collection for loop below if no members selected
+            $membersToUpdate = collect([]);
+        }
+
+        // =========================================================
+        // 3. APPLY UPDATES (Only if no conflicts found)
+        // =========================================================
+
+        // Update Lead
         $nights = $registration->check_in->diffInDays($newCheckOut);
+        // Minimum 1 night charge even if same-day checkout
+        if ($nights < 1) $nights = 1;
+
         $registration->update([
             'check_out' => $newCheckOut,
             'no_of_nights' => $nights,
             'total_amount' => $registration->room_rate * $nights,
         ]);
 
-        // 3. HANDLE GROUP MEMBER EXTENSIONS (IF APPLICABLE)
-        // This block only runs if the agent is adjusting the group lead and selected members.
-        if ($registration->is_group_lead && isset($validated['members_to_extend'])) {
-            $memberIds = $validated['members_to_extend'];
+        // Update Members
+        foreach ($membersToUpdate as $member) {
+            $memberNights = $member->check_in->diffInDays($newCheckOut);
+            if ($memberNights < 1) $memberNights = 1;
 
-            // Ensure we only update members that actually belong to this group lead for security.
-            $membersToUpdate = Registration::whereIn('id', $memberIds)
-                ->where('parent_registration_id', $registration->id)
-                ->get();
-
-            foreach ($membersToUpdate as $member) {
-                $memberNights = $member->check_in->diffInDays($newCheckOut);
-                $member->update([
-                    'check_out' => $newCheckOut,
-                    'no_of_nights' => $memberNights,
-                    'total_amount' => $member->room_rate * $memberNights,
-                ]);
-            }
+            $member->update([
+                'check_out' => $newCheckOut,
+                'no_of_nights' => $memberNights,
+                'total_amount' => $member->room_rate * $memberNights,
+            ]);
         }
 
         // 4. FIND THE GROUP LEAD AND RECALCULATE THE ENTIRE GROUP'S BILL
-        // This ensures data integrity for ALL scenarios (individual, member, or group adjust).
         $leadRegistration = null;
         if ($registration->is_group_lead) {
             $leadRegistration = $registration;
         } elseif ($registration->parent_registration_id) {
-            $leadRegistration = $registration->parent; // Using the defined relationship
+            $leadRegistration = $registration->parent;
         }
 
         if ($leadRegistration) {
-            // Recalculate the lead's personal bill based on its own nights and rate.
+            // Recalculate lead's personal bill
             $leadPersonalBill = $leadRegistration->room_rate * $leadRegistration->no_of_nights;
 
-            // Sum the total amounts of all children registrations.
-            $membersTotalBill = $leadRegistration->children()->sum('total_amount');
+            // Sum all active children
+            $membersTotalBill = $leadRegistration->children()->where('stay_status', 'checked_in')->sum('total_amount');
 
-            // The lead's new total amount is their bill plus all their members' bills.
             $leadRegistration->update([
                 'total_amount' => $leadPersonalBill + $membersTotalBill
             ]);
         }
 
         return back()->with('success', 'Stay details have been successfully updated.');
+    }
+    /**
+     * Adds a new member to an active group (Late Arrival).
+     */
+    public function addMember(Request $request, Registration $registration)
+    {
+        // 1. Validate
+        $validated = $request->validate([
+            'full_name' => 'required|string|max:255',
+            'contact_number' => ['nullable', 'string', 'max:20', new ValidPhoneNumber],
+        ]);
+
+        // 2. Ensure we are linking to the Lead
+        $parent = $registration->is_group_lead ? $registration : $registration->parent;
+
+        if (!$parent) {
+            return back()->with('error', 'Cannot add member: This registration is not part of a group.');
+        }
+
+        // 3. Create the Member Draft
+        $newMember = Registration::create([
+            'parent_registration_id' => $parent->id,
+            'guest_id' => null, // Optional: You could do the Guest::firstOrCreate logic here if needed
+            'full_name' => $validated['full_name'],
+            'contact_number' => $validated['contact_number'],
+            'check_in' => now(), // Default to today
+            'check_out' => $parent->check_out, // Sync with group checkout
+            'stay_status' => 'draft_by_guest',
+            'no_of_nights' => now()->diffInDays($parent->check_out) ?: 1,
+        ]);
+
+        // 4. Redirect immediately to Finalize for this single person
+        return redirect()->route('frontdesk.registrations.finalize.form', $newMember)
+            ->with('success', 'New member added! Please finalize their room and rate.');
     }
 }

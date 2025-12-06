@@ -129,13 +129,14 @@
                                                     Assign Room <span class="text-danger">*</span>
                                                 </label>
                                                 {{-- HIDDEN: Stores text name for backward compatibility --}}
-                                                <input type="hidden" name="room_allocation" id="lead_room_text" value="{{ old('room_allocation') }}">
+                                                <input type="hidden" name="room_allocation" id="lead_room_text" 
+                                                       value="{{ old('room_allocation', $registration->room_allocation) }}">
                                                 
                                                 <div class="input-group">
                                                     <span class="input-group-text bg-light border-end-0">
                                                         <i class="fas fa-door-closed text-muted"></i>
                                                     </span>
-                                                    {{-- UPDATED: Select Dropdown --}}
+                                                    {{-- UPDATED: Select Dropdown with Persist Logic --}}
                                                     <select class="form-select @error('room_id') is-invalid @enderror" 
                                                             name="room_id" id="room_id" onchange="updateLeadRoomDetails(this)">
                                                         <option value="">Select a Room...</option>
@@ -144,7 +145,8 @@
                                                                 data-name="{{ $room->name }}"
                                                                 data-price="{{ $room->price_per_night }}" 
                                                                 data-capacity="{{ $room->capacity }}"
-                                                                @selected(old('room_id') == $room->id)>
+                                                                {{-- FIX: Check Old Input -> Then Check DB Value --}}
+                                                                @selected(old('room_id', $registration->room_id) == $room->id)>
                                                                 {{ $room->name }} (Cap: {{ $room->capacity }})
                                                             </option>
                                                         @endforeach
@@ -164,7 +166,9 @@
                                                         <i class="fas fa-money-bill-wave text-muted"></i>
                                                     </span>
                                                     <input type="text" class="form-control @error('room_rate') is-invalid @enderror"
-                                                           name="room_rate" id="room_rate" value="{{ old('room_rate') }}"
+                                                           name="room_rate" id="room_rate" 
+                                                           {{-- FIX: Check Old Input -> Then Check DB Value (Formatted) --}}
+                                                           value="{{ old('room_rate', $registration->room_rate ? number_format($registration->room_rate) : '') }}"
                                                            placeholder="e.g. 50,000">
                                                     @error('room_rate')
                                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -175,7 +179,9 @@
                                             <div class="col-12">
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" name="bed_breakfast"
-                                                           value="1" id="bed_breakfast" @checked(old('bed_breakfast'))>
+                                                           value="1" id="bed_breakfast" 
+                                                           {{-- FIX: Check Old Input -> Then Check DB Value --}}
+                                                           @checked(old('bed_breakfast', $registration->bed_breakfast))>
                                                     <label class="form-check-label fw-semibold text-dark" for="bed_breakfast">
                                                         <i class="fas fa-coffee text-gold me-1"></i>
                                                         Include Bed & Breakfast
@@ -224,7 +230,8 @@
                                                                     <input type="hidden" 
                                                                            name="group_members[{{ $member->id }}][room_allocation]" 
                                                                            id="member_room_text_{{ $member->id }}"
-                                                                           value="{{ old('group_members.' . $member->id . '.room_allocation') }}">
+                                                                           {{-- FIX: Persistence --}}
+                                                                           value="{{ old('group_members.' . $member->id . '.room_allocation', $member->room_allocation) }}">
 
                                                                     <select class="form-select form-select-sm @error('group_members.' . $member->id . '.room_id') is-invalid @enderror"
                                                                             name="group_members[{{ $member->id }}][room_id]"
@@ -234,7 +241,8 @@
                                                                             <option value="{{ $room->id }}"
                                                                                 data-name="{{ $room->name }}"
                                                                                 data-price="{{ $room->price_per_night }}"
-                                                                                @selected(old('group_members.' . $member->id . '.room_id') == $room->id)>
+                                                                                {{-- FIX: Check Old Input -> Then Check Member DB Value --}}
+                                                                                @selected(old('group_members.' . $member->id . '.room_id', $member->room_id) == $room->id)>
                                                                                 {{ $room->name }}
                                                                             </option>
                                                                         @endforeach
@@ -252,7 +260,8 @@
                                                                                name="group_members[{{ $member->id }}][room_rate]"
                                                                                id="member_rate_{{ $member->id }}"
                                                                                placeholder="Rate"
-                                                                               value="{{ old('group_members.' . $member->id . '.room_rate') }}">
+                                                                               {{-- FIX: Check Old Input -> Then Check Member DB Value --}}
+                                                                               value="{{ old('group_members.' . $member->id . '.room_rate', $member->room_rate) }}">
                                                                         @error('group_members.' . $member->id . '.room_rate')
                                                                             <div class="invalid-feedback">{{ $message }}</div>
                                                                         @enderror
@@ -262,18 +271,22 @@
                                                                     <div class="form-check d-inline-block">
                                                                         <input class="form-check-input" type="checkbox"
                                                                                name="group_members[{{ $member->id }}][bed_breakfast]"
-                                                                               value="1" @checked(old('group_members.' . $member->id . '.bed_breakfast'))>
+                                                                               value="1" 
+                                                                               {{-- FIX: Check Old Input -> Then Check Member DB Value --}}
+                                                                               @checked(old('group_members.' . $member->id . '.bed_breakfast', $member->bed_breakfast))>
                                                                     </div>
                                                                 </td>
                                                                 <td class="pe-4">
                                                                     <select class="form-select form-select-sm @error('group_members.' . $member->id . '.status') is-invalid @enderror"
                                                                             name="group_members[{{ $member->id }}][status]">
-                                                                        <option value="checked_in" @selected(old('group_members.' . $member->id . '.status', 'checked_in') == 'checked_in')>
-                                                                            Check-in
-                                                                        </option>
-                                                                        <option value="no_show" @selected(old('group_members.' . $member->id . '.status') == 'no_show')>
-                                                                            No-Show
-                                                                        </option>
+                                                                        {{-- FIX: Default to existing status or 'checked_in' --}}
+                                                                        @php 
+                                                                            $mStatus = old('group_members.' . $member->id . '.status', $member->stay_status);
+                                                                            // Map 'draft_by_guest' to 'checked_in' for the dropdown initial state
+                                                                            if($mStatus === 'draft_by_guest') $mStatus = 'checked_in';
+                                                                        @endphp
+                                                                        <option value="checked_in" @selected($mStatus == 'checked_in')>Check-in</option>
+                                                                        <option value="no_show" @selected($mStatus == 'no_show')>No-Show</option>
                                                                     </select>
                                                                     @error('group_members.' . $member->id . '.status')
                                                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -306,10 +319,10 @@
                                                     </label>
                                                     <select name="billing_type"
                                                             class="form-select @error('billing_type') is-invalid @enderror">
-                                                        <option value="consolidate" @selected(old('billing_type', 'consolidate') == 'consolidate')>
+                                                        <option value="consolidate" @selected(old('billing_type', $registration->billing_type) == 'consolidate')>
                                                             Consolidate on Group Lead
                                                         </option>
-                                                        <option value="individual" @selected(old('billing_type') == 'individual')>
+                                                        <option value="individual" @selected(old('billing_type', $registration->billing_type) == 'individual')>
                                                             Individual Billing (Each Pays Own)
                                                         </option>
                                                     </select>
@@ -326,7 +339,9 @@
                                                 <select name="guest_type_id"
                                                         class="form-select @error('guest_type_id') is-invalid @enderror">
                                                     @foreach ($guestTypes as $type)
-                                                        <option value="{{ $type->id }}" @selected(old('guest_type_id') == $type->id)>
+                                                        <option value="{{ $type->id }}" 
+                                                            {{-- FIX: Check Old Input -> Then Check DB Value --}}
+                                                            @selected(old('guest_type_id', $registration->guest_type_id) == $type->id)>
                                                             {{ $type->name }}
                                                         </option>
                                                     @endforeach
@@ -343,7 +358,9 @@
                                                 <select name="booking_source_id"
                                                         class="form-select @error('booking_source_id') is-invalid @enderror">
                                                     @foreach ($bookingSources as $source)
-                                                        <option value="{{ $source->id }}" @selected(old('booking_source_id') == $source->id)>
+                                                        <option value="{{ $source->id }}" 
+                                                            {{-- FIX: Check Old Input -> Then Check DB Value --}}
+                                                            @selected(old('booking_source_id', $registration->booking_source_id) == $source->id)>
                                                             {{ $source->name }}
                                                         </option>
                                                     @endforeach
@@ -359,11 +376,12 @@
                                                 </label>
                                                 <select name="payment_method"
                                                         class="form-select @error('payment_method') is-invalid @enderror">
-                                                    <option value="pos" @selected(old('payment_method') == 'pos')>POS</option>
-                                                    <option value="cash" @selected(old('payment_method') == 'cash')>Cash</option>
-                                                    <option value="transfer" @selected(old('payment_method') == 'transfer')>Transfer</option>
-                                                    <option value="credit_balance" @selected(old('payment_method') == 'credit_balance')>Credit Balance</option>
-                                                    <option value="credit" @selected(old('payment_method') == 'credit')>Credit from other branches</option>
+                                                    {{-- FIX: Check Old Input -> Then Check DB Value for every option --}}
+                                                    <option value="pos" @selected(old('payment_method', $registration->payment_method) == 'pos')>POS</option>
+                                                    <option value="cash" @selected(old('payment_method', $registration->payment_method) == 'cash')>Cash</option>
+                                                    <option value="transfer" @selected(old('payment_method', $registration->payment_method) == 'transfer')>Transfer</option>
+                                                    <option value="credit_balance" @selected(old('payment_method', $registration->payment_method) == 'credit_balance')>Credit Balance</option>
+                                                    <option value="credit" @selected(old('payment_method', $registration->payment_method) == 'credit')>Credit from other branches</option>
                                                 </select>
                                                 @error('payment_method')
                                                     <div class="invalid-feedback">{{ $message }}</div>
