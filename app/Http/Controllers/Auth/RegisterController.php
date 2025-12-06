@@ -9,6 +9,7 @@ use Modules\Website\Models\Booking;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use App\Enums\RoleEnum;
 
 class RegisterController extends Controller
 {
@@ -71,21 +72,16 @@ class RegisterController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
-        // Assign 'guest' role using Spatie
-        $user->assignRole('guest');
+        // 1. Force Role: GUEST
+        $user->assignRole(RoleEnum::GUEST->value);
 
-        // Create corresponding guest profile
+        // 2. Create Empty Profile (Prevents null pointer errors in dashboard)
+        // Adjust this if your GuestProfile requires specific fields
         GuestProfile::create([
             'user_id' => $user->id,
-            'phone' => $data['phone'] ?? null, // Add phone field to registration form if needed
+            'full_name' => $user->name,
+            'email' => $user->email,
         ]);
-        // Link existing bookings with matching email
-        Booking::where('guest_email', $data['email'])
-            ->whereNull('user_id')
-            ->update([
-                'user_id' => $user->id,
-                'confirmation_token' => null,
-            ]);
 
         return $user;
     }
