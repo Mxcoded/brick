@@ -5,50 +5,49 @@
 @section('page-content')
     <div class="container-fluid py-4">
        @php
-            // ### CALCULATIONS FOR ENHANCED UX ###
+            // ### ROBUST CALCULATIONS ###
             $isGroupLead = $registration->is_group_lead;
+            $status = $registration->stay_status;
 
-            // --- Robust Stay Progress Calculation ---
+            // 1. Setup Dates (Strip time components for accurate day math)
             $today = \Carbon\Carbon::now()->startOfDay();
-            
-            // Ensure dates are valid objects and strip time for accurate day-diffs
             $checkIn = $registration->check_in ? $registration->check_in->copy()->startOfDay() : $today;
             $checkOut = $registration->check_out ? $registration->check_out->copy()->startOfDay() : $today->copy()->addDay();
 
-            // 1. Calculate Total Duration (Dynamic)
+            // 2. Calculate Total Stay Duration
             $totalNights = $checkIn->diffInDays($checkOut);
-            if ($totalNights < 1) $totalNights = 1; // Prevent division by zero
+            if ($totalNights < 1) $totalNights = 1; // Minimum 1 night
 
-            // 2. Calculate Days Passed
+            // 3. Calculate Days Passed
             if ($today->lt($checkIn)) {
-                $daysPassed = 0; // Future stay
+                $daysPassed = 0; // Not started
             } elseif ($today->gte($checkOut)) {
-                $daysPassed = $totalNights; // Completed stay
+                $daysPassed = $totalNights; // Finished
             } else {
-                $daysPassed = $checkIn->diffInDays($today); // Ongoing
+                $daysPassed = $checkIn->diffInDays($today); // Current day count (0-indexed)
+                if ($daysPassed == 0) $daysPassed = 1; // UI Fix: It's technically "Day 1", not "Day 0"
             }
-
-            // 3. Calculate Days Remaining
-            $daysRemaining = $totalNights - $daysPassed;
-            if ($daysRemaining < 0) $daysRemaining = 0;
 
             // 4. Calculate Percentage
             $progress = 0;
-            if ($totalNights > 0) {
+            if ($status === 'checked_in') {
                 $progress = round(($daysPassed / $totalNights) * 100);
+                // Visual Fix: Ensure bar is visible even on Day 1
+                if ($progress < 5) $progress = 5; 
+                if ($progress > 100) $progress = 100;
+            } elseif ($status === 'checked_out') {
+                $progress = 100;
             }
-            
-            // UX FIX: If Checked-In but on Day 1 (0%), show 5% so the bar is visible
-            if ($registration->stay_status === 'checked_in' && $progress < 5) {
-                $progress = 5;
-            }
-            if ($progress > 100) $progress = 100;
 
-            // --- Dynamic Status Badge Logic ---
+            // 5. Days Remaining
+            $daysRemaining = $totalNights - $daysPassed;
+            if ($daysRemaining < 0) $daysRemaining = 0;
+
+            // --- Status Badges ---
             $statusBadgeClass = 'bg-secondary';
-            $statusText = ucfirst(str_replace('_', ' ', $registration->stay_status));
+            $statusText = ucfirst(str_replace('_', ' ', $status));
 
-            if ($registration->stay_status === 'checked_in') {
+            if ($status === 'checked_in') {
                 if ($checkOut->isSameDay($today)) {
                     $statusBadgeClass = 'bg-warning text-dark';
                     $statusText = 'Departing Today';
@@ -59,18 +58,13 @@
                     $statusBadgeClass = 'bg-info';
                     $statusText = 'Checked In';
                 }
-            } elseif ($registration->stay_status === 'checked_out') {
+            } elseif ($status === 'checked_out') {
                 $statusBadgeClass = 'bg-success';
             }
 
-            // --- Guest Profile Enhancements ---
-            $guestAge = $registration->guest && $registration->guest->birthday
-                    ? \Carbon\Carbon::parse($registration->guest->birthday)->age
-                    : null;
-
-            // --- Confirmation Message Logic ---
+            // --- Confirmations ---
             $checkoutConfirmMsg = $isGroupLead
-                ? 'Are you sure you want to check out the GROUP LEAD?'
+                ? 'Are you sure you want to check out the GROUP LEAD? This usually implies the whole group is leaving.'
                 : 'Are you sure you want to check out ' . e($registration->full_name) . '?';
         @endphp
 
@@ -127,7 +121,9 @@
                                     </div>
                                     <div>
                                         <p class="text-muted small mb-0">Room Allocation</p>
-                                        <p class="mb-0 fw-bold text-dark">{{ $registration->room_allocation ?? 'Not Assigned' }}</p>
+                                        <p class="mb-0 fw-bold text-dark">
+                                            {{ $registration->room ? $registration->room->name : ($registration->room_allocation ?? 'Not Assigned') }}
+                                        </p>
                                     </div>
                                 </div>
                                 
@@ -138,7 +134,7 @@
                                     <div>
                                         <p class="text-muted small mb-0">Stay Duration</p>
                                         <p class="mb-0 fw-bold text-dark">
-                                            {{ $checkIn->format('M d, Y') }} → {{ $checkOut->format('M d, Y') }}
+                                            {{ $checkIn->format('M d') }} - {{ $checkOut->format('M d, Y') }}
                                             <span class="text-gold">({{ $totalNights }} {{ Str::plural('Night', $totalNights) }})</span>
                                         </p>
                                     </div>
@@ -153,8 +149,8 @@
                                     <div>
                                         <p class="text-muted small mb-0">Stay Progress</p>
                                         <p class="mb-0 fw-bold text-dark">
-                                            {{ $daysPassed }} {{ Str::plural('Day', $daysPassed) }} Passed, 
-                                            {{ $daysRemaining >= 0 ? $daysRemaining : 0 }} {{ Str::plural('Day', $daysRemaining) }} Remaining
+                                            Day {{ $daysPassed }} of {{ $totalNights }}
+                                            <small class="text-muted">({{ $daysRemaining }} left)</small>
                                         </p>
                                     </div>
                                 </div>
@@ -175,7 +171,7 @@
                             {{-- Progress Bar --}}
                             <div class="mt-4">
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted small">Stay Progress</span>
+                                    <span class="text-muted small">Timeline</span>
                                     <span class="fw-bold text-dark">{{ $progress }}%</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">
@@ -190,14 +186,14 @@
                             <div class="d-flex flex-wrap gap-2">
                                 <button type="button" class="btn btn-outline-gold" data-bs-toggle="modal"
                                     data-bs-target="#adjustStayModal-{{ $registration->id }}">
-                                    <i class="fas fa-calendar-alt me-1"></i> Adjust Stay
+                                    <i class="fas fa-calendar-plus me-1"></i> Extend Stay
                                 </button>
                                 <form action="{{ route('frontdesk.registrations.checkout', $registration) }}"
                                     method="POST" class="d-inline"
                                     onsubmit="return confirm('{{ $checkoutConfirmMsg }}');">
                                     @csrf
                                     <button type="submit" class="btn btn-success">
-                                        <i class="fas fa-door-open me-1"></i> Check Out
+                                        <i class="fas fa-sign-out-alt me-1"></i> Check Out
                                     </button>
                                 </form>
                             </div>
@@ -206,18 +202,24 @@
                 </div>
 
                 {{-- Group Members Section --}}
-                @if ($isGroupLead && $groupMembers->count() > 0)
+                @if ($isGroupLead)
                     <div class="card border-0 shadow-sm rounded-3">
-                        <div class="card-header border-0 bg-white py-3">
+                        <div class="card-header border-0 bg-white py-3 d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center">
                                 <div class="rounded-circle bg-light p-2 me-3">
                                     <i class="fas fa-users text-gold"></i>
                                 </div>
                                 <div>
                                     <h5 class="mb-0 text-dark fw-bold">Group Members</h5>
-                                    <p class="text-muted small mb-0">{{ $groupMembers->count() }} members in this group</p>
+                                    <p class="text-muted small mb-0">{{ $groupMembers->count() }} members</p>
                                 </div>
                             </div>
+                            {{-- NEW: Add Member Button --}}
+                            @if($registration->stay_status === 'checked_in')
+                                <button type="button" class="btn btn-sm btn-gold" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                                    <i class="fas fa-user-plus me-1"></i> Add Member
+                                </button>
+                            @endif
                         </div>
                         
                         <div class="card-body p-0">
@@ -225,18 +227,17 @@
                                 <table class="table table-hover mb-0">
                                     <thead class="table-light">
                                         <tr>
-                                            <th class="border-0">Guest Name</th>
+                                            <th class="border-0 ps-4">Guest Name</th>
                                             <th class="border-0">Room</th>
                                             <th class="border-0">Rate</th>
-                                            <th class="border-0">Bill</th>
                                             <th class="border-0">Status</th>
-                                            <th class="border-0 text-end">Actions</th>
+                                            <th class="border-0 text-end pe-4">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @foreach ($groupMembers as $member)
+                                        @forelse ($groupMembers as $member)
                                             <tr>
-                                                <td class="align-middle">
+                                                <td class="align-middle ps-4">
                                                     <div class="d-flex align-items-center">
                                                         <div class="rounded-circle bg-light p-1 me-2">
                                                             <i class="fas fa-user fa-sm text-gold"></i>
@@ -244,12 +245,11 @@
                                                         <span class="fw-semibold text-dark">{{ $member->full_name }}</span>
                                                     </div>
                                                 </td>
-                                                <td class="align-middle">{{ $member->room_allocation ?? 'N/A' }}</td>
                                                 <td class="align-middle">
-                                                    {{ $member->room_rate ? '₦' . number_format($member->room_rate, 2) : 'N/A' }}
+                                                    {{ $member->room ? $member->room->name : ($member->room_allocation ?? 'N/A') }}
                                                 </td>
                                                 <td class="align-middle">
-                                                    {{ $member->total_amount ? '₦' . number_format($member->total_amount, 2) : 'N/A' }}
+                                                    {{ $member->room_rate ? '₦' . number_format($member->room_rate, 2) : 'N/A' }}
                                                 </td>
                                                 <td class="align-middle">
                                                     @if ($member->stay_status == 'checked_in')
@@ -259,32 +259,44 @@
                                                     @elseif($member->stay_status == 'no_show')
                                                         <span class="badge bg-danger">No-Show</span>
                                                     @else
-                                                        <span class="badge bg-warning">Draft</span>
+                                                        <span class="badge bg-warning text-dark">Draft</span>
                                                     @endif
                                                 </td>
-                                                <td class="align-middle text-end">
+                                                <td class="align-middle text-end pe-4">
                                                     @if ($member->stay_status == 'checked_in')
                                                         <form action="{{ route('frontdesk.registrations.checkout', $member) }}"
-                                                            method="POST"
-                                                            onsubmit="return confirm('Are you sure you want to check out this guest?');">
+                                                            method="POST" class="d-inline"
+                                                            onsubmit="return confirm('Check out this guest?');">
                                                             @csrf
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                                <i class="fas fa-door-open me-1"></i> Check-out
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Check Out">
+                                                                <i class="fas fa-sign-out-alt"></i>
                                                             </button>
                                                         </form>
+                                                    @elseif($member->stay_status == 'draft_by_guest')
+                                                        {{-- NEW: Finalize Late Arrival --}}
+                                                        <a href="{{ route('frontdesk.registrations.finalize.form', $member) }}" 
+                                                           class="btn btn-sm btn-warning" title="Finalize">
+                                                            <i class="fas fa-check-double"></i>
+                                                        </a>
                                                     @elseif($member->stay_status == 'no_show' || $member->stay_status == 'checked_out')
                                                         <form action="{{ route('frontdesk.registrations.reopen', $member) }}"
-                                                            method="POST"
-                                                            onsubmit="return confirm('This will re-open the *entire group* to be finalized again. Are you sure?');">
+                                                            method="POST" class="d-inline"
+                                                            onsubmit="return confirm('Re-open this guest?');">
                                                             @csrf
-                                                            <button type="submit" class="btn btn-sm btn-outline-warning">
-                                                                <i class="fas fa-redo me-1"></i> Re-Open
+                                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Re-open">
+                                                                <i class="fas fa-redo"></i>
                                                             </button>
                                                         </form>
                                                     @endif
                                                 </td>
                                             </tr>
-                                        @endforeach
+                                        @empty
+                                            <tr>
+                                                <td colspan="5" class="text-center py-4 text-muted">
+                                                    No group members found.
+                                                </td>
+                                            </tr>
+                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>
@@ -310,21 +322,15 @@
                         <div class="card-body">
                             <div class="list-group list-group-flush">
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3">
-                                    <div>
-                                        <span class="text-muted small">Lead's Personal Bill</span>
-                                    </div>
+                                    <div><span class="text-muted small">Lead's Personal Bill</span></div>
                                     <span class="fw-bold text-dark">₦{{ number_format($groupFinancialSummary['lead_personal_bill'], 2) }}</span>
                                 </div>
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3">
-                                    <div>
-                                        <span class="text-muted small">Active Members' Bill</span>
-                                    </div>
+                                    <div><span class="text-muted small">Active Members' Bill</span></div>
                                     <span class="fw-bold text-dark">₦{{ number_format($groupFinancialSummary['members_bill'], 2) }}</span>
                                 </div>
                                 <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3 bg-light rounded-2 mt-2">
-                                    <div>
-                                        <span class="fw-bold text-dark">Total Outstanding</span>
-                                    </div>
+                                    <div><span class="fw-bold text-dark">Total Outstanding</span></div>
                                     <span class="fw-bold fs-5 text-dark">₦{{ number_format($groupFinancialSummary['total_outstanding'], 2) }}</span>
                                 </div>
                             </div>
@@ -345,59 +351,78 @@
                     
                     <div class="card-body">
                         <h6 class="card-title mb-3 text-dark">{{ $registration->guest->full_name ?? $registration->full_name }}</h6>
-                        
-                        <div class="list-group list-group-flush">
-                            <div class="list-group-item d-flex border-0 px-0 py-2">
-                                <div class="flex-shrink-0" style="width: 120px;">
-                                    <span class="text-muted small">Email:</span>
-                                </div>
-                                <span class="text-dark">{{ $registration->guest->email ?? 'N/A' }}</span>
-                            </div>
-                            <div class="list-group-item d-flex border-0 px-0 py-2">
-                                <div class="flex-shrink-0" style="width: 120px;">
-                                    <span class="text-muted small">Contact:</span>
-                                </div>
-                                <span class="text-dark">{{ $registration->guest->contact_number ?? 'N/A' }}</span>
-                            </div>
-                            <div class="list-group-item d-flex border-0 px-0 py-2">
-                                <div class="flex-shrink-0" style="width: 120px;">
-                                    <span class="text-muted small">Gender:</span>
-                                </div>
-                                <span class="text-dark">{{ $registration->guest->gender ?? 'N/A' }}</span>
-                            </div>
-                            <div class="list-group-item d-flex border-0 px-0 py-2">
-                                <div class="flex-shrink-0" style="width: 120px;">
-                                    <span class="text-muted small">Birthdate:</span>
-                                </div>
-                                <span class="text-dark">
-                                    {{ $registration->guest->birthday ? \Carbon\Carbon::parse($registration->guest->birthday)->format('M d, Y') : 'N/A' }}
-                                    @if ($guestAge)
-                                        <span class="text-muted">(Age: {{ $guestAge }})</span>
-                                    @endif
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-3 d-flex">
+                                <i class="fas fa-envelope text-muted mt-1 me-3"></i>
+                                <span>{{ $registration->guest->email ?? 'N/A' }}</span>
+                            </li>
+                            <li class="mb-3 d-flex">
+                                <i class="fas fa-phone text-muted mt-1 me-3"></i>
+                                <span>{{ $registration->guest->contact_number ?? 'N/A' }}</span>
+                            </li>
+                            <li class="mb-3 d-flex">
+                                <i class="fas fa-map-marker-alt text-muted mt-1 me-3"></i>
+                                <span>{{ $registration->guest->home_address ?? 'N/A' }}</span>
+                            </li>
+                            <li class="d-flex align-items-center">
+                                <i class="fas fa-history text-muted me-3"></i>
+                                <span class="badge {{ ($registration->guest->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ ($registration->guest->visit_count ?? 1) > 1 ? 'Returning Guest' : 'New Guest' }}
                                 </span>
-                            </div>
-                            <div class="list-group-item d-flex border-0 px-0 py-2">
-                                <div class="flex-shrink-0" style="width: 120px;">
-                                    <span class="text-muted small">Guest Status:</span>
-                                </div>
-                                <span class="d-flex align-items-center">
-                                    <span class="badge {{ ($registration->guest->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }} me-2">
-                                        {{ ($registration->guest->visit_count ?? 1) > 1 ? 'Returning' : 'New' }}
-                                    </span>
-                                    <span class="text-muted small">(Visits: {{ $registration->guest->visit_count ?? 1 }})</span>
-                                </span>
-                            </div>
-                        </div>
+                                <small class="text-muted ms-2">(Visits: {{ $registration->guest->visit_count ?? 1 }})</small>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
 
+        {{-- MODALS --}}
+        
+        {{-- 1. Adjust Stay Modal (Lead) --}}
         @include('frontdeskcrm::registrations.partials._adjust_stay_modal', ['guest' => $registration])
+        
+        {{-- 2. Adjust Stay Modal (Members) --}}
         @if ($isGroupLead && $groupMembers->count() > 0)
             @foreach ($groupMembers as $member)
                 @include('frontdeskcrm::registrations.partials._adjust_stay_modal', ['guest' => $member])
             @endforeach
         @endif
+
+        {{-- 3. Add Member Modal (NEW) --}}
+        @if($isGroupLead)
+        <div class="modal fade" id="addMemberModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Group Member</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="{{ route('frontdesk.registrations.add-member', $registration) }}" method="POST">
+                        @csrf
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" name="full_name" class="form-control" required placeholder="Guest Name">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Contact Number (Optional)</label>
+                                <input type="text" name="contact_number" class="form-control" placeholder="+234...">
+                            </div>
+                            <div class="alert alert-info small">
+                                <i class="fas fa-info-circle me-1"></i> 
+                                You will be redirected to finalize this guest's room and rate immediately.
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-gold">Create & Finalize</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @endif
+
     </div>
 @endsection

@@ -53,7 +53,7 @@ Route::middleware('auth')->prefix('frontdesk')->name('frontdesk.')->group(functi
         Route::get('/lookup-guest', [RegistrationController::class, 'lookupGuest'])->name('lookup');
         Route::get('/create-walkin', [RegistrationController::class, 'createWalkin'])->name('createWalkin');
         Route::post('/store-walkin', [RegistrationController::class, 'storeWalkin'])->name('storeWalkin');
-
+        
         // Shows the form for an agent to finalize a guest's draft.
         Route::get('/{registration}/finalize', [RegistrationController::class, 'showFinalizeForm'])->name('finalize.form');
 
@@ -68,7 +68,8 @@ Route::middleware('auth')->prefix('frontdesk')->name('frontdesk.')->group(functi
 
         // Retrieves active group members for a group registration.
         Route::get('/{registration}/active-members', [RegistrationController::class, 'getActiveMembers'])->name('active-members');
-
+        // Add a new member to an existing group
+        Route::post('/{registration}/add-member', [RegistrationController::class, 'addMember'])->name('add-member');
         // Generates a printable PDF of a registration.
         Route::get('/{registration}/print', [RegistrationController::class, 'print'])->name('print');
         // ** ADD THIS NEW ROUTE FOR CHECKOUT **
