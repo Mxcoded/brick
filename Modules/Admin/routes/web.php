@@ -12,8 +12,8 @@ use App\Enums\RoleEnum; // Import the Enum
 
 // Use the Enum value for the role check
 Route::prefix('admin')
-    ->middleware(['web', 'auth', 'role:' . RoleEnum::ADMIN->value])
-    ->name('admin.') // Prefix names too for cleaner code (e.g. admin.dashboard)
+    ->middleware(['web', 'auth', 'can:access_admin_dashboard']) // Updated
+    ->name('admin.')
     ->group(function () {
 
         Route::get('/', [AdminController::class, 'index'])->name('dashboard');
