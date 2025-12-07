@@ -26,17 +26,22 @@ class LoginController extends Controller
      */
     protected function authenticated(Request $request, $user)
     {
-        // 1. Super Admin & Admin -> Admin Dashboard
-        if ($user->hasRole([RoleEnum::SUPER_ADMIN->value, RoleEnum::ADMIN->value])) {
+        // 1. Priority: Admin Dashboard
+        if ($user->can('access_admin_dashboard')) {
             return redirect()->route('admin.dashboard');
         }
 
-        // 2. Staff -> Staff Dashboard
-        if ($user->hasRole(RoleEnum::STAFF->value)) {
+        // 2. Staff Dashboard (HR, Receptionist, Managers go here)
+        if ($user->can('access_staff_dashboard')) {
             return redirect()->route('staff.dashboard');
         }
 
-        // 3. Guest (Default) -> Guest Dashboard
+        // 3. Front Desk Specific (If you have a separate dashboard for them)
+        if ($user->can('access_frontdesk_dashboard')) {
+            return redirect()->route('frontdesk.dashboard'); // Or whatever the route is
+        }
+
+        // 4. Default: Guest Dashboard
         return redirect()->route('guest.dashboard');
     }
 }

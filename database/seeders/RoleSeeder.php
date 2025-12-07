@@ -11,57 +11,26 @@ class RoleSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    public function run()
     {
-        // Reset cached roles and permissions to avoid conflicts
-        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        // 1. Create "Module Access" Permissions
+        $accessAdmin     = Permission::firstOrCreate(['name' => 'access_admin_dashboard']);
+        $accessStaff     = Permission::firstOrCreate(['name' => 'access_staff_dashboard']);
+        $accessFrontDesk = Permission::firstOrCreate(['name' => 'access_frontdesk_dashboard']);
+        $accessGym       = Permission::firstOrCreate(['name' => 'access_gym_dashboard']);
 
-        // Create Permissions
-        $permissions = [
-            'create-staff',
-            'edit-staff',
-            'delete-staff',
-            'view-staff',
-            'manage-leaves',
-            'approve-leaves',
-            'leave-reports',
-        ];
+        // 2. Create Roles & Assign Access
 
-        foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission]);
-        }
+        // ADMIN (Master Access)
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $admin->givePermissionTo(Permission::all());
 
-        // Create Roles and Assign Permissions
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
-        $adminRole->syncPermissions($permissions); // Admin gets all permissions
+        // FRONT DESK (Standard Staff)
+        $receptionist = Role::firstOrCreate(['name' => 'receptionist']);
+        $receptionist->givePermissionTo([$accessStaff, $accessFrontDesk]);
 
-        $staffRole = Role::firstOrCreate(['name' => 'staff']);
-        $staffRole->syncPermissions([
-            'view-staff',
-            'manage-leaves',
-            'leave-reports',
-        ]);
-
-        $guestRole = Role::firstOrCreate(['name' => 'guest']);
-        $guestRole->syncPermissions(['view-staff']); // Minimal access
-
-        // Optionally assign roles to existing users (example)
-        $adminUser = \App\Models\User::firstOrCreate(
-            ['email' => 'admin@example.com'],
-            [
-                'name' => 'Admin User',
-                'password' => bcrypt('password'),
-            ]
-        );
-        $adminUser->assignRole('admin');
-
-        $staffUser = \App\Models\User::firstOrCreate(
-            ['email' => 'staff@example.com'],
-            [
-                'name' => 'Staff User',
-                'password' => bcrypt('password'),
-            ]
-        );
-        $staffUser->assignRole('staff');
+        // HR (Dynamic Role Example)
+        $hr = Role::firstOrCreate(['name' => 'human_resources']);
+        $hr->givePermissionTo([$accessStaff]); // HR can access Staff dashboard but maybe not FrontDesk
     }
 }
