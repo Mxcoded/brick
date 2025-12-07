@@ -12,7 +12,7 @@ use App\Enums\RoleEnum; // Import the Enum
 */
 
 Route::prefix('staff')
-    ->middleware(['web', 'auth', 'role:' . RoleEnum::STAFF->value]) // <--- Updated
+    ->middleware(['web', 'auth', 'can:access_staff_dashboard'])
     ->name('staff.')
     ->group(function () {
         Route::get('/', [StaffController::class, 'index'])->name('dashboard');

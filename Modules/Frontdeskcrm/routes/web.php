@@ -43,7 +43,7 @@ Route::prefix('checkin')->name('frontdesk.registrations.')->group(function () {
 // =====================================================================
 
 Route::prefix('frontdesk')
-    ->middleware(['web', 'auth', 'role:' . RoleEnum::STAFF->value]) // <--- Updated
+    ->middleware(['web', 'auth', 'can:access_frontdesk_dashboard'])
     ->name('frontdesk.')
     ->group(function () {
 
