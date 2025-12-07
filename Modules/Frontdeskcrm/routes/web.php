@@ -43,7 +43,7 @@ Route::prefix('checkin')->name('frontdesk.registrations.')->group(function () {
 // =====================================================================
 
 Route::prefix('frontdesk')
-    ->middleware(['web', 'auth', 'can:access_frontdesk_dashboard'])
+    ->middleware(['web', 'auth', 'can:access_frontdesk_dashboard']) // Updated
     ->name('frontdesk.')
     ->group(function () {
 
