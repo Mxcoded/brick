@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Staff\Http\Controllers\StaffController;
 use Modules\Staff\Http\Controllers\LeaveController; // Add this line
+use App\Enums\RoleEnum; // Import the Enum
 
 /*
 |--------------------------------------------------------------------------
@@ -10,15 +11,11 @@ use Modules\Staff\Http\Controllers\LeaveController; // Add this line
 |--------------------------------------------------------------------------
 */
 
-// **Staff Resource Routes**
-Route::middleware(['web', 'auth'])
-    ->resource('staff', StaffController::class)
-    ->names('staff')->middleware('permission:staff-view');
-
-// **Staff Functionality Routes**
-Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
-    // Staff Dashboard
-    Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('staff.dashboard');
+Route::prefix('staff')
+    ->middleware(['web', 'auth', 'role:' . RoleEnum::STAFF->value]) // <--- Updated
+    ->name('staff.')
+    ->group(function () {
+        Route::get('/', [StaffController::class, 'index'])->name('dashboard');
 
     // **Leave Management Routes** - NOW HANDLED BY LeaveController
     Route::prefix('leaves')->group(function () {

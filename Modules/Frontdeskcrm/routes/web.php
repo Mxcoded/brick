@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Frontdeskcrm\Http\Controllers\RegistrationController;
 use Modules\Frontdeskcrm\Http\Controllers\BookingSourceController;
 use Modules\Frontdeskcrm\Http\Controllers\GuestTypeController;
+use App\Enums\RoleEnum; // Import the Enum
 
 /*
 |--------------------------------------------------------------------------
@@ -41,7 +42,10 @@ Route::prefix('checkin')->name('frontdesk.registrations.')->group(function () {
 // 2. AUTHENTICATED AGENT ROUTES (REQUIRES LOGIN)
 // =====================================================================
 
-Route::middleware('auth')->prefix('frontdesk')->name('frontdesk.')->group(function () {
+Route::prefix('frontdesk')
+    ->middleware(['web', 'auth', 'role:' . RoleEnum::STAFF->value]) // <--- Updated
+    ->name('frontdesk.')
+    ->group(function () {
 
     // --- REGISTRATION MANAGEMENT ---
     Route::prefix('registrations')->name('registrations.')->group(function () {

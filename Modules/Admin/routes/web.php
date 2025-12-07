@@ -2,35 +2,39 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AdminController;
+use App\Enums\RoleEnum; // Import the Enum
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
 */
 
-Route::prefix('admin')->middleware(['web', 'auth', 'role:admin'])->group(function () {
-    Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
-    Route::get('/roles', [AdminController::class, 'roles'])->name('admin.roles.index');
-    Route::post('/roles', [AdminController::class, 'createRole'])->name('admin.roles.store');
-    Route::get('/roles/{id}/edit', [AdminController::class, 'editRole'])->name('admin.roles.edit');
-    Route::put('/roles/{id}', [AdminController::class, 'updateRole'])->name('admin.roles.update');
-    Route::delete('/roles/{id}', [AdminController::class, 'destroyRole'])->name('admin.roles.destroy');
-    Route::get('/permissions', [AdminController::class, 'permissions'])->name('admin.permissions.index');
-    Route::post('/permissions', [AdminController::class, 'createPermission'])->name('admin.permissions.store');
-    Route::get('/permissions/{id}/edit', [AdminController::class, 'editPermission'])->name('admin.permissions.edit');
-    Route::put('/permissions/{id}', [AdminController::class, 'updatePermission'])->name('admin.permissions.update');
-    Route::post('/permissions/{id}/roles', [AdminController::class, 'updatePermissionRoles'])->name('admin.permissions.update-roles');
-    Route::delete('/permissions/{id}', [AdminController::class, 'destroyPermission'])->name('admin.permissions.destroy');
-    Route::post('/permissions/assign-to-role', [AdminController::class, 'assignPermissionToRole'])->name('admin.permissions.assign-to-role');
-    Route::get('/users', [AdminController::class, 'users'])->name('admin.users.index');
-    Route::post('/users/assign-role', [AdminController::class, 'assignRole'])->name('admin.users.assign-role');
-    Route::post('users/{user}/remove-role', [AdminController::class, 'removeRole'])->name('admin.users.remove-role');
-    Route::get('/employees/create-user', [AdminController::class, 'createUserFromEmployee'])->name('admin.employees.create-user');
-    Route::post('/employees/store-user', [AdminController::class, 'storeUserFromEmployee'])->name('admin.employees.store-user');
-});
+// Use the Enum value for the role check
+Route::prefix('admin')
+    ->middleware(['web', 'auth', 'role:' . RoleEnum::ADMIN->value])
+    ->name('admin.') // Prefix names too for cleaner code (e.g. admin.dashboard)
+    ->group(function () {
+
+        Route::get('/', [AdminController::class, 'index'])->name('dashboard');
+        Route::get('/roles', [AdminController::class, 'roles'])->name('roles.index');
+        Route::post('/roles', [AdminController::class, 'createRole'])->name('roles.store');
+        Route::get('/roles/{id}/edit', [AdminController::class, 'editRole'])->name('roles.edit');
+        Route::put('/roles/{id}', [AdminController::class, 'updateRole'])->name('roles.update');
+        Route::delete('/roles/{id}', [AdminController::class, 'destroyRole'])->name('roles.destroy');
+
+        Route::get('/permissions', [AdminController::class, 'permissions'])->name('permissions.index');
+        Route::post('/permissions', [AdminController::class, 'createPermission'])->name('permissions.store');
+        Route::get('/permissions/{id}/edit', [AdminController::class, 'editPermission'])->name('permissions.edit');
+        Route::put('/permissions/{id}', [AdminController::class, 'updatePermission'])->name('permissions.update');
+        Route::post('/permissions/{id}/roles', [AdminController::class, 'updatePermissionRoles'])->name('permissions.update-roles');
+        Route::delete('/permissions/{id}', [AdminController::class, 'destroyPermission'])->name('permissions.destroy');
+        Route::post('/permissions/assign-to-role', [AdminController::class, 'assignPermissionToRole'])->name('permissions.assign-to-role');
+
+        Route::get('/users', [AdminController::class, 'users'])->name('users.index');
+        Route::post('/users/assign-role', [AdminController::class, 'assignRole'])->name('users.assign-role');
+        Route::post('users/{user}/remove-role', [AdminController::class, 'removeRole'])->name('users.remove-role');
+
+        Route::get('/employees/create-user', [AdminController::class, 'createUserFromEmployee'])->name('employees.create-user');
+        Route::post('/employees/store-user', [AdminController::class, 'storeUserFromEmployee'])->name('employees.store-user');
+    });
