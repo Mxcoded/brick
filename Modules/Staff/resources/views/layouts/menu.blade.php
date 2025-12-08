@@ -1,10 +1,11 @@
-<a href="{{ route('staff.dashboard') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('staff.dashboard') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-chart-line w-6 text-center mr-2"></i> Dashboard
+<a class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
+   data-bs-toggle="collapse" href="#staffSubmenu" role="button"
+   aria-expanded="{{ request()->routeIs('staff.*') ? 'true' : 'false' }}" aria-controls="staffSubmenu"
+   style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
+    <span><i class="fas fa-users-cog fa-fw me-3"></i> HR & Staff</span>
+    <i class="fas fa-chevron-down small"></i>
 </a>
-{{-- Using a generic route check as 'staff.employees.*' assumes resource routes --}}
-<a href="#" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300">
-    <i class="fas fa-id-badge w-6 text-center mr-2"></i> Employees
-</a>
-<a href="#" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300">
-    <i class="fas fa-calendar-check w-6 text-center mr-2"></i> Leave Requests
-</a>
+<div class="collapse {{ request()->routeIs('staff.*') ? 'show' : '' }}" id="staffSubmenu">
+    <a href="{{ route('staff.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}" style="color: #ddd; border: none;">Dashboard</a>
+    <a href="{{ route('staff.leaves.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.leaves.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Leave Requests</a>
+</div>

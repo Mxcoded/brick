@@ -1,12 +1,13 @@
-<a href="{{ route('admin.dashboard') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('admin.dashboard') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-tachometer-alt w-6 text-center mr-2"></i> Overview
+<a class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
+   data-bs-toggle="collapse" href="#adminSubmenu" role="button"
+   aria-expanded="{{ request()->routeIs('admin.*') ? 'true' : 'false' }}" aria-controls="adminSubmenu"
+   style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
+    <span><i class="fas fa-user-shield fa-fw me-3"></i> Admin</span>
+    <i class="fas fa-chevron-down small"></i>
 </a>
-<a href="{{ route('admin.users.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('admin.users.*') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-users w-6 text-center mr-2"></i> Users
-</a>
-<a href="{{ route('admin.roles.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('admin.roles.*') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-user-shield w-6 text-center mr-2"></i> Roles
-</a>
-<a href="{{ route('admin.permissions.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('admin.permissions.*') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-key w-6 text-center mr-2"></i> Permissions
-</a>
+<div class="collapse {{ request()->routeIs('admin.*') ? 'show' : '' }}" id="adminSubmenu">
+    <a href="{{ route('admin.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" style="color: #ddd; border: none;">Overview</a>
+    <a href="{{ route('admin.users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Users</a>
+    <a href="{{ route('admin.roles.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Roles</a>
+    <a href="{{ route('admin.permissions.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Permissions</a>
+</div>
