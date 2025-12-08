@@ -1,9 +1,12 @@
-<a href="{{ route('inventory.dashboard') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('inventory.dashboard') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-boxes w-6 text-center mr-2"></i> Inventory
+<a class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
+   data-bs-toggle="collapse" href="#inventorySubmenu" role="button"
+   aria-expanded="{{ request()->routeIs('inventory.*') ? 'true' : 'false' }}" aria-controls="inventorySubmenu"
+   style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
+    <span><i class="fas fa-boxes fa-fw me-3"></i> Inventory</span>
+    <i class="fas fa-chevron-down small"></i>
 </a>
-<a href="{{ route('inventory.items.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('inventory.items.*') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-box w-6 text-center mr-2"></i> Items
-</a>
-<a href="{{ route('inventory.suppliers.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('inventory.suppliers.*') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-truck w-6 text-center mr-2"></i> Suppliers
-</a>
+<div class="collapse {{ request()->routeIs('inventory.*') ? 'show' : '' }}" id="inventorySubmenu">
+    <a href="{{ route('inventory.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('inventory.dashboard') ? 'active' : '' }}" style="color: #ddd; border: none;">Dashboard</a>
+    <a href="{{ route('inventory.items.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('inventory.items.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Items</a>
+    <a href="{{ route('inventory.suppliers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('inventory.suppliers.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Suppliers</a>
+</div>

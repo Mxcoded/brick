@@ -1,9 +1,12 @@
-<a href="{{ route('gym.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('gym.dashboard') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-dumbbell w-6 text-center mr-2"></i> Gym Dashboard
+<a class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
+   data-bs-toggle="collapse" href="#gymSubmenu" role="button"
+   aria-expanded="{{ request()->routeIs('gym.*') ? 'true' : 'false' }}" aria-controls="gymSubmenu"
+   style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
+    <span><i class="fas fa-dumbbell fa-fw me-3"></i> Gym & Club</span>
+    <i class="fas fa-chevron-down small"></i>
 </a>
-<a href="{{ route('gym.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('gym.members.*') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-users w-6 text-center mr-2"></i> Members
-</a>
-<a href="{{ route('gym.trainers.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('gym.trainers.*') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-user-ninja w-6 text-center mr-2"></i> Trainers
-</a>
+<div class="collapse {{ request()->routeIs('gym.*') ? 'show' : '' }}" id="gymSubmenu">
+    <a href="{{ route('gym.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('gym.index') ? 'active' : '' }}" style="color: #ddd; border: none;">Dashboard</a>
+    <a href="{{ route('gym.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('gym.members.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Members</a>
+    <a href="{{ route('gym.trainers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('gym.trainers.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Trainers</a>
+</div>

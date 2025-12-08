@@ -1,3 +1,5 @@
-<a href="{{ route('tasks.index') }}" class="flex items-center px-4 py-2 text-sm font-medium rounded-md hover:bg-gray-800 text-gray-300 {{ request()->routeIs('tasks.*') ? 'bg-gray-800 text-white' : '' }}">
-    <i class="fas fa-tasks w-6 text-center mr-2"></i> Tasks
+<a href="{{ route('tasks.index') }}"
+   class="list-group-item list-group-item-action p-3 {{ request()->routeIs('tasks.*') ? 'active' : '' }}"
+   style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
+    <i class="fas fa-clipboard-list fa-fw me-3"></i> Tasks
 </a>
