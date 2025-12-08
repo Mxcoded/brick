@@ -1,4 +1,4 @@
-{{-- <div class="border-end" id="sidebar-wrapper" style="background-color: #333333;">
+<div class="border-end" id="sidebar-wrapper" style="background-color: #333333;">
 
     <!-- Sidebar Heading -->
     <div class="sidebar-heading">
@@ -224,127 +224,8 @@
         @endcan
 
     </div>
-</div> --}}
-<div class="flex flex-col flex-none w-64 h-screen bg-gray-900 border-r border-gray-800 sidebar">
-    
-    {{-- 1. BRANDING / LOGO --}}
-    <div class="flex items-center justify-center h-16 bg-gray-900 border-b border-gray-800">
-        <a href="{{ route('home') }}" class="flex items-center gap-2 text-xl font-bold text-white hover:text-gray-200">
-            {{-- Replace with your logo img tag if available --}}
-            <i class="fas fa-layer-group text-gold-500"></i>
-            <span>Brick ERP</span>
-        </a>
-    </div>
-
-    {{-- 2. SCROLLABLE MENU AREA --}}
-    <div class="flex-1 overflow-y-auto py-4">
-        <nav class="px-2 space-y-1">
-
-            {{-- === SHARED / COMMON LINKS (Profile, Home) === --}}
-            <a href="{{ route('home') }}" 
-               class="flex items-center px-4 py-2 text-sm font-medium rounded-md group hover:bg-gray-800 {{ request()->routeIs('home') ? 'bg-gray-800 text-white' : 'text-gray-300' }}">
-                <i class="fas fa-home w-6 text-center mr-2 opacity-75"></i>
-                Dashboard Hub
-            </a>
-
-            {{-- =================================================== --}}
-            {{-- DYNAMIC MODULE MENUS (Permission Based) --}}
-            {{-- =================================================== --}}
-
-            {{-- 1. ADMIN MODULE --}}
-            @can('access_admin_dashboard')
-                <div class="mt-4 mb-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Administration
-                </div>
-                {{-- Ensure you create this file: Modules/Admin/resources/views/layouts/menu.blade.php --}}
-                @includeIf('admin::layouts.menu')
-            @endcan
-
-            {{-- 2. STAFF MODULE (HR, Employees) --}}
-            @can('access_staff_dashboard')
-                <div class="mt-4 mb-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Staff & HR
-                </div>
-                @includeIf('staff::layouts.menu')
-            @endcan
-
-            {{-- 3. FRONT DESK (Hotel Management) --}}
-            @can('access_frontdesk_dashboard')
-                <div class="mt-4 mb-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Front Desk
-                </div>
-                @includeIf('frontdeskcrm::layouts.menu')
-            @endcan
-
-            {{-- 4. RESTAURANT MODULE --}}
-            @can('access_restaurant_dashboard')
-                <div class="mt-4 mb-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Restaurant
-                </div>
-                @includeIf('restaurant::layouts.menu')
-            @endcan
-
-            {{-- 5. GYM MODULE --}}
-            @can('access_gym_dashboard')
-                <div class="mt-4 mb-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Gym & Fitness
-                </div>
-                @includeIf('gym::layouts.menu')
-            @endcan
-
-            {{-- 6. INVENTORY MODULE --}}
-            @can('access_inventory_dashboard')
-                <div class="mt-4 mb-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Inventory
-                </div>
-                @includeIf('inventory::layouts.menu')
-            @endcan
-            
-            {{-- 7. MAINTENANCE MODULE --}}
-            @can('access_maintenance_dashboard')
-                 @includeIf('maintenance::layouts.menu')
-            @endcan
-
-            {{-- 8. TASKS MODULE --}}
-            @can('access_tasks_dashboard')
-                 @includeIf('tasks::layouts.menu')
-            @endcan
-            
-             {{-- 9. BANQUET MODULE --}}
-            @can('access_banquet_dashboard')
-                 @includeIf('banquet::layouts.menu')
-            @endcan
-
-        </nav>
-    </div>
-
-    {{-- 3. USER PROFILE / LOGOUT (Bottom) --}}
-    <div class="flex-none p-4 bg-gray-900 border-t border-gray-800">
-        <div class="flex items-center w-full">
-            <div class="flex-shrink-0">
-                <div class="w-8 h-8 rounded-full bg-gold-500 flex items-center justify-center text-white font-bold">
-                    {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
-                </div>
-            </div>
-            <div class="ml-3 min-w-0">
-                <p class="text-sm font-medium text-white truncate">
-                    {{ Auth::user()->name ?? 'User' }}
-                </p>
-                <p class="text-xs text-gray-400 truncate">
-                    {{ Auth::user()->email ?? '' }}
-                </p>
-            </div>
-            <div class="ml-auto">
-                 <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="text-gray-400 hover:text-white" title="Logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
 </div>
+
 
 <!-- CSS for branding -->
 <style>
