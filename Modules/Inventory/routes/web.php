@@ -19,7 +19,7 @@ use Modules\Inventory\Http\Controllers\DepartmentController;
 
 Route::group(['prefix' => 'inventory', 'as' => 'inventory.'], function () {
     // Items management and dashboard
-    Route::get('/', [InventoryController::class, 'index'])->name('index');
+    Route::get('/', [InventoryController::class, 'index'])->name('dashboard');
     Route::resource('items', InventoryController::class);
     Route::post('/items/restock', [InventoryController::class, 'restock'])->name('items.restock');
 

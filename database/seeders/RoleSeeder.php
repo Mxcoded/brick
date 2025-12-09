@@ -18,6 +18,18 @@ class RoleSeeder extends Seeder
         $accessStaff     = Permission::firstOrCreate(['name' => 'access_staff_dashboard']);
         $accessFrontDesk = Permission::firstOrCreate(['name' => 'access_frontdesk_dashboard']);
         $accessGym       = Permission::firstOrCreate(['name' => 'access_gym_dashboard']);
+        $accessBanquet   = Permission::firstOrCreate(['name' => 'access_banquet_dashboard']);
+        $accessInventory = Permission::firstOrCreate(['name' => 'access_inventory_dashboard']);
+        $accessTasks     = Permission::firstOrCreate(['name' => 'access_tasks_dashboard']);
+        $staffView       = Permission::firstOrCreate(['name' => 'staff-view']);
+        $staffCreate     = Permission::firstOrCreate(['name' => 'staff-create']);
+        $staffEdit       = Permission::firstOrCreate(['name' => 'staff-edit']);
+        $staffDelete     = Permission::firstOrCreate(['name' => 'staff-delete']);
+        $manageLeaves    = Permission::firstOrCreate(['name' => 'manage-leaves']);
+        $applyLeaveForOthers = Permission::firstOrCreate(['name' => 'apply-leave-for-others']);
+        $viewLeaveHistory = Permission::firstOrCreate(['name' => 'view-leave-history']);
+
+
 
         // 2. Create Roles & Assign Access
 
