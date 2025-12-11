@@ -42,6 +42,6 @@ class LoginController extends Controller
         }
 
         // 4. Default: Guest Dashboard
-        return redirect()->route('guest.dashboard');
+        return redirect()->route('website.guest.dashboard');
     }
 }
