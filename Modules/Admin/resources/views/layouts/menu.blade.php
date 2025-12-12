@@ -1,3 +1,4 @@
+@can('access_admin_dashboard')
 <a class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
    data-bs-toggle="collapse" href="#adminSubmenu" role="button"
    aria-expanded="{{ request()->routeIs('admin.*') ? 'true' : 'false' }}" aria-controls="adminSubmenu"
@@ -7,7 +8,17 @@
 </a>
 <div class="collapse {{ request()->routeIs('admin.*') ? 'show' : '' }}" id="adminSubmenu">
     <a href="{{ route('admin.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" style="color: #ddd; border: none;">Overview</a>
+    
+    @can('manage_users')
     <a href="{{ route('admin.users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Users</a>
+    @endcan
+
+    @can('manage_roles')
     <a href="{{ route('admin.roles.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Roles</a>
+    @endcan
+
+    @can('manage_permissions')
     <a href="{{ route('admin.permissions.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Permissions</a>
+    @endcan
 </div>
+@endcan

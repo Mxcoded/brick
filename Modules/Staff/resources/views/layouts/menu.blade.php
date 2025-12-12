@@ -1,3 +1,4 @@
+@can('access_staff_dashboard')
 <a class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
    data-bs-toggle="collapse" href="#staffSubmenu" role="button"
    aria-expanded="{{ request()->routeIs('staff.*') ? 'true' : 'false' }}" aria-controls="staffSubmenu"
@@ -7,10 +8,20 @@
 </a>
 <div class="collapse {{ request()->routeIs('staff.*') ? 'show' : '' }}" id="staffSubmenu">
     <a href="{{ route('staff.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}" style="color: #ddd; border: none;">Dashboard</a>
-    <a href="{{ route('staff.leaves.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.leaves.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Leave Requests</a>
+    
+    {{-- Every staff member should see their own leaves --}}
+    <a href="{{ route('staff.leaves.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.leaves.*') && !request()->routeIs('staff.leaves.admin*') ? 'active' : '' }}" style="color: #ddd; border: none;">Leave Requests</a>
+
+    {{-- HR Management Links --}}
+    @can('manage_employees')
     <a href="{{route('staff.create')}}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.create') ? 'active' : '' }}" style="color: #ddd; border: none;">Add Staff</a>
     <a href="{{route('staff.index')}}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.index') ? 'active' : '' }}" style="color: #ddd; border: none;">Staff List</a>
     <a href="{{route('staff.approvals.index')}}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.approvals.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Staff Approvals</a>
+    @endcan
+
+    @can('approve_leaves')
     <a href="{{route('staff.leaves.admin')}}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.leaves.admin') ? 'active' : '' }}" style="color: #ddd; border: none;">Manage Leaves</a>
     <a href="{{route('staff.leaves.report')}}" class="list-group-item list-group-item-action {{ request()->routeIs('staff.leaves.report') ? 'active' : '' }}" style="color: #ddd; border: none;">Leave Reports</a>
+    @endcan
 </div>
+@endcan
