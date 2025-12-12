@@ -1,3 +1,4 @@
+
 <div class="border-end" id="sidebar-wrapper" style="background-color: #333333;">
 
     <div class="sidebar-heading">
