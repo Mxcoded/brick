@@ -1,3 +1,4 @@
+@can('access_gym_dashboard')
 <a class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
    data-bs-toggle="collapse" href="#gymSubmenu" role="button"
    aria-expanded="{{ request()->routeIs('gym.*') ? 'true' : 'false' }}" aria-controls="gymSubmenu"
@@ -10,3 +11,4 @@
     <a href="{{ route('gym.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('gym.members.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Members</a>
     <a href="{{ route('gym.trainers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('gym.trainers.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Trainers</a>
 </div>
+@endcan
