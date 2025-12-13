@@ -21,9 +21,20 @@ class BanquetController extends Controller
      */
     public function index()
     {
-        $orders = BanquetOrder::with(['customer', 'eventDays'])->latest()->paginate(10);
+        // 1. Calculate Stats for the Dashboard Cards
+        $stats = [
+            'total_orders' => BanquetOrder::count(),
+            'pending_orders' => BanquetOrder::where('status', 'Pending')->count(),
+            'total_revenue' => BanquetOrder::sum('total_revenue'),
+            'this_month_events' => BanquetOrder::whereMonth('preparation_date', now()->month)
+                ->whereYear('preparation_date', now()->year)
+                ->count(),
+        ];
+
         $statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
-        return view('banquet::index', compact('orders', 'statuses'));
+
+        // Pass stats to the view
+        return view('banquet::index', compact('statuses', 'stats'));
     }
   
     /**
@@ -128,6 +139,7 @@ class BanquetController extends Controller
     public function update(Request $request, $order_id)
     {
         $request->validate([
+            'preparation_date' => 'required|date',
             'contact_person_name' => 'required|string|max:255',
             'contact_person_phone' => 'required|string|max:20',
             'contact_person_email' => 'required|email|max:255',
@@ -140,40 +152,54 @@ class BanquetController extends Controller
             'status' => 'required|in:Pending,Confirmed,Cancelled,Completed',
             'organization' => 'nullable|string|max:255',
             'hall_rental_fees' => 'nullable|numeric|min:0',
+            'customer_id' => 'nullable|exists:customers,id', // Added validation for switching customer
         ]);
 
         try {
             $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
 
             return DB::transaction(function () use ($request, $order) {
-                // Update customer
-                if ($order->customer) {
-                    $order->customer->update([
-                        'name' => $request->contact_person_name,
-                        'phone' => $request->contact_person_phone,
-                        'email' => $request->contact_person_email,
-                        'organization' => $request->input('organization'),
-                    ]);
+                // 1. Handle Customer Logic (Switch vs Update vs Create)
+                if ($request->filled('customer_id')) {
+                    // Case A: Switching to a different existing customer
+                    if ($order->customer_id != $request->customer_id) {
+                        $order->customer_id = $request->customer_id;
+                        // We do NOT update the *linked* customer's details here to preserve their record
+                        // We only update the Order's contact snapshot below
+                    } else {
+                        // Case B: Updating the currently linked customer's master record
+                        $order->customer->update([
+                            'name' => $request->contact_person_name,
+                            'phone' => $request->contact_person_phone,
+                            'email' => $request->contact_person_email,
+                            'organization' => $request->input('organization'),
+                        ]);
+                    }
                 } else {
-                    Log::warning("No customer associated with order ID: {$order->order_id}. Creating new customer.");
-                    $customer = Customer::create([
-                        'name' => $request->contact_person_name,
-                        'email' => $request->contact_person_email,
-                        'phone' => $request->contact_person_phone,
-                        'organization' => $request->input('organization'),
-                    ]);
+                    // Case C: "New Customer" selected (customer_id is empty)
+                    // Check if we should create a new one or if one exists by email
+                    $customer = Customer::firstOrCreate(
+                        ['email' => $request->contact_person_email],
+                        [
+                            'name' => $request->contact_person_name,
+                            'phone' => $request->contact_person_phone,
+                            'organization' => $request->input('organization'),
+                        ]
+                    );
                     $order->customer_id = $customer->id;
                 }
 
-                // Calculate total revenue and profit margin
+                // 2. Calculate Financials
                 $menuRevenue = $order->eventDays->flatMap->menuItems->sum('total_price') ?? 0;
                 $hallFees = $request->hall_rental_fees ?? 0;
                 $totalRevenue = $menuRevenue + $hallFees;
                 $expenses = $request->expenses ?? 0;
                 $profitMargin = $this->calculateProfitMargin($totalRevenue, $expenses);
 
-                // Update order
+                // 3. Update Order Details
                 $order->update([
+                    'preparation_date' => $request->preparation_date,
+                    'customer_id' => $order->customer_id, // Ensure link is saved
                     'contact_person_name' => $request->contact_person_name,
                     'contact_person_phone' => $request->contact_person_phone,
                     'contact_person_email' => $request->contact_person_email,
@@ -190,7 +216,7 @@ class BanquetController extends Controller
                 ]);
 
                 return redirect()->route('banquet.orders.show', $order->order_id)
-                    ->with('success', 'Order updated successfully.');
+                    ->with('success', 'Order details updated successfully.');
             });
         } catch (\Exception $e) {
             Log::error('Order update failed: ' . $e->getMessage());
@@ -390,13 +416,31 @@ class BanquetController extends Controller
     {
         try {
             $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
-            $order->eventDays()->delete(); // Delete related event days (if relation exists)
-            $order->delete();
-            return response()->json(['success' => true]);
-            return redirect()->route('banquet.orders.index', $order_id)
+
+            DB::transaction(function () use ($order) {
+                // 1. Loop through days to delete their menu items first
+                $order->eventDays->each(function ($day) {
+                    $day->menuItems()->delete(); // Delete menu items linked to the day
+                    $day->delete(); // Delete the day itself
+                });
+
+                // 2. Finally delete the order
+                $order->delete();
+            });
+
+            if (request()->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Order deleted successfully.']);
+            }
+
+            return redirect()->route('banquet.orders.index')
                 ->with('success', 'Order deleted successfully.');
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            Log::error('Delete failed: ' . $e->getMessage()); // Log the actual error
+
+            if (request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Failed to delete order: ' . $e->getMessage());
         }
     }
 
@@ -533,176 +577,8 @@ class BanquetController extends Controller
     }
 
     /**
-     * Generate a PDF report of events based on the selected date range.
+     * Generate the event report based on the selected date range.
      */
-    // public function generateEventReport(Request $request)
-    // {
-    //     $request->validate([
-    //         'start_date' => 'required|date',
-    //         'end_date' => 'required|date|after_or_equal:start_date',
-    //     ]);
-
-    //     $startDate = $request->input('start_date');
-    //     $endDate = $request->input('end_date');
-
-    //     // Fetch orders with event days and customer within the date range
-    //     $orders = BanquetOrder::with(['customer', 'eventDays'])
-    //         ->whereBetween('preparation_date', [$startDate, $endDate])
-    //         ->get();
-
-    //     // Prepare report data
-    //     $reportData = [];
-    //     $totalEvents = 0;
-    //     $statusCounts = ['Confirmed' => 0, 'Cancelled' => 0, 'Completed' => 0, 'Pending' => 0];
-    //     $locationCounts = [];
-
-    //     foreach ($orders as $order) {
-    //         if ($order->eventDays->isEmpty()) {
-    //             $eventDateRange = 'No event days';
-    //             $eventType = 'N/A';
-    //             $location = 'N/A';
-    //             $guestCount = 0;
-    //         } else {
-    //             $totalEvents += $order->eventDays->count();
-    //             $dates = $order->eventDays->sortBy('event_date');
-    //             $eventDateRange = $dates->first()->event_date->format('M d, Y') . ' - ' .
-    //                 $dates->last()->event_date->format('M d, Y');
-    //             $eventType = $order->eventDays->first()->event_type;
-    //             $location = $order->eventDays->first()->room;
-    //             $guestCount = $order->eventDays->sum('guest_count');
-
-    //             // Count statuses (assuming order status applies to all event days)
-    //             if (isset($statusCounts[$order->status])) {
-    //                 $statusCounts[$order->status]++;
-    //             }
-
-    //             // Count locations
-    //             $locationCounts[$location] = ($locationCounts[$location] ?? 0) + 1;
-    //         }
-
-    //         $reportData[] = [
-    //             'event_date_range' => $eventDateRange,
-    //             'customer_name' => $order->customer ? $order->customer->name : 'N/A',
-    //             'event_type' => $eventType,
-    //             'location' => $location,
-    //             'guest_count' => $guestCount,
-    //         ];
-    //     }
-
-    //     // Sort report data by event_date_range
-    //     usort($reportData, function ($a, $b) {
-    //         return strcmp($a['event_date_range'], $b['event_date_range']);
-    //     });
-
-    //     // Determine most used location
-    //     $mostUsedLocation = !empty($locationCounts) ? array_search(max($locationCounts), $locationCounts) : 'N/A';
-
-    //     // Prepare summary data
-    //     $summary = [
-    //         'total_events' => $totalEvents,
-    //         'confirmed' => $statusCounts['Confirmed'],
-    //         'cancelled' => $statusCounts['Cancelled'],
-    //         'completed' => $statusCounts['Completed'],
-    //         'pending' => $statusCounts['Pending'],
-    //         'most_used_location' => $mostUsedLocation,
-    //     ];
-
-    //     // Generate PDF
-    //     $pdf = Pdf::loadView('banquet::reports.event-report', [
-    //         'reportData' => $reportData,
-    //         'startDate' => $startDate,
-    //         'endDate' => $endDate,
-    //         'summary' => $summary,
-    //     ]);
-
-    //     return $pdf->stream("event-report-{$startDate}-to-{$endDate}.pdf");
-    // }
-
-    /**
-     * Display an HTML report of events based on the selected date range.
-     */
-    // public function generateEventReport(Request $request)
-    // {
-    //     $request->validate([
-    //         'start_date' => 'required|date',
-    //         'end_date' => 'required|date|after_or_equal:start_date',
-    //     ]);
-
-    //     $startDate = $request->input('start_date');
-    //     $endDate = $request->input('end_date');
-
-    //     // Fetch orders with event days and customer within the date range
-    //     $orders = BanquetOrder::with(['customer', 'eventDays'])
-    //         ->whereBetween('preparation_date', [$startDate, $endDate])
-    //         ->get();
-
-    //     // Prepare report data
-    //     $reportData = [];
-    //     $statusCounts = ['Confirmed' => 0, 'Cancelled' => 0, 'Completed' => 0, 'Pending' => 0];
-    //     $locationCounts = [];
-
-    //     // Count total orders (events)
-    //     $totalEvents = $orders->count();
-
-    //     foreach ($orders as $order) {
-    //         if ($order->eventDays->isEmpty()) {
-    //             $eventDateRange = 'No event days';
-    //             $eventType = 'N/A';
-    //             $location = 'N/A';
-    //             $guestCount = 0;
-    //         } else {
-    //             $dates = $order->eventDays->sortBy('event_date');
-    //             $eventDateRange = $dates->first()->event_date->format('M d, Y') . ' - ' .
-    //                 $dates->last()->event_date->format('M d, Y');
-    //             $eventType = $order->eventDays->first()->event_type;
-    //             $location = $order->eventDays->first()->room;
-    //             $guestCount = $order->eventDays->sum('guest_count');
-
-    //             // Count locations (still based on event days)
-    //             $locationCounts[$location] = ($locationCounts[$location] ?? 0) + 1;
-    //         }
-
-    //         // Count statuses based on orders
-    //         if (isset($statusCounts[$order->status])) {
-    //             $statusCounts[$order->status]++;
-    //         }
-
-    //         $reportData[] = [
-    //             'event_date_range' => $eventDateRange,
-    //             'customer_name' => $order->customer ? $order->customer->name : 'N/A',
-    //             'event_type' => $eventType,
-    //             'location' => $location,
-    //             'guest_count' => $guestCount,
-    //             'status' => $order->status,
-    //         ];
-    //     }
-
-    //     // Sort report data by event_date_range
-    //     usort($reportData, function ($a, $b) {
-    //         return strcmp($a['event_date_range'], $b['event_date_range']);
-    //     });
-
-    //     // Determine most used location
-    //     $mostUsedLocation = !empty($locationCounts) ? array_search(max($locationCounts), $locationCounts) : 'N/A';
-
-    //     // Prepare summary data
-    //     $summary = [
-    //         'total_events' => $totalEvents,
-    //         'confirmed' => $statusCounts['Confirmed'],
-    //         'cancelled' => $statusCounts['Cancelled'],
-    //         'completed' => $statusCounts['Completed'],
-    //         'pending' => $statusCounts['Pending'],
-    //         'most_used_location' => $mostUsedLocation,
-    //     ];
-
-    //     // Return HTML view instead of PDF
-    //     return view('banquet::reports.event-report', [
-    //         'reportData' => $reportData,
-    //         'startDate' => $startDate,
-    //         'endDate' => $endDate,
-    //         'summary' => $summary,
-    //     ]);
-    // }
     public function generateEventReport(Request $request)
     {
         $request->validate([
@@ -812,46 +688,52 @@ class BanquetController extends Controller
     public function datatable(Request $request)
     {
         $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
-            ->select('id', 'order_id', 'expenses', 'hall_rental_fees', 'status', 'customer_id', 'profit_margin') // Add profit_margin
+            ->select('id', 'order_id', 'contact_person_name', 'expenses', 'hall_rental_fees', 'status', 'customer_id', 'profit_margin', 'total_revenue', 'created_at')
             ->latest();
 
         return DataTables::of($orders)
             ->addColumn('customer', function ($order) {
+                // Fallback to contact person name if customer relation is missing
                 return [
-                    'name' => $order->customer->name ?? null,
+                    'name' => $order->customer->name ?? $order->contact_person_name ?? 'N/A',
                     'contact_person_name' => $order->contact_person_name
                 ];
             })
             ->addColumn('organization', function ($order) {
-                return $order->customer->organization ?? 'N/A'; // New organization column
+                return $order->customer->organization ?? 'Private';
             })
             ->addColumn('event_dates', function ($order) {
-                if ($order->eventDays->isEmpty()) return 'No event days';
+                if ($order->eventDays->isEmpty()) return '<span class="text-muted fst-italic">Not Scheduled</span>';
+
                 $dates = $order->eventDays->sortBy('event_date');
-                return $dates->first()->event_date->format('M d, Y') . ' - ' .
-                    $dates->last()->event_date->format('M d, Y');
+                $start = $dates->first()->event_date->format('M d');
+                $end = $dates->last()->event_date->format('M d, Y');
+
+                // If same day, just show one date
+                if ($dates->first()->event_date->isSameDay($dates->last()->event_date)) {
+                    return '<span class="fw-bold text-dark">' . $dates->first()->event_date->format('M d, Y') . '</span>';
+                }
+                return '<span class="fw-bold text-dark">' . $start . ' - ' . $end . '</span>';
             })
             ->addColumn('total_guests', function ($order) {
-                return $order->eventDays->max('guest_count') ?? 0;
-            })->addColumn('total_revenue', function ($order) {
-                $menuRevenue = $order->eventDays->flatMap->menuItems->sum('total_price') ?? 0;
-                $hallFees = $order->hall_rental_fees ?? 0;
-                return $menuRevenue + $hallFees;
+                return number_format($order->eventDays->sum('guest_count'));
+            })
+            ->addColumn('total_revenue', function ($order) {
+                return '₦' . number_format($order->total_revenue, 2);
             })
             ->addColumn('profit_margin', function ($order) {
-                return $order->profit_margin !== null ? number_format($order->profit_margin, 2) . '%' : 'N/A';
+                if ($order->profit_margin === null) return '<span class="text-muted">-</span>';
+
+                $color = $order->profit_margin > 20 ? 'success' : ($order->profit_margin > 0 ? 'warning' : 'danger');
+                return '<span class="text-' . $color . ' fw-bold">' . number_format($order->profit_margin, 1) . '%</span>';
             })
             ->addColumn('actions', function ($order) {
-                return [
-                    'order_id' => $order->order_id,
-                    'view' => route('banquet.orders.show', $order->order_id),
-                    'edit' => route('banquet.orders.edit', $order->order_id),
-                    'pdf' => route('banquet.orders.pdf', $order->order_id)
-                ];
+                return view('banquet::partials.actions', compact('order'))->render();
             })
             ->filterColumn('status', function ($query, $keyword) {
                 $query->where('status', $keyword);
             })
+            ->rawColumns(['event_dates', 'profit_margin', 'actions', 'status']) // Allow HTML in these columns
             ->make(true);
     }
     /**
@@ -860,9 +742,9 @@ class BanquetController extends Controller
     private function calculateProfitMargin($totalRevenue, $expenses)
     {
         if ($totalRevenue <= 0) {
-            return null; // Avoid division by zero
+            return null;
         }
         $profit = $totalRevenue - ($expenses ?? 0);
-        return ($profit / $totalRevenue) * 100; // Percentage
+        return ($profit / $totalRevenue) * 100;
     }
 }
