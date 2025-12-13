@@ -227,31 +227,37 @@
         // Delete functionality
         $(document).on('click', '.delete-order', function() {
             const orderId = $(this).data('order-id');
-            const deleteUrl = $(this).data('url'); // <--- GET THE CORRECT URL
+            const deleteUrl = $(this).data('url');
 
-            if (confirm(`Are you sure you want to delete order ${orderId}?`)) {
+            if (confirm(`Are you sure you want to delete order ${orderId}? This action cannot be undone.`)) {
                 $.ajax({
-                    url: deleteUrl, // <--- USE IT HERE
+                    url: deleteUrl,
                     type: 'DELETE',
+                    dataType: 'json', // <--- IMPORTANT: Forces Laravel to see this as a JSON request
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function(response) {
                         if (response.success) {
                             table.ajax.reload();
-                            // Optional: Show a toast notification here
-                            alert('Order deleted successfully.'); 
+                            alert(response.message || 'Order deleted successfully.');
                         } else {
-                            alert('Failed to delete order: ' + (response.message || 'Unknown error'));
+                            alert('Failed to delete: ' + response.message);
                         }
                     },
                     error: function(xhr) {
-                        console.error('Delete Error:', xhr.responseText); // Log full error to console
-                        // Try to extract a friendly message if Laravel sent one
+                        console.error('Delete Error:', xhr.responseText);
                         let msg = 'Failed to delete order.';
+                        
+                        // Parse error message from Laravel response
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             msg += '\nReason: ' + xhr.responseJSON.message;
+                        } else if (xhr.status === 403) {
+                            msg += '\nReason: Unauthorized action.';
+                        } else if (xhr.status === 404) {
+                            msg += '\nReason: Order not found (it may have already been deleted).';
                         }
+                        
                         alert(msg);
                     }
                 });

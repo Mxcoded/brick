@@ -232,12 +232,14 @@ class BanquetController extends Controller
         $eventStatuses = ['Pending', 'Confirmed', 'Cancelled'];
         $eventTypes = ['Wedding', 'Conference', 'Meeting', 'Banquet', 'Other'];
         $setupStyles = ['Theater Style', 'Classroom Style', 'Boardroom Style', 'U-Shape', 'Banquet Style'];
+        // Note: These location names must match the logic in checkAvailability exactly
         $location = ['Adamawa Hall', 'Kano Hall', 'Adamawa Hall + Kano Hall', 'Board Room', 'Pent House', 'Restaurant', 'Pool Party'];
+
         return view('banquet::add-day', compact('order', 'eventStatuses', 'eventTypes', 'setupStyles', 'location'));
     }
 
     /**
-     * Store a new event day for an existing order.
+     * Store a new event day for an existing order with Conflict Checking.
      */
     public function storeDay(Request $request, $order_id)
     {
@@ -253,8 +255,21 @@ class BanquetController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
+        // 1. Perform Conflict Check
+        $conflict = $this->checkAvailability(
+            $request->event_date,
+            $request->room,
+            $request->start_time,
+            $request->end_time
+        );
+
+        if ($conflict) {
+            return back()->withInput()->with('error', "Room is unavailable! Double-booking detected with Order #{$conflict->banquetOrder->order_id} ({$conflict->start_time} - {$conflict->end_time}).");
+        }
+
         try {
             $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+
             $day = $order->eventDays()->create([
                 'event_date' => $request->event_date,
                 'event_description' => $request->event_description,
@@ -455,12 +470,13 @@ class BanquetController extends Controller
         $eventStatuses = ['Pending', 'Confirmed', 'Cancelled'];
         $eventTypes = ['Wedding', 'Conference', 'Meeting', 'Banquet', 'Other'];
         $setupStyles = ['Theater Style', 'Classroom Style', 'Boardroom Style', 'U-Shape', 'Banquet Style'];
-        $locations = ['Admawa Hall', 'Kano Hall', 'Admawa Hall + Kano Hall', 'Board Room', 'Pent House', 'Restaurant', 'Pool Party'];
+        $locations = ['Adamawa Hall', 'Kano Hall', 'Adamawa Hall + Kano Hall', 'Board Room', 'Pent House', 'Restaurant', 'Pool Party'];
+
         return view('banquet::edit-day', compact('order', 'day', 'eventStatuses', 'eventTypes', 'setupStyles', 'locations'));
     }
 
     /**
-     * Update an existing event day.
+     * Update an existing event day with Conflict Checking.
      */
     public function updateDay(Request $request, $order_id, $day_id)
     {
@@ -476,8 +492,22 @@ class BanquetController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
+        $day = BanquetOrderDay::findOrFail($day_id);
+
+        // 1. Perform Conflict Check (Excluding the current event day we are editing)
+        $conflict = $this->checkAvailability(
+            $request->event_date,
+            $request->room,
+            $request->start_time,
+            $request->end_time,
+            $day->id // <--- Pass ID to ignore
+        );
+
+        if ($conflict) {
+            return back()->withInput()->with('error', "Update Failed: Room unavailable! Overlaps with Order #{$conflict->banquetOrder->order_id} ({$conflict->start_time} - {$conflict->end_time}).");
+        }
+
         try {
-            $day = BanquetOrderDay::findOrFail($day_id);
             $day->update([
                 'event_date' => $request->event_date,
                 'event_description' => $request->event_description,
@@ -735,6 +765,45 @@ class BanquetController extends Controller
             })
             ->rawColumns(['event_dates', 'profit_margin', 'actions', 'status']) // Allow HTML in these columns
             ->make(true);
+    }
+    /**
+     * Check if a room is available for a given time slot.
+     * * @param string $date Y-m-d
+     * @param string $room Room Name
+     * @param string $startTime H:i
+     * @param string $endTime H:i
+     * @param int|null $ignoreId ID of the event day to ignore (for updates)
+     * @return BanquetOrderDay|null Returns the conflicting event or null if available
+     */
+    private function checkAvailability($date, $room, $startTime, $endTime, $ignoreId = null)
+    {
+        // 1. Define conflicting rooms (Handling combined halls logic)
+        $conflictingRooms = [$room];
+
+        if ($room === 'Adamawa Hall + Kano Hall') {
+            $conflictingRooms = ['Adamawa Hall + Kano Hall', 'Adamawa Hall', 'Kano Hall'];
+        } elseif ($room === 'Adamawa Hall') {
+            $conflictingRooms = ['Adamawa Hall', 'Adamawa Hall + Kano Hall'];
+        } elseif ($room === 'Kano Hall') {
+            $conflictingRooms = ['Kano Hall', 'Adamawa Hall + Kano Hall'];
+        }
+
+        // 2. Query for conflicts
+        $query = BanquetOrderDay::with('banquetOrder')
+            ->where('event_date', $date)
+            ->whereIn('room', $conflictingRooms)
+            ->where('event_status', '!=', 'Cancelled') // Cancelled events don't block rooms
+            ->where(function ($q) use ($startTime, $endTime) {
+                // Overlap Logic: (StartA < EndB) and (EndA > StartB)
+                $q->where('start_time', '<', $endTime)
+                    ->where('end_time', '>', $startTime);
+            });
+
+        if ($ignoreId) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        return $query->first();
     }
     /**
      * Helper Functions to Calculate Profit margin
