@@ -9,16 +9,16 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RoleSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // 1. Reset cached roles and permissions
+        // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // =================================================================
-        // 2. DEFINE ALL PERMISSIONS
-        // =================================================================
+        // ==========================================================
+        // DEFINE ALL PERMISSIONS
+        // ==========================================================
         $permissions = [
-            // --- Module Access Gatekeepers ---
+            // Dashboards
             'access_admin_dashboard',
             'access_frontdesk_dashboard',
             'access_staff_dashboard',
@@ -28,125 +28,135 @@ class RoleSeeder extends Seeder
             'access_maintenance_dashboard',
             'access_tasks_dashboard',
             'access_banquet_dashboard',
-            'access_website_dashboard', // Added this
+            'access_website_dashboard',
 
-            // --- Admin Specific ---
+            // Admin
             'manage_users',
             'manage_roles',
-            'manage_permissions', // Added for granular control
+            'manage_permissions',
             'manage_settings',
 
-            // --- Front Desk Specific ---
+            // Front Desk
             'check_in_guest',
             'check_out_guest',
             'manage_rooms',
 
-            // --- Staff/HR Specific ---
+            // HR
             'view_employees',
             'manage_employees',
             'approve_leaves',
 
-            // --- Inventory Specific ---
+            // Inventory
             'view_inventory',
             'adjust_stock',
             'manage_suppliers',
 
-            // --- Restaurant Specific ---
+            // Restaurant
             'take_orders',
             'manage_menu',
 
-            // --- Operations ---
+            // Tasks & Maintenance
             'view_tasks',
             'assign_tasks',
             'log_maintenance',
+
+            // Banquet / Events
+            'manage_banquet',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission]);
+            Permission::firstOrCreate([
+                'name'       => $permission,
+                'guard_name' => 'web',
+            ]);
         }
 
-        // =================================================================
-        // 3. DEFINE ROLES & ASSIGN PERMISSIONS
-        // =================================================================
+        // ==========================================================
+        // ROLES & PERMISSION ASSIGNMENT
+        // ==========================================================
 
-        // 1. SUPER ADMIN
-        $admin = Role::firstOrCreate(['name' => 'admin']);
-        $admin->givePermissionTo(Permission::all());
-
-        // 2. HR MANAGER
-        $hr = Role::firstOrCreate(['name' => 'hr_manager']);
-        $hr->givePermissionTo([
-            'access_staff_dashboard',
-            'view_employees',
-            'manage_employees',
-            'approve_leaves'
+        // SUPER ADMIN
+        $admin = Role::firstOrCreate([
+            'name' => 'admin',
+            'guard_name' => 'web',
         ]);
+        $admin->syncPermissions($permissions);
 
-        // 3. RECEPTIONIST
-        $receptionist = Role::firstOrCreate(['name' => 'receptionist']);
-        $receptionist->givePermissionTo([
-            'access_frontdesk_dashboard',
-            'check_in_guest',
-            'check_out_guest',
-            'access_tasks_dashboard',
-            'view_tasks'
-        ]);
+        // HR MANAGER
+        Role::firstOrCreate(['name' => 'hr_manager', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_staff_dashboard',
+                'view_employees',
+                'manage_employees',
+                'approve_leaves',
+            ]);
 
-        // 4. RESTAURANT MANAGER
-        $restoManager = Role::firstOrCreate(['name' => 'restaurant_manager']);
-        $restoManager->givePermissionTo([
-            'access_restaurant_dashboard',
-            'manage_menu',
-            'take_orders',
-            'access_inventory_dashboard',
-            'view_inventory'
-        ]);
+        // RECEPTIONIST
+        Role::firstOrCreate(['name' => 'receptionist', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_frontdesk_dashboard',
+                'check_in_guest',
+                'check_out_guest',
+                'access_tasks_dashboard',
+                'view_tasks',
+            ]);
 
-        // 5. WAITER
-        $waiter = Role::firstOrCreate(['name' => 'waiter']);
-        $waiter->givePermissionTo([
-            'access_restaurant_dashboard',
-            'take_orders'
-        ]);
+        // RESTAURANT MANAGER
+        Role::firstOrCreate(['name' => 'restaurant_manager', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_restaurant_dashboard',
+                'manage_menu',
+                'take_orders',
+                'access_inventory_dashboard',
+                'view_inventory',
+            ]);
 
-        // 6. GYM SUPERVISOR
-        $gymSup = Role::firstOrCreate(['name' => 'gym_supervisor']);
-        $gymSup->givePermissionTo([
-            'access_gym_dashboard',
-        ]);
+        // WAITER
+        Role::firstOrCreate(['name' => 'waiter', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_restaurant_dashboard',
+                'take_orders',
+            ]);
 
-        // 7. STORE KEEPER
-        $storeKeeper = Role::firstOrCreate(['name' => 'store_keeper']);
-        $storeKeeper->givePermissionTo([
-            'access_inventory_dashboard',
-            'view_inventory',
-            'adjust_stock',
-            'manage_suppliers'
-        ]);
+        // GYM SUPERVISOR
+        Role::firstOrCreate(['name' => 'gym_supervisor', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_gym_dashboard',
+            ]);
 
-        // 8. MAINTENANCE ENGINEER
-        $engineer = Role::firstOrCreate(['name' => 'maintenance_engineer']);
-        $engineer->givePermissionTo([
-            'access_maintenance_dashboard',
-            'log_maintenance',
-            'access_tasks_dashboard',
-            'view_tasks',
-            'access_inventory_dashboard',
-            'view_inventory'
-        ]);
+        // STORE KEEPER
+        Role::firstOrCreate(['name' => 'store_keeper', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_inventory_dashboard',
+                'view_inventory',
+                'adjust_stock',
+                'manage_suppliers',
+            ]);
 
-        // 9. EVENT MANAGER
-        $eventManager = Role::firstOrCreate(['name' => 'event_manager']);
-        $eventManager->givePermissionTo([
-            'access_banquet_dashboard',
-            'access_restaurant_dashboard',
-        ]);
+        // MAINTENANCE ENGINEER
+        Role::firstOrCreate(['name' => 'maintenance_engineer', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_maintenance_dashboard',
+                'log_maintenance',
+                'access_tasks_dashboard',
+                'view_tasks',
+                'access_inventory_dashboard',
+                'view_inventory',
+            ]);
 
-        // 10. WEBSITE ADMIN (New Role)
-        $webAdmin = Role::firstOrCreate(['name' => 'website_admin']);
-        $webAdmin->givePermissionTo([
-            'access_website_dashboard',
-            'manage_settings'
-        ]);
+        // EVENT MANAGER
+        Role::firstOrCreate(['name' => 'event_manager', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_banquet_dashboard',
+                'access_restaurant_dashboard',
+                'manage_banquet',
+            ]);
+
+        // WEBSITE ADMIN
+        Role::firstOrCreate(['name' => 'website_admin', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_website_dashboard',
+                'manage_settings',
+            ]);
     }
 }
