@@ -17,8 +17,8 @@
     <a href="{{ route('admin.roles.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Roles</a>
     @endcan
 
-    @can('manage_permissions')
+    {{-- @can('manage_permissions')
     <a href="{{ route('admin.permissions.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Permissions</a>
-    @endcan
+    @endcan --}}
 </div>
 @endcan

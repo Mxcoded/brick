@@ -16,6 +16,8 @@ Route::prefix('staff')
     ->name('staff.')
     ->group(function () {
         Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard');
+        // ** NEW BIRTHDAY ROUTE **
+        Route::get('/birthdays', [StaffController::class, 'birthdays'])->name('birthdays');
         Route::resource('/', StaffController::class)->names([
             'index'  => 'index',
             'create' => 'create',
@@ -54,7 +56,7 @@ Route::prefix('staff')
 
             Route::post('/admin/balances', [LeaveController::class, 'updateBalanceAdmin'])
                 ->name('leaves.admin.balances.update');
-                
+
 
             Route::post('/admin/balances/{id}/reset', [LeaveController::class, 'resetBalance'])
                 ->name('leaves.admin.balances.reset');
@@ -77,11 +79,11 @@ Route::prefix('staff')
             // HR routes for applying on behalf of others
             Route::get('/admin/apply', [LeaveController::class, 'showApplyForOtherForm'])
                 ->name('leaves.admin.apply');
-                
+
 
             Route::post('/admin/apply', [LeaveController::class, 'submitLeaveForOther'])
                 ->name('leaves.admin.submit');
-                
+
             Route::get('/admin/history', [LeaveController::class, 'showLeaveHistory'])
                 ->name('leaves.admin.history');
         });
