@@ -19,17 +19,18 @@ Route::prefix('admin')
         Route::get('/', [AdminController::class, 'index'])->name('dashboard');
         Route::get('/roles', [AdminController::class, 'roles'])->name('roles.index');
         Route::post('/roles', [AdminController::class, 'createRole'])->name('roles.store');
+        Route::post('/roles/mass-destroy', [AdminController::class, 'massDestroyRole'])->name('roles.mass_destroy');
         Route::get('/roles/{id}/edit', [AdminController::class, 'editRole'])->name('roles.edit');
         Route::put('/roles/{id}', [AdminController::class, 'updateRole'])->name('roles.update');
         Route::delete('/roles/{id}', [AdminController::class, 'destroyRole'])->name('roles.destroy');
 
-        Route::get('/permissions', [AdminController::class, 'permissions'])->name('permissions.index');
-        Route::post('/permissions', [AdminController::class, 'createPermission'])->name('permissions.store');
-        Route::get('/permissions/{id}/edit', [AdminController::class, 'editPermission'])->name('permissions.edit');
-        Route::put('/permissions/{id}', [AdminController::class, 'updatePermission'])->name('permissions.update');
-        Route::post('/permissions/{id}/roles', [AdminController::class, 'updatePermissionRoles'])->name('permissions.update-roles');
-        Route::delete('/permissions/{id}', [AdminController::class, 'destroyPermission'])->name('permissions.destroy');
-        Route::post('/permissions/assign-to-role', [AdminController::class, 'assignPermissionToRole'])->name('permissions.assign-to-role');
+        // Route::get('/permissions', [AdminController::class, 'permissions'])->name('permissions.index');
+        // Route::post('/permissions', [AdminController::class, 'createPermission'])->name('permissions.store');
+        // Route::get('/permissions/{id}/edit', [AdminController::class, 'editPermission'])->name('permissions.edit');
+        // Route::put('/permissions/{id}', [AdminController::class, 'updatePermission'])->name('permissions.update');
+        // Route::post('/permissions/{id}/roles', [AdminController::class, 'updatePermissionRoles'])->name('permissions.update-roles');
+        // Route::delete('/permissions/{id}', [AdminController::class, 'destroyPermission'])->name('permissions.destroy');
+        // Route::post('/permissions/assign-to-role', [AdminController::class, 'assignPermissionToRole'])->name('permissions.assign-to-role');
 
         Route::get('/users', [AdminController::class, 'users'])->name('users.index');
         Route::post('/users/assign-role', [AdminController::class, 'assignRole'])->name('users.assign-role');
