@@ -27,6 +27,7 @@ Route::prefix('banquet')
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/form', [BanquetController::class, 'eventReportForm'])->name('form');
             Route::post('/generate', [BanquetController::class, 'generateEventReport'])->name('generate');
+            Route::post('/export', [BanquetController::class, 'exportEventReport'])->name('export');
         });
 
         // ==========================================================

@@ -608,7 +608,84 @@ class BanquetController extends Controller
     }
 
     /**
-     * Generate the event report based on the selected date range.
+     * Shared logic to fetch and process report data
+     */
+    private function getReportData($startDate, $endDate)
+    {
+        $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
+            ->whereIn('status', ['Completed', 'Cancelled', 'Confirmed']) // Included Confirmed for better reporting
+            ->whereBetween('preparation_date', [$startDate, $endDate])
+            ->get();
+
+        $reportData = [];
+        $statusCounts = ['Confirmed' => 0, 'Cancelled' => 0, 'Completed' => 0, 'Pending' => 0];
+        $locationCounts = [];
+
+        $totals = ['revenue' => 0, 'expenses' => 0, 'profit' => 0];
+
+        foreach ($orders as $order) {
+            if ($order->eventDays->isEmpty()) {
+                $locationString = 'N/A';
+                $guestCount = 0;
+                $hallRentalFee = 0;
+                $foodBeverageTotal = 0;
+                $eventDateRange = $order->preparation_date->format('M d, Y');
+            } else {
+                $dates = $order->eventDays->sortBy('event_date');
+                $eventDateRange = $dates->first()->event_date->format('M d') . ' - ' . $dates->last()->event_date->format('M d, Y');
+
+                $locationString = $order->eventDays->pluck('room')->unique()->implode(', ');
+                $order->eventDays->pluck('room')->each(function ($room) use (&$locationCounts) {
+                    $locationCounts[$room] = ($locationCounts[$room] ?? 0) + 1;
+                });
+
+                $guestCount = $order->eventDays->sum('guest_count');
+                $hallRentalFee = $order->hall_rental_fees;
+                $foodBeverageTotal = $order->eventDays->flatMap->menuItems->sum('total_price') ?? 0;
+            }
+
+            $orderTotal = $hallRentalFee + $foodBeverageTotal;
+            $orderExpenses = $order->expenses;
+            $orderProfit = $orderTotal - $orderExpenses;
+
+            $totals['revenue'] += $orderTotal;
+            $totals['expenses'] += $orderExpenses;
+            $totals['profit'] += $orderProfit;
+
+            if (isset($statusCounts[$order->status])) {
+                $statusCounts[$order->status]++;
+            }
+
+            $reportData[] = [
+                'order_id' => $order->order_id,
+                'organization' => $order->customer->organization ?? $order->contact_person_name,
+                'guest_count' => $guestCount,
+                'event_date_range' => $eventDateRange,
+                'location' => $locationString,
+                'hall_rental_fees' => $hallRentalFee,
+                'food_beverage_total' => $foodBeverageTotal,
+                'total_revenue' => $orderTotal,
+                'expenses' => $orderExpenses,
+                'profit' => $orderProfit,
+                'status' => $order->status,
+            ];
+        }
+
+        // Determine most used location
+        $mostUsedLocation = !empty($locationCounts) ? array_search(max($locationCounts), $locationCounts) : 'N/A';
+
+        $summary = [
+            'total_events' => $orders->count(),
+            'confirmed' => $statusCounts['Confirmed'] + $statusCounts['Completed'],
+            'cancelled' => $statusCounts['Cancelled'],
+            'most_used_location' => $mostUsedLocation,
+        ];
+
+        return compact('reportData', 'summary', 'totals', 'startDate', 'endDate');
+    }
+
+    /**
+     * Generate the HTML View Report
      */
     public function generateEventReport(Request $request)
     {
@@ -617,101 +694,89 @@ class BanquetController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $data = $this->getReportData($request->start_date, $request->end_date);
 
-        // Fetch orders with event days, customer, and menu items within the date range
-        $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
-            ->whereIn('status', ['Completed', 'Cancelled']) // Add this line to filter by status
-            ->whereBetween('preparation_date', [$startDate, $endDate])
-            ->get();
-        
-        // Prepare report data
-        $reportData = [];
-        $statusCounts = ['Confirmed' => 0, 'Cancelled' => 0, 'Completed' => 0, 'Pending' => 0];
-        $locationCounts = [];
+        return view('banquet::reports.event-report', [
+            'reportData' => $data['reportData'],
+            'startDate' => $data['startDate'],
+            'endDate' => $data['endDate'],
+            'summary' => $data['summary'],
+            'totalRevenue' => $data['totals']['revenue'],
+            'totalExpenses' => $data['totals']['expenses'],
+            'totalProfit' => $data['totals']['profit'],
+        ]);
+    }
 
-        // Count total orders (events)
-        $totalEvents = $orders->count();
-        $totalRevenue = 0;
+    /**
+     * Export Report to Excel (CSV)
+     */
+    public function exportEventReport(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
 
-        foreach ($orders as $order) {
-            if ($order->eventDays->isEmpty()) {
-                $eventDateRange = 'No event days';
-                $eventType = 'N/A';
-                $location = 'N/A';
-                $guestCount = 0;
-                $hallRentalFee = 0;
-                $foodBeverageTotal = 0;
-            } else {
-                $dates = $order->eventDays->sortBy('event_date');
-                $eventDateRange = $dates->first()->event_date->format('M d, Y') . ' - ' .
-                    $dates->last()->event_date->format('M d, Y');
-                $locations = $order->eventDays->pluck('room')->unique()->implode(', ');
-                $eventTypes = $order->eventDays->pluck('event_type')->unique()->implode(', ');
-                $guestCount = $order->eventDays->sum('guest_count');
-                
+        $data = $this->getReportData($request->start_date, $request->end_date);
+        $filename = 'banquet-report-' . now()->format('Y-m-d-His') . '.csv';
 
-                // Calculate hall rental fee (sum across event days, assuming each day has a fee)
-                $hallRentalFee = $order->hall_rental_fees;
-
-                // Calculate food and beverage total (sum of menu item prices)
-                $foodBeverageTotal = $order->eventDays->flatMap->menuItems->sum('total_price') ?? 0;
-
-                //Calculate Event total Amount
-                $eventTotal = $hallRentalFee + $foodBeverageTotal;
-
-                // Count locations (based on event days)
-                $locationCounts[$location] = ($locationCounts[$location] ?? 0) + 1;
-            }
-
-            // Count statuses based on orders
-            if (isset($statusCounts[$order->status])) {
-                $statusCounts[$order->status]++;
-            }
-
-            $reportData[] = [
-                'event_date_range' => $eventDateRange,
-                'organization' => $order->customer->organization ?? 'N/A',
-                'guest_count' => $guestCount,
-                'location' => $location,
-                'hall_rental_fees' => $hallRentalFee,
-                'food_beverage_total' => $foodBeverageTotal,
-                'total' =>  $eventTotal,
-                'status' => $order->status,
-            ];
-            $totalRevenue += $eventTotal;
-        }
-
-        // Sort report data by event_date_range
-        usort($reportData, function ($a, $b) {
-            // Use a more robust way to sort by the start date of the range
-            $dateA = \Carbon\Carbon::parse(explode(' - ', $a['event_date_range'])[0]);
-            $dateB = \Carbon\Carbon::parse(explode(' - ', $b['event_date_range'])[0]);
-            return $dateA->greaterThan($dateB) ? 1 : ($dateA->lessThan($dateB) ? -1 : 0);
-        });
-
-        // Determine most used location
-        $mostUsedLocation = !empty($locationCounts) ? array_search(max($locationCounts), $locationCounts) : 'N/A';
-
-        // Prepare summary data
-        $summary = [
-            'total_events' => $totalEvents,
-            'confirmed' => $statusCounts['Confirmed'],
-            'cancelled' => $statusCounts['Cancelled'],
-            'completed' => $statusCounts['Completed'],
-            'pending' => $statusCounts['Pending'],
-            'most_used_location' => $mostUsedLocation,
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
         ];
 
-        // Return HTML view
-        return view('banquet::reports.event-report', [
-            'reportData' => $reportData,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'summary' => $summary,
-            'totalRevenue' => $totalRevenue,
-        ]);
+        $callback = function () use ($data) {
+            $file = fopen('php://output', 'w');
+
+            // Add BOM for Excel utf-8 compatibility
+            fputs($file, "\xEF\xBB\xBF");
+
+            // CSV Header
+            fputcsv($file, [
+                'Order ID',
+                'Organization/Client',
+                'Dates',
+                'Location',
+                'Guests',
+                'Hall Fee',
+                'F&B Revenue',
+                'Total Revenue',
+                'Expenses',
+                'Profit',
+                'Status'
+            ]);
+
+            // CSV Rows
+            foreach ($data['reportData'] as $row) {
+                fputcsv($file, [
+                    $row['order_id'],
+                    $row['organization'],
+                    $row['event_date_range'],
+                    $row['location'],
+                    $row['guest_count'],
+                    $row['hall_rental_fees'],
+                    $row['food_beverage_total'],
+                    $row['total_revenue'],
+                    $row['expenses'],
+                    $row['profit'],
+                    $row['status']
+                ]);
+            }
+
+            // Summary Footer
+            fputcsv($file, []);
+            fputcsv($file, ['SUMMARY']);
+            fputcsv($file, ['Total Events', $data['summary']['total_events']]);
+            fputcsv($file, ['Total Revenue', $data['totals']['revenue']]);
+            fputcsv($file, ['Total Profit', $data['totals']['profit']]);
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
     /**
      * Store a new payment for an order.
