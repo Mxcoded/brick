@@ -9,6 +9,7 @@ use Modules\Banquet\Models\BanquetOrder;
 use Modules\Banquet\Models\BanquetOrderDay;
 use Modules\Banquet\Models\BanquetOrderMenuItem;
 use Modules\Banquet\Models\Customer;
+use Modules\Banquet\Models\BanquetPayment;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Yajra\DataTables\DataTables;
 use Illuminate\Support\Facades\Log;
@@ -646,9 +647,10 @@ class BanquetController extends Controller
                 $dates = $order->eventDays->sortBy('event_date');
                 $eventDateRange = $dates->first()->event_date->format('M d, Y') . ' - ' .
                     $dates->last()->event_date->format('M d, Y');
-                $eventType = $order->eventDays->first()->event_type;
-                $location = $order->eventDays->first()->room;
+                $locations = $order->eventDays->pluck('room')->unique()->implode(', ');
+                $eventTypes = $order->eventDays->pluck('event_type')->unique()->implode(', ');
                 $guestCount = $order->eventDays->sum('guest_count');
+                
 
                 // Calculate hall rental fee (sum across event days, assuming each day has a fee)
                 $hallRentalFee = $order->hall_rental_fees;
@@ -710,6 +712,63 @@ class BanquetController extends Controller
             'summary' => $summary,
             'totalRevenue' => $totalRevenue,
         ]);
+    }
+    /**
+     * Store a new payment for an order.
+     */
+    public function storePayment(Request $request, $order_id)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'payment_date' => 'required|date',
+            'payment_method' => 'required|string',
+            'reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+
+            // Prevent overpayment (optional validation)
+            if ($request->amount > $order->balance_due) {
+                return back()->with('error', "Payment amount (₦" . number_format($request->amount) . ") exceeds the balance due (₦" . number_format($order->balance_due) . ").");
+            }
+
+            $order->payments()->create($request->all());
+
+            return back()->with('success', 'Payment recorded successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to record payment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete a payment record.
+     */
+    public function destroyPayment($order_id, $payment_id)
+    {
+        try {
+            $payment = BanquetPayment::findOrFail($payment_id);
+            $payment->delete();
+            return back()->with('success', 'Payment record deleted.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete payment.');
+        }
+    }
+
+    /**
+     * Generate Invoice PDF.
+     */
+    public function generateInvoice($order_id)
+    {
+        $order = BanquetOrder::with(['customer', 'eventDays.menuItems', 'payments'])
+            ->where('order_id', $order_id)
+            ->firstOrFail();
+
+        $pdf = Pdf::loadView('banquet::pdf.invoice', compact('order'));
+        $pdf->setOptions(['defaultFont' => 'Proxima Nova']); // Use your font
+
+        return $pdf->stream('Invoice-' . $order->order_id . '.pdf');
     }
     /**
      * 

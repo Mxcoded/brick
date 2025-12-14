@@ -12,7 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('banquet_orders', function (Blueprint $table) {
-            $table->string('status')->default('Pending')->after('profit_margin');
+            if (!Schema::hasColumn('banquet_orders', 'status')) {
+
+                $table->string('status')->default('Pending')->after('profit_margin');
+            }
         });
     }
 
