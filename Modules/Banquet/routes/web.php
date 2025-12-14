@@ -63,10 +63,14 @@ Route::prefix('banquet')
 
             // Function Sheet PDF (View Access)
             Route::get('/pdf', [BanquetController::class, 'generatePdf'])->name('pdf');
+            // Invoice PDF (View Access)
+            Route::get('/invoice', [BanquetController::class, 'generateInvoice'])->name('invoice');
 
             // --- WRITE OPERATIONS (Protected by manage_banquet) ---
             Route::middleware(['can:manage_banquet'])->group(function () {
-
+                //PAYMENTS actions
+                Route::post('/payment', [BanquetController::class, 'storePayment'])->name('payment.store');
+                Route::delete('/payment/{payment_id}', [BanquetController::class, 'destroyPayment'])->name('payment.destroy');
                 // Add Event Days
                 Route::get('/add-day', [BanquetController::class, 'addDayForm'])->name('add-day');
                 Route::post('/store-day', [BanquetController::class, 'storeDay'])->name('store-day');
