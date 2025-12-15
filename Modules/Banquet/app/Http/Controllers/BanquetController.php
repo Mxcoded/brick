@@ -64,74 +64,152 @@ class BanquetController extends Controller
      */
     public function store(Request $request)
     {
+        // 1. Validate Input
         $validated = $request->validate([
             'preparation_date' => 'required|date',
+            // Customer Info
             'contact_person_name' => 'required|string|max:255',
             'contact_person_phone' => 'required|string|max:20',
             'contact_person_email' => 'required|email|max:255',
+            'organization' => 'nullable|string|max:255',
+            'customer_id' => 'nullable', // Removed 'exists' validation here to handle empty strings safely in logic
+            // Details
             'department' => 'nullable|string|max:255',
             'referred_by' => 'nullable|string|max:255',
+            'status' => 'required|in:Pending,Confirmed,Cancelled,Completed',
+            // Secondary Contact
             'contact_person_name_ii' => 'nullable|string|max:255',
             'contact_person_phone_ii' => 'nullable|string|max:20',
             'contact_person_email_ii' => 'nullable|email|max:255',
-            'expenses' => 'nullable|numeric|min:0',
-            'organization' => 'nullable|string|max:255',
-            'customer_id' => 'nullable|exists:customers,id',
+            // Financials
             'hall_rental_fees' => 'nullable|numeric|min:0',
+            'expenses' => 'nullable|numeric|min:0',
         ]);
 
         try {
             return DB::transaction(function () use ($validated, $request) {
-                // Handle customer
-                if (isset($validated['customer_id'])) {
-                    $customer = Customer::findOrFail($validated['customer_id']);
-                } else {
-                    $customer = Customer::where('email', $validated['contact_person_email'])->first();
-                    if (!$customer) {
-                        $customer = Customer::create([
-                            'name' => $validated['contact_person_name'],
-                            'email' => $validated['contact_person_email'],
-                            'phone' => $validated['contact_person_phone'],
-                            'organization' => $validated['organization'] ?? null,
-                        ]);
-                    } else {
-                        if (isset($validated['organization'])) {
-                            $customer->update(['organization' => $validated['organization']]);
-                        }
+                // 2. Handle Customer Logic
+                $customerId = $request->input('customer_id'); // Use input() to safely get null or value
+                $customer = null;
+
+                if (!empty($customerId)) {
+                    // Existing customer selected
+                    $customer = Customer::find($customerId);
+                    // Update org if needed
+                    if ($customer && !empty($validated['organization'])) {
+                        $customer->update(['organization' => $validated['organization']]);
                     }
                 }
 
-                // Calculate initial total_revenue and profit_margin
-                $totalRevenue = $validated['hall_rental_fees'] ?? 0;
-                $expenses = $validated['expenses'] ?? 0;
-                $profitMargin = $this->calculateProfitMargin($totalRevenue, $expenses);
+                // If no customer found or ID was empty, find by email or create new
+                if (!$customer) {
+                    $customer = Customer::firstOrCreate(
+                        ['email' => $validated['contact_person_email']],
+                        [
+                            'name' => $validated['contact_person_name'],
+                            'phone' => $validated['contact_person_phone'],
+                            'organization' => $validated['organization'] ?? null,
+                        ]
+                    );
+                }
 
-                // Create order
+                // 3. Calculate Financials
+                $hallFees = $validated['hall_rental_fees'] ?? 0;
+                $expenses = $validated['expenses'] ?? 0;
+                // Profit margin will be 100% of revenue initially if expenses are 0, or calculated
+                $profitMargin = $this->calculateProfitMargin($hallFees, $expenses);
+
+                // 4. Create Order
                 $order = BanquetOrder::create([
                     'order_id' => $this->generateOrderId(),
                     'preparation_date' => $validated['preparation_date'],
                     'customer_id' => $customer->id,
+                    'status' => $validated['status'],
+
+                    // Contact Snapshot
                     'contact_person_name' => $validated['contact_person_name'],
-                    'department' => $validated['department'],
                     'contact_person_phone' => $validated['contact_person_phone'],
                     'contact_person_email' => $validated['contact_person_email'],
+                    'organization' => $validated['organization'],
+                    'department' => $validated['department'],
                     'referred_by' => $validated['referred_by'],
+
+                    // Secondary Contact
                     'contact_person_name_ii' => $validated['contact_person_name_ii'],
                     'contact_person_phone_ii' => $validated['contact_person_phone_ii'],
                     'contact_person_email_ii' => $validated['contact_person_email_ii'],
-                    'hall_rental_fees' => $validated['hall_rental_fees'] ?? 0,
-                    'status' => 'Pending',
-                    'total_revenue' => $totalRevenue,
+
+                    // Financials
+                    'hall_rental_fees' => $hallFees,
+                    'total_revenue' => $hallFees, // Initial revenue is just hall fee
                     'expenses' => $expenses,
                     'profit_margin' => $profitMargin,
                 ]);
 
                 return redirect()->route('banquet.orders.add-day', $order->order_id)
-                    ->with('success', 'Order created! Now add event days.');
+                    ->with('success', 'Order created successfully! Please add event days.');
             });
         } catch (\Exception $e) {
             Log::error('Order creation failed: ' . $e->getMessage());
             return back()->withInput()->with('error', 'Failed to create order: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Store a new event day with fixed Time Validation.
+     */
+    public function storeDay(Request $request, $order_id)
+    {
+        // 1. Validate with relaxed time format (H:i OR H:i:s)
+        $request->validate([
+            'event_date' => 'required|date',
+            'guest_count' => 'required|integer|min:1',
+            'event_status' => 'required|in:Pending,Confirmed,Cancelled',
+            'event_type' => 'required|string',
+            'room' => 'required|string',
+            'setup_style' => 'required|string',
+            'start_time' => 'required', // Removed strict date_format to allow H:i:s
+            'end_time' => 'required',
+            'event_description' => 'nullable|string',
+        ]);
+
+        // Clean time input (ensure H:i format for storage)
+        $startTime = date('H:i', strtotime($request->start_time));
+        $endTime = date('H:i', strtotime($request->end_time));
+
+        // 2. Perform Conflict Check
+        $conflict = $this->checkAvailability(
+            $request->event_date,
+            $request->room,
+            $startTime,
+            $endTime
+        );
+
+        if ($conflict) {
+            return back()->withInput()->with('error', "Room Conflict! Order #{$conflict->banquetOrder->order_id} has this room booked from {$conflict->start_time} to {$conflict->end_time}.");
+        }
+
+        try {
+            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+
+            $day = $order->eventDays()->create([
+                'event_date' => $request->event_date,
+                'event_description' => $request->event_description,
+                'guest_count' => $request->guest_count,
+                'event_status' => $request->event_status,
+                'event_type' => $request->event_type,
+                'room' => $request->room,
+                'setup_style' => $request->setup_style,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'duration_minutes' => $this->calculateDuration($startTime, $endTime),
+            ]);
+
+            return redirect()->route('banquet.orders.add-menu-item', [$order->order_id, $day->id])
+                ->with('success', 'Event day added successfully.');
+        } catch (\Exception $e) {
+            Log::error('Add Day failed: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to add day: ' . $e->getMessage());
         }
     }
     /**
@@ -239,57 +317,7 @@ class BanquetController extends Controller
         return view('banquet::add-day', compact('order', 'eventStatuses', 'eventTypes', 'setupStyles', 'location'));
     }
 
-    /**
-     * Store a new event day for an existing order with Conflict Checking.
-     */
-    public function storeDay(Request $request, $order_id)
-    {
-        $request->validate([
-            'event_date' => 'required|date',
-            'event_description' => 'nullable|string',
-            'guest_count' => 'required|integer|min:1',
-            'event_status' => 'required|in:Pending,Confirmed,Cancelled',
-            'event_type' => 'required|in:Wedding,Conference,Meeting,Banquet,Other',
-            'room' => 'required|string|max:255',
-            'setup_style' => 'required|string|max:255',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-        ]);
 
-        // 1. Perform Conflict Check
-        $conflict = $this->checkAvailability(
-            $request->event_date,
-            $request->room,
-            $request->start_time,
-            $request->end_time
-        );
-
-        if ($conflict) {
-            return back()->withInput()->with('error', "Room is unavailable! Double-booking detected with Order #{$conflict->banquetOrder->order_id} ({$conflict->start_time} - {$conflict->end_time}).");
-        }
-
-        try {
-            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
-
-            $day = $order->eventDays()->create([
-                'event_date' => $request->event_date,
-                'event_description' => $request->event_description,
-                'guest_count' => $request->guest_count,
-                'event_status' => $request->event_status,
-                'event_type' => $request->event_type,
-                'room' => $request->room,
-                'setup_style' => $request->setup_style,
-                'start_time' => $request->start_time,
-                'end_time' => $request->end_time,
-                'duration_minutes' => $this->calculateDuration($request->start_time, $request->end_time),
-            ]);
-
-            return redirect()->route('banquet.orders.add-menu-item', [$order->order_id, $day->id])
-                ->with('success', 'Event day added! Now add menu items.');
-        } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Failed to add event day: ' . $e->getMessage());
-        }
-    }
 
     /**
      * Show the form to add a menu item to an existing event day.
