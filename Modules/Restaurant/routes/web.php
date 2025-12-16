@@ -81,7 +81,7 @@ Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
 });
 
 Route::prefix('restaurant-admin')->middleware(['web', 'auth'])->group(function () {
-    Route::get('/dashboard', [RestaurantController::class, 'adminDashboard'])->name('dashboard');
+    Route::get('/dashboard', [RestaurantController::class, 'adminDashboard'])->name('restaurant.admin.dashboard');
 
     // Menu Category CRUD
     Route::post('/dashboard/category/add', [RestaurantController::class, 'addMenuCategory'])->name('restaurant.admin.add-category');

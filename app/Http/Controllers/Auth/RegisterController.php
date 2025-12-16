@@ -4,50 +4,27 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Modules\Website\Models\GuestProfile;
-use Modules\Website\Models\Booking;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use App\Enums\RoleEnum;
+use Modules\Website\Models\GuestProfile;
 
 class RegisterController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Register Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles the registration of new users as well as their
-    | validation and creation. By default this controller uses a trait to
-    | provide this functionality without requiring any additional code.
-    |
-    */
-
     use RegistersUsers;
 
     /**
      * Where to redirect users after registration.
-     *
-     * @var string
+     * We direct to /home so HomeController can route them to the Guest Dashboard.
      */
     protected $redirectTo = '/home';
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('guest');
     }
 
-    /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
-     */
     protected function validator(array $data)
     {
         return Validator::make($data, [
@@ -57,12 +34,6 @@ class RegisterController extends Controller
         ]);
     }
 
-    /**
-     * Create a new user instance after a valid registration.
-     *
-     * @param  array  $data
-     * @return \App\Models\User
-     */
     protected function create(array $data)
     {
         $user = User::create([
@@ -71,21 +42,17 @@ class RegisterController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
-        // Assign 'guest' role using Spatie
-        $user->assignRole('guest');
+        // 1. SECURITY: Force every public signup to be a Guest
+        // This prevents anyone from registering as an Admin by manipulating forms
+        $user->assignRole(RoleEnum::GUEST->value);
 
-        // Create corresponding guest profile
+        // 2. DATA: Create the Guest Profile link immediately
+        // This prevents "Call to a member function on null" errors in the dashboard
         GuestProfile::create([
             'user_id' => $user->id,
-            'phone' => $data['phone'] ?? null, // Add phone field to registration form if needed
+            'full_name' => $user->name,
+            'email' => $user->email,
         ]);
-        // Link existing bookings with matching email
-        Booking::where('guest_email', $data['email'])
-            ->whereNull('user_id')
-            ->update([
-                'user_id' => $user->id,
-                'confirmation_token' => null,
-            ]);
 
         return $user;
     }

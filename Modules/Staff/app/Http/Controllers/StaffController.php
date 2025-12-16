@@ -13,6 +13,9 @@ use Modules\Staff\Models\LeaveBalance;
 use Modules\Banquet\Models\BanquetOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Pagination\LengthAwarePaginator; // <--- ADD THIS IMPORT
+use Illuminate\Support\Facades\Request as RequestFacade; // Helper for pagination URL
+use Carbon\Carbon;
 
 
 
@@ -382,5 +385,43 @@ class StaffController extends Controller
 
         return redirect()->route('staff.approvals.index')
             ->with('success', 'Employee rejected successfully.');
+    }
+    public function birthdays(Request $request)
+    {
+        // 1. Get all active employees
+        $employees = Employee::where('status', 'approved')->get();
+
+        // 2. Calculate next birthday logic (Same as before)
+        $sortedBirthdays = $employees->map(function ($employee) {
+            $dob = Carbon::parse($employee->date_of_birth);
+            $nextBirthday = $dob->copy()->year(now()->year);
+
+            if ($nextBirthday->isPast() && !$nextBirthday->isToday()) {
+                $nextBirthday->addYear();
+            }
+
+            $employee->next_birthday = $nextBirthday;
+            $employee->turning_age = $nextBirthday->diffInYears($dob);
+
+            return $employee;
+        })->sortBy('next_birthday'); // Sort by the calculated date
+
+        // 3. MANUAL PAGINATION CONFIGURATION
+        $perPage = 12; // How many cards per page
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+
+        // Slice the collection to get items for the current page
+        $currentPageItems = $sortedBirthdays->slice(($currentPage - 1) * $perPage, $perPage)->values();
+
+        // Create the Paginator instance
+        $paginatedBirthdays = new LengthAwarePaginator(
+            $currentPageItems,
+            $sortedBirthdays->count(),
+            $perPage,
+            $currentPage,
+            ['path' => RequestFacade::url(), 'query' => $request->query()]
+        );
+
+        return view('staff::birthdays', compact('paginatedBirthdays'));
     }
 }

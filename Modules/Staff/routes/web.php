@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Staff\Http\Controllers\StaffController;
 use Modules\Staff\Http\Controllers\LeaveController; // Add this line
+use App\Enums\RoleEnum; // Import the Enum
 
 /*
 |--------------------------------------------------------------------------
@@ -10,90 +11,94 @@ use Modules\Staff\Http\Controllers\LeaveController; // Add this line
 |--------------------------------------------------------------------------
 */
 
-// **Staff Resource Routes**
-Route::middleware(['web', 'auth'])
-    ->resource('staff', StaffController::class)
-    ->names('staff')->middleware('permission:staff-view');
+Route::prefix('staff')
+    ->middleware(['web', 'auth', 'can:access_staff_dashboard']) // Updated
+    ->name('staff.')
+    ->group(function () {
+        Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard');
+        // ** NEW BIRTHDAY ROUTE **
+        Route::get('/birthdays', [StaffController::class, 'birthdays'])->name('birthdays');
+        Route::resource('/', StaffController::class)->names([
+            'index'  => 'index',
+            'create' => 'create',
+            'store'  => 'store',
+            'edit'   => 'edit',
+            'update' => 'update',
+            'destroy' => 'destroy',
+        ])->middleware([
+            'index'   => 'permission:view_employees',
+            'create'  => 'permission:manage_employees',
+            'store'   => 'permission:manage_employees',
+            'edit'    => 'permission:manage_employees',
+            'update'  => 'permission:manage_employees',
+            'destroy' => 'permission:manage_employees',
+        ]);
 
-// **Staff Functionality Routes**
-Route::middleware(['web', 'auth', 'role:staff|admin'])->group(function () {
-    // Staff Dashboard
-    Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('staff.dashboard');
 
-    // **Leave Management Routes** - NOW HANDLED BY LeaveController
-    Route::prefix('leaves')->group(function () {
-        // User Leave Routes
-        Route::get('/', [LeaveController::class, 'leaveIndex']) // Changed
-            ->name('staff.leaves.index')->middleware('permission:staff-view-leaves');
-        Route::get('/request', [LeaveController::class, 'leaveRequestForm']) // Changed
-            ->name('staff.leaves.request');
-        Route::post('/request', [LeaveController::class, 'submitLeaveRequest']) // Changed
-            ->name('staff.leaves.submit');
-        Route::post('/{id}/cancel', [LeaveController::class, 'cancelLeaveRequest'])
-            ->name('staff.leaves.cancel');
+        // **Leave Management Routes** - NOW HANDLED BY LeaveController
+        Route::prefix('leaves')->group(function () {
+            // User Leave Routes
+            Route::get('/', [LeaveController::class, 'leaveIndex']) // Changed
+                ->name('leaves.index');
+            Route::get('/request', [LeaveController::class, 'leaveRequestForm']) // Changed
+                ->name('leaves.request');
+            Route::post('/request', [LeaveController::class, 'submitLeaveRequest']) // Changed
+                ->name('leaves.submit');
+            Route::post('/{id}/cancel', [LeaveController::class, 'cancelLeaveRequest'])
+                ->name('leaves.cancel');
             // Leave Balance Route
-        Route::get('admin/balance', [LeaveController::class, 'leaveBalance']) // Changed
-            ->name('staff.leaves.balance')
-            ->middleware('permission:manage-leaves');
-        Route::post('admin/balance', [LeaveController::class, 'leaveBalanceSubmit']) // Changed
-            ->name('staff.leaves.balance-submit')
-            ->middleware('permission:manage-leaves');
-        Route::get('/admin/balances', [LeaveController::class, 'showBalancesAdmin'])
-            ->name('staff.leaves.admin.balances')
-            ->middleware('permission:manage-leave-balances');
+            Route::get('admin/balance', [LeaveController::class, 'leaveBalance']) // Changed
+                ->name('leaves.balance');
+            Route::post('admin/balance', [LeaveController::class, 'leaveBalanceSubmit']) // Changed
+                ->name('leaves.balance-submit');
+            Route::get('/admin/balances', [LeaveController::class, 'showBalancesAdmin'])
+                ->name('leaves.admin.balances');
 
-        Route::post('/admin/balances', [LeaveController::class, 'updateBalanceAdmin'])
-            ->name('staff.leaves.admin.balances.update')
-            ->middleware('permission:manage-leave-balances');
+            Route::post('/admin/balances', [LeaveController::class, 'updateBalanceAdmin'])
+                ->name('leaves.admin.balances.update');
 
-        Route::post('/admin/balances/{id}/reset', [LeaveController::class, 'resetBalance'])
-            ->name('staff.leaves.admin.balances.reset')
-            ->middleware('permission:manage-leave-balances');
 
-        Route::post('/admin/balances/{id}/delete', [LeaveController::class, 'deleteBalance'])
-            ->name('staff.leaves.admin.balances.delete')
-            ->middleware('permission:manage-leave-balances');
+            Route::post('/admin/balances/{id}/reset', [LeaveController::class, 'resetBalance'])
+                ->name('leaves.admin.balances.reset');
+
+
+            Route::post('/admin/balances/{id}/delete', [LeaveController::class, 'deleteBalance'])
+                ->name('leaves.admin.balances.delete');
             // Admin Leave Routes
-        Route::get('/admin', [LeaveController::class, 'leaveAdminIndex']) // Changed
-            ->name('staff.leaves.admin')
-            ->middleware('permission:approve-leaves');
-        Route::post('/admin/approve/{id}', [LeaveController::class, 'approveLeave']) // Changed
-            ->name('staff.leaves.approve')
-            ->middleware('permission:approve-leaves');
-        Route::post('/admin/reject/{id}', [LeaveController::class, 'rejectLeave']) // Changed
-            ->name('staff.leaves.reject')
-            ->middleware('permission:approve-leaves');
-        Route::post('/admin/{id}/cancel', [LeaveController::class, 'adminCancelLeaveRequest'])
-            ->name('staff.leaves.admin.cancel')
-            ->middleware('permission:approve-leaves');
+            Route::get('/admin', [LeaveController::class, 'leaveAdminIndex']) // Changed
+                ->name('leaves.admin');
+            Route::post('/admin/approve/{id}', [LeaveController::class, 'approveLeave']) // Changed
+                ->name('leaves.approve');
+            Route::post('/admin/reject/{id}', [LeaveController::class, 'rejectLeave']) // Changed
+                ->name('leaves.reject');
+            Route::post('/admin/{id}/cancel', [LeaveController::class, 'adminCancelLeaveRequest'])
+                ->name('leaves.admin.cancel');
             // Leave Report Route
-        Route::get('/report', [LeaveController::class, 'leaveReport']) // Changed
-            ->name('staff.leaves.report')
-            ->middleware('permission:leave-reports');
-        // HR routes for applying on behalf of others
-        Route::get('/admin/apply', [LeaveController::class, 'showApplyForOtherForm'])
-            ->name('staff.leaves.admin.apply')
-            ->middleware('permission:apply-leave-for-others');
+            Route::get('/report', [LeaveController::class, 'leaveReport']) // Changed
+                ->name('leaves.report');
+            // HR routes for applying on behalf of others
+            Route::get('/admin/apply', [LeaveController::class, 'showApplyForOtherForm'])
+                ->name('leaves.admin.apply');
 
-        Route::post('/admin/apply', [LeaveController::class, 'submitLeaveForOther'])
-            ->name('staff.leaves.admin.submit')
-            ->middleware('permission:apply-leave-for-others');
-        Route::get('/admin/history', [LeaveController::class, 'showLeaveHistory'])
-            ->name('staff.leaves.admin.history')
-            ->middleware('permission:view-leave-history');
+
+            Route::post('/admin/apply', [LeaveController::class, 'submitLeaveForOther'])
+                ->name('leaves.admin.submit');
+
+            Route::get('/admin/history', [LeaveController::class, 'showLeaveHistory'])
+                ->name('leaves.admin.history');
         });
 
 
-    // ** Staff Approval Routes (Admin Only)**
-    Route::prefix('approvals')->middleware('role:admin|hr')->group(function () {
-        Route::get('/', [StaffController::class, 'approvalIndex'])
-            ->name('staff.approvals.index');
-        Route::post('/approve/{id}', [StaffController::class, 'approve'])
-            ->name('staff.approve');
-        Route::post('/reject/{id}', [StaffController::class, 'reject'])
-            ->name('staff.reject');
+        // ** Staff Approval Routes (Admin Only)**
+        Route::prefix('approvals')->group(function () {
+            Route::get('/', [StaffController::class, 'approvalIndex'])
+                ->name('approvals.index');
+            Route::post('/approve/{id}', [StaffController::class, 'approve'])
+                ->name('approve');
+            Route::post('/reject/{id}', [StaffController::class, 'reject'])
+                ->name('reject');
+        });
     });
-});
 
 // **Public Routes**
 Route::middleware('web')->group(function () {

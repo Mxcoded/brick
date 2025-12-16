@@ -45,6 +45,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="ms-clock:" target="_blank">Open Alarm</a>
                 </div>
             </form>
         </div>

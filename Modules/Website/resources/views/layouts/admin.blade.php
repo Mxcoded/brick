@@ -34,41 +34,46 @@
 <body>
     <div class="d-flex">
         <!-- Sidebar -->
-        <div class="sidebar col-md-2">
-            <h4 class="text-center mb-4">Website Admin</h4>
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link {{ Route::is('website.admin.dashboard') ? 'active' : '' }}"
-                        href="{{ route('website.admin.dashboard') }}">
-                        <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('website.admin.rooms.index') }}"><i class="fas fa-bed me-2"></i>
-                        Rooms</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('website.admin.amenities.index') }}">
-                        <i class="fas fa-concierge-bell me-2"></i> Amenities
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('website.admin.bookings.index') }}">
-                        <i class="fas fa-book me-2"></i> Bookings
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('website.admin.settings.index') }}">
-                        <i class="fas fa-cog me-2"></i> Settings
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('website.admin.contact-messages.index') }}">
-                        <i class="fas fa-envelope me-2"></i> Contact Messages
-                    </a>
-                </li>
-            </ul>
-        </div>
+      <div class="sidebar col-md-2">
+    <h4 class="text-center mb-4">Website Admin</h4>
+    <ul class="nav flex-column">
+        @can('access_website_dashboard')
+        <li class="nav-item">
+            <a class="nav-link {{ Route::is('website.admin.dashboard') ? 'active' : '' }}"
+                href="{{ route('website.admin.dashboard') }}">
+                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('website.admin.rooms.index') }}"><i class="fas fa-bed me-2"></i>
+                Rooms</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('website.admin.amenities.index') }}">
+                <i class="fas fa-concierge-bell me-2"></i> Amenities
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('website.admin.bookings.index') }}">
+                <i class="fas fa-book me-2"></i> Bookings
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('website.admin.contact-messages.index') }}">
+                <i class="fas fa-envelope me-2"></i> Contact Messages
+            </a>
+        </li>
+        @endcan
+
+        @can('manage_settings')
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('website.admin.settings.index') }}">
+                <i class="fas fa-cog me-2"></i> Settings
+            </a>
+        </li>
+        @endcan
+    </ul>
+</div>
         <!-- Content -->
         <div class="content col-md-10">
             <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
