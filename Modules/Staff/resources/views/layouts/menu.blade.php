@@ -3,7 +3,7 @@
         data-bs-toggle="collapse" href="#staffSubmenu" role="button"
         aria-expanded="{{ request()->routeIs('staff.*') ? 'true' : 'false' }}" aria-controls="staffSubmenu"
         style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
-        <span><i class="fas fa-users-cog fa-fw me-3"></i> HR & Staff</span>
+        <span><i class="fas fa-users-cog fa-fw me-3"></i>{{ auth()->user()->hasRole('hr_manager') || auth()->user()->hasRole('admin') ? 'HR MODE' : 'Staff' }}</span>
         <i class="fas fa-chevron-down small"></i>
     </a>
     <div class="collapse {{ request()->routeIs('staff.*') ? 'show' : '' }}" id="staffSubmenu">
