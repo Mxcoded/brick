@@ -19,7 +19,7 @@
         .text-end { text-align: right; }
         
         .totals { width: 40%; float: right; margin-top: 20px; }
-        .totals-row { padding: 5px 0; border-bottom: 1px solid #eee; }
+        .totals-row { border-bottom: 1px solid #696968; font-weight: light; font-size: 16px; margin-top: 10px; padding: 2px; }
         .totals-row.grand { border-bottom: 2px solid #C8A165; font-weight: bold; font-size: 16px; margin-top: 10px; padding: 2px; }
         
         .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 10px; }
@@ -33,7 +33,7 @@
 <body>
 
     <div class="header">
-        <span class="logo">The Brick Hall</span>
+        <span class="logo">BRICKSPOINT BOUTIQUE APARTHOTEL</span>
         <span class="invoice-title">INVOICE</span>
     </div>
 
