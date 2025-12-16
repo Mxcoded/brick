@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Modules\Website\Models\Room;
 
 class Registration extends Model
 {
@@ -20,10 +21,21 @@ class Registration extends Model
         'is_group_lead',
         'title',
         'full_name',
+        'gender',
+        'birthday',
         'contact_number',
         'email',
+        'nationality',
+        'billing_type',
+        'home_address',
+        'occupation',
+        'company_name',
+        'emergency_name',
+        'emergency_contact',
+        'emergency_relationship',
         'room_type',
         'room_allocation',
+        'room_id',
         'room_rate',
         'bed_breakfast',
         'check_in',
@@ -36,13 +48,17 @@ class Registration extends Model
         'finalized_by_agent_id',
         'agreed_to_policies',
         'guest_signature',
-        'registration_date'
+        'registration_date',
+        'actual_checkout_at',       // <--- ADD THIS
+        'checked_out_by_agent_id',  // <--- ADD THIS
     ];
 
     protected $casts = [
         'check_in' => 'date',
         'check_out' => 'date',
         'registration_date' => 'date',
+        'actual_checkout_at' => 'datetime', // <--- ADD THIS
+        'birthdate' => 'date',
         'bed_breakfast' => 'boolean',
         'is_group_lead' => 'boolean',
     ];
@@ -85,5 +101,14 @@ class Registration extends Model
     public function children(): HasMany
     {
         return $this->hasMany(Registration::class, 'parent_registration_id');
+    }
+    
+    public function checkedOutBy(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'checked_out_by_agent_id');
+    }
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(Room::class);
     }
 }

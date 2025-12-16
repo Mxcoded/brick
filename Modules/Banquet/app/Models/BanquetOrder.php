@@ -5,6 +5,7 @@ namespace Modules\Banquet\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\DB;
+use Modules\Banquet\Models\BanquetPayment;
 
 class BanquetOrder extends Model
 {
@@ -36,6 +37,28 @@ class BanquetOrder extends Model
     protected $casts = [
         'preparation_date' => 'date',
     ];
+    public function payments()
+    {
+        return $this->hasMany(BanquetPayment::class);
+    }
+
+    public function getPaidAmountAttribute()
+    {
+        return $this->payments->sum('amount');
+    }
+
+    public function getBalanceDueAttribute()
+    {
+        // Total Revenue - Total Paid
+        return $this->total_revenue - $this->paid_amount;
+    }
+
+    public function getPaymentStatusAttribute()
+    {
+        if ($this->paid_amount <= 0) return 'Unpaid';
+        if ($this->balance_due <= 0) return 'Fully Paid';
+        return 'Partial';
+    }
     /**
      * Get the customer that owns the banquet order.
      */

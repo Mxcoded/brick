@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Frontdeskcrm\Http\Controllers\RegistrationController;
 use Modules\Frontdeskcrm\Http\Controllers\BookingSourceController;
 use Modules\Frontdeskcrm\Http\Controllers\GuestTypeController;
+use App\Enums\RoleEnum; // Import the Enum
 
 /*
 |--------------------------------------------------------------------------
@@ -41,14 +42,22 @@ Route::prefix('checkin')->name('frontdesk.registrations.')->group(function () {
 // 2. AUTHENTICATED AGENT ROUTES (REQUIRES LOGIN)
 // =====================================================================
 
-Route::middleware('auth')->prefix('frontdesk')->name('frontdesk.')->group(function () {
+Route::prefix('frontdesk')
+    ->middleware(['web', 'auth', 'can:access_frontdesk_dashboard']) // Updated
+    ->name('frontdesk.')
+    ->group(function () {
 
     // --- REGISTRATION MANAGEMENT ---
     Route::prefix('registrations')->name('registrations.')->group(function () {
 
         // Agent's main dashboard showing all registrations.
-        Route::get('/', [RegistrationController::class, 'index'])->name('index');
-
+        Route::get('/', [RegistrationController::class, 'index'])->name('dashboard');
+        Route::get('registrations', [RegistrationController::class, 'index'])->name('index');
+        // --- NEW "WALK-IN" ROUTE (Feature) ---
+        Route::get('/lookup-guest', [RegistrationController::class, 'lookupGuest'])->name('lookup');
+        Route::get('/create-walkin', [RegistrationController::class, 'createWalkin'])->name('createWalkin');
+        Route::post('/store-walkin', [RegistrationController::class, 'storeWalkin'])->name('storeWalkin');
+        
         // Shows the form for an agent to finalize a guest's draft.
         Route::get('/{registration}/finalize', [RegistrationController::class, 'showFinalizeForm'])->name('finalize.form');
 
@@ -63,11 +72,17 @@ Route::middleware('auth')->prefix('frontdesk')->name('frontdesk.')->group(functi
 
         // Retrieves active group members for a group registration.
         Route::get('/{registration}/active-members', [RegistrationController::class, 'getActiveMembers'])->name('active-members');
-
+        // Add a new member to an existing group
+        Route::post('/{registration}/add-member', [RegistrationController::class, 'addMember'])->name('add-member');
         // Generates a printable PDF of a registration.
         Route::get('/{registration}/print', [RegistrationController::class, 'print'])->name('print');
         // ** ADD THIS NEW ROUTE FOR CHECKOUT **
         Route::post('/{registration}/checkout', [RegistrationController::class, 'checkout'])->name('checkout');
+        // --- NEW "NO-SHOW" FIX ROUTE (Gap) ---
+        Route::post('/{registration}/reopen', [RegistrationController::class, 'reopen'])->name('reopen');
+
+        // --- NEW "DELETE DRAFT" ROUTE (Feature) ---
+        Route::delete('/{registration}', [RegistrationController::class, 'destroy'])->name('destroy');
     });
 
     // --- MASTER DATA MANAGEMENT ---

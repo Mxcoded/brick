@@ -13,7 +13,12 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
-
+    'numverify' => [
+        'key' => env('NUMVERIFY_ACCESS_KEY'),
+    ],
+    'abstract_api' => [
+        'key' => env('ABSTRACT_EMAIL_API_KEY'),
+    ],
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],
@@ -34,5 +39,6 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+   
 
 ];

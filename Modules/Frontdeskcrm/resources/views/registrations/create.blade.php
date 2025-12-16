@@ -9,18 +9,25 @@
                 {{-- Welcome Header --}}
                 <div class="text-center mb-5">
                     <div class="hotel-brand mb-3">
-                        <h1 class="text-gray-400 text-5xl font-bold mb-2" style="font-family: 'BrownSugar', sans-serif;">
-                            Brickspoint Aparthotel
+                        <h1 class="text-charcoal text-5xl font-bold mb-2"
+                            style="font-family: Brownsugar; font-size: 1.75rem; font-weight: 600;">
+                            Brickspoint Boutique Aparthotel
                         </h1>
                         <div class="welcome-badge">
-                            <span class="badge fs-6 px-4 py-2 rounded-pill shadow-sm" style="background-color: #2b2225;">
+                            <span class="badge fs-6 px-4 py-2 rounded-pill shadow-sm bg-charcoal">
                                 <i class="fas fa-star me-2"></i>Welcome to Your Stay
                             </span>
                         </div>
                     </div>
                     <p class="lead text-muted mt-3">Let's get you settled in quickly and comfortably</p>
                 </div>
-
+                {{-- Display Success Messages --}}
+                @if (session('success'))
+                    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
                 {{-- Display Validation Errors --}}
                 @if ($errors->any())
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -36,14 +43,14 @@
                 @endif
 
                 {{-- Progress Tracker --}}
-                @if (session()->has('guest_data') || session()->has('search_query'))
+                {{-- UPDATED: This condition now checks for errors, so the progress bar shows on a validation fail --}}
+                @if (session()->has('guest_data') || session()->has('search_query') || $errors->any())
                     <div class="progress-tracker mb-5">
                         <div class="d-flex justify-content-between position-relative">
                             <div class="progress-bar position-absolute top-0 start-0 end-0"
                                 style="height: 4px; background: #e9ecef; z-index: 1;"></div>
                             <div class="progress-bar position-absolute top-0 start-0"
-                                style="height: 4px; background: var(--bs-success); z-index: 2; width: 0%;"
-                                id="form-progress"></div>
+                                style="height: 4px; z-index: 2; width: 0%;" id="form-progress"></div>
 
                             @foreach ([1 => ['Personal Info', 'user'], 2 => ['Emergency Contact', 'phone-alt'], 3 => ['Stay Details', 'calendar-day'], 4 => ['Group Info', 'users'], 5 => ['Review & Sign', 'file-signature']] as $step => $data)
                                 <div class="step" data-step="{{ $step }}">
@@ -51,7 +58,7 @@
                                         style="width: 50px; height: 50px; z-index: 3;">
                                         <i class="fas fa-{{ $data[1] }}"></i>
                                     </div>
-                                    <span class="step-label small fw-medium">{{ $data[0] }}</span>
+                                    <span class="step-label small fw-medium d-none d-md-block">{{ $data[0] }}</span>
                                 </div>
                             @endforeach
                         </div>
@@ -60,7 +67,7 @@
 
                 {{-- Main Card --}}
                 <div class="card shadow-lg border-0 overflow-hidden">
-                    <div class="card-header text-white py-4" style="background: linear-gradient(90deg, #2b2225, #2b2225);">
+                    <div class="card-header text-white py-4 bg-charcoal">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
                                 <i class="fas fa-feather-alt fa-2x me-3"></i>
@@ -69,21 +76,31 @@
                                 <h4 class="mb-0">Guest Check-in Form</h4>
                                 <p class="mb-0 opacity-75">Complete your registration in just a few minutes</p>
                             </div>
-                            @if (session()->has('guest_data') || session()->has('search_query'))
+                            {{-- UPDATED: This condition now checks for errors --}}
+                            @if (session()->has('guest_data') || session()->has('search_query') || $errors->any())
                                 <div class="flex-shrink-0">
-                                    <span class="badge bg-white text-success fs-6">Step <span id="current-step">1</span> of
+                                    <span class="badge bg-white text-gold fs-6">Step <span id="current-step">1</span> of
                                         5</span>
                                 </div>
                             @endif
                         </div>
                     </div>
 
-                    <div class="card-body p-4 p-md-5">
+                    <div class="card-body p-4 p-md-5 bg-white">
                         {{-- STAGE 1: SEARCH FORM --}}
-                        @if (!session()->has('guest_data') && !session()->has('search_query'))
+                        {{-- ====================================================== --}}
+                        {{-- THE FIX FOR DATA LOSS IS HERE --}}
+                        {{-- Added '&& !$errors->any()' to the condition --}}
+                        {{-- ====================================================== --}}
+                        {{-- UPDATED: Added !session()->has('returning_guest') to ensure returning guests see the form --}}
+                        @if (
+                            !session()->has('guest_data') &&
+                                !session()->has('search_query') &&
+                                !session()->has('returning_guest') &&
+                                !$errors->any())
                             <div class="text-center py-4">
                                 <div class="search-icon mb-4">
-                                    <i class="fas fa-search fa-3x  mb-3" style="color: #2b2225;"></i>
+                                    <i class="fas fa-search fa-3x  mb-3 text-gold"></i>
                                 </div>
                                 <h3 class="fw-bold mb-3">Find Your Profile</h3>
                                 <p class="text-muted mb-4">Enter your email or contact number to quickly retrieve your
@@ -106,8 +123,7 @@
                                             @enderror
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn btn-lg px-5 py-3"
-                                        style="background-color: #2b2225; color: white; transition: background-color 0.4s;">
+                                    <button type="submit" class="btn btn-gold btn-lg px-5 py-3">
                                         <span class="fw-bold">Continue</span>
                                         <i class="fas fa-arrow-right ms-2"></i>
                                     </button>
@@ -115,251 +131,290 @@
                             </div>
                         @else
                             {{-- STAGE 2: MULTI-STEP REGISTRATION FORM --}}
-                            @if (session('status'))
-                                <div class="alert alert-info d-flex align-items-center">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    {{ session('status') }}
+
+                            {{-- === SECURITY BRIDGE START === --}}
+                            @if (session()->has('returning_guest'))
+                                <div class="alert alert-success border-left-success" role="alert">
+                                    <h4 class="alert-heading"><i class="fas fa-user-check me-2"></i>Welcome Back,
+                                        {{ session('returning_guest.name') }}!</h4>
+                                    <p>We found your profile. For your security, your full details are hidden.</p>
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Phone:</strong> {{ session('returning_guest.masked_phone') }}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Email:</strong> {{ session('returning_guest.masked_email') }}
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <p class="mb-0 text-muted small">Not you? Or need to update your info?</p>
+                                        <a href="{{ route('frontdesk.registrations.create', ['clear' => 1]) }}"
+                                            class="btn btn-outline-danger btn-sm mt-1">
+                                            <i class="fas fa-times me-1"></i> Clear & Start Over
+                                        </a>
+                                    </div>
                                 </div>
                             @endif
+                            {{-- === SECURITY BRIDGE END === --}}
 
                             <form action="{{ route('frontdesk.registrations.store') }}" method="POST" id="checkin-form">
                                 @csrf
                                 <input type="hidden" name="is_guest_draft" value="1">
+                                {{-- IF RETURNING: SKIP STEPS 1 & 2 --}}
+                                @if (!session()->has('returning_guest'))
+                                    @php
+                                        $guestData = session('guest_data', []);
+                                        // Use old('search_query') first if it exists from a failed validation
+                                        $searchQuery = old('search_query', session('search_query', ''));
 
-                                @php
-                                    $guestData = session('guest_data', []);
-                                    $searchQuery = old('search_query', session('search_query', ''));
-                                    $email = Str::contains($searchQuery, '@')
-                                        ? $searchQuery
-                                        : $guestData['email'] ?? '';
-                                    $contact = !Str::contains($searchQuery, '@')
-                                        ? $searchQuery
-                                        : $guestData['contact_number'] ?? '';
-                                @endphp
+                                        $email = Str::contains($searchQuery, '@')
+                                            ? $searchQuery
+                                            : $guestData['email'] ?? '';
+                                        $contact = !Str::contains($searchQuery, '@')
+                                            ? $searchQuery
+                                            : $guestData['contact_number'] ?? '';
+                                    @endphp
 
-                                {{-- Step 1: Personal Details --}}
-                                <div class="form-step" id="step-1">
-                                    <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
-                                            <i class="fas fa-user me-2"></i>Personal Details
-                                            @if ($guestData)
-                                                <span class="badge bg-success ms-2">Welcome back!</span>
-                                            @else
-                                                <span class="badge bg-warning ms-2">New Guest</span>
-                                            @endif
-                                        </h5>
-                                        <p class="text-muted">Tell us a bit about yourself</p>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-4 mb-3">
-                                            <label for="title" class="form-label">Title</label>
-                                            <select class="form-select @error('title') is-invalid @enderror" name="title"
-                                                id="title">
-                                                <option value="">Select...</option>
-                                                <option value="Mr."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Mr.' ? 'selected' : '' }}>
-                                                    Mr.</option>
-                                                <option value="Ms."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Ms.' ? 'selected' : '' }}>
-                                                    Ms.</option>
-                                                <option value="Mrs."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Mrs.' ? 'selected' : '' }}>
-                                                    Mrs.</option>
-                                                <option value="Dr."
-                                                    {{ old('title', $guestData['title'] ?? '') == 'Dr.' ? 'selected' : '' }}>
-                                                    Dr.</option>
-                                            </select>
-                                            @error('title')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                    {{-- Step 1: Personal Details --}}
+                                    <div class="form-step" id="step-1">
+                                        <div class="step-header mb-4">
+                                            <h5 class="fw-bold text-gold mb-2">
+                                                <i class="fas fa-user me-2"></i>Personal Details
+                                                @if ($guestData || old('contact_number'))
+                                                    <span class="badge bg-light text-dark border ms-2">Welcome back
+                                                        {{ $guestData['title'] ?? old('title') }}
+                                                        {{ $guestData['name'] ?? old('name') }}!</span>
+                                                @else
+                                                    <span class="badge bg-light text-dark border ms-2">New Guest</span>
+                                                @endif
+                                            </h5>
+                                            <p class="text-muted">Tell us a bit about yourself</p>
                                         </div>
-                                        <div class="col-md-8 mb-3">
-                                            <label for="full_name" class="form-label">Full Name <span
-                                                    class="text-danger">*</span></label>
-                                            <input type="text"
-                                                class="form-control @error('full_name') is-invalid @enderror"
-                                                name="full_name"
-                                                value="{{ old('full_name', $guestData['full_name'] ?? '') }}" required
-                                                placeholder="Your full name as per ID">
-                                            @error('full_name')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="email" class="form-label">Email Address</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i
-                                                        class="fas fa-envelope text-muted"></i></span>
-                                                <input type="email"
-                                                    class="form-control @error('email') is-invalid @enderror"
-                                                    name="email" value="{{ old('email', $email) }}"
-                                                    placeholder="you@example.com">
+
+                                        <div class="row">
+                                            <div class="col-lg-4 mb-3">
+                                                <label for="title" class="form-label">Title</label>
+                                                <select class="form-select @error('title') is-invalid @enderror"
+                                                    name="title" id="title">
+                                                    <option value="">Select...</option>
+                                                    <option value="Mr."
+                                                        {{ old('title', $guestData['title'] ?? '') == 'Mr.' ? 'selected' : '' }}>
+                                                        Mr.</option>
+                                                    <option value="Ms."
+                                                        {{ old('title', $guestData['title'] ?? '') == 'Ms.' ? 'selected' : '' }}>
+                                                        Ms.</option>
+                                                    <option value="Mrs."
+                                                        {{ old('title', $guestData['title'] ?? '') == 'Mrs.' ? 'selected' : '' }}>
+                                                        Mrs.</option>
+                                                    <option value="Dr."
+                                                        {{ old('title', $guestData['title'] ?? '') == 'Dr.' ? 'selected' : '' }}>
+                                                        Dr.</option>
+                                                </select>
+                                                @error('title')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
                                             </div>
-                                            @error('email')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="contact_number" class="form-label">Contact Number <span
-                                                    class="text-danger">*</span></label>
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i
-                                                        class="fas fa-phone text-muted"></i></span>
-                                                <input type="tel"
-                                                    class="form-control @error('contact_number') is-invalid @enderror"
-                                                    name="contact_number" value="{{ old('contact_number', $contact) }}"
-                                                    required placeholder="+1 234 567 8900">
+                                            <div class="col-lg-8 mb-3">
+                                                <label for="full_name" class="form-label">Full Name <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="text"
+                                                    class="form-control @error('full_name') is-invalid @enderror"
+                                                    name="full_name"
+                                                    value="{{ old('full_name', $guestData['full_name'] ?? '') }}" required
+                                                    placeholder="Your full name as per ID">
+                                                @error('full_name')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
                                             </div>
-                                            @error('contact_number')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="nationality" class="form-label">Nationality</label>
-                                            <select class="form-select @error('nationality') is-invalid @enderror"
-                                                name="nationality" id="nationality">
-                                                <option value="">Select a Country...</option>
-                                                @include('frontdeskcrm::registrations._countries_options')
-                                            </select>
-                                            @error('nationality')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="birthday" class="form-label">Birthday</label>
-                                            <input type="date"
-                                                class="form-control @error('birthday') is-invalid @enderror"
-                                                name="birthday"
-                                                value="{{ old('birthday', $guestData['birthday'] ?? '') }}">
-                                            @error('birthday')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="gender" class="form-label">Gender</label>
-                                            <select class="form-select @error('gender') is-invalid @enderror"
-                                                name="gender" id="gender">
-                                                <option value="">Select Gender...</option>
-                                                <option value="male"
-                                                    {{ old('gender', $guestData['gender'] ?? '') == 'male' ? 'selected' : '' }}>
-                                                    Male</option>
-                                                <option value="female"
-                                                    {{ old('gender', $guestData['gender'] ?? '') == 'female' ? 'selected' : '' }}>
-                                                    Female</option>
-                                                <option value="other"
-                                                    {{ old('gender', $guestData['gender'] ?? '') == 'other' ? 'selected' : '' }}>
-                                                    Other</option>
-                                            </select>
-                                            @error('gender')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="occupation" class="form-label">Occupation</label>
-                                            <input type="text"
-                                                class="form-control @error('occupation') is-invalid @enderror"
-                                                name="occupation"
-                                                value="{{ old('occupation', $guestData['occupation'] ?? '') }}"
-                                                placeholder="Your profession">
-                                            @error('occupation')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="company_name" class="form-label">Company/Group</label>
-                                            <input type="text"
-                                                class="form-control @error('company_name') is-invalid @enderror"
-                                                name="company_name"
-                                                value="{{ old('company_name', $guestData['company_name'] ?? '') }}"
-                                                placeholder="Your company or organization">
-                                            @error('company_name')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-12 mb-3">
-                                            <label for="home_address" class="form-label">Home Address</label>
-                                            <textarea class="form-control @error('home_address') is-invalid @enderror" name="home_address" rows="2"
-                                                placeholder="Your complete home address">{{ old('home_address', $guestData['home_address'] ?? '') }}</textarea>
-                                            @error('home_address')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="d-flex justify-content-between mt-4">
-                                        <div></div>
-                                        <button type="button" class="btn btn-success next-step" data-next="2">
-                                            Continue to Emergency Contact <i class="fas fa-arrow-right ms-2"></i>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {{-- Step 2: Emergency Contact --}}
-                                <div class="form-step d-none" id="step-2">
-                                    <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
-                                            <i class="fas fa-phone-alt me-2"></i>Emergency Contact
-                                        </h5>
-                                        <p class="text-muted">Who should we contact in case of emergency?</p>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label for="emergency_name" class="form-label">Contact Name</label>
-                                            <input type="text"
-                                                class="form-control @error('emergency_name') is-invalid @enderror"
-                                                name="emergency_name"
-                                                value="{{ old('emergency_name', $guestData['emergency_name'] ?? '') }}"
-                                                placeholder="Full name of emergency contact">
-                                            @error('emergency_name')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label for="emergency_contact" class="form-label">Contact Number</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text"><i
-                                                        class="fas fa-phone text-muted"></i></span>
-                                                <input type="tel"
-                                                    class="form-control @error('emergency_contact') is-invalid @enderror"
-                                                    name="emergency_contact"
-                                                    value="{{ old('emergency_contact', $guestData['emergency_contact'] ?? '') }}"
-                                                    placeholder="Emergency contact number">
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="email" class="form-label">Email Address</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-envelope text-muted"></i></span>
+                                                    <input type="email"
+                                                        class="form-control @error('email') is-invalid @enderror"
+                                                        id="email" {{-- We need this ID --}} name="email"
+                                                        value="{{ old('email', $email) }}" placeholder="you@example.com">
+                                                </div>
+                                                @error('email')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @else
+                                                    {{-- NEW: Add a helper block for suggestions --}}
+                                                    <div id="email-suggestion" class="form-text text-gold fw-bold"
+                                                        style="cursor: pointer; display: none;"></div>
+                                                @enderror
                                             </div>
-                                            @error('emergency_contact')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="contact_number" class="form-label">Contact Number <span
+                                                        class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-phone text-muted"></i></span>
+                                                    <input type="tel"
+                                                        class="form-control @error('contact_number') is-invalid @enderror"
+                                                        name="contact_number"
+                                                        value="{{ old('contact_number', $contact) }}" required
+                                                        placeholder="+1 234 567 8900">
+                                                </div>
+                                                {{-- ====================================================== --}}
+                                                {{-- NEW: Added helper text for phone number format --}}
+                                                {{-- ====================================================== --}}
+                                                @error('contact_number')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @else
+                                                    <small class="form-text text-muted">Please provide a valid number. (e.g.,
+                                                        0809... or +234 809...)</small>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="nationality" class="form-label">Nationality</label>
+                                                <select class="form-select @error('nationality') is-invalid @enderror"
+                                                    name="nationality" id="nationality">
+                                                    <option value="">Select a Country...</option>
+                                                    @include('frontdeskcrm::registrations.partials._countries_options')
+                                                </select>
+                                                @error('nationality')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="birthday" class="form-label">Birthday</label>
+                                                <input type="date"
+                                                    class="form-control @error('birthday') is-invalid @enderror"
+                                                    name="birthday"
+                                                    value="{{ old('birthday', $guestData['birthday'] ?? '') }}">
+                                                @error('birthday')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="gender" class="form-label">Gender</label>
+                                                <select class="form-select @error('gender') is-invalid @enderror"
+                                                    name="gender" id="gender">
+                                                    <option value="">Select Gender...</option>
+                                                    <option value="male"
+                                                        {{ old('gender', $guestData['gender'] ?? '') == 'male' ? 'selected' : '' }}>
+                                                        Male</option>
+                                                    <option value="female"
+                                                        {{ old('gender', $guestData['gender'] ?? '') == 'female' ? 'selected' : '' }}>
+                                                        Female</option>
+                                                    <option value="other"
+                                                        {{ old('gender', $guestData['gender'] ?? '') == 'other' ? 'selected' : '' }}>
+                                                        Other</option>
+                                                </select>
+                                                @error('gender')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="occupation" class="form-label">Occupation</label>
+                                                <input type="text"
+                                                    class="form-control @error('occupation') is-invalid @enderror"
+                                                    name="occupation"
+                                                    value="{{ old('occupation', $guestData['occupation'] ?? '') }}"
+                                                    placeholder="Your profession">
+                                                @error('occupation')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="company_name" class="form-label">Company/Group</label>
+                                                <input type="text"
+                                                    class="form-control @error('company_name') is-invalid @enderror"
+                                                    name="company_name"
+                                                    value="{{ old('company_name', $guestData['company_name'] ?? '') }}"
+                                                    placeholder="Your company or organization">
+                                                @error('company_name')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <label for="home_address" class="form-label">Home Address</label>
+                                                <textarea class="form-control @error('home_address') is-invalid @enderror" name="home_address" rows="2"
+                                                    placeholder="Your complete home address">{{ old('home_address', $guestData['home_address'] ?? '') }}</textarea>
+                                                @error('home_address')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between mt-4">
+                                            <div></div>
+                                            <button type="button" class="btn btn-gold next-step" data-next="2">
+                                                Continue to Emergency Contact <i class="fas fa-arrow-right ms-2"></i>
+                                            </button>
                                         </div>
                                     </div>
 
-                                    <div class="alert alert-info mt-3">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        This information is kept confidential and used only for emergency situations.
-                                    </div>
+                                    {{-- Step 2: Emergency Contact --}}
+                                    <div class="form-step d-none" id="step-2">
+                                        <div class="step-header mb-4">
+                                            <h5 class="fw-bold text-gold mb-2">
+                                                <i class="fas fa-phone-alt me-2"></i>Emergency Contact
+                                            </h5>
+                                            <p class="text-muted">Who should we contact in case of emergency?</p>
+                                        </div>
 
-                                    <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-outline-secondary prev-step"
-                                            data-prev="1">
-                                            <i class="fas fa-arrow-left me-2"></i>Back to Personal Details
-                                        </button>
-                                        <button type="button" class="btn btn-success next-step" data-next="3">
-                                            Continue to Stay Details <i class="fas fa-arrow-right ms-2"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                                        <div class="row">
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="emergency_name" class="form-label">Contact Name</label>
+                                                <input type="text"
+                                                    class="form-control @error('emergency_name') is-invalid @enderror"
+                                                    name="emergency_name"
+                                                    value="{{ old('emergency_name', $guestData['emergency_name'] ?? '') }}"
+                                                    placeholder="Full name of emergency contact">
+                                                @error('emergency_name')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-lg-6 mb-3">
+                                                <label for="emergency_contact" class="form-label">Contact Number</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text"><i
+                                                            class="fas fa-phone text-muted"></i></span>
+                                                    <input type="tel"
+                                                        class="form-control @error('emergency_contact') is-invalid @enderror"
+                                                        name="emergency_contact"
+                                                        value="{{ old('emergency_contact', $guestData['emergency_contact'] ?? '') }}"
+                                                        placeholder="Emergency contact number">
+                                                </div>
+                                                @error('emergency_contact')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
 
-                                {{-- Step 3: Stay Details --}}
-                                <div class="form-step d-none" id="step-3">
+                                        <div class="alert alert-info mt-3">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            This information is kept confidential and used only for emergency situations.
+                                        </div>
+
+                                        <div class="d-flex justify-content-between mt-4">
+                                            <button type="button" class="btn btn-outline-secondary prev-step"
+                                                data-prev="1">
+                                                <i class="fas fa-arrow-left me-2"></i>Back to Personal Details
+                                            </button>
+                                            <button type="button" class="btn btn-gold next-step" data-next="3">
+                                                Continue to Stay Details <i class="fas fa-arrow-right ms-2"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endif
+                                {{-- Step 3: Stay Details (ALWAYS SHOW) --}}
+                                {{-- IMPORTANT: If returning, make this ID "step-1" so JS shows it first --}}
+                                <div class="form-step {{ session()->has('returning_guest') ? '' : 'd-none' }}"
+                                    id="{{ session()->has('returning_guest') ? 'step-1' : 'step-3' }}">
+
                                     <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
+                                        <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-calendar-day me-2"></i>Stay Details
                                         </h5>
                                         <p class="text-muted">Tell us about your stay with us</p>
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-lg-4 mb-3">
                                             <label for="no_of_guests" class="form-label">Number of Guests <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
@@ -374,7 +429,7 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-lg-4 mb-3">
                                             <label for="check_in" class="form-label">Check-in Date <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
@@ -389,7 +444,7 @@
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
-                                        <div class="col-md-4 mb-3">
+                                        <div class="col-lg-4 mb-3">
                                             <label for="check_out" class="form-label">Check-out Date <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
@@ -408,32 +463,40 @@
                                     </div>
 
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-outline-secondary prev-step"
-                                            data-prev="2">
-                                            <i class="fas fa-arrow-left me-2"></i>Back to Emergency Contact
-                                        </button>
-                                        <button type="button" class="btn btn-success next-step" data-next="4">
-                                            Continue to Group Booking <i class="fas fa-arrow-right ms-2"></i>
+                                        @if (!session()->has('returning_guest'))
+                                            <button type="button" class="btn btn-outline-secondary prev-step"
+                                                data-prev="2">
+                                                <i class="fas fa-arrow-left me-2"></i>Back
+                                            </button>
+                                        @else
+                                            <div></div> {{-- Spacer for returning guest --}}
+                                        @endif
+
+                                        {{-- If returning, next step is 2 (Group), otherwise 4 --}}
+                                        {{-- FIXED: Always go to Step 4 next, since Step 2 is skipped for returning guests --}}
+                                        <button type="button" class="btn btn-gold next-step" data-next="4">
+                                            Continue <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
                                     </div>
                                 </div>
 
-                                {{-- Step 4: Group Booking --}}
+                                {{-- Step 4: Group Booking (Reworded) --}}
                                 <div class="form-step d-none" id="step-4">
                                     <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
-                                            <i class="fas fa-users me-2"></i>Group Booking
+                                        <h5 class="fw-bold text-gold mb-2">
+                                            <i class="fas fa-users me-2"></i>Additional Rooms & Guests
                                         </h5>
-                                        <p class="text-muted">Traveling with others? Let us know</p>
+                                        <p class="text-muted">Let us know if you need more than one room or are booking
+                                            for
+                                            others.</p>
                                     </div>
 
                                     <div class="form-check mb-4">
                                         <input class="form-check-input @error('is_group_lead') is-invalid @enderror"
                                             type="checkbox" id="is_group_lead" name="is_group_lead" value="1"
-                                            {{ old('is_group_lead') ? 'checked' : '' }}
-                                            onchange="toggleGroupMembers(this.checked)">
+                                            @checked(old('is_group_lead')) onchange="toggleGroupMembers(this.checked)">
                                         <label class="form-check-label fw-medium" for="is_group_lead">
-                                            I am checking in with a group and I am the group lead.
+                                            I am booking for more than one room OR for other people.
                                         </label>
                                         @error('is_group_lead')
                                             <div class="invalid-feedback">{{ $message }}</div>
@@ -442,30 +505,60 @@
 
                                     <div id="group-members-section"
                                         style="display: {{ old('is_group_lead') ? 'block' : 'none' }};">
-                                        <p class="text-muted small mb-3">Please add the full name and contact number for
-                                            each member in your group.</p>
+
+                                        <p class="text-muted small mb-3">
+                                            Please add the primary guest for each additional room.
+                                            <br>
+                                            <strong>If you need a second room for yourself, please click "Add Room" and
+                                                enter your own name and contact number again.</strong>
+                                        </p>
+
                                         <div id="group-members-container">
                                             {{-- Repopulate group members from old input --}}
                                             @if (old('group_members'))
                                                 @foreach (old('group_members') as $index => $member)
                                                     <div class="row mb-2 gx-2 align-items-end">
-                                                        <div class="col-md-5">
-                                                            <label class="form-label small">Full Name</label>
+                                                        <div class="col-lg-4"> {{-- Changed to 4 --}}
+                                                            <label class="form-label small">Full Name (for this
+                                                                room)</label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][full_name]"
-                                                                class="form-control"
+                                                                class="form-control @error('group_members.' . $index . '.full_name') is-invalid @enderror"
                                                                 value="{{ $member['full_name'] ?? '' }}"
-                                                                placeholder="Member's Full Name" required>
+                                                                placeholder="Guest's Full Name" required>
+                                                            @error('group_members.' . $index . '.full_name')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
                                                         </div>
-                                                        <div class="col-md-5">
-                                                            <label class="form-label small">Contact Number</label>
+                                                        <div class="col-lg-4"> {{-- Changed to 4 --}}
+                                                            <label class="form-label small">Contact Number
+                                                                (optional)
+                                                            </label>
                                                             <input type="text"
                                                                 name="group_members[{{ $index }}][contact_number]"
-                                                                class="form-control"
+                                                                class="form-control @error('group_members.' . $index . '.contact_number') is-invalid @enderror"
                                                                 value="{{ $member['contact_number'] ?? '' }}"
-                                                                placeholder="Member's Contact">
+                                                                placeholder="Guest's Contact">
+                                                            @error('group_members.' . $index . '.contact_number')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
                                                         </div>
-                                                        <div class="col-md-2">
+
+                                                        {{-- === NEW EMAIL FIELD === --}}
+                                                        <div class="col-lg-3"> {{-- Changed to 3 --}}
+                                                            <label class="form-label small">Email (optional)</label>
+                                                            <input type="email"
+                                                                name="group_members[{{ $index }}][email]"
+                                                                class="form-control @error('group_members.' . $index . '.email') is-invalid @enderror"
+                                                                value="{{ $member['email'] ?? '' }}"
+                                                                placeholder="Guest's Email">
+                                                            @error('group_members.' . $index . '.email')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                        {{-- === END NEW FIELD === --}}
+
+                                                        <div class="col-lg-1"> {{-- Changed to 1 --}}
                                                             <button type="button"
                                                                 class="btn btn-outline-danger btn-sm w-100"
                                                                 onclick="this.parentElement.parentElement.remove()">
@@ -476,9 +569,9 @@
                                                 @endforeach
                                             @endif
                                         </div>
-                                        <button type="button" class="btn btn-outline-primary btn-sm mt-2"
+                                        <button type="button" class="btn btn-outline-gold btn-sm mt-2"
                                             onclick="addGroupMember()">
-                                            <i class="fas fa-plus me-1"></i> Add Member
+                                            <i class="fas fa-plus me-1"></i> Add Room / Guest
                                         </button>
                                     </div>
 
@@ -487,7 +580,7 @@
                                             data-prev="3">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Stay Details
                                         </button>
-                                        <button type="button" class="btn btn-success next-step" data-next="5">
+                                        <button type="button" class="btn btn-gold next-step" data-next="5">
                                             Continue to Review & Sign <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
                                     </div>
@@ -496,34 +589,42 @@
                                 {{-- Step 5: Policy and Signature --}}
                                 <div class="form-step d-none" id="step-5">
                                     <div class="step-header mb-4">
-                                        <h5 class="fw-bold text-primary mb-2">
+                                        <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-file-signature me-2"></i>Review & Signature
                                         </h5>
                                         <p class="text-muted">Almost done! Please review and sign</p>
                                     </div>
 
                                     <div class="policy-agreement mb-4">
-                                        <h6 class="fw-bold mb-3 text-bg-danger">Policy Agreement</h6>
+                                        <h6 class="fw-bold mb-3 border-bottom pb-2">Policy Agreement</h6>
                                         <div class="border rounded p-3 bg-light"
                                             style="max-height: 200px; overflow-y: auto;">
                                             <ul class="mb-0">
-                                                <li class="mb-2">The agreed rate is valid for this stay only. For long
+                                                <li class="mb-2">The agreed rate is valid for this stay only. For
+                                                    long
                                                     stays, Bricks Point reserves the right to revert to the RACK RATE if
                                                     checkout occurs before the agreed duration.</li>
-                                                <li class="mb-2">Check-in is at <span
-                                                        class="fw-bold text-bg-yellow">3:00 PM</span> and check-out is at
-                                                    <span class="fw-bold text-bg-yellow">12:00 noon</span>. Early check-in
-                                                    and late check-out are subject to availability and may incur additional
-                                                    fees. After 5:00 PM, a full rate applies. No-shows will be charged for a
-                                                    full day.</li>
+                                                <li class="mb-2">Check-in is at <span class="fw-bold text-dark">3:00
+                                                        PM</span> and check-out is at
+                                                    <span class="fw-bold text-dark">12:00 noon</span>. Early check-in
+                                                    and late check-out are subject to availability and may incur
+                                                    additional
+                                                    fees. After 5:00 PM, a full rate applies. No-shows will be charged
+                                                    for a
+                                                    full day.
+                                                </li>
                                                 <li class="mb-2">Lost room keys will incur a fine.</li>
-                                                <li class="mb-2">Personal safes are available in each apartment. Please
-                                                    use them to secure your valuables. Bricks Point is not liable for any
+                                                <li class="mb-2">Personal safes are available in each apartment.
+                                                    Please
+                                                    use them to secure your valuables. Bricks Point is not liable for
+                                                    any
                                                     loss.</li>
-                                                <li class="mb-2">If you sustain an injury or experience loss/damage to
+                                                <li class="mb-2">If you sustain an injury or experience loss/damage
+                                                    to
                                                     property during your stay, please notify hotel management before
                                                     departure. Any related claims will be governed by the laws of the
-                                                    country where the hotel is located, and its courts will have exclusive
+                                                    country where the hotel is located, and its courts will have
+                                                    exclusive
                                                     jurisdiction.</li>
                                                 <li class="mb-0">By signing this form, you agree to abide by our
                                                     policies.</li>
@@ -558,7 +659,7 @@
                                         <input type="checkbox"
                                             class="form-check-input @error('agreed_to_policies') is-invalid @enderror"
                                             name="agreed_to_policies" id="agreed_to_policies" value="1"
-                                            {{ old('agreed_to_policies') ? 'checked' : '' }} required>
+                                            @checked(old('agreed_to_policies')) required>
                                         <label class="form-check-label fw-medium" for="agreed_to_policies">
                                             I have read and agree to the hotel's policies and privacy terms. <span
                                                 class="text-danger">*</span>
@@ -570,8 +671,7 @@
 
                                     <div class="form-check mb-4">
                                         <input class="form-check-input" type="checkbox" name="opt_in_data_save"
-                                            id="opt_in_data_save" value="1"
-                                            {{ old('opt_in_data_save', true) ? 'checked' : '' }}>
+                                            id="opt_in_data_save" value="1" @checked(old('opt_in_data_save', true))>
                                         <label class="form-check-label" for="opt_in_data_save">
                                             Save my information for faster check-ins in the future.
                                         </label>
@@ -584,7 +684,7 @@
                                             data-prev="4">
                                             <i class="fas fa-arrow-left me-2"></i>Back to Group Booking
                                         </button>
-                                        <button type="submit" class="btn btn-success btn-lg px-4" id="submit-btn">
+                                        <button type="submit" class="btn btn-gold btn-lg px-4" id="submit-btn">
                                             <i class="fas fa-check-circle me-2"></i>Submit for Final Review
                                         </button>
                                     </div>
@@ -592,7 +692,8 @@
                             </form>
 
                             <div class="text-center mt-4">
-                                <a href="{{ route('frontdesk.registrations.create') }}" class="btn btn-link">
+                                <a href="{{ route('frontdesk.registrations.create', ['clear' => 1]) }}"
+                                    class="btn btn-link">
                                     <i class="fas fa-redo me-1"></i> Start Over
                                 </a>
                             </div>
@@ -630,15 +731,15 @@
             gap: 8px;
         }
 
-        .step.active .step-icon {
-            background-color: #198754 !important;
-            color: white !important;
-            transform: scale(1.1);
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--brand-gold);
+            box-shadow: 0 0 0 0.25rem rgba(200, 161, 101, 0.25);
         }
 
-        .step.active .step-label {
-            color: #198754;
-            font-weight: 600;
+        .form-check-input:checked {
+            background-color: var(--brand-gold);
+            border-color: var(--brand-gold);
         }
     </style>
 @endsection
@@ -714,6 +815,12 @@
                     // Skip validation for hidden fields (like signature)
                     if (field.type === 'hidden') continue;
 
+                    // Skip validation for fields in a hidden group section
+                    if (field.closest('#group-members-section') && field.closest('#group-members-section').style
+                        .display === 'none') {
+                        continue;
+                    }
+
                     let fieldValid = true;
 
                     if (field.type === 'checkbox') {
@@ -726,15 +833,32 @@
                         isValid = false;
                         field.classList.add('is-invalid');
 
-                        if (!field.nextElementSibling || !field.nextElementSibling.classList.contains(
-                                'invalid-feedback')) {
-                            const feedback = document.createElement('div');
+                        // Find or create the invalid-feedback message
+                        let feedback = field.parentNode.querySelector('.invalid-feedback');
+                        if (!feedback) {
+                            feedback = document.createElement('div');
                             feedback.className = 'invalid-feedback';
-                            feedback.textContent = 'This field is required.';
                             field.parentNode.appendChild(feedback);
                         }
+                        feedback.textContent = 'This field is required.';
+
                     } else {
                         field.classList.remove('is-invalid');
+                    }
+                }
+
+                // Special validation for signature
+                if (step === 5) {
+                    if (signaturePad && signaturePad.isEmpty() && !document.getElementById('signature-data')
+                        .value) {
+                        document.querySelector('.signature-pad-container').classList.add('is-invalid');
+                        document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display =
+                            'block';
+                        isValid = false;
+                    } else {
+                        document.querySelector('.signature-pad-container').classList.remove('is-invalid');
+                        document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display =
+                            'none';
                     }
                 }
 
@@ -747,14 +871,15 @@
                             block: 'center'
                         });
                     }
-                    alert('Please fill in all required fields before continuing.');
+                    // alert('Please fill in all required fields before continuing.');
                 }
 
                 return isValid;
             }
 
             function updateProgress() {
-                const progress = (currentStep / 5) * 100;
+                const totalSteps = 5;
+                const progress = (currentStep / totalSteps) * 100;
                 const progressBar = document.getElementById('form-progress');
                 if (progressBar) {
                     progressBar.style.width = `${progress}%`;
@@ -790,12 +915,19 @@
 
                 // Set canvas dimensions
                 const container = canvas.parentElement;
+
+                // Ensure canvas is visible before getting offsetWidth
+                if (container.offsetWidth === 0) {
+                    setTimeout(initSignaturePad, 100); // Try again
+                    return;
+                }
+
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
 
                 signaturePad = new SignaturePad(canvas, {
                     backgroundColor: 'rgb(255, 255, 255)',
-                    penColor: 'rgb(0, 0, 255)',
+                    penColor: 'rgb(51, 51, 51)',
                     minWidth: 1,
                     maxWidth: 3,
                 });
@@ -805,10 +937,18 @@
                 if (oldSignature) {
                     signaturePad.fromDataURL(oldSignature);
                     placeholder.style.display = 'none';
+                    document.getElementById('signature-data').value = oldSignature;
                 }
 
                 signaturePad.addEventListener('beginStroke', () => {
                     placeholder.style.display = 'none';
+                });
+
+                signaturePad.addEventListener('endStroke', () => {
+                    document.getElementById('signature-data').value = signaturePad.toDataURL();
+                    document.querySelector('.signature-pad-container').classList.remove('is-invalid');
+                    document.querySelector('.signature-pad-container ~ .invalid-feedback').style.display =
+                        'none';
                 });
 
                 document.getElementById('clear-signature').addEventListener('click', () => {
@@ -828,20 +968,24 @@
                 const index = container.children.length;
                 const memberFields = `
             <div class="row mb-2 gx-2 align-items-end">
-                <div class="col-md-5">
-                    <label class="form-label small">Full Name</label>
-                    <input type="text" name="group_members[${index}][full_name]" class="form-control" placeholder="Member's Full Name" required>
+                    <div class="col-lg-4">
+                        <label class="form-label small">Full Name (for this room)</label>
+                        <input type="text" name="group_members[${index}][full_name]" class="form-control" placeholder="Guest's Full Name" required>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="form-label small">Contact Number (optional)</label>
+                        <input type="text" name="group_members[${index}][contact_number]" class="form-control" placeholder="Guest's Contact">
+                    </div>
+                    <div class="col-lg-3">
+                        <label class="form-label small">Email (optional)</label>
+                        <input type="email" name="group_members[${index}][email]" class="form-control" placeholder="Guest's Email">
+                    </div>
+                    <div class="col-lg-1">
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="col-md-5">
-                    <label class="form-label small">Contact Number</label>
-                    <input type="text" name="group_members[${index}][contact_number]" class="form-control" placeholder="Member's Contact">
-                </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100" onclick="this.parentElement.parentElement.remove()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
         `;
                 container.insertAdjacentHTML('beforeend', memberFields);
             }
@@ -854,29 +998,25 @@
 
                     // Validate all steps before submission
                     let allValid = true;
+                    let firstInvalidStep = 0;
+
                     for (let step = 1; step <= 5; step++) {
                         if (!validateStep(step)) {
                             allValid = false;
-                            showStep(step);
-                            break;
+                            if (firstInvalidStep === 0) {
+                                firstInvalidStep = step;
+                            }
                         }
                     }
 
                     if (!allValid) {
                         e.preventDefault();
+                        showStep(firstInvalidStep); // Jump to the first step with an error
                         alert('Please fix all validation errors before submitting.');
                         return;
                     }
 
-                    // Validate signature
-                    if (signaturePad && signaturePad.isEmpty()) {
-                        e.preventDefault();
-                        alert('Please provide your signature before submitting.');
-                        showStep(5);
-                        return;
-                    }
-
-                    // Set signature data
+                    // Set signature data one last time
                     if (signaturePad && !signaturePad.isEmpty()) {
                         document.getElementById('signature-data').value = signaturePad.toDataURL();
                     }
@@ -912,5 +1052,54 @@
                 showStep({{ $firstErrorStep }});
             @endif
         });
+        // (Inside the <script> tag at the bottom)
+
+        // A simple 'Did you mean?' function for common email typos
+        function checkEmailTypos() {
+            const emailField = document.getElementById('email');
+            const suggestionEl = document.getElementById('email-suggestion');
+            if (!emailField || !suggestionEl) return;
+
+            // List of common domains
+            const commonDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com'];
+
+            emailField.addEventListener('blur', function() {
+                const email = this.value;
+                if (!email.includes('@')) {
+                    suggestionEl.style.display = 'none';
+                    return;
+                }
+
+                const [local, domain] = email.split('@');
+
+                // Simple check (a real library is more advanced)
+                if (domain === 'gmial.com' || domain === 'gamil.com' || domain === 'gmail.con' || domain ===
+                    'gmaill.com' || domain === 'gmail.cm') {
+                    showSuggestion('gmail.com');
+                } else if (domain === 'yaho.com' || domain === 'yhoo.com') {
+                    showSuggestion('yahoo.com');
+                } else {
+                    suggestionEl.style.display = 'none';
+                }
+            });
+
+            function showSuggestion(correctedDomain) {
+                const emailField = document.getElementById('email');
+                const suggestionEl = document.getElementById('email-suggestion');
+                const correctedEmail = emailField.value.split('@')[0] + '@' + correctedDomain;
+
+                suggestionEl.innerHTML = `Did you mean: ${correctedEmail}?`;
+                suggestionEl.style.display = 'block';
+
+                // If they click the suggestion, fix the email for them
+                suggestionEl.onclick = function() {
+                    emailField.value = correctedEmail;
+                    suggestionEl.style.display = 'none';
+                };
+            }
+        }
+
+        // Run our new function
+        checkEmailTypos();
     </script>
 @endpush

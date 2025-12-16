@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg bg-white shadow-sm border-bottom py-2">
     <div class="container-fluid">
         <!-- Sidebar Toggle -->
-        <button class="btn btn-outline-dark me-3" id="sidebarToggle">
+        <button class="btn btn-outline-secondary me-3" id="sidebarToggle">
             <i class="fas fa-bars"></i>
         </button>
 
@@ -13,9 +13,10 @@
 
             <a href="home"
                 style="
+                font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
                 font-weight: 800;
                 font-size: 1.4rem;
-                color: #0d0606;
+                color: #C8A165;
                 text-decoration: none;
                 letter-spacing: -0.5px;
                 text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -35,14 +36,14 @@
             </li>
 
             <!-- Live Clock -->
-            <li id="liveClock" class="nav-item me-3 text-dark fw-semibold" style="font-family: 'Courier New', monospace;">
+            <li id="liveClock" class="nav-item me-3 text-dark fw-semibold" style="font-family: 'Courier New', monospace; color: #333333;">
                 --
             </li>
 
             <!-- User Dropdown -->
             @auth
             <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle text-dark" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: #333333;">
                     <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }}
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">

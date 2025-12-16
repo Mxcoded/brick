@@ -25,15 +25,18 @@ class EnsureUserRedirection
 
         // Define role-to-route mappings with priority order
         $roleRoutes = [
-            'admin' => 'admin.dashboard',
-            'staff' => 'staff.dashboard',
-            'guest' => 'website.guest.dashboard', // Added mapping for guest role
+            'Super Admin' => 'admin.dashboard',
+            'Manager' => 'manager.dashboard',
+            'Staff' => 'staff.dashboard',
+            'Guest' => 'website.guest.dashboard', // Added mapping for FDA role
         ];
-      
+
         switch ($userRoles) {
-            case 'admin':
-            case 'staff':
-            case 'guest':
+            case 'Super Admin':
+            case 'Manager':
+            case 'Staff':
+            case 'Guest':
+
                 $route = $roleRoutes[$userRoles];
                 Log::info("Redirecting to {$route} for user ID: " . $user->id);
                 session(['user_roles' => $userRoles]);

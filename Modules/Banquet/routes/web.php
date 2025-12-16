@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\Banquet\Http\Controllers\BanquetController;
 
@@ -8,58 +7,102 @@ use Modules\Banquet\Http\Controllers\BanquetController;
 |--------------------------------------------------------------------------
 | Banquet Module Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for the Banquet module.
-| These routes are loaded by the RouteServiceProvider within a group
-| which contains the "web" middleware group.
-|
+| Pattern: /banquet/...
+| Name Prefix: banquet.
 */
 
-Route::middleware('auth')->group(
-    function () {
-        Route::get('/banquet-orders/report-form', [BanquetController::class, 'eventReportForm'])->name('banquet.orders.report.form');
-        Route::post('/banquet-orders/report', [BanquetController::class, 'generateEventReport'])->name('banquet.orders.report.generate');
-        // Resource routes for banquet orders
-        Route::resource('banquet-orders', BanquetController::class)->names('banquet.orders');
+Route::prefix('banquet')
+    ->middleware(['web', 'auth', 'can:access_banquet_dashboard'])
+    ->name('banquet.')
+    ->group(function () {
 
-        // Routes for adding event days, menu items, and event day CRUD
-        Route::prefix('banquet-orders/{order_id}')->group(function () {
-            // Add event day routes
-            Route::get('/add-day', [BanquetController::class, 'addDayForm'])->name('banquet.orders.add-day');
-            Route::post('/store-day', [BanquetController::class, 'storeDay'])->name('banquet.orders.store-day');
+        // ==========================================================
+        // 1. DASHBOARD & REPORTING (Read Access)
+        // ==========================================================
 
-            // Nested routes for a specific event day
-            Route::prefix('{day_id}')->group(function () {
-                Route::get('/add-menu-item', [BanquetController::class, 'addMenuItemForm'])->name('banquet.orders.add-menu-item');
-                Route::post('/store-menu-item', [BanquetController::class, 'storeMenuItem'])->name('banquet.orders.store-menu-item');
-                Route::get('/edit', [BanquetController::class, 'editDay'])->name('banquet.orders.edit-day');
-                Route::put('/', [BanquetController::class, 'updateDay'])->name('banquet.orders.update-day');
-                Route::patch('/status', [BanquetController::class, 'updateDayStatus'])->name('banquet.orders.update-day-status');
+        // Main Dashboard (Index)
+        Route::get('/', [BanquetController::class, 'index'])->name('index'); // URL: /banquet
 
-                // Nested routes for menu items
-                Route::prefix('menu-items/{menu_item_id}')->group(function () {
-                    Route::get('/edit', [BanquetController::class, 'editMenuItem'])->name('banquet.orders.edit-menu-item');
-                    Route::put('/', [BanquetController::class, 'updateMenuItem'])->name('banquet.orders.update-menu-item');
-                    Route::delete('/', [BanquetController::class, 'deleteMenuItem'])->name('banquet.orders.menu-item.destroy');
-                });
-            });
-
-            // Event day CRUD routes
-            Route::get('event-days/{day_id}', [BanquetController::class, 'showDay'])->name('banquet.orders.event-days.show');
-            Route::get('event-days/{day_id}/edit', [BanquetController::class, 'editDay'])->name('banquet.orders.event-days.edit');
-            Route::put('event-days/{day_id}', [BanquetController::class, 'updateDay'])->name('banquet.orders.event-days.update');
-            Route::delete('event-days/{day_id}', [BanquetController::class, 'destroyDay'])->name('banquet.orders.event-days.destroy');
-
-            // PDF generation route for specific order
-            Route::get('/pdf', [BanquetController::class, 'generatePdf'])->name('banquet.orders.pdf');
+        // Reports
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/form', [BanquetController::class, 'eventReportForm'])->name('form');
+            Route::post('/generate', [BanquetController::class, 'generateEventReport'])->name('generate');
+            Route::post('/export', [BanquetController::class, 'exportEventReport'])->name('export');
         });
 
-        // Report routes (moved outside the prefix group)
-        // Route::middleware('auth')->get('/banquet-orders/report-form', [BanquetController::class, 'eventReportForm'])->name('banquet.orders.report.form');
-        // Route::post('/banquet-orders/report', [BanquetController::class, 'generateEventReport'])->name('banquet.orders.report.generate');
+        // ==========================================================
+        // 2. ORDER MANAGEMENT
+        // ==========================================================
 
+        // Datatable Source
+        Route::get('/orders/datatable', [BanquetController::class, 'datatable'])->name('orders.datatable');
 
-        // Datatable route
-        Route::get('/banquet/orders/datatable', [BanquetController::class, 'datatable'])->name('banquet.orders.datatable');
-    }
-);
+        // EXPLICIT DELETE ROUTE (Fixes the "Failed to delete" bug)
+        // Must be defined BEFORE the resource to prevent conflict
+        Route::delete('/orders/{order_id}', [BanquetController::class, 'destroy'])
+            ->name('orders.destroy')
+            ->middleware('can:manage_banquet');
+
+        // Standard Resource Routes (Index, Create, Store, Show, Edit, Update)
+        // We override the parameter name to 'order_id' to match your Controller variables
+        Route::resource('orders', BanquetController::class)
+            ->names('orders')
+            ->parameters(['orders' => 'order_id'])
+            ->except(['destroy']) // Exclude destroy as we defined it above
+            ->middleware([
+                'create' => 'can:manage_banquet',
+                'store'  => 'can:manage_banquet',
+                'edit'   => 'can:manage_banquet',
+                'update' => 'can:manage_banquet',
+            ]);
+
+        // ==========================================================
+        // 3. NESTED EVENT OPERATIONS (Days, Menus, PDFs)
+        // URL: /banquet/orders/{order_id}/...
+        // ==========================================================
+        Route::prefix('orders/{order_id}')->name('orders.')->group(function () {
+
+            // Function Sheet PDF (View Access)
+            Route::get('/pdf', [BanquetController::class, 'generatePdf'])->name('pdf');
+            // Invoice PDF (View Access)
+            Route::get('/invoice', [BanquetController::class, 'generateInvoice'])->name('invoice');
+
+            // --- WRITE OPERATIONS (Protected by manage_banquet) ---
+            Route::middleware(['can:manage_banquet'])->group(function () {
+                //PAYMENTS actions
+                Route::post('/payment', [BanquetController::class, 'storePayment'])->name('payment.store');
+                Route::delete('/payment/{payment_id}', [BanquetController::class, 'destroyPayment'])->name('payment.destroy');
+                // Add Event Days
+                Route::get('/add-day', [BanquetController::class, 'addDayForm'])->name('add-day');
+                Route::post('/store-day', [BanquetController::class, 'storeDay'])->name('store-day');
+
+                // Day-Specific Operations
+                Route::prefix('days/{day_id}')->group(function () {
+
+                    // Day Management
+                    Route::get('/edit', [BanquetController::class, 'editDay'])->name('edit-day');
+                    Route::put('/', [BanquetController::class, 'updateDay'])->name('update-day');
+                    Route::delete('/', [BanquetController::class, 'destroyDay'])->name('event-days.destroy');
+                    Route::patch('/status', [BanquetController::class, 'updateDayStatus'])->name('update-day-status');
+
+                    // Menu Items
+                    Route::get('/add-menu', [BanquetController::class, 'addMenuItemForm'])->name('add-menu-item');
+                    Route::post('/store-menu', [BanquetController::class, 'storeMenuItem'])->name('store-menu-item');
+
+                    // Specific Menu Item Operations
+                    Route::prefix('items/{menu_item_id}')->group(function () {
+                        Route::get('/edit', [BanquetController::class, 'editMenuItem'])->name('edit-menu-item');
+                        Route::put('/', [BanquetController::class, 'updateMenuItem'])->name('update-menu-item');
+                        Route::delete('/', [BanquetController::class, 'deleteMenuItem'])->name('menu-item.destroy');
+                    });
+                });
+
+                // Legacy support for any views still using these named routes
+                Route::get('event-days/{day_id}/edit', [BanquetController::class, 'editDay'])->name('event-days.edit');
+                Route::put('event-days/{day_id}', [BanquetController::class, 'updateDay'])->name('event-days.update');
+            });
+
+            // View Day Details (Read Access)
+            Route::get('days/{day_id}', [BanquetController::class, 'showDay'])->name('event-days.show');
+        });
+    });

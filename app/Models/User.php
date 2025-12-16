@@ -58,35 +58,5 @@ class User extends Authenticatable
     {
         return $this->hasOne(GuestProfile::class);
     }
-    public function hasRole($roles)
-    {
-        Log::info('hasRole called with:', ['roles' => $roles]);
-        // Handle string input (role name)
-        if (is_string($roles)) {
-            return $this->roles()->where('name', $roles)->exists();
-        }
-
-        // Handle single Role object
-        if ($roles instanceof \Spatie\Permission\Models\Role) {
-            return $this->roles()->where('id', $roles->id)->exists();
-        }
-
-        // Handle array of roles (recursively check each)
-        if (is_array($roles)) {
-            foreach ($roles as $role) {
-                if ($this->hasRole($role)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Handle collection of roles (e.g., from $user->roles)
-        if ($roles instanceof \Illuminate\Support\Collection) {
-            return $this->hasRole($roles->all());
-        }
-
-        // Default case: return false for unrecognized input
-        return false;
-    }
+   
 }

@@ -11,6 +11,9 @@ class BanquetDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            BanquetVenueSeeder::class,
+            BanquetSetupStyleSeeder::class,
+        ]);
     }
 }
