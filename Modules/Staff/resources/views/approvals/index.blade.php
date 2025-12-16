@@ -1,6 +1,6 @@
 @extends('layouts.master')
 
-@section('content')
+@section('page-content')
 <div class="container-fluid">
     <!-- Page Heading -->
     <div class="d-flex justify-content-between align-items-center mb-4">

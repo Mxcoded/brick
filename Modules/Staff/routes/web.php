@@ -26,12 +26,12 @@ Route::prefix('staff')
             'update' => 'update',
             'destroy' => 'destroy',
         ])->middleware([
-            'index'   => 'permission:staff-view',
-            'create'  => 'permission:staff-create',
-            'store'   => 'permission:staff-create',
-            'edit'    => 'permission:staff-edit',
-            'update'  => 'permission:staff-edit',
-            'destroy' => 'permission:staff-delete',
+            'index'   => 'permission:view_employees',
+            'create'  => 'permission:manage_employees',
+            'store'   => 'permission:manage_employees',
+            'edit'    => 'permission:manage_employees',
+            'update'  => 'permission:manage_employees',
+            'destroy' => 'permission:manage_employees',
         ]);
 
 
