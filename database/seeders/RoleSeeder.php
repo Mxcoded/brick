@@ -90,7 +90,14 @@ class RoleSeeder extends Seeder
                 'manage_employees',
                 'approve_leaves',
             ]);
-
+        $staff = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_staff_dashboard',
+            ]);
+        $guest = Role::firstOrCreate(['name' => 'guest', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_website_dashboard',
+            ]);
         // RECEPTIONIST
         Role::firstOrCreate(['name' => 'receptionist', 'guard_name' => 'web'])
             ->syncPermissions([

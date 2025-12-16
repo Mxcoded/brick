@@ -24,6 +24,7 @@
             <form action="{{ route('banquet.orders.store-day', $order->order_id) }}" method="POST" id="eventForm">
                 @csrf
 
+                {{-- Date, Description, Guest Count, Status, Type inputs remain unchanged --}}
                 <div class="mb-4">
                     <label for="event_date" class="form-label fw-bold text-charcoal">Event Date</label>
                     <div class="input-group">
@@ -86,43 +87,45 @@
                     </div>
                 </div>
 
+                {{-- REFACTORED: Dynamic Room and Style Selection --}}
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label for="room" class="form-label fw-bold text-charcoal">Room</label>
+                        <label for="banquet_venue_id" class="form-label fw-bold text-charcoal">Venue (Room)</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-door-open text-gold"></i></span>
-                            <select name="room" id="room" class="form-select border-start-0 ps-0" required>
-                                <option value="">Select Room</option>
-                                {{-- Note: Controller passes $location (singular) for create --}}
-                                @foreach($location as $room)
-                                    <option value="{{ $room }}" {{ old('room') === $room ? 'selected' : '' }}>
-                                        {{ $room }}
+                            <select name="banquet_venue_id" id="banquet_venue_id" class="form-select border-start-0 ps-0" required>
+                                <option value="">Select Venue</option>
+                                @foreach($venues as $venue)
+                                    <option value="{{ $venue->id }}" {{ old('banquet_venue_id') == $venue->id ? 'selected' : '' }}>
+                                        {{ $venue->name }} (Cap: {{ $venue->capacity }})
                                     </option>
                                 @endforeach
                             </select>
                         </div>
-                        @error('room') 
+                        @error('banquet_venue_id') 
                             <div class="text-danger small mt-2">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="col-md-6">
-                        <label for="setup_style" class="form-label fw-bold text-charcoal">Setup Style</label>
+                        <label for="banquet_setup_style_id" class="form-label fw-bold text-charcoal">Setup Style</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-chair text-gold"></i></span>
-                            <select name="setup_style" id="setup_style" class="form-select border-start-0 ps-0" required>
+                            <select name="banquet_setup_style_id" id="banquet_setup_style_id" class="form-select border-start-0 ps-0" required>
+                                <option value="">Select Style</option>
                                 @foreach($setupStyles as $style)
-                                    <option value="{{ $style }}" {{ old('setup_style') === $style ? 'selected' : '' }}>
-                                        {{ $style }}
+                                    <option value="{{ $style->id }}" {{ old('banquet_setup_style_id') == $style->id ? 'selected' : '' }}>
+                                        {{ $style->name }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
-                        @error('setup_style') 
+                        @error('banquet_setup_style_id') 
                             <div class="text-danger small mt-2">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
 
+                {{-- Time inputs remain unchanged --}}
                 <div class="row g-3 mb-4">
                     <div class="col-12">
                         <div class="form-check">
@@ -188,17 +191,11 @@ document.addEventListener('DOMContentLoaded', function() {
             endTimeInput.removeAttribute('readonly');
             startTimeInput.classList.remove('bg-light');
             endTimeInput.classList.remove('bg-light');
-            // Allow user to set time
         }
     }
 
-    // Initial check
     updateTimeInputs();
-
-    // Add event listener
     standardTimingCheckbox.addEventListener('change', updateTimeInputs);
-
-    // Handle form submission
     document.getElementById('eventForm').addEventListener('submit', function(e) {
         if (standardTimingCheckbox.checked) {
             startTimeInput.removeAttribute('readonly');
@@ -209,7 +206,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 @endsection
 
-{{-- INLINE STYLE FOR MODULE CONSISTENCY --}}
 <style>
     .banquet-theme { font-family: 'Proxima Nova', Arial, sans-serif; }
     .text-gold { color: #C8A165 !important; }

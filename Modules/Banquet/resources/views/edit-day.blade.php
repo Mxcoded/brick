@@ -25,6 +25,7 @@
                 @csrf
                 @method('PUT')
 
+                {{-- Date, Description, Guest Count, Status, Type inputs remain unchanged --}}
                 <div class="mb-4">
                     <label for="event_date" class="form-label fw-bold text-charcoal">Event Date</label>
                     <div class="input-group">
@@ -87,43 +88,45 @@
                     </div>
                 </div>
 
+                {{-- REFACTORED: Dynamic Room and Style Selection --}}
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
-                        <label for="room" class="form-label fw-bold text-charcoal">Room</label>
+                        <label for="banquet_venue_id" class="form-label fw-bold text-charcoal">Venue (Room)</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-door-open text-gold"></i></span>
-                            <select name="room" id="room" class="form-select border-start-0 ps-0" required>
-                                <option value="">Select Room</option>
-                                {{-- Note: Controller passes $locations (plural) for edit --}}
-                                @foreach($locations as $room)
-                                    <option value="{{ $room }}" {{ old('room', $day->room) === $room ? 'selected' : '' }}>
-                                        {{ $room }}
+                            <select name="banquet_venue_id" id="banquet_venue_id" class="form-select border-start-0 ps-0" required>
+                                <option value="">Select Venue</option>
+                                @foreach($venues as $venue)
+                                    <option value="{{ $venue->id }}" {{ old('banquet_venue_id', $day->banquet_venue_id) == $venue->id ? 'selected' : '' }}>
+                                        {{ $venue->name }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
-                        @error('room') 
+                        @error('banquet_venue_id') 
                             <div class="text-danger small mt-2">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="col-md-6">
-                        <label for="setup_style" class="form-label fw-bold text-charcoal">Setup Style</label>
+                        <label for="banquet_setup_style_id" class="form-label fw-bold text-charcoal">Setup Style</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-chair text-gold"></i></span>
-                            <select name="setup_style" id="setup_style" class="form-select border-start-0 ps-0" required>
+                            <select name="banquet_setup_style_id" id="banquet_setup_style_id" class="form-select border-start-0 ps-0" required>
+                                <option value="">Select Style</option>
                                 @foreach($setupStyles as $style)
-                                    <option value="{{ $style }}" {{ old('setup_style', $day->setup_style) === $style ? 'selected' : '' }}>
-                                        {{ $style }}
+                                    <option value="{{ $style->id }}" {{ old('banquet_setup_style_id', $day->banquet_setup_style_id) == $style->id ? 'selected' : '' }}>
+                                        {{ $style->name }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
-                        @error('setup_style') 
+                        @error('banquet_setup_style_id') 
                             <div class="text-danger small mt-2">{{ $message }}</div>
                         @enderror
                     </div>
                 </div>
 
+                {{-- Time inputs remain unchanged --}}
                 @php
                     $useStandardTiming = substr($day->start_time, 0, 5) === '08:00' && substr($day->end_time, 0, 5) === '20:00';
                     $standardTimingChecked = old('standard_timing') === 'on' || $useStandardTiming;
@@ -196,11 +199,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Initial check
     updateTimeInputs();
-
     standardTimingCheckbox.addEventListener('change', updateTimeInputs);
-
     document.getElementById('eventForm').addEventListener('submit', function(e) {
         if (standardTimingCheckbox.checked) {
             startTimeInput.removeAttribute('readonly');
