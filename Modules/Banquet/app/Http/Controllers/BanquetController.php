@@ -10,6 +10,8 @@ use Modules\Banquet\Models\BanquetOrderDay;
 use Modules\Banquet\Models\BanquetOrderMenuItem;
 use Modules\Banquet\Models\Customer;
 use Modules\Banquet\Models\BanquetPayment;
+use Modules\Banquet\Models\BanquetVenue;       // Added
+use Modules\Banquet\Models\BanquetSetupStyle;  // Added
 use Barryvdh\DomPDF\Facade\Pdf;
 use Yajra\DataTables\DataTables;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +24,6 @@ class BanquetController extends Controller
      */
     public function index()
     {
-        // 1. Calculate Stats for the Dashboard Cards
         $stats = [
             'total_orders' => BanquetOrder::count(),
             'pending_orders' => BanquetOrder::where('status', 'Pending')->count(),
@@ -34,10 +35,9 @@ class BanquetController extends Controller
 
         $statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
 
-        // Pass stats to the view
         return view('banquet::index', compact('statuses', 'stats'));
     }
-  
+
     /**
      * Show the form for creating a new banquet order.
      */
@@ -52,7 +52,7 @@ class BanquetController extends Controller
      */
     public function show($order_id)
     {
-        $order = BanquetOrder::with(['customer', 'eventDays.menuItems'])
+        $order = BanquetOrder::with(['customer', 'eventDays.menuItems', 'eventDays.venue']) // Added venue relationship
             ->where('order_id', $order_id)
             ->firstOrFail();
         $customers = Customer::all(['id', 'name', 'email', 'phone', 'organization']);
@@ -67,21 +67,17 @@ class BanquetController extends Controller
         // 1. Validate Input
         $validated = $request->validate([
             'preparation_date' => 'required|date',
-            // Customer Info
             'contact_person_name' => 'required|string|max:255',
             'contact_person_phone' => 'required|string|max:20',
             'contact_person_email' => 'required|email|max:255',
             'organization' => 'nullable|string|max:255',
-            'customer_id' => 'nullable', // Removed 'exists' validation here to handle empty strings safely in logic
-            // Details
+            'customer_id' => 'nullable',
             'department' => 'nullable|string|max:255',
             'referred_by' => 'nullable|string|max:255',
             'status' => 'required|in:Pending,Confirmed,Cancelled,Completed',
-            // Secondary Contact
             'contact_person_name_ii' => 'nullable|string|max:255',
             'contact_person_phone_ii' => 'nullable|string|max:20',
             'contact_person_email_ii' => 'nullable|email|max:255',
-            // Financials
             'hall_rental_fees' => 'nullable|numeric|min:0',
             'expenses' => 'nullable|numeric|min:0',
         ]);
@@ -89,19 +85,16 @@ class BanquetController extends Controller
         try {
             return DB::transaction(function () use ($validated, $request) {
                 // 2. Handle Customer Logic
-                $customerId = $request->input('customer_id'); // Use input() to safely get null or value
+                $customerId = $request->input('customer_id');
                 $customer = null;
 
                 if (!empty($customerId)) {
-                    // Existing customer selected
                     $customer = Customer::find($customerId);
-                    // Update org if needed
                     if ($customer && !empty($validated['organization'])) {
                         $customer->update(['organization' => $validated['organization']]);
                     }
                 }
 
-                // If no customer found or ID was empty, find by email or create new
                 if (!$customer) {
                     $customer = Customer::firstOrCreate(
                         ['email' => $validated['contact_person_email']],
@@ -116,7 +109,6 @@ class BanquetController extends Controller
                 // 3. Calculate Financials
                 $hallFees = $validated['hall_rental_fees'] ?? 0;
                 $expenses = $validated['expenses'] ?? 0;
-                // Profit margin will be 100% of revenue initially if expenses are 0, or calculated
                 $profitMargin = $this->calculateProfitMargin($hallFees, $expenses);
 
                 // 4. Create Order
@@ -125,23 +117,17 @@ class BanquetController extends Controller
                     'preparation_date' => $validated['preparation_date'],
                     'customer_id' => $customer->id,
                     'status' => $validated['status'],
-
-                    // Contact Snapshot
                     'contact_person_name' => $validated['contact_person_name'],
                     'contact_person_phone' => $validated['contact_person_phone'],
                     'contact_person_email' => $validated['contact_person_email'],
                     'organization' => $validated['organization'],
                     'department' => $validated['department'],
                     'referred_by' => $validated['referred_by'],
-
-                    // Secondary Contact
                     'contact_person_name_ii' => $validated['contact_person_name_ii'],
                     'contact_person_phone_ii' => $validated['contact_person_phone_ii'],
                     'contact_person_email_ii' => $validated['contact_person_email_ii'],
-
-                    // Financials
                     'hall_rental_fees' => $hallFees,
-                    'total_revenue' => $hallFees, // Initial revenue is just hall fee
+                    'total_revenue' => $hallFees,
                     'expenses' => $expenses,
                     'profit_margin' => $profitMargin,
                 ]);
@@ -154,63 +140,15 @@ class BanquetController extends Controller
             return back()->withInput()->with('error', 'Failed to create order: ' . $e->getMessage());
         }
     }
-
     /**
-     * Store a new event day with fixed Time Validation.
+     * Show the form for editing an existing banquet order.
      */
-    public function storeDay(Request $request, $order_id)
+    public function edit($order_id)
     {
-        // 1. Validate with relaxed time format (H:i OR H:i:s)
-        $request->validate([
-            'event_date' => 'required|date',
-            'guest_count' => 'required|integer|min:1',
-            'event_status' => 'required|in:Pending,Confirmed,Cancelled',
-            'event_type' => 'required|string',
-            'room' => 'required|string',
-            'setup_style' => 'required|string',
-            'start_time' => 'required', // Removed strict date_format to allow H:i:s
-            'end_time' => 'required',
-            'event_description' => 'nullable|string',
-        ]);
-
-        // Clean time input (ensure H:i format for storage)
-        $startTime = date('H:i', strtotime($request->start_time));
-        $endTime = date('H:i', strtotime($request->end_time));
-
-        // 2. Perform Conflict Check
-        $conflict = $this->checkAvailability(
-            $request->event_date,
-            $request->room,
-            $startTime,
-            $endTime
-        );
-
-        if ($conflict) {
-            return back()->withInput()->with('error', "Room Conflict! Order #{$conflict->banquetOrder->order_id} has this room booked from {$conflict->start_time} to {$conflict->end_time}.");
-        }
-
-        try {
-            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
-
-            $day = $order->eventDays()->create([
-                'event_date' => $request->event_date,
-                'event_description' => $request->event_description,
-                'guest_count' => $request->guest_count,
-                'event_status' => $request->event_status,
-                'event_type' => $request->event_type,
-                'room' => $request->room,
-                'setup_style' => $request->setup_style,
-                'start_time' => $startTime,
-                'end_time' => $endTime,
-                'duration_minutes' => $this->calculateDuration($startTime, $endTime),
-            ]);
-
-            return redirect()->route('banquet.orders.add-menu-item', [$order->order_id, $day->id])
-                ->with('success', 'Event day added successfully.');
-        } catch (\Exception $e) {
-            Log::error('Add Day failed: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Failed to add day: ' . $e->getMessage());
-        }
+        $order = BanquetOrder::with(['customer', 'eventDays'])->where('order_id', $order_id)->firstOrFail();
+        $customers = Customer::all(['id', 'name', 'email', 'phone', 'organization']);
+        $statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
+        return view('banquet::edit', compact('order', 'customers', 'statuses'));
     }
     /**
      * Update an existing banquet order.
@@ -303,6 +241,37 @@ class BanquetController extends Controller
         }
     }
     /**
+     * Delete banquet Order
+     */
+    public function destroy($order_id)
+    {
+        try {
+            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+
+            DB::transaction(function () use ($order) {
+                $order->eventDays->each(function ($day) {
+                    $day->menuItems()->delete();
+                    $day->delete();
+                });
+                $order->delete();
+            });
+
+            if (request()->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Order deleted successfully.']);
+            }
+
+            return redirect()->route('banquet.orders.index')
+                ->with('success', 'Order deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Delete failed: ' . $e->getMessage());
+
+            if (request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Failed to delete order: ' . $e->getMessage());
+        }
+    }
+    /**
      * Show the form to add an event day to an existing order.
      */
     public function addDayForm($order_id)
@@ -310,15 +279,175 @@ class BanquetController extends Controller
         $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
         $eventStatuses = ['Pending', 'Confirmed', 'Cancelled'];
         $eventTypes = ['Wedding', 'Conference', 'Meeting', 'Banquet', 'Other'];
-        $setupStyles = ['Theater Style', 'Classroom Style', 'Boardroom Style', 'U-Shape', 'Banquet Style'];
-        // Note: These location names must match the logic in checkAvailability exactly
-        $location = ['Adamawa Hall', 'Kano Hall', 'Adamawa Hall + Kano Hall', 'Board Room', 'Pent House', 'Restaurant', 'Pool Party'];
 
-        return view('banquet::add-day', compact('order', 'eventStatuses', 'eventTypes', 'setupStyles', 'location'));
+        // REFACTORED: Fetch from Database instead of hardcoded arrays
+        $venues = BanquetVenue::where('is_active', true)->get();
+        $setupStyles = BanquetSetupStyle::all();
+
+        return view('banquet::add-day', compact('order', 'eventStatuses', 'eventTypes', 'setupStyles', 'venues'));
     }
+    /**
+     * Store a new event day with fixed Time Validation.
+     */
+    public function storeDay(Request $request, $order_id)
+    {
+        $request->validate([
+            'event_date' => 'required|date',
+            'guest_count' => 'required|integer|min:1',
+            'event_status' => 'required|in:Pending,Confirmed,Cancelled',
+            'event_type' => 'required|string',
+            'banquet_venue_id' => 'required|exists:banquet_venues,id', // Validate ID
+            'banquet_setup_style_id' => 'required|exists:banquet_setup_styles,id', // Validate ID
+            'start_time' => 'required',
+            'end_time' => 'required',
+            'event_description' => 'nullable|string',
+        ]);
 
+        $startTime = date('H:i', strtotime($request->start_time));
+        $endTime = date('H:i', strtotime($request->end_time));
 
+        // 2. Perform Conflict Check using ID
+        $conflict = $this->checkAvailability(
+            $request->event_date,
+            $request->banquet_venue_id,
+            $startTime,
+            $endTime
+        );
 
+        if ($conflict) {
+            return back()->withInput()->with('error', "Venue Conflict! Order #{$conflict->banquetOrder->order_id} has this venue booked from {$conflict->start_time} to {$conflict->end_time}.");
+        }
+
+        try {
+            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+
+            // Retrieve Objects to populate legacy string columns
+            $venue = BanquetVenue::find($request->banquet_venue_id);
+            $style = BanquetSetupStyle::find($request->banquet_setup_style_id);
+
+            $day = $order->eventDays()->create([
+                'event_date' => $request->event_date,
+                'event_description' => $request->event_description,
+                'guest_count' => $request->guest_count,
+                'event_status' => $request->event_status,
+                'event_type' => $request->event_type,
+
+                // Save ID References
+                'banquet_venue_id' => $venue->id,
+                'banquet_setup_style_id' => $style->id,
+
+                // Save Strings (Backward Compatibility)
+                'room' => $venue->name,
+                'setup_style' => $style->name,
+
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'duration_minutes' => $this->calculateDuration($startTime, $endTime),
+            ]);
+
+            return redirect()->route('banquet.orders.add-menu-item', [$order->order_id, $day->id])
+                ->with('success', 'Event day added successfully.');
+        } catch (\Exception $e) {
+            Log::error('Add Day failed: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to add day: ' . $e->getMessage());
+        }
+    }
+    /**
+     * Show the form for editing an existing event day.
+     */
+    public function editDay($order_id, $day_id)
+    {
+        $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+        $day = BanquetOrderDay::findOrFail($day_id);
+        $eventStatuses = ['Pending', 'Confirmed', 'Cancelled'];
+        $eventTypes = ['Wedding', 'Conference', 'Meeting', 'Banquet', 'Other'];
+
+        // REFACTORED: Fetch from Database
+        $venues = BanquetVenue::where('is_active', true)->get();
+        $setupStyles = BanquetSetupStyle::all();
+
+        return view('banquet::edit-day', compact('order', 'day', 'eventStatuses', 'eventTypes', 'setupStyles', 'venues'));
+    }
+    /**
+     * Update an existing event day with Conflict Checking.
+     */
+    public function updateDay(Request $request, $order_id, $day_id)
+    {
+        $request->validate([
+            'event_date' => 'required|date',
+            'event_description' => 'nullable|string',
+            'guest_count' => 'required|integer|min:1',
+            'event_status' => 'required|in:Pending,Confirmed,Cancelled',
+            'event_type' => 'required|in:Wedding,Conference,Meeting,Banquet,Other',
+            'banquet_venue_id' => 'required|exists:banquet_venues,id',
+            'banquet_setup_style_id' => 'required|exists:banquet_setup_styles,id',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+        ]);
+
+        $day = BanquetOrderDay::findOrFail($day_id);
+
+        // 1. Conflict Check (Excluding current day)
+        $conflict = $this->checkAvailability(
+            $request->event_date,
+            $request->banquet_venue_id,
+            $request->start_time,
+            $request->end_time,
+            $day->id
+        );
+
+        if ($conflict) {
+            return back()->withInput()->with('error', "Update Failed: Venue unavailable! Overlaps with Order #{$conflict->banquetOrder->order_id} ({$conflict->start_time} - {$conflict->end_time}).");
+        }
+
+        try {
+            $venue = BanquetVenue::find($request->banquet_venue_id);
+            $style = BanquetSetupStyle::find($request->banquet_setup_style_id);
+
+            $day->update([
+                'event_date' => $request->event_date,
+                'event_description' => $request->event_description,
+                'guest_count' => $request->guest_count,
+                'event_status' => $request->event_status,
+                'event_type' => $request->event_type,
+
+                // Update IDs and Legacy Strings
+                'banquet_venue_id' => $venue->id,
+                'room' => $venue->name,
+                'banquet_setup_style_id' => $style->id,
+                'setup_style' => $style->name,
+
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'duration_minutes' => $this->calculateDuration($request->start_time, $request->end_time),
+            ]);
+
+            return redirect()->route('banquet.orders.show', $order_id)
+                ->with('success', 'Event day updated successfully.');
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', 'Failed to update event day: ' . $e->getMessage());
+        }
+    }
+    /**
+     * Update the status of an event day quickly.
+     */
+    public function updateDayStatus(Request $request, $order_id, $day_id)
+    {
+        $request->validate([
+            'event_status' => 'required|in:Pending,Confirmed,Cancelled',
+        ]);
+
+        try {
+            $day = BanquetOrderDay::findOrFail($day_id);
+            $day->update([
+                'event_status' => $request->event_status,
+            ]);
+
+            return back()->with('success', 'Event day status updated successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to update event day status: ' . $e->getMessage());
+        }
+    }
     /**
      * Show the form to add a menu item to an existing event day.
      */
@@ -326,10 +455,9 @@ class BanquetController extends Controller
     {
         $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
         $day = BanquetOrderDay::findOrFail($day_id);
-        $mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack']; // Example options
+        $mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
         return view('banquet::add-menu-item', compact('order', 'day', 'mealTypes'));
     }
-
     /**
      * Store a new menu item for an existing event day.
      */
@@ -359,7 +487,6 @@ class BanquetController extends Controller
                 'dietary_restrictions' => json_encode($request->dietary_restrictions ?? []),
             ]);
 
-            // Update total revenue and profit margin
             $totalRevenue = ($order->total_revenue ?? 0) + $totalPrice;
             $profitMargin = $this->calculateProfitMargin($totalRevenue, $order->expenses);
 
@@ -372,6 +499,17 @@ class BanquetController extends Controller
         } catch (\Exception $e) {
             return back()->withInput()->with('error', 'Failed to add menu item: ' . $e->getMessage());
         }
+    }
+    /**
+     * Show the form for editing an existing menu item.
+     */
+    public function editMenuItem($order_id, $day_id, $menu_item_id)
+    {
+        $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+        $day = BanquetOrderDay::findOrFail($day_id);
+        $menuItem = BanquetOrderMenuItem::findOrFail($menu_item_id);
+        $mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+        return view('banquet::edit-menu-item', compact('order', 'day', 'menuItem', 'mealTypes'));
     }
     /**
      * Update an existing menu item.
@@ -417,6 +555,9 @@ class BanquetController extends Controller
             return back()->withInput()->with('error', 'Failed to update menu item: ' . $e->getMessage());
         }
     }
+    /**
+     * Delete a menu item and adjust order financials.
+     */
     public function deleteMenuItem($order_id, $day_id, $menu_item_id)
     {
         $menuItem = BanquetOrderMenuItem::findOrFail($menu_item_id);
@@ -446,150 +587,252 @@ class BanquetController extends Controller
             ->get(['id', 'name', 'email', 'phone', 'organization']);
         return response()->json($customers);
     }
-    public function edit($order_id)
+    /**
+     * Generate pdf function sheet.
+     */
+    public function generatePdf($order_id)
     {
-        $order = BanquetOrder::with(['customer', 'eventDays'])->where('order_id', $order_id)->firstOrFail();
-        $customers = Customer::all(['id', 'name', 'email', 'phone', 'organization']);
-        $statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
-        return view('banquet::edit', compact('order', 'customers', 'statuses'));
+        $order = BanquetOrder::with(['customer', 'eventDays.menuItems'])
+            ->where('order_id', $order_id)
+            ->firstOrFail();
+        $pdf = Pdf::loadView('banquet::pdf.function-sheet', compact('order'));
+        $pdf->setOptions(['defaultFont' => 'Brown Sugar']);
+        return $pdf->stream('function-sheet-' . $order->order_id . '.pdf');
     }
     /**
-     * Delete banquet Order
+     * Display the form for selecting the report date range.
      */
-    public function destroy($order_id)
+    public function eventReportForm()
     {
+        return view('banquet::reports.event-report-form');
+    }
+
+
+    /**
+     * Generate the HTML View Report
+     */
+    public function generateEventReport(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $data = $this->getReportData($request->start_date, $request->end_date);
+
+        return view('banquet::reports.event-report', [
+            'reportData' => $data['reportData'],
+            'startDate' => $data['startDate'],
+            'endDate' => $data['endDate'],
+            'summary' => $data['summary'],
+            'totalRevenue' => $data['totals']['revenue'],
+            'totalExpenses' => $data['totals']['expenses'],
+            'totalProfit' => $data['totals']['profit'],
+        ]);
+    }
+
+    /**
+     * Export Report to Excel (CSV)
+     */
+    public function exportEventReport(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $data = $this->getReportData($request->start_date, $request->end_date);
+        $filename = 'banquet-report-' . now()->format('Y-m-d-His') . '.csv';
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($data) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF");
+
+            fputcsv($file, [
+                'Order ID',
+                'Organization/Client',
+                'Dates',
+                'Location',
+                'Guests',
+                'Hall Fee',
+                'F&B Revenue',
+                'Total Revenue',
+                'Expenses',
+                'Profit',
+                'Status'
+            ]);
+
+            foreach ($data['reportData'] as $row) {
+                fputcsv($file, [
+                    $row['order_id'],
+                    $row['organization'],
+                    $row['event_date_range'],
+                    $row['location'],
+                    $row['guest_count'],
+                    $row['hall_rental_fees'],
+                    $row['food_beverage_total'],
+                    $row['total_revenue'],
+                    $row['expenses'],
+                    $row['profit'],
+                    $row['status']
+                ]);
+            }
+            fputcsv($file, []);
+            fputcsv($file, ['SUMMARY']);
+            fputcsv($file, ['Total Events', $data['summary']['total_events']]);
+            fputcsv($file, ['Total Revenue', $data['totals']['revenue']]);
+            fputcsv($file, ['Total Profit', $data['totals']['profit']]);
+            fclose($file);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+    /**
+     * Store a new payment for an order.
+     */
+    public function storePayment(Request $request, $order_id)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'payment_date' => 'required|date',
+            'payment_method' => 'required|string',
+            'reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
         try {
             $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
 
-            DB::transaction(function () use ($order) {
-                // 1. Loop through days to delete their menu items first
-                $order->eventDays->each(function ($day) {
-                    $day->menuItems()->delete(); // Delete menu items linked to the day
-                    $day->delete(); // Delete the day itself
-                });
+            // Prevent overpayment (optional validation)
+            if ($request->amount > $order->balance_due) {
+                return back()->with('error', "Payment amount (₦" . number_format($request->amount) . ") exceeds the balance due (₦" . number_format($order->balance_due) . ").");
+            }
 
-                // 2. Finally delete the order
-                $order->delete();
+            $order->payments()->create($request->all());
+
+            return back()->with('success', 'Payment recorded successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to record payment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete a payment record.
+     */
+    public function destroyPayment($order_id, $payment_id)
+    {
+        try {
+            $payment = BanquetPayment::findOrFail($payment_id);
+            $payment->delete();
+            return back()->with('success', 'Payment record deleted.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete payment.');
+        }
+    }
+
+    /**
+     * Generate Invoice PDF.
+     */
+    public function generateInvoice($order_id)
+    {
+        $order = BanquetOrder::with(['customer', 'eventDays.menuItems', 'payments'])
+            ->where('order_id', $order_id)
+            ->firstOrFail();
+
+        $pdf = Pdf::loadView('banquet::pdf.invoice', compact('order'));
+        $pdf->setOptions(['defaultFont' => 'Proxima Nova']);
+
+        return $pdf->stream('Invoice-' . $order->order_id . '.pdf');
+    }
+    /**
+     * Display datatable for index.
+     */
+    public function datatable(Request $request)
+    {
+        $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
+            ->select('id', 'order_id', 'contact_person_name', 'expenses', 'hall_rental_fees', 'status', 'customer_id', 'profit_margin', 'total_revenue', 'created_at')
+            ->latest();
+
+        return DataTables::of($orders)
+            ->addColumn('customer', function ($order) {
+                return [
+                    'name' => $order->customer->name ?? $order->contact_person_name ?? 'N/A',
+                    'contact_person_name' => $order->contact_person_name
+                ];
+            })
+            ->addColumn('organization', function ($order) {
+                return $order->customer->organization ?? 'Private';
+            })
+            ->addColumn('event_dates', function ($order) {
+                if ($order->eventDays->isEmpty()) return '<span class="text-muted fst-italic">Not Scheduled</span>';
+
+                $dates = $order->eventDays->sortBy('event_date');
+                $start = $dates->first()->event_date->format('M d');
+                $end = $dates->last()->event_date->format('M d, Y');
+
+                if ($dates->first()->event_date->isSameDay($dates->last()->event_date)) {
+                    return '<span class="fw-bold text-dark">' . $dates->first()->event_date->format('M d, Y') . '</span>';
+                }
+                return '<span class="fw-bold text-dark">' . $start . ' - ' . $end . '</span>';
+            })
+            ->addColumn('total_guests', function ($order) {
+                return number_format($order->eventDays->sum('guest_count'));
+            })
+            ->addColumn('total_revenue', function ($order) {
+                return '₦' . number_format($order->total_revenue, 2);
+            })
+            ->addColumn('profit_margin', function ($order) {
+                if ($order->profit_margin === null) return '<span class="text-muted">-</span>';
+
+                $color = $order->profit_margin > 20 ? 'success' : ($order->profit_margin > 0 ? 'warning' : 'danger');
+                return '<span class="text-' . $color . ' fw-bold">' . number_format($order->profit_margin, 1) . '%</span>';
+            })
+            ->addColumn('actions', function ($order) {
+                return view('banquet::partials.actions', compact('order'))->render();
+            })
+            ->filterColumn('status', function ($query, $keyword) {
+                $query->where('status', $keyword);
+            })
+            ->rawColumns(['event_dates', 'profit_margin', 'actions', 'status'])
+            ->make(true);
+    }
+   
+   
+    // ... Helper functions (generateOrderId, calculateDuration, calculateProfitMargin) remain the same
+
+    /**
+     * Check availability with Robust ID-based logic
+     */
+    private function checkAvailability($date, $venueId, $startTime, $endTime, $ignoreDayId = null)
+    {
+        // 1. Get the conflicting IDs (Self + Parents + Children)
+        // Example: If checking 'Adamawa + Kano', this returns IDs for 'Adamawa + Kano', 'Adamawa', 'Kano'
+        $venue = BanquetVenue::findOrFail($venueId);
+        $conflictingIds = $venue->getConflictingVenueIds();
+
+        // 2. Query for conflicts
+        $query = BanquetOrderDay::with('banquetOrder')
+            ->where('event_date', $date)
+            ->whereIn('banquet_venue_id', $conflictingIds) // Check against ALL related venues
+            ->where('event_status', '!=', 'Cancelled')
+            ->where(function ($q) use ($startTime, $endTime) {
+                // Time Overlap Logic
+                $q->where('start_time', '<', $endTime)
+                    ->where('end_time', '>', $startTime);
             });
 
-            if (request()->wantsJson()) {
-                return response()->json(['success' => true, 'message' => 'Order deleted successfully.']);
-            }
-
-            return redirect()->route('banquet.orders.index')
-                ->with('success', 'Order deleted successfully.');
-        } catch (\Exception $e) {
-            Log::error('Delete failed: ' . $e->getMessage()); // Log the actual error
-
-            if (request()->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()], 500);
-            }
-            return back()->with('error', 'Failed to delete order: ' . $e->getMessage());
-        }
-    }
-
-
-    /**
-     * Show the form for editing an existing event day.
-     */
-    public function editDay($order_id, $day_id)
-    {
-        $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
-        $day = BanquetOrderDay::findOrFail($day_id);
-        $eventStatuses = ['Pending', 'Confirmed', 'Cancelled'];
-        $eventTypes = ['Wedding', 'Conference', 'Meeting', 'Banquet', 'Other'];
-        $setupStyles = ['Theater Style', 'Classroom Style', 'Boardroom Style', 'U-Shape', 'Banquet Style'];
-        $locations = ['Adamawa Hall', 'Kano Hall', 'Adamawa Hall + Kano Hall', 'Board Room', 'Pent House', 'Restaurant', 'Pool Party'];
-
-        return view('banquet::edit-day', compact('order', 'day', 'eventStatuses', 'eventTypes', 'setupStyles', 'locations'));
-    }
-
-    /**
-     * Update an existing event day with Conflict Checking.
-     */
-    public function updateDay(Request $request, $order_id, $day_id)
-    {
-        $request->validate([
-            'event_date' => 'required|date',
-            'event_description' => 'nullable|string',
-            'guest_count' => 'required|integer|min:1',
-            'event_status' => 'required|in:Pending,Confirmed,Cancelled',
-            'event_type' => 'required|in:Wedding,Conference,Meeting,Banquet,Other',
-            'room' => 'required|string|max:255',
-            'setup_style' => 'required|string|max:255',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-        ]);
-
-        $day = BanquetOrderDay::findOrFail($day_id);
-
-        // 1. Perform Conflict Check (Excluding the current event day we are editing)
-        $conflict = $this->checkAvailability(
-            $request->event_date,
-            $request->room,
-            $request->start_time,
-            $request->end_time,
-            $day->id // <--- Pass ID to ignore
-        );
-
-        if ($conflict) {
-            return back()->withInput()->with('error', "Update Failed: Room unavailable! Overlaps with Order #{$conflict->banquetOrder->order_id} ({$conflict->start_time} - {$conflict->end_time}).");
+        if ($ignoreDayId) {
+            $query->where('id', '!=', $ignoreDayId);
         }
 
-        try {
-            $day->update([
-                'event_date' => $request->event_date,
-                'event_description' => $request->event_description,
-                'guest_count' => $request->guest_count,
-                'event_status' => $request->event_status,
-                'event_type' => $request->event_type,
-                'room' => $request->room,
-                'setup_style' => $request->setup_style,
-                'start_time' => $request->start_time,
-                'end_time' => $request->end_time,
-                'duration_minutes' => $this->calculateDuration($request->start_time, $request->end_time),
-            ]);
-
-            return redirect()->route('banquet.orders.show', $order_id)
-                ->with('success', 'Event day updated successfully.');
-        } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Failed to update event day: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Show the form for editing an existing menu item.
-     */
-    public function editMenuItem($order_id, $day_id, $menu_item_id)
-    {
-        $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
-        $day = BanquetOrderDay::findOrFail($day_id);
-        $menuItem = BanquetOrderMenuItem::findOrFail($menu_item_id);
-        $mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
-        return view('banquet::edit-menu-item', compact('order', 'day', 'menuItem', 'mealTypes'));
-    }
-
-
-
-    /**
-     * Update the status of an event day quickly.
-     */
-    public function updateDayStatus(Request $request, $order_id, $day_id)
-    {
-        $request->validate([
-            'event_status' => 'required|in:Pending,Confirmed,Cancelled',
-        ]);
-
-        try {
-            $day = BanquetOrderDay::findOrFail($day_id);
-            $day->update([
-                'event_status' => $request->event_status,
-            ]);
-
-            return back()->with('success', 'Event day status updated successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to update event day status: ' . $e->getMessage());
-        }
+        return $query->first();
     }
     /**
      * Generate a unique order ID with a dash instead of a slash.
@@ -598,9 +841,8 @@ class BanquetController extends Controller
     {
         $latestOrder = BanquetOrder::latest('id')->first();
         $nextId = $latestOrder ? $latestOrder->id + 1 : 1;
-        return sprintf("%04d-%d", $nextId, now()->year); // Changed from / to -
+        return sprintf("%04d-%d", $nextId, now()->year);
     }
-
     /**
      * Calculate duration in minutes between start and end times.
      */
@@ -612,36 +854,23 @@ class BanquetController extends Controller
         return $end->diff($start)->i + ($end->diff($start)->h * 60);
     }
     /**
-     * Generate pdf function sheet.
+     * Helper Functions to Calculate Profit margin
      */
-    public function generatePdf($order_id)
+    private function calculateProfitMargin($totalRevenue, $expenses)
     {
-        // Fetch the order with related data
-        $order = BanquetOrder::with(['customer', 'eventDays.menuItems'])
-            ->where('order_id', $order_id)
-            ->firstOrFail();
-
-        // Generate the PDF from a Blade view
-        $pdf = Pdf::loadView('banquet::pdf.function-sheet', compact('order'));
-        $pdf->setOptions(['defaultFont' => 'Brown Sugar']);
-        // Stream the PDF to the browser
-        return $pdf->stream('function-sheet-' . $order->order_id . '.pdf');
+        if ($totalRevenue <= 0) {
+            return null;
+        }
+        $profit = $totalRevenue - ($expenses ?? 0);
+        return ($profit / $totalRevenue) * 100;
     }
-    /**
-     * Display the form for selecting the report date range.
-     */
-    public function eventReportForm()
-    {
-        return view('banquet::reports.event-report-form');
-    }
-
     /**
      * Shared logic to fetch and process report data
      */
     private function getReportData($startDate, $endDate)
     {
         $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
-            ->whereIn('status', ['Completed', 'Cancelled', 'Confirmed']) // Included Confirmed for better reporting
+            ->whereIn('status', ['Completed', 'Cancelled', 'Confirmed'])
             ->whereBetween('preparation_date', [$startDate, $endDate])
             ->get();
 
@@ -699,7 +928,6 @@ class BanquetController extends Controller
             ];
         }
 
-        // Determine most used location
         $mostUsedLocation = !empty($locationCounts) ? array_search(max($locationCounts), $locationCounts) : 'N/A';
 
         $summary = [
@@ -710,262 +938,5 @@ class BanquetController extends Controller
         ];
 
         return compact('reportData', 'summary', 'totals', 'startDate', 'endDate');
-    }
-
-    /**
-     * Generate the HTML View Report
-     */
-    public function generateEventReport(Request $request)
-    {
-        $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-        ]);
-
-        $data = $this->getReportData($request->start_date, $request->end_date);
-
-        return view('banquet::reports.event-report', [
-            'reportData' => $data['reportData'],
-            'startDate' => $data['startDate'],
-            'endDate' => $data['endDate'],
-            'summary' => $data['summary'],
-            'totalRevenue' => $data['totals']['revenue'],
-            'totalExpenses' => $data['totals']['expenses'],
-            'totalProfit' => $data['totals']['profit'],
-        ]);
-    }
-
-    /**
-     * Export Report to Excel (CSV)
-     */
-    public function exportEventReport(Request $request)
-    {
-        $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-        ]);
-
-        $data = $this->getReportData($request->start_date, $request->end_date);
-        $filename = 'banquet-report-' . now()->format('Y-m-d-His') . '.csv';
-
-        $headers = [
-            "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
-        ];
-
-        $callback = function () use ($data) {
-            $file = fopen('php://output', 'w');
-
-            // Add BOM for Excel utf-8 compatibility
-            fputs($file, "\xEF\xBB\xBF");
-
-            // CSV Header
-            fputcsv($file, [
-                'Order ID',
-                'Organization/Client',
-                'Dates',
-                'Location',
-                'Guests',
-                'Hall Fee',
-                'F&B Revenue',
-                'Total Revenue',
-                'Expenses',
-                'Profit',
-                'Status'
-            ]);
-
-            // CSV Rows
-            foreach ($data['reportData'] as $row) {
-                fputcsv($file, [
-                    $row['order_id'],
-                    $row['organization'],
-                    $row['event_date_range'],
-                    $row['location'],
-                    $row['guest_count'],
-                    $row['hall_rental_fees'],
-                    $row['food_beverage_total'],
-                    $row['total_revenue'],
-                    $row['expenses'],
-                    $row['profit'],
-                    $row['status']
-                ]);
-            }
-
-            // Summary Footer
-            fputcsv($file, []);
-            fputcsv($file, ['SUMMARY']);
-            fputcsv($file, ['Total Events', $data['summary']['total_events']]);
-            fputcsv($file, ['Total Revenue', $data['totals']['revenue']]);
-            fputcsv($file, ['Total Profit', $data['totals']['profit']]);
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
-    }
-    /**
-     * Store a new payment for an order.
-     */
-    public function storePayment(Request $request, $order_id)
-    {
-        $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'payment_date' => 'required|date',
-            'payment_method' => 'required|string',
-            'reference' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-        ]);
-
-        try {
-            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
-
-            // Prevent overpayment (optional validation)
-            if ($request->amount > $order->balance_due) {
-                return back()->with('error', "Payment amount (₦" . number_format($request->amount) . ") exceeds the balance due (₦" . number_format($order->balance_due) . ").");
-            }
-
-            $order->payments()->create($request->all());
-
-            return back()->with('success', 'Payment recorded successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to record payment: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Delete a payment record.
-     */
-    public function destroyPayment($order_id, $payment_id)
-    {
-        try {
-            $payment = BanquetPayment::findOrFail($payment_id);
-            $payment->delete();
-            return back()->with('success', 'Payment record deleted.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to delete payment.');
-        }
-    }
-
-    /**
-     * Generate Invoice PDF.
-     */
-    public function generateInvoice($order_id)
-    {
-        $order = BanquetOrder::with(['customer', 'eventDays.menuItems', 'payments'])
-            ->where('order_id', $order_id)
-            ->firstOrFail();
-
-        $pdf = Pdf::loadView('banquet::pdf.invoice', compact('order'));
-        $pdf->setOptions(['defaultFont' => 'Proxima Nova']); // Use your font
-
-        return $pdf->stream('Invoice-' . $order->order_id . '.pdf');
-    }
-    /**
-     * 
-     * Display datatable for index.
-     */
-    public function datatable(Request $request)
-    {
-        $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
-            ->select('id', 'order_id', 'contact_person_name', 'expenses', 'hall_rental_fees', 'status', 'customer_id', 'profit_margin', 'total_revenue', 'created_at')
-            ->latest();
-
-        return DataTables::of($orders)
-            ->addColumn('customer', function ($order) {
-                // Fallback to contact person name if customer relation is missing
-                return [
-                    'name' => $order->customer->name ?? $order->contact_person_name ?? 'N/A',
-                    'contact_person_name' => $order->contact_person_name
-                ];
-            })
-            ->addColumn('organization', function ($order) {
-                return $order->customer->organization ?? 'Private';
-            })
-            ->addColumn('event_dates', function ($order) {
-                if ($order->eventDays->isEmpty()) return '<span class="text-muted fst-italic">Not Scheduled</span>';
-
-                $dates = $order->eventDays->sortBy('event_date');
-                $start = $dates->first()->event_date->format('M d');
-                $end = $dates->last()->event_date->format('M d, Y');
-
-                // If same day, just show one date
-                if ($dates->first()->event_date->isSameDay($dates->last()->event_date)) {
-                    return '<span class="fw-bold text-dark">' . $dates->first()->event_date->format('M d, Y') . '</span>';
-                }
-                return '<span class="fw-bold text-dark">' . $start . ' - ' . $end . '</span>';
-            })
-            ->addColumn('total_guests', function ($order) {
-                return number_format($order->eventDays->sum('guest_count'));
-            })
-            ->addColumn('total_revenue', function ($order) {
-                return '₦' . number_format($order->total_revenue, 2);
-            })
-            ->addColumn('profit_margin', function ($order) {
-                if ($order->profit_margin === null) return '<span class="text-muted">-</span>';
-
-                $color = $order->profit_margin > 20 ? 'success' : ($order->profit_margin > 0 ? 'warning' : 'danger');
-                return '<span class="text-' . $color . ' fw-bold">' . number_format($order->profit_margin, 1) . '%</span>';
-            })
-            ->addColumn('actions', function ($order) {
-                return view('banquet::partials.actions', compact('order'))->render();
-            })
-            ->filterColumn('status', function ($query, $keyword) {
-                $query->where('status', $keyword);
-            })
-            ->rawColumns(['event_dates', 'profit_margin', 'actions', 'status']) // Allow HTML in these columns
-            ->make(true);
-    }
-    /**
-     * Check if a room is available for a given time slot.
-     * * @param string $date Y-m-d
-     * @param string $room Room Name
-     * @param string $startTime H:i
-     * @param string $endTime H:i
-     * @param int|null $ignoreId ID of the event day to ignore (for updates)
-     * @return BanquetOrderDay|null Returns the conflicting event or null if available
-     */
-    private function checkAvailability($date, $room, $startTime, $endTime, $ignoreId = null)
-    {
-        // 1. Define conflicting rooms (Handling combined halls logic)
-        $conflictingRooms = [$room];
-
-        if ($room === 'Adamawa Hall + Kano Hall') {
-            $conflictingRooms = ['Adamawa Hall + Kano Hall', 'Adamawa Hall', 'Kano Hall'];
-        } elseif ($room === 'Adamawa Hall') {
-            $conflictingRooms = ['Adamawa Hall', 'Adamawa Hall + Kano Hall'];
-        } elseif ($room === 'Kano Hall') {
-            $conflictingRooms = ['Kano Hall', 'Adamawa Hall + Kano Hall'];
-        }
-
-        // 2. Query for conflicts
-        $query = BanquetOrderDay::with('banquetOrder')
-            ->where('event_date', $date)
-            ->whereIn('room', $conflictingRooms)
-            ->where('event_status', '!=', 'Cancelled') // Cancelled events don't block rooms
-            ->where(function ($q) use ($startTime, $endTime) {
-                // Overlap Logic: (StartA < EndB) and (EndA > StartB)
-                $q->where('start_time', '<', $endTime)
-                    ->where('end_time', '>', $startTime);
-            });
-
-        if ($ignoreId) {
-            $query->where('id', '!=', $ignoreId);
-        }
-
-        return $query->first();
-    }
-    /**
-     * Helper Functions to Calculate Profit margin
-     */
-    private function calculateProfitMargin($totalRevenue, $expenses)
-    {
-        if ($totalRevenue <= 0) {
-            return null;
-        }
-        $profit = $totalRevenue - ($expenses ?? 0);
-        return ($profit / $totalRevenue) * 100;
     }
 }

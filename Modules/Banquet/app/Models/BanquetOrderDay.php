@@ -16,12 +16,15 @@ class BanquetOrderDay extends Model
         'guest_count',
         'event_status',
         'event_type',
-        'room',
-        'setup_style',
+        'room', // Kept for backward compatibility until data migration is done
+        'setup_style', // Kept for backward compatibility
+        'banquet_venue_id', // New Foreign Key
+        'banquet_setup_style_id', // New Foreign Key
         'start_time',
         'end_time',
         'duration_minutes'
     ];
+
     protected $casts = [
         'event_date' => 'date',
     ];
@@ -34,5 +37,21 @@ class BanquetOrderDay extends Model
     public function menuItems()
     {
         return $this->hasMany(BanquetOrderMenuItem::class);
+    }
+
+    /**
+     * Get the venue associated with this event day.
+     */
+    public function venue()
+    {
+        return $this->belongsTo(BanquetVenue::class, 'banquet_venue_id');
+    }
+
+    /**
+     * Get the setup style associated with this event day.
+     */
+    public function style()
+    {
+        return $this->belongsTo(BanquetSetupStyle::class, 'banquet_setup_style_id');
     }
 }

@@ -20,7 +20,7 @@
         
         .totals { width: 40%; float: right; margin-top: 20px; }
         .totals-row { padding: 5px 0; border-bottom: 1px solid #eee; }
-        .totals-row.grand { border-bottom: 2px solid #C8A165; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .totals-row.grand { border-bottom: 2px solid #C8A165; font-weight: bold; font-size: 16px; margin-top: 10px; padding: 2px; }
         
         .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 10px; }
         .status-stamp { 
@@ -65,7 +65,7 @@
         <tbody>
             <tr>
                 <td><strong>Hall Rental Fees</strong><br><small class="text-muted">Venue Booking Charge</small></td>
-                <td class="text-end">₦{{ number_format($order->hall_rental_fees, 2) }}</td>
+                <td class="text-end">N{{ number_format($order->hall_rental_fees, 2) }}</td>
             </tr>
             @foreach($order->eventDays as $day)
                 @foreach($day->menuItems as $item)
@@ -74,10 +74,10 @@
                         <strong>{{ ucfirst($item->meal_type) }}</strong> ({{ $day->event_date->format('M d') }})<br>
                         <small>
                             {{ implode(', ', json_decode($item->menu_items, true)) }} 
-                            x {{ $item->quantity }} guests @ ₦{{ number_format($item->unit_price) }}
+                            x {{ $item->quantity }} guests @ N{{ number_format($item->unit_price) }}
                         </small>
                     </td>
-                    <td class="text-end">₦{{ number_format($item->total_price, 2) }}</td>
+                    <td class="text-end">N{{ number_format($item->total_price, 2) }}</td>
                 </tr>
                 @endforeach
             @endforeach
@@ -87,23 +87,23 @@
     <div class="totals">
         <div class="totals-row">
             <span style="float:left;">Subtotal:</span>
-            <span style="float:right;">₦{{ number_format($order->total_revenue, 2) }}</span>
+            <span style="float:right;">N{{ number_format($order->total_revenue, 2) }}</span>
             <div style="clear:both;"></div>
         </div>
         <div class="totals-row">
             <span style="float:left;">Total Paid:</span>
-            <span style="float:right;">(₦{{ number_format($order->paid_amount, 2) }})</span>
+            <span style="float:right;">(N{{ number_format($order->paid_amount, 2) }})</span>
             <div style="clear:both;"></div>
         </div>
         <div class="totals-row grand">
             <span style="float:left;">Balance Due:</span>
-            <span style="float:right;">₦{{ number_format($order->balance_due, 2) }}</span>
+            <span style="float:right;">N{{ number_format($order->balance_due, 2) }}</span>
             <div style="clear:both;"></div>
         </div>
     </div>
 
     <div class="footer">
-        Thank you for choosing The Brick Hall. Please make all cheques payable to The Brick Hall Ltd.
+        Thank you for choosing The Brickpoint Boutique Aparthotel. Please make all cheques payable to The Brick Hall Ltd.
     </div>
 
 </body>
