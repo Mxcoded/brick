@@ -77,7 +77,7 @@
             <h5 class="mb-0 fw-bold text-gold"><i class="fas fa-list me-2"></i>Order Management</h5>
             @can('manage-banquet')
                 <div class="d-flex gap-2">
-                    <a href="{{ route('banquet.orders.report.form') }}" class="btn btn-outline-charcoal btn-sm">
+                    <a href="{{ route('banquet.reports.form') }}" class="btn btn-outline-charcoal btn-sm">
                         <i class="fas fa-file-pdf me-2"></i>Reports
                     </a>
                     <a href="{{ route('banquet.orders.create') }}" class="btn btn-gold btn-sm">
