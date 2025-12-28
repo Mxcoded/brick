@@ -18,19 +18,19 @@ Route::prefix('staff')
         Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard');
         // ** NEW BIRTHDAY ROUTE **
         Route::get('/birthdays', [StaffController::class, 'birthdays'])->name('birthdays');
-        Route::resource('/', StaffController::class)->names([
+       Route::resource('/', StaffController::class)->names([
             'index'  => 'index',
             'create' => 'create',
             'store'  => 'store',
-            'show'   => 'show',
+            'show'   => 'show', 
             'edit'   => 'edit',
             'update' => 'update',
             'destroy' => 'destroy',
         ])->middleware([
             'index'   => 'permission:view_employees',
+            'show'    => 'permission:view_employees',
             'create'  => 'permission:manage_employees',
             'store'   => 'permission:manage_employees',
-            'show'    => 'permission:view_employees',
             'edit'    => 'permission:manage_employees',
             'update'  => 'permission:manage_employees',
             'destroy' => 'permission:manage_employees',
