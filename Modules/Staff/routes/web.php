@@ -27,6 +27,7 @@ Route::prefix('staff')
             'destroy' => 'destroy',
         ])->middleware([
             'index'   => 'permission:view_employees',
+            'show'    => 'permission:view_employees',
             'create'  => 'permission:manage_employees',
             'store'   => 'permission:manage_employees',
             'edit'    => 'permission:manage_employees',
