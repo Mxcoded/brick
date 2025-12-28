@@ -16,29 +16,6 @@ Route::prefix('staff')
     ->name('staff.')
     ->group(function () {
         Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard');
-        // ** NEW BIRTHDAY ROUTE **
-        Route::get('/birthdays', [StaffController::class, 'birthdays'])->name('birthdays');
-        Route::resource('/', StaffController::class)->names([
-            'index'  => 'index',
-            'create' => 'create',
-            'store'  => 'store',
-            'show'   => 'show', // <--- This was missing!
-            'edit'   => 'edit',
-            'update' => 'update',
-            'destroy' => 'destroy',
-        ])->parameters([
-            '' => 'staff' // <--- THIS FIXES THE {} ISSUE
-        ])->middleware([
-            'index'   => 'permission:view_employees',
-            'show'    => 'permission:view_employees',
-            'create'  => 'permission:manage_employees',
-            'store'   => 'permission:manage_employees',
-            'edit'    => 'permission:manage_employees',
-            'update'  => 'permission:manage_employees',
-            'destroy' => 'permission:manage_employees',
-        ]);
-
-
         // **Leave Management Routes** - NOW HANDLED BY LeaveController
         Route::prefix('leaves')->group(function () {
             // User Leave Routes
@@ -91,8 +68,6 @@ Route::prefix('staff')
             Route::get('/admin/history', [LeaveController::class, 'showLeaveHistory'])
                 ->name('leaves.admin.history');
         });
-
-
         // ** Staff Approval Routes (Admin Only)**
         Route::prefix('approvals')->group(function () {
             Route::get('/', [StaffController::class, 'approvalIndex'])
@@ -102,6 +77,28 @@ Route::prefix('staff')
             Route::post('/reject/{id}', [StaffController::class, 'reject'])
                 ->name('reject');
         });
+
+        // ** NEW BIRTHDAY ROUTE **
+        Route::get('/birthdays', [StaffController::class, 'birthdays'])->name('birthdays');
+        Route::resource('/', StaffController::class)->names([
+            'index'  => 'index',
+            'create' => 'create',
+            'store'  => 'store',
+            'show'   => 'show', // <--- This was missing!
+            'edit'   => 'edit',
+            'update' => 'update',
+            'destroy' => 'destroy',
+        ])->parameters([
+            '' => 'staff' // <--- THIS FIXES THE {} ISSUE
+        ])->middleware([
+            'index'   => 'permission:view_employees',
+            'show'    => 'permission:view_employees',
+            'create'  => 'permission:manage_employees',
+            'store'   => 'permission:manage_employees',
+            'edit'    => 'permission:manage_employees',
+            'update'  => 'permission:manage_employees',
+            'destroy' => 'permission:manage_employees',
+        ]);
     });
 
 // **Public Routes**
