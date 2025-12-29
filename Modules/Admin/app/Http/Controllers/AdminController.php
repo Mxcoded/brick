@@ -2,6 +2,7 @@
 
 namespace Modules\Admin\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Modules\Staff\Models\Employee;
@@ -208,24 +209,40 @@ class AdminController extends Controller
     {
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8|confirmed',
-            'role' => 'required|exists:roles,name',
+            'email'       => 'required|email|unique:users,email',
+            'password'    => 'required|min:8|confirmed',
+            'role'        => 'required|exists:roles,name',
         ]);
 
-        // Create the user
-        $user = User::create([
-            'name' => Employee::find($request->employee_id)->name, // Assuming employee has a name
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        try {
+            DB::beginTransaction(); // Start the transaction
 
-        // Link the user to the employee
-        Employee::where('id', $request->employee_id)->update(['user_id' => $user->id]);
+            // 1. Find the employee first to ensure they exist and get their name
+            $employee = Employee::findOrFail($request->employee_id);
 
-        // Assign the selected role
-        $user->assignRole($request->role);
+            // 2. Create the user
+            $user = User::create([
+                'name'     => $employee->first_name . ' ' . $employee->last_name, // Combine names
+                'email'    => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        return redirect()->route('admin.users.index')->with('success', 'User account created and linked to employee successfully.');
+            // 3. Link the user to the employee
+            $employee->update(['user_id' => $user->id]);
+
+            // 4. Assign the selected role
+            $user->assignRole($request->role);
+
+            DB::commit(); // Commit the transaction
+
+            return redirect()->route('admin.users.index')
+                ->with('success', 'User account created and linked to employee successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack(); // Rollback if any step fails
+
+            return back()
+                ->with('error', 'Error creating user account: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 }
