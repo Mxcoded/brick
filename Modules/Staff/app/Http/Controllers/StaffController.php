@@ -66,10 +66,16 @@ class StaffController extends Controller
         $employee = Employee::findOrFail($id);
         return view('staff::edit', ['employee' => $employee]);
     }
-    public function show($id)
+    // public function show($id)
+    // {
+    //     $employee = Employee::findOrFail($id);
+    //     return view('staff::show', compact('employee'));
+    // }
+    
+    public function show(Employee $staff)
     {
-        $employee = Employee::findOrFail($id);
-        return view('staff::show', compact('employee'));
+        // $staff is already fetched!
+        return view('staff::show', ['employee' => $staff]);
     }
     public function store(Request $request)
     {
@@ -335,7 +341,7 @@ class StaffController extends Controller
         return redirect()->route('staff.edit', $employee->id);
     }
 
-//Staff Approval Functions
+    //Staff Approval Functions
     public function approvalIndex(Request $request)
     {
         $query = Employee::where('status', 'draft');
