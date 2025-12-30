@@ -85,7 +85,6 @@ class StoreRegistrationRequest extends FormRequest
                 'nullable',
                 'email',
                 'max:255',
-                $isGuestDraft ? '' : 'unique:guests,email',
                 new ValidEmail // <-- RESTORED
             ];
 
