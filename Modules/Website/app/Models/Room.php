@@ -16,17 +16,21 @@ class Room extends Model
      */
     protected $fillable = [
         'name',
-        'description',
-        'price_per_night',
-        'image',
-        'video',
-        'featured',
+        'price',
         'capacity',
         'size',
+        'bed_type',
+        'description',
+        'amenities',
+        'video_url',
+        'is_featured',
+        'status',
     ];
 
     protected $casts = [
-        'featured' => 'boolean',
+        'amenities' => 'array',
+        'is_featured' => 'boolean',
+        'price' => 'decimal:2',
     ];
 
     public function amenities()

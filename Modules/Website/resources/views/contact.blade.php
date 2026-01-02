@@ -110,7 +110,7 @@
             </p>
             <div class="d-flex justify-content-center gap-3">
                 <a href="{{ route('website.booking.form') }}" class="btn btn-light btn-lg px-5">Book Now</a>
-                <a href="{{ route('website.rooms') }}" class="btn btn-outline-light btn-lg px-5">Explore Rooms</a>
+                <a href="{{ route('website.rooms.index') }}" class="btn btn-outline-light btn-lg px-5">Explore Rooms</a>
             </div>
         </div>
     </section>

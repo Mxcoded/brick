@@ -6,29 +6,38 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description');
-            $table->decimal('price_per_night', 8, 2);
-            $table->string('image')->nullable();
-            $table->boolean('featured')->default(false);
-            $table->integer('capacity');
-            $table->integer('size');
+            $table->string('slug')->unique();
+            $table->text('description')->nullable();
+
+            // Financial & Specs
+            $table->decimal('price', 10, 2);
+            $table->integer('capacity')->default(2);
+            $table->string('size')->nullable();
+            $table->string('bed_type')->nullable();
+
+            // Media & Features
+            $table->string('video_url')->nullable();
+            $table->boolean('is_featured')->default(false);
+            $table->json('amenities')->nullable();
+
+            // Status & Maintenance
+            $table->string('status')->default('available')->index();
+
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        // FIX: Disable checks to allow dropping referenced table
+        Schema::disableForeignKeyConstraints();
         Schema::dropIfExists('rooms');
+        Schema::enableForeignKeyConstraints();
     }
 };
