@@ -190,8 +190,8 @@
                                 href="{{ route('website.home') }}">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('website.rooms') ? 'active' : '' }}"
-                                href="{{ route('website.rooms') }}">Rooms & Suites</a>
+                            <a class="nav-link {{ request()->routeIs('website.rooms.index') ? 'active' : '' }}"
+                                href="{{ route('website.rooms.index') }}">Rooms & Suites</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.amenities') ? 'active' : '' }}"
@@ -212,7 +212,7 @@
                     </ul>
 
                     <div class="d-flex">
-                        <a href="{{ route('website.booking.form') }}" class="btn btn-primary px-4">
+                        <a href="{{ route('website.booking') }}" class="btn btn-primary px-4">
                             <i class="fas fa-calendar-check me-2"></i>Book Now
                         </a>
                     </div>
@@ -246,7 +246,7 @@
                     <ul class="list-unstyled">
                         <li class="mb-2"><a href="{{ route('website.home') }}"
                                 class="text-muted-footer text-decoration-none">Home</a></li>
-                        <li class="mb-2"><a href="{{ route('website.rooms') }}"
+                        <li class="mb-2"><a href="{{ route('website.rooms.index') }}"
                                 class="text-muted-footer text-decoration-none">Rooms</a></li>
                         <li class="mb-2"><a href="{{ route('website.amenities') }}"
                                 class="text-muted-footer text-decoration-none">Amenities</a></li>
