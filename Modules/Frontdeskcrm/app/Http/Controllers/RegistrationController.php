@@ -96,78 +96,249 @@ class RegistrationController extends Controller
         }
     }
     
+    // /**
+    //  * Store the guest's submitted draft registration.
+    //  * Features: Database Transaction, Phone Normalization, Smart Email Merge.
+    //  */
+    // public function store(StoreRegistrationRequest $request)
+    // {
+    //     // 0. START TRANSACTION
+    //     // We use a transaction to ensure that if any part (Guest, Registration, or Group) fails,
+    //     // nothing is saved to the database. This prevents "orphaned" records.
+    //     return DB::transaction(function () use ($request) {
+
+    //         $validated = $request->validated();
+    //         $notificationMessage = "Registration submitted successfully!";
+
+    //         // 1. DATA PREPARATION: Phone Normalization Helper
+    //         $normalizePhone = function ($phone) {
+    //             if (!$phone) return null;
+    //             $phone = preg_replace('/[\s\-\(\)]+/', '', $phone);
+    //             if (preg_match('/^0[7-9][0-1][0-9]{8}$/', $phone)) {
+    //                 return '+234' . substr($phone, 1);
+    //             }
+    //             return $phone;
+    //         };
+
+    //         $inputPhone = $normalizePhone($validated['contact_number'] ?? null);
+    //         $inputEmail = $validated['email'] ?? null;
+
+    //         $guest = null;
+
+    //         // 2. GUEST RESOLUTION STRATEGY
+
+    //         // A) Check Secure Session (Returning Guest Flow)
+    //         if (session()->has('returning_guest')) {
+    //             $guest = Guest::find(session('returning_guest')['id']);
+    //         }
+
+    //         // B) Check Phone (Standard Search)
+    //         if (!$guest && $inputPhone) {
+    //             $guest = Guest::where('contact_number', $inputPhone)->first();
+    //         }
+
+    //         // C) [SMART MERGE] Check Email
+    //         if (!$guest && $inputEmail) {
+    //             $guest = Guest::where('email', $inputEmail)->first();
+    //             if ($guest) {
+    //                 // Update the old profile with the new phone number
+    //                 $guest->contact_number = $inputPhone;
+    //                 $guest->save();
+    //                 $notificationMessage .= " We found your profile via email and updated your phone number.";
+    //             }
+    //         }
+
+    //         // 3. DUPLICATE CHECK (Prevent Double Submission)
+    //         if ($guest) {
+    //             $existingReg = Registration::where('guest_id', $guest->id)
+    //                 ->whereDate('created_at', Carbon::today())
+    //                 ->whereIn('stay_status', ['draft_by_guest', 'checked_in'])
+    //                 ->first();
+
+    //             if ($existingReg) {
+    //                 // We return a redirect response directly from inside the transaction closure
+    //                 return redirect()->route('frontdesk.registrations.thank-you')
+    //                     ->with('info', "You already have a pending registration for today. Please proceed to the front desk.");
+    //             }
+    //         }
+
+    //         // 4. PERSISTENCE (Update Profile or Create New)
+    //         if ($guest) {
+    //             // === RETURNING GUEST ===
+    //             $guest->update([
+    //                 'title' => $validated['title'] ?? $guest->title,
+    //                 'full_name' => $validated['full_name'],
+    //                 'nationality' => $validated['nationality'] ?? $guest->nationality,
+    //                 'home_address' => $validated['home_address'] ?? $guest->home_address,
+    //                 'emergency_name' => $validated['emergency_name'] ?? $guest->emergency_name,
+    //                 'emergency_contact' => $validated['emergency_contact'] ?? $guest->emergency_contact,
+    //                 'occupation' => $validated['occupation'] ?? $guest->occupation,
+    //                 'email' => $validated['email'] ?? $guest->email,
+    //             ]);
+    //         } else {
+    //             // === TRULY NEW GUEST ===
+    //             $guest = Guest::create([
+    //                 'title' => $validated['title'] ?? null,
+    //                 'full_name' => $validated['full_name'],
+    //                 'contact_number' => $inputPhone,
+    //                 'email' => $inputEmail,
+    //                 'nationality' => $validated['nationality'] ?? null,
+    //                 'home_address' => $validated['home_address'] ?? null,
+    //                 'gender' => $validated['gender'] ?? null,
+    //                 'occupation' => $validated['occupation'] ?? null,
+    //                 'company_name' => $validated['company_name'] ?? null,
+    //                 'emergency_name' => $validated['emergency_name'] ?? null,
+    //                 'emergency_contact' => $validated['emergency_contact'] ?? null,
+    //             ]);
+    //         }
+
+    //         // 5. CREATE REGISTRATION SNAPSHOT
+    //         $registrationData = [
+    //             'guest_id' => $guest->id,
+    //             'stay_status' => 'draft_by_guest',
+    //             'title' => $validated['title'] ?? $guest->title,
+    //             'full_name' => $validated['full_name'],
+    //             'contact_number' => $inputPhone,
+    //             'email' => $validated['email'] ?? $guest->email,
+    //             'nationality' => $validated['nationality'] ?? $guest->nationality,
+    //             'gender' => $validated['gender'] ?? $guest->gender,
+    //             'occupation' => $validated['occupation'] ?? $guest->occupation,
+    //             'company_name' => $validated['company_name'] ?? $guest->company_name,
+    //             'home_address' => $validated['home_address'] ?? $guest->home_address,
+    //             'emergency_name' => $validated['emergency_name'] ?? $guest->emergency_name,
+    //             'emergency_contact' => $validated['emergency_contact'] ?? $guest->emergency_contact,
+    //             'check_in' => $validated['check_in'],
+    //             'check_out' => $validated['check_out'],
+    //             'no_of_guests' => $validated['no_of_guests'],
+    //             'is_group_lead' => $request->boolean('is_group_lead'),
+    //             'agreed_to_policies' => true,
+    //             'opt_in_data_save' => $request->boolean('opt_in_data_save'),
+    //         ];
+
+    //         // Handle Signature Image
+    //         if (!empty($validated['guest_signature'])) {
+    //             $signatureImage = $validated['guest_signature'];
+    //             if (str_contains($signatureImage, ',')) {
+    //                 $signatureImage = explode(',', $signatureImage)[1];
+    //             }
+    //             $signatureImage = base64_decode($signatureImage);
+    //             $imageName = 'signatures/' . uniqid() . '.png';
+    //             Storage::disk('public')->put($imageName, $signatureImage);
+    //             $registrationData['guest_signature'] = $imageName;
+    //         }
+
+    //         $registration = Registration::create($registrationData);
+
+    //         // 6. HANDLE GROUP MEMBERS
+    //         if ($request->boolean('is_group_lead') && !empty($validated['group_members'])) {
+    //             foreach ($validated['group_members'] as $memberData) {
+
+    //                 $memberPhone = $normalizePhone($memberData['contact_number'] ?? null);
+    //                 $memberEmail = $memberData['email'] ?? null;
+    //                 $memberGuest = null;
+
+    //                 if ($memberPhone) {
+    //                     $memberGuest = Guest::where('contact_number', $memberPhone)->first();
+    //                 }
+    //                 if (!$memberGuest && $memberEmail) {
+    //                     $memberGuest = Guest::where('email', $memberEmail)->first();
+    //                 }
+
+    //                 if ($memberGuest) {
+    //                     $memberGuest->update(['full_name' => $memberData['full_name']]);
+    //                 } else {
+    //                     $memberGuest = Guest::create([
+    //                         'full_name' => $memberData['full_name'],
+    //                         'contact_number' => $memberPhone,
+    //                         'email' => $memberEmail,
+    //                     ]);
+    //                 }
+
+    //                 Registration::create([
+    //                     'parent_registration_id' => $registration->id,
+    //                     'guest_id' => $memberGuest->id,
+    //                     'full_name' => $memberData['full_name'],
+    //                     'contact_number' => $memberPhone,
+    //                     'email' => $memberEmail,
+    //                     'check_in' => $registration->check_in,
+    //                     'check_out' => $registration->check_out,
+    //                     'stay_status' => 'draft_by_guest',
+    //                 ]);
+    //             }
+    //         }
+
+    //         // Clean up
+    //         session()->forget('returning_guest');
+
+    //         return redirect()->route('frontdesk.registrations.thank-you')
+    //             ->with('success', $notificationMessage);
+    //     }); // END TRANSACTION
+    // }
+
     /**
      * Store the guest's submitted draft registration.
-     * Features: Database Transaction, Phone Normalization, Smart Email Merge.
+     * SAFE VERSION: Handles missing keys for returning guests to prevent crashes.
      */
     public function store(StoreRegistrationRequest $request)
     {
-        // 0. START TRANSACTION
-        // We use a transaction to ensure that if any part (Guest, Registration, or Group) fails,
-        // nothing is saved to the database. This prevents "orphaned" records.
         return DB::transaction(function () use ($request) {
 
             $validated = $request->validated();
             $notificationMessage = "Registration submitted successfully!";
 
-            // 1. DATA PREPARATION: Phone Normalization Helper
             $normalizePhone = function ($phone) {
                 if (!$phone) return null;
                 $phone = preg_replace('/[\s\-\(\)]+/', '', $phone);
-                if (preg_match('/^0[7-9][0-1][0-9]{8}$/', $phone)) {
-                    return '+234' . substr($phone, 1);
-                }
+                if (preg_match('/^0[7-9][0-1][0-9]{8}$/', $phone)) return '+234' . substr($phone, 1);
                 return $phone;
             };
 
+            // [FIX] Use safe access (?? null) because these keys might not exist in the array
             $inputPhone = $normalizePhone($validated['contact_number'] ?? null);
             $inputEmail = $validated['email'] ?? null;
 
             $guest = null;
 
-            // 2. GUEST RESOLUTION STRATEGY
-
-            // A) Check Secure Session (Returning Guest Flow)
+            // 2. GUEST RESOLUTION
             if (session()->has('returning_guest')) {
                 $guest = Guest::find(session('returning_guest')['id']);
             }
 
-            // B) Check Phone (Standard Search)
             if (!$guest && $inputPhone) {
                 $guest = Guest::where('contact_number', $inputPhone)->first();
             }
 
-            // C) [SMART MERGE] Check Email
+            // Smart Merge (Email Check)
             if (!$guest && $inputEmail) {
                 $guest = Guest::where('email', $inputEmail)->first();
                 if ($guest) {
-                    // Update the old profile with the new phone number
                     $guest->contact_number = $inputPhone;
                     $guest->save();
                     $notificationMessage .= " We found your profile via email and updated your phone number.";
                 }
             }
 
-            // 3. DUPLICATE CHECK (Prevent Double Submission)
+            // 3. DUPLICATE CHECK
             if ($guest) {
                 $existingReg = Registration::where('guest_id', $guest->id)
-                    ->whereDate('created_at', Carbon::today())
+                    ->whereDate('created_at', \Carbon\Carbon::today())
                     ->whereIn('stay_status', ['draft_by_guest', 'checked_in'])
                     ->first();
 
                 if ($existingReg) {
-                    // We return a redirect response directly from inside the transaction closure
                     return redirect()->route('frontdesk.registrations.thank-you')
                         ->with('info', "You already have a pending registration for today. Please proceed to the front desk.");
                 }
             }
 
-            // 4. PERSISTENCE (Update Profile or Create New)
+            // 4. PERSISTENCE
             if ($guest) {
                 // === RETURNING GUEST ===
+                // [CRITICAL FIX] Use '?? $guest->attribute' to fallback to existing DB value
+                // if the input is missing from the form (which happens for Secure Returning Guests).
                 $guest->update([
                     'title' => $validated['title'] ?? $guest->title,
-                    'full_name' => $validated['full_name'],
+                    'full_name' => $validated['full_name'] ?? $guest->full_name, // <--- PREVENTS CRASH
                     'nationality' => $validated['nationality'] ?? $guest->nationality,
                     'home_address' => $validated['home_address'] ?? $guest->home_address,
                     'emergency_name' => $validated['emergency_name'] ?? $guest->emergency_name,
@@ -176,10 +347,10 @@ class RegistrationController extends Controller
                     'email' => $validated['email'] ?? $guest->email,
                 ]);
             } else {
-                // === TRULY NEW GUEST ===
+                // === NEW GUEST ===
                 $guest = Guest::create([
                     'title' => $validated['title'] ?? null,
-                    'full_name' => $validated['full_name'],
+                    'full_name' => $validated['full_name'], // Required for new guests
                     'contact_number' => $inputPhone,
                     'email' => $inputEmail,
                     'nationality' => $validated['nationality'] ?? null,
@@ -192,13 +363,14 @@ class RegistrationController extends Controller
                 ]);
             }
 
-            // 5. CREATE REGISTRATION SNAPSHOT
+            // 5. REGISTRATION SNAPSHOT
             $registrationData = [
                 'guest_id' => $guest->id,
                 'stay_status' => 'draft_by_guest',
+                // [FIX] Fallback to guest profile data if form input is missing
                 'title' => $validated['title'] ?? $guest->title,
-                'full_name' => $validated['full_name'],
-                'contact_number' => $inputPhone,
+                'full_name' => $validated['full_name'] ?? $guest->full_name,
+                'contact_number' => $inputPhone ?? $guest->contact_number,
                 'email' => $validated['email'] ?? $guest->email,
                 'nationality' => $validated['nationality'] ?? $guest->nationality,
                 'gender' => $validated['gender'] ?? $guest->gender,
@@ -215,7 +387,7 @@ class RegistrationController extends Controller
                 'opt_in_data_save' => $request->boolean('opt_in_data_save'),
             ];
 
-            // Handle Signature Image
+            // Signature Logic
             if (!empty($validated['guest_signature'])) {
                 $signatureImage = $validated['guest_signature'];
                 if (str_contains($signatureImage, ',')) {
@@ -229,7 +401,7 @@ class RegistrationController extends Controller
 
             $registration = Registration::create($registrationData);
 
-            // 6. HANDLE GROUP MEMBERS
+            // 6. GROUP MEMBERS
             if ($request->boolean('is_group_lead') && !empty($validated['group_members'])) {
                 foreach ($validated['group_members'] as $memberData) {
 
@@ -245,7 +417,10 @@ class RegistrationController extends Controller
                     }
 
                     if ($memberGuest) {
-                        $memberGuest->update(['full_name' => $memberData['full_name']]);
+                        // [FIX] Only update if key exists
+                        if (isset($memberData['full_name'])) {
+                            $memberGuest->update(['full_name' => $memberData['full_name']]);
+                        }
                     } else {
                         $memberGuest = Guest::create([
                             'full_name' => $memberData['full_name'],
@@ -267,12 +442,11 @@ class RegistrationController extends Controller
                 }
             }
 
-            // Clean up
             session()->forget('returning_guest');
 
             return redirect()->route('frontdesk.registrations.thank-you')
                 ->with('success', $notificationMessage);
-        }); // END TRANSACTION
+        });
     }
     /**
      * Display a simple thank you page to the guest.
