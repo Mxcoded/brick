@@ -1,7 +1,27 @@
-// Body
+
 $body-bg: #f8fafc;
 
 // Typography
 $font-family-sans-serif: 'Nunito', sans-serif;
+$font-size-base: 0.9rem;
+$line-height-base: 1.6;
+ // Color Palette
+$white: #FFFFFF;
+$gold: #C8A165;
+$dark-gray: #333333;
+$soft-neutral: #F5F5F0;
+
+$primary: $gold;
+$secondary: $soft-neutral;
+$dark: $dark-gray;
+$light: $white;
+
+// Body
+$body-bg: $white;
+$body-color: $dark-gray;
+
+// Typography
+$font-family-sans-serif: 'Proxima Nova', Arial, Helvetica, sans-serif;
+$headings-font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
 $font-size-base: 0.9rem;
 $line-height-base: 1.6;
