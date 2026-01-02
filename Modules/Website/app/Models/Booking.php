@@ -10,56 +10,61 @@ class Booking extends Model
 {
     use HasFactory;
 
+    // FIX: Add all fields you want to save to this array
     protected $fillable = [
+        'booking_reference',  // This was causing your error
         'room_id',
-        'user_id',
-        'check_in',
-        'check_out',
+        'user_id',            // Optional: if logged in
+        'guest_profile_id',   // Optional: link to CRM
+
+        // Guest Details (Snapshot)
         'guest_name',
         'guest_email',
         'guest_phone',
-        'guest_company',
-        'guest_address',
-        'guest_nationality',
-        'guest_id_type',
-        'guest_id_number',
-        'number_of_guests',
-        'number_of_children',
-        'special_requests',
-        'status',
-        'total_price',
-        'deposit_amount',
+
+        // Dates & Occupancy
+        'check_in_date',
+        'check_out_date',
+        'adults',
+        'children',
+
+        // Financials
+        'total_amount',
+        'amount_paid',
         'payment_status',
         'payment_method',
-        'source',
-        'check_in_time',
-        'check_out_time',
-        'assigned_staff_id',
-        'room_status',
-        'confirmation_token',
-        'booking_ref_number',
-        'created_by',
-        'updated_by',
-        'cancelled_at',
-        'cancellation_reason',
-    ];
 
-    protected $dates = ['check_in', 'check_out', 'cancelled_at'];
+        // Status
+        'status',
+        'confirmation_token',
+        'special_requests',
+        'admin_notes',
+    ];
 
     protected $casts = [
-        'total_price' => 'decimal:2',
-        'deposit_amount' => 'decimal:2',
+        'check_in_date' => 'date',
+        'check_out_date' => 'date',
+        'total_amount' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
     ];
 
+    /**
+     * Relationship: The room being booked.
+     */
     public function room()
     {
         return $this->belongsTo(Room::class);
     }
 
+    /**
+     * Relationship: The registered user (if applicable).
+     */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(\App\Models\User::class);
     }
+
+   
 
     // public function invoice()
     // {

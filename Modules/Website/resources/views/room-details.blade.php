@@ -104,7 +104,7 @@
                             <h3 class="h4 fw-bold mb-3">Room Overview</h3>
                             <ul class="list-unstyled">
                                 <li class="mb-2"><i class="fas fa-naira-sign text-primary me-2"></i>
-                                    {{ number_format($room->price_per_night) }} / night</li>
+                                    {{ number_format($room->price, 2) }} / night</li>
                                 <li class="mb-2"><i class="fas fa-ruler-combined text-primary me-2"></i>
                                     {{ $room->size ?? 'N/A' }} sq.ft</li>
                                 <li class="mb-2"><i class="fas fa-user-friends text-primary me-2"></i> Up to
@@ -195,7 +195,7 @@
                                             <h4 class="h5">{{ $relatedRoom->name }}</h4>
                                             <p class="text-muted">{{ Str::limit($relatedRoom->description, 50) }}</p>
                                             <p class="fw-bold text-primary mb-0">
-                                                {{ number_format($relatedRoom->price_per_night) }} / night</p>
+                                                ₦{{ number_format($relatedRoom->price, 2) }} / night</p>
                                         </div>
                                         <div class="card-footer bg-white border-0">
                                             <a href="{{ route('website.rooms.show', $relatedRoom->id) }}"

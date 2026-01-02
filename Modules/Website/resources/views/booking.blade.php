@@ -3,135 +3,123 @@
 @section('title', 'Book Your Stay')
 
 @section('content')
-    <section class="booking-section py-5 bg-light">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <div class="card shadow-sm border-0 overflow-hidden">
-                        <div class="card-header bg-primary text-dark py-4">
-                            <h1 class="h3 mb-0 text-center">Reserve Your Luxury Stay</h1>
-                        </div>
-                        <div class="card-body p-4 p-md-5">
-                            @if ($errors->any())
-                                <div class="alert alert-danger">
-                                    <ul>
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
+<section class="booking-section py-5 bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 overflow-hidden">
+                    <div class="card-header btn-primary text-white py-4">
+                        <h1 class="h3 mb-0 text-center fw-bold">Reserve Your Luxury Stay</h1>
+                    </div>
+                    
+                    <div class="card-body p-4 p-md-5">
+                        @if ($errors->any())
+                            <div class="alert alert-danger mb-4">
+                                <ul class="mb-0">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        <form action="{{ route('website.booking.store') }}" method="POST">
+                            @csrf
+                            
+                            <div class="mb-4">
+                                <label for="room_id" class="form-label fw-bold">Select Room</label>
+                                <select name="room_id" id="room_id" class="form-select" required>
+                                    <option value="">-- Choose Your Accommodation --</option>
+                                    @foreach($rooms as $room)
+                                        <option value="{{ $room->id }}" 
+                                            {{-- Pre-selection Logic: Controller Variable OR Request Param OR Validation Old Input --}}
+                                            {{ (isset($selectedRoom) && $selectedRoom->id == $room->id) || request('room_id') == $room->id || old('room_id') == $room->id ? 'selected' : '' }}>
+                                            {{ $room->name }} - ₦{{ number_format($room->price, 2) }}/night
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">All rooms include complimentary breakfast, Wi-Fi, and gym access.</div>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label for="check_in_date" class="form-label fw-bold">Check-in Date</label>
+                                    <input type="date" class="form-control" id="check_in_date" name="check_in_date" 
+                                           value="{{ request('check_in_date') ?? old('check_in_date') }}" 
+                                           min="{{ date('Y-m-d') }}" required>
                                 </div>
-                            @endif
-                            <form action="{{ route('website.booking.store') }}" method="POST">
-                                @csrf
-                                <div class="row g-4">
-                                    <!-- Room Selection -->
-                                    <div class="col-md-12">
-                                        <div class="form-floating">
-                                            <select class="form-select" name="room_id" id="room_id" required>
-                                                <option value="" selected disabled>Select a room</option>
-                                                @foreach ($rooms as $room)
-                                                    <option value="{{ $room->id }}"
-                                                        data-price="{{ $room->price_per_night }}">
-                                                        {{ $room->name }} -
-                                                        ₦{{ number_format($room->price_per_night, 2) }}/night
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            <label for="room_id">Room Type</label>
-                                        </div>
-                                    </div>
-                                    <!-- Date Selection -->
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control flatpickr" name="check_in"
-                                                id="check_in" placeholder="Check-In Date" required>
-                                            <label for="check_in">Check-In Date</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control flatpickr" name="check_out"
-                                                id="check_out" placeholder="Check-Out Date" required>
-                                            <label for="check_out">Check-Out Date</label>
-                                        </div>
-                                    </div>
-                                    <!-- Guest Information -->
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control" name="guest_name" id="guest_name"
-                                                pattern="[A-Za-z ]+" required>
-                                            <label for="guest_name">Full Name</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="email" class="form-control" name="guest_email" id="guest_email"
-                                                required>
-                                            <label for="guest_email">Email Address</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="tel" class="form-control" name="guest_phone" id="guest_phone"
-                                                pattern="[0-9]{10,15}" required>
-                                            <label for="guest_phone">Phone Number</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="number" class="form-control" name="guests" id="guests"
-                                                min="1" max="10" value="1" required>
-                                            <label for="guests">Number of Guests</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="number" class="form-control" name="number_of_children"
-                                                id="number_of_children" min="0" max="10" value="0"
-                                                required>
-                                            <label for="number_of_children">Number of Children</label>
-                                        </div>
-                                    </div>
-                                    <!-- Special Requests -->
-                                    <div class="col-12">
-                                        <div class="form-floating">
-                                            <textarea class="form-control" name="special_requests" id="special_requests" style="height: 100px"></textarea>
-                                            <label for="special_requests">Special Requests (Optional)</label>
-                                        </div>
-                                    </div>
-                                    <!-- Booking Summary -->
-                                    <div class="col-12 mt-4">
-                                        <div class="booking-summary p-4 bg-light rounded">
-                                            <h5 class="mb-3">Booking Summary</h5>
-                                            <div class="d-flex justify-content-between mb-2">
-                                                <span>Room Rate:</span>
-                                                <span id="roomRate">₦0.00</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between mb-2">
-                                                <span>Nights:</span>
-                                                <span id="nightsCount">0</span>
-                                            </div>
-                                            <hr>
-                                            <div class="d-flex justify-content-between fw-bold">
-                                                <span>Total Estimate:</span>
-                                                <span id="totalEstimate">₦0.00</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Submit Button -->
-                                    <div class="col-12 mt-4">
-                                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
-                                            <i class="fas fa-calendar-check me-2"></i> Confirm Reservation
-                                        </button>
-                                    </div>
+                                <div class="col-md-6">
+                                    <label for="check_out_date" class="form-label fw-bold">Check-out Date</label>
+                                    <input type="date" class="form-control" id="check_out_date" name="check_out_date" 
+                                           value="{{ request('check_out_date') ?? old('check_out_date') }}" 
+                                           min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
                                 </div>
-                            </form>
-                        </div>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label for="adults" class="form-label fw-bold">Adults</label>
+                                    <select name="adults" id="adults" class="form-select">
+                                        @for($i=1; $i<=6; $i++)
+                                            <option value="{{ $i }}" {{ (request('adults') == $i || old('adults') == $i) ? 'selected' : '' }}>
+                                                {{ $i }} Adult{{ $i > 1 ? 's' : '' }}
+                                            </option>
+                                        @endfor
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="children" class="form-label fw-bold">Children</label>
+                                    <select name="children" id="children" class="form-select">
+                                        <option value="0">0 Children</option>
+                                        @for($i=1; $i<=4; $i++)
+                                            <option value="{{ $i }}" {{ old('children') == $i ? 'selected' : '' }}>
+                                                {{ $i }} Child{{ $i > 1 ? 'ren' : '' }}
+                                            </option>
+                                        @endfor
+                                    </select>
+                                </div>
+                            </div>
+
+                            <hr class="my-4 text-muted">
+                            <h5 class="mb-3 fw-bold">Guest Details</h5>
+
+                            <div class="mb-3">
+                                <label for="guest_name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="guest_name" name="guest_name" 
+                                       value="{{ old('guest_name') }}" placeholder="John Doe" required>
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="guest_email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="guest_email" name="guest_email" 
+                                           value="{{ old('guest_email') }}" placeholder="john@example.com" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="guest_phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="guest_phone" name="guest_phone" 
+                                           value="{{ old('guest_phone') }}" placeholder="+234..." required>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="special_requests" class="form-label">Special Requests (Optional)</label>
+                                <textarea class="form-control" id="special_requests" name="special_requests" rows="3" 
+                                          placeholder="Late check-in, dietary restrictions, airport pickup...">{{ old('special_requests') }}</textarea>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm">Confirm Reservation</button>
+                                <a href="{{ route('website.home') }}" class="btn btn-outline-secondary">Cancel</a>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
+
 
     @push('styles')
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
