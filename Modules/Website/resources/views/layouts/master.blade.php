@@ -33,6 +33,75 @@
 
     <!-- Custom CSS -->
     <style>
+        /* Design System Tokens */
+        :root {
+            --color-white: #FFFFFF;
+            --color-gold: #C8A165;
+            --color-dark-gray: #333333;
+            --color-soft-neutral: #F5F5F0;
+            
+            --font-primary: 'Proxima Nova', Arial, Helvetica, sans-serif;
+        }
+
+        /* Typography */
+        @font-face {
+            font-family: 'Proxima Nova';
+            src: url("{{ asset('fonts/Proxima Nova Regular.ttf') }}") format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--color-white);
+            color: var(--color-dark-gray);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-primary);
+            color: var(--color-dark-gray);
+        }
+
+        /* Component Overrides */
+        .bg-dark {
+            background-color: var(--color-dark-gray) !important;
+        }
+
+        .bg-light {
+            background-color: var(--color-soft-neutral) !important;
+        }
+
+        .text-primary {
+            color: var(--color-gold) !important;
+        }
+
+        .btn-primary {
+            background-color: var(--color-gold);
+            border-color: var(--color-gold);
+            color: var(--color-dark-gray); /* Dark text for contrast on Gold */
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background-color: #b08d55; /* Darker Gold */
+            border-color: #b08d55;
+            color: var(--color-white);
+        }
+
+        .btn-outline-primary {
+            color: var(--color-gold);
+            border-color: var(--color-gold);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--color-gold);
+            border-color: var(--color-gold);
+            color: var(--color-dark-gray);
+        }
+
+        .btn-outline-light:hover {
+            color: var(--color-dark-gray);
+        }
         /* Enhanced logo styling */
         .navbar-brand {
             padding: 0;

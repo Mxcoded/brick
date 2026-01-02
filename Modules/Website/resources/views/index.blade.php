@@ -19,8 +19,8 @@
                 <div class="container h-100 d-flex align-items-center position-relative z-index-1">
                     <div class="hero-content text-white text-center w-100 pt-5 pb-6">
                         <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" alt="Brickspoint Logo" class="mb-4 hotel-logo">
-                        <h4 class="display-3 fw-light mb-4 animate__animated animate__fadeInDown" style="font-family: FuturaLight; text-transform: uppercase;">Experience Unmatched Luxury</h4>
-                        <p class="lead mb-5 animate__animated animate__fadeInUp animate__delay-1s" style="font-family: FuturaLight;">Discover our exquisite accommodations in the heart of Abuja</p>
+                        <h4 class="display-3 fw-light mb-4 animate__animated animate__fadeInDown" style="text-transform: uppercase;">Experience Unmatched Luxury</h4>
+                        <p class="lead mb-5 animate__animated animate__fadeInUp animate__delay-1s">Discover our exquisite accommodations in the heart of Abuja</p>
                         <div class="d-flex justify-content-center gap-3 animate__animated animate__fadeInUp animate__delay-2s mb-5">
                             <a href="{{ route('website.booking.form') }}" class="btn btn-primary btn-lg px-5 py-3">Book Your Stay</a>
                             <a href="#featured-rooms" class="btn btn-outline-light btn-lg px-5 py-3">Explore Rooms</a>
@@ -117,11 +117,11 @@
 </section>
 
     <!-- Featured Rooms Section -->
-    <section id="featured-rooms" class="py-5 py-lg-7 bg-light">
+   <section id="featured-rooms" class="py-5 py-lg-7 bg-light">
         <div class="container">
             <div class="section-header text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3" style="font-family: FuturaLight; text-transform: uppercase;">Our Signature Rooms & Suites</h2>
-                <p class="text-muted mx-auto" style="max-width: 700px;" style="font-family: FuturaLight;">Each of our accommodations is designed to provide the ultimate comfort and luxury experience.</p>
+                <h2 class="display-5 fw-bold mb-3" style="text-transform: uppercase;">Our Signature Rooms & Suites</h2>
+                <p class="text-muted mx-auto" style="max-width: 700px;">Each of our accommodations is designed to provide the ultimate comfort and luxury experience.</p>
             </div>
 
             <div class="row g-4">
