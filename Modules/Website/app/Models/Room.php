@@ -16,13 +16,14 @@ class Room extends Model
      */
     protected $fillable = [
         'name',
-        'price',
+        'slug',           // Critical for SEO links
+        'description',
+        'price',          // Critical: Fixes the 0 price issue
         'capacity',
         'size',
         'bed_type',
-        'description',
-        'amenities',
         'video_url',
+        'amenities',
         'is_featured',
         'status',
     ];

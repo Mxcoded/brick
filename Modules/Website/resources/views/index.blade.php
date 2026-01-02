@@ -36,31 +36,30 @@
                             <!-- Quick Booking Form - Moved below CTA buttons -->
                             <div class="quick-booking-form bg-white p-4 rounded shadow mx-auto mt-4"
                                 style="max-width: 900px;">
-                                <form action="{{ route('website.booking') }}" method="GET"
-                                    class="row g-3 align-items-end">
-                                    <div class="col-md-3">
-                                        <label for="check_in" class="form-label">Check-In</label>
-                                        <input type="date" class="form-control" id="check_in" name="check_in"
-                                            min="{{ date('Y-m-d') }}" required>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="check_out" class="form-label">Check-Out</label>
-                                        <input type="date" class="form-control" id="check_out" name="check_out"
-                                            min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label for="guests" class="form-label">Guests</label>
-                                        <select class="form-select" id="guests" name="guests">
-                                            <option value="1">1 Guest</option>
-                                            <option value="2" selected>2 Guests</option>
-                                            <option value="3">3 Guests</option>
-                                            <option value="4">4 Guests</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <button type="submit" class="btn btn-primary w-100">Check Availability</button>
-                                    </div>
-                                </form>
+                                <form action="{{ route('website.rooms.index') }}" method="GET" class="shadow-lg p-4 bg-white rounded rounded-3 position-relative z-index-1 mt-n5 mx-auto" style="max-width: 1000px;">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label fw-bold text-uppercase small text-muted">Check In</label>
+            <input type="date" name="check_in" class="form-control bg-light border-0" required min="{{ date('Y-m-d') }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold text-uppercase small text-muted">Check Out</label>
+            <input type="date" name="check_out" class="form-control bg-light border-0" required min="{{ date('Y-m-d', strtotime('+1 day')) }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold text-uppercase small text-muted">Guests</label>
+            <select name="adults" class="form-select bg-light border-0">
+                <option value="1">1 Adult</option>
+                <option value="2">2 Adults</option>
+                <option value="3">3 Adults</option>
+                <option value="4">4+ Adults</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Check Availability</button>
+        </div>
+    </div>
+</form>
                             </div>
                         </div>
                     </div>
@@ -150,8 +149,8 @@
                             <div class="room-img-container position-relative overflow-hidden">
                                 <img src="{{ Storage::url($room->image) }}" class="card-img-top room-image"
                                     alt="{{ $room->name }}">
-                                <div class="price-tag position-absolute bg-primary text-white px-3 py-2">
-                                    N {{ number_format($room->price_per_night) }} <small>/ night</small>
+                                <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
+                                    ₦{{ number_format($room->price, 2) }} <small>/ night</small>
                                 </div>
                                 <div class="room-overlay d-flex align-items-center justify-content-center">
                                     <a href="{{ route('website.rooms.show', $room->id) }}"

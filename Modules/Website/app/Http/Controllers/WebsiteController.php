@@ -40,30 +40,72 @@ class WebsiteController extends Controller
         return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining'));
     }
 
+    /**
+     * Display the rooms page with filtering.
+     */
     public function rooms(Request $request)
     {
-        $query = Room::query();
+        // 1. Base Query
+        $query = Room::where('status', 'available');
 
-        // Filters
-        if ($request->has('min_price')) {
-            $query->where('price_per_night', '>=', $request->input('min_price'));
+        // 2. Search (Name/Description)
+        $query->when($request->filled('search'), function ($q) use ($request) {
+            $q->where(function ($sub) use ($request) {
+                $sub->where('name', 'like', '%' . $request->search . '%')
+                    ->orWhere('description', 'like', '%' . $request->search . '%');
+            });
+        });
+
+        // 3. Filter by Min Price (Matches your blade 'min_price')
+        $query->when($request->filled('min_price'), function ($q) use ($request) {
+            $q->where('price', '>=', $request->min_price);
+        });
+
+        // 4. Filter by Max Price (Matches your blade 'max_price')
+        $query->when($request->filled('max_price'), function ($q) use ($request) {
+            $q->where('price', '<=', $request->max_price);
+        });
+
+        // 5. Filter by Guests (Matches your blade 'guests')
+        // We assume 'guests' maps to the 'capacity' column
+        $query->when($request->filled('guests'), function ($q) use ($request) {
+            $q->where('capacity', '>=', $request->guests);
+        });
+
+        // 6. Availability Check (from Homepage Shortcut)
+        if ($request->filled(['check_in', 'check_out'])) {
+            $checkIn = Carbon::parse($request->check_in);
+            $checkOut = Carbon::parse($request->check_out);
+
+            $query->whereDoesntHave('bookings', function ($q) use ($checkIn, $checkOut) {
+                $q->where('status', '!=', 'cancelled')
+                    ->where(function ($sub) use ($checkIn, $checkOut) {
+                        $sub->where('check_in_date', '<', $checkOut)
+                            ->where('check_out_date', '>', $checkIn);
+                    });
+            });
         }
-        if ($request->has('max_price')) {
-            $query->where('price_per_night', '<=', $request->input('max_price'));
-        }
-        if ($request->has('guests')) {
-            $query->where('capacity', '>=', $request->input('guests'));
-        }
-        if ($request->has('sort')) {
-            $sort = $request->input('sort');
-            if ($sort === 'price_asc') {
-                $query->orderBy('price_per_night', 'asc');
-            } elseif ($sort === 'price_desc') {
-                $query->orderBy('price_per_night', 'desc');
+
+        // 7. Sorting (Matches your blade 'sort')
+        if ($request->filled('sort')) {
+            switch ($request->sort) {
+                case 'price_asc':
+                    $query->orderBy('price', 'asc');
+                    break;
+                case 'price_desc':
+                    $query->orderBy('price', 'desc');
+                    break;
+                default:
+                    $query->latest();
+                    break;
             }
+        } else {
+            $query->latest();
         }
 
-        $rooms = $query->get();
+        // 8. Pagination
+        $rooms = $query->paginate(9)->withQueryString();
+
         return view('website::rooms', compact('rooms'));
     }
     /**
