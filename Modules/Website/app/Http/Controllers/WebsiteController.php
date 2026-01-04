@@ -216,9 +216,12 @@ class WebsiteController extends Controller
     /**
      * Show confirmation page.
      */
-    public function confirmation($ref = null)
+    public function confirmation($ref)
     {
-        return view('website::booking-confirmation', compact('ref'));
+        // FIX: Fetch the actual booking object using the reference string
+        $booking = Booking::where('booking_reference', $ref)->firstOrFail();
+
+        return view('website::booking-confirmation', compact('booking'));
     }
     public function amenities()
     {

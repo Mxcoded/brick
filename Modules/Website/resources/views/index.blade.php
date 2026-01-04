@@ -370,7 +370,7 @@
     </section>
 
     <!-- Call to Action Section -->
-    <section class="py-5 py-lg-7 bg-primary text-white">
+    <section class="py-5 py-lg-7 btn-primary text-white">
         <div class="container text-center">
             <h2 class="display-5 fw-bold mb-4">Ready for an Unforgettable Experience?</h2>
             <p class="lead mb-5 mx-auto" style="max-width: 700px;">Book your stay today and discover the perfect blend of

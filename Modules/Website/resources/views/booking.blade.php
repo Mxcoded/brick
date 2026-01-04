@@ -23,34 +23,33 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('website.booking.store') }}" method="POST">
+                        <form id="bookingForm" action="{{ route('website.booking.store') }}" method="POST">
                             @csrf
                             
-                            <div class="mb-4">
+                            <div class="mb-4 position-relative">
                                 <label for="room_id" class="form-label fw-bold">Select Room</label>
-                                <select name="room_id" id="room_id" class="form-select" required>
+                                <select name="room_id" id="room_id" class="form-select live-check" required>
                                     <option value="">-- Choose Your Accommodation --</option>
                                     @foreach($rooms as $room)
                                         <option value="{{ $room->id }}" 
-                                            {{-- Pre-selection Logic: Controller Variable OR Request Param OR Validation Old Input --}}
                                             {{ (isset($selectedRoom) && $selectedRoom->id == $room->id) || request('room_id') == $room->id || old('room_id') == $room->id ? 'selected' : '' }}>
                                             {{ $room->name }} - ₦{{ number_format($room->price, 2) }}/night
                                         </option>
                                     @endforeach
                                 </select>
-                                <div class="form-text">All rooms include complimentary breakfast, Wi-Fi, and gym access.</div>
+                                <div id="availability-feedback" class="mt-2 text-danger small fw-bold d-none"></div>
                             </div>
 
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
                                     <label for="check_in_date" class="form-label fw-bold">Check-in Date</label>
-                                    <input type="date" class="form-control" id="check_in_date" name="check_in_date" 
+                                    <input type="date" class="form-control live-check" id="check_in_date" name="check_in_date" 
                                            value="{{ request('check_in_date') ?? old('check_in_date') }}" 
                                            min="{{ date('Y-m-d') }}" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="check_out_date" class="form-label fw-bold">Check-out Date</label>
-                                    <input type="date" class="form-control" id="check_out_date" name="check_out_date" 
+                                    <input type="date" class="form-control live-check" id="check_out_date" name="check_out_date" 
                                            value="{{ request('check_out_date') ?? old('check_out_date') }}" 
                                            min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
                                 </div>
@@ -109,7 +108,10 @@
                             </div>
 
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm">Confirm Reservation</button>
+                                <button type="submit" id="submitBtn" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm">
+                                    <span class="btn-text">Confirm Reservation</span>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                </button>
                                 <a href="{{ route('website.home') }}" class="btn btn-outline-secondary">Cancel</a>
                             </div>
                         </form>
@@ -119,154 +121,87 @@
         </div>
     </div>
 </section>
-
-
-    @push('styles')
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-        <style>
-            .booking-section {
-                background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
-                    url('{{ asset('images/booking-bg.jpg') }}') no-repeat center center;
-                background-size: cover;
-            }
-
-            .card {
-                border-radius: 10px;
-                overflow: hidden;
-            }
-
-            .form-control:focus,
-            .form-select:focus {
-                border-color: #0d6efd;
-                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-            }
-
-            .booking-summary {
-                border: 1px solid #dee2e6;
-            }
-
-            .flatpickr-input {
-                background: transparent;
-            }
-        </style>
-    @endpush
-
-    @push('scripts')
-        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const roomSelect = document.getElementById('room_id');
-                const checkIn = document.getElementById('check_in');
-                const checkOut = document.getElementById('check_out');
-                const roomRate = document.getElementById('roomRate');
-                const nightsCount = document.getElementById('nightsCount');
-                const totalEstimate = document.getElementById('totalEstimate');
-
-                // Initialize Flatpickr
-                const checkInPicker = flatpickr('#check_in', {
-                    dateFormat: 'Y-m-d',
-                    minDate: 'today',
-                    onChange: function(selectedDates, dateStr) {
-                        const nextDay = new Date(selectedDates[0]);
-                        nextDay.setDate(nextDay.getDate() + 1);
-                        checkOutPicker.set('minDate', nextDay);
-                        if (checkOut.value && new Date(checkOut.value) <= nextDay) {
-                            checkOutPicker.setDate(nextDay);
-                        }
-                        calculateTotal();
-                    }
-                });
-
-                const checkOutPicker = flatpickr('#check_out', {
-                    dateFormat: 'Y-m-d',
-                    minDate: new Date().setDate(new Date().getDate() + 1),
-                    onChange: function(selectedDates, dateStr) {
-                        const checkInDate = new Date(checkIn.value);
-                        if (selectedDates[0] <= checkInDate) {
-                            const nextDay = new Date(checkInDate);
-                            nextDay.setDate(nextDay.getDate() + 1);
-                            checkOutPicker.setDate(nextDay);
-                        }
-                        calculateTotal();
-                    }
-                });
-
-                checkIn.addEventListener('change', calculateTotal);
-                checkOut.addEventListener('change', calculateTotal);
-                roomSelect.addEventListener('change', calculateTotal);
-
-                function calculateTotal() {
-                    if (roomSelect.value && checkIn.value && checkOut.value) {
-                        const price = Math.abs(parseFloat(roomSelect.options[roomSelect.selectedIndex].dataset.price));
-                        const checkInDate = new Date(checkIn.value);
-                        const checkOutDate = new Date(checkOut.value);
-
-                        if (checkOutDate <= checkInDate) {
-                            console.warn('Invalid dates: check-out must be after check-in', {
-                                checkIn: checkIn.value,
-                                checkOut: checkOut.value
-                            });
-                            const nextDay = new Date(checkIn.value);
-                            nextDay.setDate(nextDay.getDate() + 1);
-                            checkOut.value = nextDay.toISOString().split('T')[0];
-                            checkOutDate.setTime(nextDay.getTime());
-                        }
-
-                        const timeDiff = checkOutDate - checkInDate;
-                        const nights = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
-
-                        roomRate.textContent = `₦${price.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
-                        nightsCount.textContent = nights;
-                        const total = Math.max(0, (price * nights).toFixed(2));
-                        totalEstimate.textContent =
-                            `₦${parseFloat(total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
-                    }
-                }
-
-                document.getElementById('bookingForm').addEventListener('submit', function(e) {
-                    try {
-                        const checkInDate = new Date(checkIn.value);
-                        const checkOutDate = new Date(checkOut.value);
-                        if (!checkIn.value || !checkOut.value || isNaN(checkInDate) || isNaN(checkOutDate)) {
-                            e.preventDefault();
-                            alert('Please select valid check-in and check-out dates.');
-                            console.error('Invalid date values', {
-                                checkIn: checkIn.value,
-                                checkOut: checkOut.value
-                            });
-                            return;
-                        }
-                        if (checkOutDate <= checkInDate) {
-                            e.preventDefault();
-                            alert('Check-out date must be after check-in date.');
-                            const nextDay = new Date(checkIn.value);
-                            nextDay.setDate(nextDay.getDate() + 1);
-                            checkOut.value = nextDay.toISOString().split('T')[0];
-                            calculateTotal();
-                            console.warn('Adjusted check-out date', {
-                                newCheckOut: checkOut.value
-                            });
-                            return;
-                        }
-                        console.log('Submitting form:', {
-                            room_id: roomSelect.value,
-                            check_in: checkIn.value,
-                            check_out: checkOut.value,
-                            guest_name: document.getElementById('guest_name').value,
-                            guest_email: document.getElementById('guest_email').value,
-                            guest_phone: document.getElementById('guest_phone').value,
-                            guests: document.getElementById('guests').value,
-                            number_of_children: document.getElementById('number_of_children').value
-                        });
-                    } catch (error) {
-                        e.preventDefault();
-                        console.error('Form submission error:', error);
-                        alert('An error occurred while submitting the form. Please try again.');
-                    }
-                });
-
-                calculateTotal();
-            });
-        </script>
-    @endpush
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('.live-check');
+    const feedback = document.getElementById('availability-feedback');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const spinner = submitBtn.querySelector('.spinner-border');
+
+    // Debounce timer to prevent spamming server
+    let timeout = null;
+
+    inputs.forEach(input => {
+        input.addEventListener('change', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(checkAvailability, 500);
+        });
+    });
+
+    function checkAvailability() {
+        const roomId = document.getElementById('room_id').value;
+        const checkIn = document.getElementById('check_in_date').value;
+        const checkOut = document.getElementById('check_out_date').value;
+
+        // Reset UI
+        feedback.classList.add('d-none');
+        feedback.className = 'mt-2 small fw-bold d-none'; // Reset colors
+        submitBtn.disabled = false;
+
+        // Only check if all 3 fields are filled
+        if (!roomId || !checkIn || !checkOut) return;
+
+        // Show loading state
+        btnText.textContent = 'Checking availability...';
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+
+        fetch("{{ route('website.room.checkAvailability') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                room_id: roomId,
+                check_in_date: checkIn,
+                check_out_date: checkOut
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            feedback.classList.remove('d-none');
+            
+            if (data.available) {
+                // SUCCESS
+                feedback.classList.add('text-success');
+                feedback.innerHTML = '<i class="fas fa-check-circle"></i> ' + data.message;
+                submitBtn.disabled = false;
+            } else {
+                // FAIL
+                feedback.classList.add('text-danger');
+                feedback.innerHTML = '<i class="fas fa-times-circle"></i> ' + data.message;
+                submitBtn.disabled = true; // Keep disabled so they can't submit
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            btnText.textContent = 'Confirm Reservation';
+            spinner.classList.add('d-none');
+        });
+    }
+    
+    // Run check immediately if pre-filled (e.g. redirected from home)
+    if(document.getElementById('room_id').value && document.getElementById('check_in_date').value) {
+        checkAvailability();
+    }
+});
+</script>
+@endpush
