@@ -87,10 +87,10 @@
                             <div class="col-md-6">
                                 <h5 class="mb-3">Financial Information</h5>
                                 <div class="mb-2">
-                                    <strong>Total Price:</strong> ${{ number_format($booking->total_price, 2) }}
+                                    <strong>Total Price:</strong><span class="fa-naira">₦{{ number_format($booking->total_amount, 2) }}</span>
                                 </div>
                                 <div class="mb-2">
-                                    <strong>Deposit Amount:</strong> ${{ number_format($booking->deposit_amount ?? 0, 2) }}
+                                    <strong>Deposit Amount:</strong> <span class="fa-naira">₦{{ number_format($booking->amount_paid ?? 0, 2) }}</span>
                                 </div>
                                 <div class="mb-2">
                                     <strong>Payment Status:</strong> {{ ucfirst($booking->payment_status) }}
@@ -103,10 +103,10 @@
                             <div class="col-md-6">
                                 <h5 class="mb-3">Operational Information</h5>
                                 <div class="mb-2">
-                                    <strong>Source:</strong> {{ $booking->source ?? 'N/A' }}
+                                    <strong>Source:</strong> {{ $booking->source ?? 'Hotel Website' }}
                                 </div>
                                 <div class="mb-2">
-                                    <strong>Room Status:</strong> {{ $booking->room_status ?? 'N/A' }}
+                                    <strong>Room Status:</strong> {{ $booking->room->status ?? 'N/A' }}
                                 </div>
                                 <div class="mb-2">
                                     <strong>Assigned Staff:</strong> {{ $booking->assignedStaff ? $booking->assignedStaff->name : 'N/A' }}

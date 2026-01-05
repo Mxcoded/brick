@@ -33,7 +33,7 @@
                         @foreach ($rooms as $room)
                             <tr>
                                 <td>{{ $room->name }}</td>
-                                <td>{{ number_format($room->price_per_night, 2) }}</td>
+                                <td>{{ number_format($room->price, 2) }}</td>
                                 <td>{{ $room->capacity }}</td>
                                 <td>{{ $room->size ?? 'N/A' }}</td>
                                 <td>{{ $room->featured ? 'Yes' : 'No' }}</td>

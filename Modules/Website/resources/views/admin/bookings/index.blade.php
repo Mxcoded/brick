@@ -48,7 +48,7 @@
                                         <tr>
                                             <th>Booking Ref</th>
                                             <th>Guest Name</th>
-                                            <th>Room</th>
+                                            <th>Room Type</th>
                                             <th>Check-In</th>
                                             <th>Check-Out</th>
                                             <th>Nights</th>
@@ -60,13 +60,13 @@
                                     <tbody>
                                         @foreach ($bookings as $booking)
                                             <tr>
-                                                <td>{{ $booking->booking_ref_number }}</td>
+                                                <td>{{ $booking->booking_reference }}</td>
                                                 <td>{{ $booking->guest_name }}</td>
                                                 <td>{{ $booking->room->name }}</td>
-                                                <td>{{ \Carbon\Carbon::parse($booking->check_in)->format('Y-m-d') }}</td>
-                                                <td>{{ \Carbon\Carbon::parse($booking->check_out)->format('Y-m-d') }}</td>
-                                                <td>{{ max(1, \Carbon\Carbon::parse($booking->check_in)->diffInDays(\Carbon\Carbon::parse($booking->check_out))) }}</td>
-                                                <td>₦{{ number_format($booking->total_price, 2) }}</td>
+                                                <td>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('Y-m-d') }}</td>
+                                                <td>{{ \Carbon\Carbon::parse($booking->check_out_date)->format('Y-m-d') }}</td>
+                                                <td>{{ max(1, \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date))) }}</td>
+                                                <td>₦{{ number_format($booking->total_amount, 2) }}</td>
                                                 <td>
                                                     <span class="badge {{ $booking->status == 'pending' ? 'bg-warning' : ($booking->status == 'confirmed' ? 'bg-success' : 'bg-danger') }}">
                                                         {{ ucfirst($booking->status) }}
