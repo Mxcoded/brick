@@ -30,7 +30,7 @@ Route::middleware(['web'])->group(function () {
     // =========================================================================
     Route::controller(WebsiteController::class)->group(function () {
         // Core Pages
-        Route::get('/', 'index')->name('website.home');
+        Route::get('/website', 'index')->name('website.home');
         Route::get('/about-us', 'about')->name('website.about');
         Route::get('/contact-us', 'contact')->name('website.contact');
         Route::get('/location', 'location')->name('website.location');
@@ -72,12 +72,12 @@ Route::middleware(['web'])->group(function () {
     // =========================================================================
     // Access: http://your-site.com/website/admin
     Route::middleware(['auth']) // Add 'can:manage_website' here in production
-        ->prefix('admin')
+        ->prefix('website/admin')
         ->name('website.admin.')
         ->group(function () {
 
             // Dashboard
-            Route::get('/', [WebsiteAdminController::class, 'index'])->name('dashboard');
+            Route::get('/', [WebsiteAdminController::class, 'dashboard'])->name('dashboard');
 
             // Resource Management
             Route::resource('rooms', AdminRoomController::class);
@@ -85,8 +85,9 @@ Route::middleware(['web'])->group(function () {
             Route::resource('amenities', AmenityController::class);
             Route::resource('settings', SettingController::class);
 
-            // Contact Messages (Read Only / Reply)
-            Route::resource('messages', ContactMessageController::class)->only(['index', 'show', 'destroy']);
+        // Contact Messages (Read Only / Reply)
+        Route::resource('contact-messages', ContactMessageController::class)
+            ->only(['index', 'show', 'destroy']);
 
             // Manual specific routes if Resources don't cover everything
             Route::post('/rooms/image/upload', [AdminRoomController::class, 'uploadImage'])->name('rooms.image.upload');

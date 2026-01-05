@@ -13,7 +13,7 @@
                 <dt class="col-sm-3">Description</dt>
                 <dd class="col-sm-9">{{ $room->description ?? 'N/A' }}</dd>
                 <dt class="col-sm-3">Price/Night</dt>
-                <dd class="col-sm-9">{{ number_format($room->price_per_night, 2) }}</dd>
+                <dd class="col-sm-9">{{ number_format($room->price, 2) }}</dd>
                 <dt class="col-sm-3">Capacity</dt>
                 <dd class="col-sm-9">{{ $room->capacity }}</dd>
                 <dt class="col-sm-3">Size</dt>
