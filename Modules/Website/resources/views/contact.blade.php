@@ -31,7 +31,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('website.contact.submit') }}" method="POST" class="needs-validation" novalidate>
+                    <form action="{{ route('website.contact.send') }}" method="POST" class="needs-validation" novalidate>
                         @csrf
                         <div class="mb-3">
                             <label for="name" class="form-label">Name</label>
@@ -109,7 +109,7 @@
             <p class="lead mb-5 mx-auto" style="max-width: 700px;">Reach out to us and let us make your visit unforgettable.
             </p>
             <div class="d-flex justify-content-center gap-3">
-                <a href="{{ route('website.booking.form') }}" class="btn btn-light btn-lg px-5">Book Now</a>
+                <a href="{{ route('website.booking') }}" class="btn btn-light btn-lg px-5">Book Now</a>
                 <a href="{{ route('website.rooms.index') }}" class="btn btn-outline-light btn-lg px-5">Explore Rooms</a>
             </div>
         </div>

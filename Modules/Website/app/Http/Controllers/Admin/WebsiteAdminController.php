@@ -16,15 +16,30 @@ class WebsiteAdminController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function dashboard()
+    /**
+     * Display the Website Admin Dashboard.
+     */
+    public function index()
     {
+        // 1. Booking Stats
         $stats = [
-            'total_rooms' => Room::count(),
-            'active_bookings' => Booking::where('status', 'confirmed')->count(),
-            'unread_messages' => ContactMessage::where('status', 'unread')->count(),
-            'total_amenities' => Amenity::count(),
+            'total_bookings' => Booking::count(),
+            'pending_bookings' => Booking::where('status', 'pending')->count(),
+            'confirmed_bookings' => Booking::where('status', 'confirmed')->count(),
+            'revenue' => Booking::where('payment_status', 'paid')->sum('total_amount'),
         ];
 
-        return view('website::admin.dashboard', compact('stats'));
+        // 2. Room Status
+        $rooms = [
+            'total' => Room::count(),
+            'available' => Room::where('status', 'available')->count(),
+            'maintenance' => Room::where('status', 'maintenance')->count(),
+        ];
+
+        // 3. Recent Activity
+        $recentBookings = Booking::with('room')->latest()->take(5)->get();
+        $recentMessages = ContactMessage::where('status', false)->latest()->take(5)->get();
+
+        return view('website::admin.dashboard', compact('stats', 'rooms', 'recentBookings', 'recentMessages'));
     }
 }

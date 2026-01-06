@@ -77,7 +77,7 @@ Route::middleware(['web'])->group(function () {
         ->group(function () {
 
             // Dashboard
-            Route::get('/', [WebsiteAdminController::class, 'dashboard'])->name('dashboard');
+            Route::get('/', [WebsiteAdminController::class, 'index'])->name('dashboard');
 
             // Resource Management
             Route::resource('rooms', AdminRoomController::class);
@@ -87,7 +87,7 @@ Route::middleware(['web'])->group(function () {
 
         // Contact Messages (Read Only / Reply)
         Route::resource('contact-messages', ContactMessageController::class)
-            ->only(['index', 'show', 'destroy']);
+            ->only(['index', 'show', 'destroy', 'update']);
 
             // Manual specific routes if Resources don't cover everything
             Route::post('/rooms/image/upload', [AdminRoomController::class, 'uploadImage'])->name('rooms.image.upload');

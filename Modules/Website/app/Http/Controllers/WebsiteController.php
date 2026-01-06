@@ -242,7 +242,7 @@ class WebsiteController extends Controller
         return view('website::contact', compact('settings'));
     }
 
-    public function submitContact(Request $request)
+    public function sendMessage(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',

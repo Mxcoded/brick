@@ -10,13 +10,30 @@ use Illuminate\Support\Facades\Log;
 class ContactMessageController extends Controller
 {
     /**
-     * Display a listing of the contact messages.
-     *
-     * @return \Illuminate\View\View
+     * Display a listing of messages.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $messages = ContactMessage::latest()->get();
+        $query = ContactMessage::latest();
+
+        // Filter by Status (Read/Unread)
+        if ($request->filled('status')) {
+            $isRead = $request->status === 'read';
+            $query->where('is_read', $isRead);
+        }
+
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                    ->orWhere('email', 'like', "%$search%")
+                    ->orWhere('subject', 'like', "%$search%");
+            });
+        }
+
+        $messages = $query->paginate(15)->withQueryString();
+
         return view('website::admin.contact-messages.index', compact('messages'));
     }
 
