@@ -1,112 +1,99 @@
-@extends('website::layouts.admin')
+@extends('layouts.master')
 
-@section('title', 'View Room')
+@section('title', 'Booking Details')
 
-@section('content')
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h1 class="h3 mb-0">View Room</h1>
-        </div>
-        <div class="card-body p-4">
-            <h2 class="mb-4 fw-bold">{{ $room->name }}</h2>
-            <dl class="row mb-4">
-                <dt class="col-sm-3">Description</dt>
-                <dd class="col-sm-9">{{ $room->description ?? 'N/A' }}</dd>
-                <dt class="col-sm-3">Price/Night</dt>
-                <dd class="col-sm-9">{{ number_format($room->price, 2) }}</dd>
-                <dt class="col-sm-3">Capacity</dt>
-                <dd class="col-sm-9">{{ $room->capacity }}</dd>
-                <dt class="col-sm-3">Size</dt>
-                <dd class="col-sm-9">{{ $room->size ?? 'N/A' }}</dd>
-                <dt class="col-sm-3">Featured</dt>
-                <dd class="col-sm-9">
-                    @if ($room->featured)
-                        <span class="badge bg-success">Yes</span>
-                    @else
-                        <span class="badge bg-secondary">No</span>
-                    @endif
-                </dd>
-            </dl>
-            <h4 class="mt-4 mb-3">Amenities</h4>
-            @if ($room->amenities->isEmpty())
-                <p class="text-muted">None</p>
-            @else
-                <div class="row">
-                    @foreach ($room->amenities as $amenity)
-                        <div class="col-md-4 mb-2">
-                            <div class="d-flex align-items-center">
-                                <i class="{{ $amenity->icon ?? 'fas fa-question' }} me-2 text-primary"></i>
-                                <span>{{ $amenity->name }}</span>
-                            </div>
-                        </div>
-                    @endforeach
+@section('page-content')
+<div class="row">
+    <div class="col-md-4 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Booking Status</h4>
+                <div class="text-center py-4">
+                    <h2 class="fw-bold text-primary mb-2">{{ $booking->booking_reference }}</h2>
+                    <span class="badge rounded-pill px-3 py-2 bg-{{ $booking->status === 'confirmed' ? 'success' : ($booking->status === 'pending' ? 'warning' : 'secondary') }} text-white">
+                        {{ ucfirst($booking->status) }}
+                    </span>
                 </div>
-            @endif
-
-            <!-- Primary Image -->
-            <h4 class="mt-4 mb-3">Primary Image</h4>
-            @if ($room->image)
-                <img src="{{ Storage::url($room->image) }}" alt="Primary Image" class="img-fluid rounded shadow-sm mb-3" style="max-height: 300px;">
-            @else
-                <p class="text-muted">No primary image uploaded.</p>
-            @endif
-
-            <!-- Additional Images -->
-            <h4 class="mt-4 mb-3">Additional Images</h4>
-            @if ($room->images->isEmpty())
-                <p class="text-muted">No additional images uploaded.</p>
-            @else
-                <div class="row">
-                    @foreach ($room->images as $image)
-                        <div class="col-md-4 mb-3">
-                            <div class="card">
-                                <img src="{{ Storage::url($image->path) }}" class="card-img-top" alt="Room Image" style="height: 200px; object-fit: cover;">
-                                <div class="card-body text-center">
-                                    <form action="{{ route('website.admin.rooms.images.destroy', ['room' => $room->id, 'image' => $image->id]) }}" method="POST" class="delete-image-form">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm">Delete Image</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
-
-            <!-- Video -->
-            <h4 class="mt-4 mb-3">Video</h4>
-            @if ($room->video)
-                <div class="mb-3">
-                    <video src="{{ Storage::url($room->video) }}" controls class="img-fluid rounded shadow-sm" style="max-height: 300px;"></video>
-                    <form action="{{ route('website.admin.rooms.video.destroy', $room) }}" method="POST" class="delete-video-form mt-2">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger btn-sm">Delete Video</button>
-                    </form>
-                </div>
-            @else
-                <p class="text-muted">No video uploaded.</p>
-            @endif
-
-            <div class="mt-4">
-                <a href="{{ route('website.admin.rooms.edit', $room) }}" class="btn btn-warning me-2">Edit</a>
-                <a href="{{ route('website.admin.rooms.index') }}" class="btn btn-secondary">Back</a>
+                
+                <hr>
+                
+                @if($booking->status === 'pending')
+                    <div class="d-grid gap-2">
+                        <form action="{{ route('website.admin.bookings.confirm', $booking->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-success btn-block w-100 mb-2">
+                                <i class="mdi mdi-check-circle me-1"></i> Confirm Booking
+                            </button>
+                        </form>
+                        
+                        <form action="{{ route('website.admin.bookings.cancel', $booking->id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-danger btn-block w-100">
+                                <i class="mdi mdi-close-circle me-1"></i> Reject / Cancel
+                            </button>
+                        </form>
+                    </div>
+                    <p class="text-muted small mt-3 text-center">
+                        <i class="mdi mdi-information"></i> Confirming will check Frontdesk availability first.
+                    </p>
+                @endif
             </div>
         </div>
     </div>
-@endsection
 
-@push('scripts')
-    <script>
-        document.querySelectorAll('.delete-image-form, .delete-video-form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const type = this.classList.contains('delete-image-form') ? 'image' : 'video';
-                if (confirm(`Are you sure you want to delete this ${type}?`)) {
-                    this.submit();
-                }
-            });
-        });
-    </script>
-@endpush
+    <div class="col-md-8 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">Reservation Details</h4>
+                
+                <div class="row mb-4">
+                    <div class="col-sm-6">
+                        <p class="text-muted mb-1">Guest Name</p>
+                        <h5 class="fw-bold">{{ $booking->guest_name }}</h5>
+                    </div>
+                    <div class="col-sm-6">
+                        <p class="text-muted mb-1">Contact Info</p>
+                        <p class="mb-0">{{ $booking->guest_email }}</p>
+                        <p class="mb-0">{{ $booking->guest_phone }}</p>
+                    </div>
+                </div>
+
+                <div class="bg-light p-3 rounded mb-4">
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <small class="text-uppercase text-muted">Room Type</small>
+                            <p class="fw-bold">{{ $booking->room->name ?? 'Deleted Room' }}</p>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-uppercase text-muted">Check In</small>
+                            <p class="fw-bold">{{ $booking->check_in_date->format('d M Y') }}</p>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-uppercase text-muted">Check Out</small>
+                            <p class="fw-bold">{{ $booking->check_out_date->format('d M Y') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-6">
+                        <p class="text-muted mb-1">Guests</p>
+                        <p>{{ $booking->adults }} Adults, {{ $booking->children }} Children</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <p class="text-muted mb-1">Total Amount</p>
+                        <h4 class="text-success">₦{{ number_format($booking->total_amount, 2) }}</h4>
+                    </div>
+                </div>
+
+                @if($booking->special_requests)
+                    <div class="alert alert-info mt-3">
+                        <strong>Special Requests:</strong><br>
+                        {{ $booking->special_requests }}
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

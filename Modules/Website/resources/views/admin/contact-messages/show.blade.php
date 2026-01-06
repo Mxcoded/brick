@@ -1,8 +1,8 @@
-@extends('website::layouts.admin')
+@extends('layouts.master')
 
 @section('title', 'View Contact Message')
 
-@section('content')
+@section('page-content')
     <div class="card">
         <div class="card-header">
             <h1 class="h3 mb-0">View Contact Message</h1>

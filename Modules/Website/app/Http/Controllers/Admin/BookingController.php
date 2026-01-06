@@ -4,291 +4,214 @@ namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Modules\Website\Models\Booking;
 use Modules\Website\Models\Room;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
+use Modules\Website\Models\Booking;
+use Modules\Frontdeskcrm\Models\Registration;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
-
 
 class BookingController extends Controller
 {
-    // public function index(Request $request)
-    // {
-    //     $query = Booking::with(['room', 'user']);
-
-    //     // Apply filters
-    //     if ($request->filled('status')) {
-    //         $query->where('status', $request->status);
-    //     }
-    //     if ($request->filled('check_in_from')) {
-    //         $query->whereDate('check_in', '>=', Carbon::parse($request->check_in_from));
-    //     }
-    //     if ($request->filled('check_in_to')) {
-    //         $query->whereDate('check_in', '<=', Carbon::parse($request->check_in_to));
-    //     }
-
-    //     $bookings = $query->get();
-    //     return view('website::admin.bookings.index', compact('bookings'));
-    // }
-    public function index()
+    /**
+     * Display a listing of bookings with filters.
+     */
+    public function index(Request $request)
     {
-        $bookings = Booking::with('room')->paginate(10);
+        $query = Booking::with('room')->latest();
+
+        // 1. Filter by Status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // 2. Filter by Date (Check-in)
+        if ($request->filled('date')) {
+            $query->whereDate('check_in_date', $request->date);
+        }
+
+        // 3. Search by Name, Email, or Reference
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('booking_reference', 'like', "%$search%")
+                    ->orWhere('guest_name', 'like', "%$search%")
+                    ->orWhere('guest_email', 'like', "%$search%");
+            });
+        }
+
+        $bookings = $query->paginate(15)->withQueryString();
+
         return view('website::admin.bookings.index', compact('bookings'));
     }
 
+    /**
+     * Show the form for creating a new resource.
+     * Note: Admins usually use Frontdesk CRM to book, but this is a fallback.
+     */
     public function create()
     {
-        $rooms = Room::all();
+        // Only show rooms that are operationally available (not in maintenance)
+        $rooms = Room::where('status', '!=', 'maintenance')->get();
         return view('website::admin.bookings.create', compact('rooms'));
     }
 
+    /**
+     * Store a newly created booking in storage.
+     */
     public function store(Request $request)
     {
-        Log::info('Booking store request:', $request->all());
         $validated = $request->validate([
             'room_id' => 'required|exists:rooms,id',
-            'guest_name' => 'required_without:user_id|string|max:255',
-            'guest_email' => 'required_without:user_id|email|max:255',
-            'guest_phone' => 'required_without:user_id|string|max:20',
-            'user_id' => 'nullable|exists:users,id',
-            'check_in' => 'required|date|after_or_equal:today',
-            'check_out' => 'required|date|after:check_in',
-            'guest_company' => 'nullable|string|max:255',
-            'guest_address' => 'nullable|string',
-            'guest_nationality' => 'nullable|string|max:100',
-            'guest_id_type' => 'nullable|string|max:50',
-            'guest_id_number' => 'nullable|string|max:100',
-            'number_of_guests' => 'required|integer|min:1',
-            'number_of_children' => 'required|integer|min:0',
-            'special_requests' => 'nullable|string',
-            'status' => 'required|in:pending,confirmed,checked_in,checked_out,cancelled,no_show',
-            'total_price' => 'required|numeric|min:0',
-            'deposit_amount' => 'nullable|numeric|min:0',
-            'payment_status' => 'required|in:pending,partial,paid,refunded',
-            'payment_method' => 'nullable|in:credit_card,bank_transfer,cash',
-            'source' => 'nullable|in:website,phone,OTA,walk_in',
-            'check_in_time' => 'nullable|date_format:H:i',
-            'check_out_time' => 'nullable|date_format:H:i',
+            'guest_name' => 'required|string|max:255',
+            'guest_email' => 'required|email|max:255',
+            'guest_phone' => 'required|string|max:20',
+            'check_in_date' => 'required|date|after_or_equal:today',
+            'check_out_date' => 'required|date|after:check_in_date',
+            'adults' => 'required|integer|min:1',
+            'children' => 'nullable|integer|min:0',
+            'payment_status' => 'required|in:pending,paid,failed',
+            'special_requests' => 'nullable|string'
         ]);
 
-        $checkIn = Carbon::parse($validated['check_in']);
-        $checkOut = Carbon::parse($validated['check_out']);
-        if ($checkOut <= $checkIn) {
-            Log::warning('Invalid dates in store:', [
-                'check_in' => $validated['check_in'],
-                'check_out' => $validated['check_out'],
-            ]);
-            return back()->withErrors(['check_out' => 'Check-out date must be after check-in date.']);
-        }
-        $validated['check_in'] = $checkIn->format('Y-m-d');
-        $validated['check_out'] = $checkOut->format('Y-m-d');
+        $room = Room::findOrFail($validated['room_id']);
 
-        $existingBooking = Booking::where('room_id', $validated['room_id'])
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($query) use ($checkIn, $checkOut) {
-                $query->whereBetween('check_in', [$checkIn, $checkOut])
-                    ->orWhereBetween('check_out', [$checkIn, $checkOut])
-                    ->orWhereRaw('? BETWEEN check_in AND check_out', [$checkIn])
-                    ->orWhereRaw('? BETWEEN check_in AND check_out', [$checkOut]);
-            })
-            ->first();
+        // 1. Calculate Total Amount
+        $checkIn = Carbon::parse($validated['check_in_date']);
+        $checkOut = Carbon::parse($validated['check_out_date']);
+        $nights = $checkIn->diffInDays($checkOut) ?: 1;
+        $totalAmount = $room->price * $nights;
 
-        if ($existingBooking) {
-            Log::warning('Duplicate booking attempt:', [
-                'room_id' => $validated['room_id'],
-                'check_in' => $validated['check_in'],
-                'check_out' => $validated['check_out'],
-            ]);
-            return back()->withErrors(['check_in' => 'This room is already booked for the selected dates.']);
-        }
-
-        $year = date('Y');
-        $yearPrefix = substr($year, -3);
-        $prefix = "BK{$yearPrefix}";
-        $lastBooking = Booking::where('booking_ref_number', 'like', "{$prefix}%")
-            ->orderBy('booking_ref_number', 'desc')
-            ->first();
-        $nextNumber = $lastBooking ? (int) substr($lastBooking->booking_ref_number, -4) + 1 : 1;
-        if ($nextNumber > 9999) {
-            throw new \Exception('Maximum bookings for this year reached.');
-        }
-        $validated['booking_ref_number'] = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-
-        if (empty($validated['user_id'])) {
-            $validated['confirmation_token'] = Str::random(40);
-        }
-
-        $room = Room::find($validated['room_id']);
-        $days = $checkOut->diffInDays($checkIn);
-        $calculatedPrice = abs($room->price_per_night * $days);
-        $validated['total_price'] = $calculatedPrice;
-
-        $validated['created_by'] = Auth::id();
-        $validated['updated_by'] = Auth::id();
-
-        $booking = Booking::create($validated);
-
-        Log::info('Booking created:', $booking->toArray());
-        return redirect()->route('website::admin.bookings.index')->with('success', 'Booking created successfully.');
-    }
-
-    public function update(Request $request, Booking $booking)
-    {
-        Log::info('Booking update request:', $request->all());
-        $validated = $request->validate([
-            'room_id' => 'required|exists:rooms,id',
-            'guest_name' => 'required_without:user_id|string|max:255|regex:/^[A-Za-z ]+$/',
-            'guest_email' => 'required_without:user_id|email|max:255',
-            'guest_phone' => 'required_without:user_id|string|max:20|regex:/^[0-9]{10,15}$/',
-            'user_id' => 'nullable|exists:users,id',
-            'check_in' => 'required|date|after_or_equal:today',
-            'check_out' => 'required|date|after:check_in',
-            'guest_company' => 'nullable|string|max:255',
-            'guest_address' => 'nullable|string',
-            'guest_nationality' => 'nullable|string|max:100',
-            'guest_id_type' => 'nullable|string|max:50|in:passport,driver_license,national_id',
-            'guest_id_number' => 'nullable|string|max:100',
-            'number_of_guests' => 'required|integer|min:1|max:10',
-            'number_of_children' => 'required|integer|min:0|max:10',
-            'special_requests' => 'nullable|string',
-            'status' => 'required|in:pending,confirmed,checked_in,checked_out,cancelled,no_show',
-            'total_price' => 'required|numeric|min:0',
-            'deposit_amount' => 'nullable|numeric|min:0',
-            'payment_status' => 'required|in:pending,partial,paid,refunded',
-            'payment_method' => 'nullable|in:credit_card,bank_transfer,cash',
-            'source' => 'nullable|in:website,phone,OTA,walk_in',
-            'check_in_time' => 'nullable|date_format:H:i',
-            'check_out_time' => 'nullable|date_format:H:i',
-            'cancellation_reason' => 'nullable|string|required_if:status,cancelled',
+        // 2. Create Booking
+        // Note: We DO NOT change $room->status here. Room status (available/booked) 
+        // is calculated dynamically based on dates, not a static database field.
+        Booking::create([
+            'booking_reference' => 'BK-' . strtoupper(uniqid()),
+            'room_id' => $validated['room_id'],
+            'guest_name' => $validated['guest_name'],
+            'guest_email' => $validated['guest_email'],
+            'guest_phone' => $validated['guest_phone'],
+            'check_in_date' => $validated['check_in_date'],
+            'check_out_date' => $validated['check_out_date'],
+            'adults' => $validated['adults'],
+            'children' => $validated['children'] ?? 0,
+            'total_amount' => $totalAmount,
+            'payment_status' => $validated['payment_status'],
+            'status' => 'confirmed', // Admin created bookings are usually confirmed immediately
+            'special_requests' => $validated['special_requests'],
         ]);
 
-        $checkIn = Carbon::parse($validated['check_in']);
-        $checkOut = Carbon::parse($validated['check_out']);
-        if ($checkOut <= $checkIn) {
-            Log::warning('Invalid dates in update:', [
-                'check_in' => $validated['check_in'],
-                'check_out' => $validated['check_out'],
-            ]);
-            return back()->withErrors(['check_out' => 'Check-out date must be after check-in date.']);
-        }
-        $validated['check_in'] = $checkIn->format('Y-m-d');
-        $validated['check_out'] = $checkOut->format('Y-m-d');
-
-        $room = Room::find($validated['room_id']);
-        $days = $checkOut->diffInDays($checkIn);
-        $calculatedPrice = abs($room->price_per_night * $days);
-        if (abs($validated['total_price'] - $calculatedPrice) > 0.01) {
-            Log::warning('Total price mismatch:', [
-                'submitted' => $validated['total_price'],
-                'calculated' => $calculatedPrice,
-            ]);
-            $validated['total_price'] = $calculatedPrice;
-        }
-
-        $existingBooking = Booking::where('room_id', $validated['room_id'])
-            ->where('id', '!=', $booking->id)
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($query) use ($checkIn, $checkOut) {
-                $query->whereBetween('check_in', [$checkIn, $checkOut])
-                    ->orWhereBetween('check_out', [$checkIn, $checkOut])
-                    ->orWhereRaw('? BETWEEN check_in AND check_out', [$checkIn])
-                    ->orWhereRaw('? BETWEEN check_in AND check_out', [$checkOut]);
-            })
-            ->first();
-
-        if ($existingBooking) {
-            Log::warning('Duplicate booking attempt on update:', [
-                'room_id' => $validated['room_id'],
-                'check_in' => $validated['check_in'],
-                'check_out' => $validated['check_out'],
-            ]);
-            return back()->withErrors(['check_in' => 'This room is already booked for the selected dates.']);
-        }
-
-        $validated['booking_ref_number'] = $booking->booking_ref_number;
-        $validated['confirmation_token'] = $booking->confirmation_token;
-        $validated['updated_by'] = Auth::id();
-        $validated['cancelled_at'] = $validated['status'] === 'cancelled' ? now() : null;
-
-        $booking->update($validated);
-        Log::info('Booking updated:', $booking->toArray());
-        return redirect()->route('website.admin.bookings.index')->with('success', 'Booking updated successfully.');
+        return redirect()->route('website.admin.bookings.index')
+            ->with('success', 'Booking created successfully.');
     }
-    public function show(Booking $booking)
+
+    /**
+     * Show the specified resource.
+     */
+    public function show($id)
     {
-        $booking->load(['room', 'user']);
+        $booking = Booking::with('room')->findOrFail($id);
         return view('website::admin.bookings.show', compact('booking'));
     }
 
-    public function edit(Booking $booking)
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit($id)
     {
-        $rooms = Room::all();
+        $booking = Booking::findOrFail($id);
+        $rooms = Room::where('status', '!=', 'maintenance')->get();
         return view('website::admin.bookings.edit', compact('booking', 'rooms'));
     }
 
-    public function cancel(Request $request, Booking $booking)
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
     {
-        Log::debug('Cancel booking started', ['booking_id' => $booking->id, 'request' => $request->all()]);
+        $booking = Booking::findOrFail($id);
 
-        try {
-            if ($booking->status === 'cancelled') {
-                Log::warning('Attempt to cancel already cancelled booking', ['booking_id' => $booking->id]);
-                return redirect()->route('website.admin.bookings.index')->with('error', 'Booking is already cancelled.');
-            }
+        $validated = $request->validate([
+            'room_id' => 'required|exists:rooms,id',
+            'check_in_date' => 'required|date',
+            'check_out_date' => 'required|date|after:check_in_date',
+            'status' => 'required|in:pending,confirmed,checked_in,checked_out,cancelled',
+            'payment_status' => 'required|in:pending,paid,failed,refunded',
+        ]);
 
-            $validated = $request->validate([
-                'cancellation_reason' => 'nullable|string|max:255',
-            ]);
+        $booking->update($validated);
 
-            $booking->update([
-                'status' => 'cancelled',
-                'cancelled_at' => now(),
-                'cancellation_reason' => $validated['cancellation_reason'] ?? 'Cancelled by admin',
-                'updated_by' => Auth::id(),
-            ]);
-
-            Log::info('Booking cancelled', [
-                'booking_id' => $booking->id,
-                'booking_ref_number' => $booking->booking_ref_number,
-                'cancelled_by' => Auth::id(),
-                'cancellation_reason' => $validated['cancellation_reason'] ?? 'Cancelled by admin',
-            ]);
-
-            return redirect()->route('website.admin.bookings.index')->with('success', 'Booking cancelled successfully.');
-        } catch (\Exception $e) {
-            Log::error('Error cancelling booking', [
-                'booking_id' => $booking->id,
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return redirect()->route('website.admin.bookings.index')->with('error', 'Failed to cancel booking. Please try again.');
-        }
+        return redirect()->route('website.admin.bookings.index')
+            ->with('success', 'Booking updated successfully.');
     }
 
-    public function destroy(Booking $booking)
+    /**
+     * Confirm a booking manually.
+     * Prevents Double Booking by checking Frontdesk CRM.
+     */
+    public function confirm($id)
     {
-        Log::debug('Delete booking started', ['booking_id' => $booking->id]);
+        $booking = Booking::findOrFail($id);
 
-        try {
-            if (!Auth::user()->hasRole('admin')) {
-                Log::warning('Unauthorized delete attempt', ['booking_id' => $booking->id, 'user_id' => Auth::id()]);
-                return redirect()->route('website.admin.bookings.index')->with('error', 'Unauthorized action.');
-            }
-
-            $booking->delete();
-
-            Log::info('Booking deleted', ['booking_id' => $booking->id, 'deleted_by' => Auth::id()]);
-
-            return redirect()->route('website.admin.bookings.index')->with('success', 'Booking deleted successfully.');
-        } catch (\Exception $e) {
-            Log::error('Error deleting booking', [
-                'booking_id' => $booking->id,
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return redirect()->route('website.admin.bookings.index')->with('error', 'Failed to delete booking. Please try again.');
+        if ($booking->status === 'confirmed') {
+            return back()->with('info', 'Booking is already confirmed.');
         }
+
+        // 1. Cross-Module Availability Check (Frontdesk Integration)
+        if ($this->isRoomOccupiedInFrontdesk($booking->room_id, $booking->check_in_date, $booking->check_out_date)) {
+            return back()->with('error', 'Cannot Confirm: Room is physically occupied in Frontdesk CRM for these dates.');
+        }
+
+        // 2. Update Status
+        $booking->update([
+            'status' => 'confirmed',
+            'payment_status' => 'paid', // Assuming manual confirmation means money received
+        ]);
+
+        // Optional: Send Confirmation Email here
+
+        return back()->with('success', 'Booking confirmed successfully.');
+    }
+
+    /**
+     * Cancel a booking.
+     */
+    public function cancel($id)
+    {
+        $booking = Booking::findOrFail($id);
+        $booking->update(['status' => 'cancelled']);
+
+        return back()->with('success', 'Booking cancelled successfully.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $booking = Booking::findOrFail($id);
+        $booking->delete();
+
+        return redirect()->route('website.admin.bookings.index')
+            ->with('success', 'Booking deleted successfully.');
+    }
+
+    /**
+     * Helper: Check Frontdesk CRM for conflicts.
+     * Returns TRUE if room is occupied.
+     */
+    private function isRoomOccupiedInFrontdesk($roomId, $checkIn, $checkOut)
+    {
+        // Check if Frontdesk module exists
+        if (!class_exists(Registration::class)) {
+            return false;
+        }
+
+        // Check for overlapping registrations
+        return Registration::where('room_id', $roomId)
+            ->whereIn('status', ['checked_in', 'reserved'])
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->where('check_in_date', '<', $checkOut)
+                    ->where('check_out_date', '>', $checkIn);
+            })
+            ->exists();
     }
 }

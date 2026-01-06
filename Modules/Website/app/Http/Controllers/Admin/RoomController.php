@@ -8,12 +8,13 @@ use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomImage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class RoomController extends Controller
 {
     public function index()
     {
-        $rooms = Room::all();
+        $rooms = Room::latest()->paginate(10);
         return view('website::admin.rooms.index', compact('rooms'));
     }
 
@@ -24,166 +25,119 @@ class RoomController extends Controller
 
     public function store(Request $request)
     {
-        Log::info('Room store request:', $request->all());
+        // 1. Validation (Updated to match New Schema)
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price_per_night' => 'required|numeric|min:0',
+            'name' => 'required|string|max:255|unique:rooms,name',
+            'price' => 'required|numeric|min:0', // Matches database 'price'
             'capacity' => 'required|integer|min:1',
-            'size' => 'required|string|max:50',
-            'featured' => 'required|boolean',
-            'amenities' => 'nullable|array',
-            'amenities.*' => 'exists:amenities,id',
-            'primary_image' => 'required|image|max:5048',
-            'images.*' => 'nullable|image|max:10248',
-            'video' => 'nullable|mimes:mp4,mov,avi|max:10240',
+            'size' => 'nullable|string',
+            'bed_type' => 'nullable|string',
+            'description' => 'required|string',
+            'amenities' => 'nullable|array', // JSON Array
+            'video_url' => 'nullable|url', // YouTube Links preferred
+            'is_featured' => 'boolean',
+            'status' => 'required|in:available,maintenance,booked',
+            'image' => 'required|image|max:5120', // Primary Image
+            'gallery_images.*' => 'nullable|image|max:5120' // Extra Gallery Images
         ]);
 
-        $roomData = $validated;
-        unset($roomData['primary_image'], $roomData['images'], $roomData['video']);
-        $room = Room::create($roomData);
+        // 2. Generate Slug
+        $validated['slug'] = Str::slug($validated['name']);
 
-        if ($request->hasFile('primary_image')) {
-            $room->image = $request->file('primary_image')->store('rooms', 'public');
-            $room->save();
+        // 3. Upload Primary Image
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('rooms', 'public');
+            $validated['image_url'] = Storage::url($path);
         }
 
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $image) {
-                $path = $image->store('rooms', 'public');
-                $room->images()->create([
-                    'path' => $path,
-                    'order' => $index,
-                    'caption' => $request->input('captions')[$index] ?? null,
+        // 4. Create Room
+        $room = Room::create($validated);
+
+        // 5. Handle Multiple Gallery Images (From your old controller)
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $file) {
+                $path = $file->store('room_gallery', 'public');
+                RoomImage::create([
+                    'room_id' => $room->id,
+                    'image_url' => Storage::url($path), // storing full URL
+                    'path' => $path // storing raw path for deletion
                 ]);
             }
         }
 
-        if ($request->hasFile('video')) {
-            $room->video = $request->file('video')->store('rooms', 'public');
-            $room->save();
-        }
-
-        if (!empty($validated['amenities'])) {
-            $room->amenities()->sync($validated['amenities']);
-        }
-
-        Log::info('Room created:', $room->toArray());
-        return redirect()->route('website.admin.rooms.index')->with('success', 'Room created successfully.');
+        return redirect()->route('website.admin.rooms.index')
+            ->with('success', 'Room created successfully.');
     }
 
-    public function show(Room $room)
+    public function edit($id)
     {
-        return view('website::admin.rooms.show', compact('room'));
-    }
-
-    public function edit(Room $room)
-    {
+        $room = Room::with('images')->findOrFail($id);
         return view('website::admin.rooms.edit', compact('room'));
     }
 
-    public function update(Request $request, Room $room)
+    public function update(Request $request, $id)
     {
-        Log::info('Room update request:', $request->all());
+        $room = Room::findOrFail($id);
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price_per_night' => 'required|numeric|min:0',
+            'name' => 'required|string|max:255|unique:rooms,name,' . $id,
+            'price' => 'required|numeric|min:0',
             'capacity' => 'required|integer|min:1',
-            'size' => 'required|string|max:50',
-            'featured' => 'required|boolean',
+            'size' => 'nullable|string',
+            'bed_type' => 'nullable|string',
+            'description' => 'required|string',
             'amenities' => 'nullable|array',
-            'amenities.*' => 'exists:amenities,id',
-            'primary_image' => 'nullable|image|max:5048',
-            'images.*' => 'nullable|image|max:10248',
-            'video' => 'nullable|mimes:mp4,mov,avi|max:10240',
+            'video_url' => 'nullable|url',
+            'is_featured' => 'boolean',
+            'status' => 'required|in:available,maintenance,booked',
+            'image' => 'nullable|image|max:5120',
+            'gallery_images.*' => 'nullable|image|max:5120'
         ]);
 
-        $roomData = $validated;
-        unset($roomData['primary_image'], $roomData['images'], $roomData['video']);
-        $room->update($roomData);
+        $validated['slug'] = Str::slug($validated['name']);
 
-        if ($request->hasFile('primary_image')) {
-            if ($room->image) {
-                Storage::disk('public')->delete($room->image);
+        // Handle Primary Image Update
+        if ($request->hasFile('image')) {
+            if ($room->image_url) {
+                // Try to extract path from URL for deletion
+                $oldPath = str_replace('/storage/', '', $room->image_url);
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
             }
-            $room->image = $request->file('primary_image')->store('rooms', 'public');
-            $room->save();
+            $path = $request->file('image')->store('rooms', 'public');
+            $validated['image_url'] = Storage::url($path);
         }
 
-        if ($request->hasFile('images')) {
-            $currentImageCount = $room->images()->count();
-            foreach ($request->file('images') as $index => $image) {
-                $path = $image->store('rooms', 'public');
-                $room->images()->create([
-                    'path' => $path,
-                    'order' => $currentImageCount + $index,
-                    'caption' => $request->input('captions')[$index] ?? null,
+        $room->update($validated);
+
+        // Handle New Gallery Images
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $file) {
+                $path = $file->store('room_gallery', 'public');
+                RoomImage::create([
+                    'room_id' => $room->id,
+                    'image_url' => Storage::url($path),
+                    'path' => $path
                 ]);
             }
         }
 
-        if ($request->hasFile('video')) {
-            if ($room->video) {
-                Storage::disk('public')->delete($room->video);
-            }
-            $room->video = $request->file('video')->store('rooms', 'public');
-            $room->save();
-        }
-
-        $room->amenities()->sync($validated['amenities'] ?? []);
-        Log::info('Room updated:', $room->toArray());
-        return redirect()->route('website.admin.rooms.index')->with('success', 'Room updated successfully.');
+        return redirect()->route('website.admin.rooms.index')
+            ->with('success', 'Room updated successfully.');
     }
 
-    public function destroy(Room $room)
+    // Kept your helper to delete specific gallery images
+    public function destroyImage($id)
     {
-        Log::warning('Room deletion triggered:', ['room_id' => $room->id, 'request' => request()->all()]);
-        // Safeguard against accidental deletion from image form
-        if (request()->hasAny(['name', 'description', 'price_per_night', 'capacity', 'size', 'featured'])) {
-            Log::error('Invalid room deletion attempt with update fields:', ['room_id' => $room->id, 'request' => request()->all()]);
-            return redirect()->route('website.admin.rooms.edit', $room)->with('error', 'Invalid deletion request.');
-        }
-        if ($room->image) {
-            Storage::disk('public')->delete($room->image);
-        }
-        foreach ($room->images as $image) {
+        $image = RoomImage::findOrFail($id);
+
+        if (Storage::disk('public')->exists($image->path)) {
             Storage::disk('public')->delete($image->path);
-            $image->delete();
         }
-        if ($room->video) {
-            Storage::disk('public')->delete($room->video);
-        }
-        $room->delete();
-        Log::info('Room deleted:', ['room_id' => $room->id]);
-        return redirect()->route('website.admin.rooms.index')->with('success', 'Room deleted successfully.');
-    }
 
-    public function destroyImage(Room $room, RoomImage $image)
-    {
-        Log::info('Attempting to delete image:', ['room_id' => $room->id, 'image_id' => $image->id, 'request' => request()->all()]);
-        // Ensure image belongs to room (handled by route binding, but double-check)
-        if ($image->room_id !== $room->id) {
-            Log::warning('Image does not belong to room:', ['room_id' => $room->id, 'image_id' => $image->id]);
-            return redirect()->route('website.admin.rooms.edit', $room)->with('error', 'Image not found.');
-        }
-        Storage::disk('public')->delete($image->path);
         $image->delete();
-        Log::info('Room image deleted:', ['room_id' => $room->id, 'image_id' => $image->id]);
-        return redirect()->route('website.admin.rooms.edit', $room)->with('success', 'Image deleted successfully.');
-    }
 
-    public function destroyVideo(Room $room)
-    {
-        Log::info('Attempting to delete video:', ['room_id' => $room->id, 'request' => request()->all()]);
-        if (!$room->video) {
-            Log::warning('No video to delete', ['room_id' => $room->id]);
-            return redirect()->route('website.admin.rooms.edit', $room)->with('error', 'No video to delete.');
-        }
-        Storage::disk('public')->delete($room->video);
-        $room->video = null;
-        $room->save();
-        Log::info('Room video deleted:', ['room_id' => $room->id]);
-        return redirect()->route('website.admin.rooms.edit', $room)->with('success', 'Video deleted successfully.');
+        return back()->with('success', 'Gallery image deleted.');
     }
 }
