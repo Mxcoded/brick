@@ -19,8 +19,7 @@ class RoomSeeder extends Seeder
             'size' => '45 sqm',
             'bed_type' => 'King Size',
             'description' => 'Experience ultimate relaxation in our Deluxe Ocean View room. Featuring a private balcony with panoramic views of the Atlantic, a spacious workspace, and a luxury marble bathroom.',
-            'amenities' => ['Free Wi-Fi', 'Breakfast Included', 'Air Conditioning', 'Smart TV', 'Ocean View', 'Mini Bar'],
-
+          
             // Primary Image (Thumbnail)
             'image_url' => 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=800&auto=format&fit=crop',
             'video_url' => 'https://www.youtube.com/watch?v=gymTeL-10pE', // Example Hotel Tour
@@ -38,8 +37,7 @@ class RoomSeeder extends Seeder
             'size' => '65 sqm',
             'bed_type' => 'King + Sofa Bed',
             'description' => 'Designed for business and leisure, the Executive Suite offers a separate living area, premium soundproofing, and exclusive access to the Executive Lounge.',
-            'amenities' => ['Free Wi-Fi', 'Breakfast Included', 'Air Conditioning', 'Smart TV', 'Workspace', 'Bathtub', 'Lounge Access'],
-
+          
             // Primary Image
             'image_url' => 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=800&auto=format&fit=crop',
             'video_url' => null,
@@ -57,8 +55,7 @@ class RoomSeeder extends Seeder
             'size' => '55 sqm',
             'bed_type' => '2 Queen Beds',
             'description' => 'Perfect for families, this room features two queen beds, a kid-friendly layout, and direct access to the hotel gardens and pool area.',
-            'amenities' => ['Free Wi-Fi', 'Air Conditioning', 'Smart TV', 'Swimming Pool Access', 'Garden View'],
-
+           
             // Primary Image
             'image_url' => 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=800&auto=format&fit=crop',
             'video_url' => null,
@@ -76,8 +73,7 @@ class RoomSeeder extends Seeder
             'size' => '120 sqm',
             'bed_type' => 'Emperor King',
             'description' => 'The pinnacle of luxury. Private elevator access, personal butler service, jacuzzi, and a rooftop terrace with 360-degree city views.',
-            'amenities' => ['Free Wi-Fi', 'Breakfast Included', 'Air Conditioning', 'Smart TV', 'Jacuzzi', 'Butler Service', 'Rooftop Access'],
-
+         
             // Primary Image
             'image_url' => 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=800&auto=format&fit=crop',
             'video_url' => 'https://www.youtube.com/watch?v=sample',

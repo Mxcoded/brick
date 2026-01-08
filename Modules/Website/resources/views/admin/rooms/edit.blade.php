@@ -9,7 +9,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h4 class="card-title mb-0">Edit Room: <span class="text-primary">{{ $room->name }}</span></h4>
-                        <a href="{{ route('website.admin.rooms.index') }}" class="btn btn-outline-secondary btn-sm">Back to List</a>
+                        <a href="{{ route('website.admin.rooms.index') }}" class="btn btn-outline-secondary btn-sm">Back to
+                            List</a>
                     </div>
 
                     <form action="{{ route('website.admin.rooms.update', $room->id) }}" method="POST"
@@ -27,7 +28,8 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label class="form-label fw-bold">Price per Night (₦) <span class="text-danger">*</span></label>
+                                    <label class="form-label fw-bold">Price per Night (₦) <span
+                                            class="text-danger">*</span></label>
                                     <input type="number" name="price" class="form-control"
                                         value="{{ old('price', $room->price) }}" required min="0">
                                 </div>
@@ -73,9 +75,12 @@
                                 <div class="form-group mb-3">
                                     <label class="form-label fw-bold">Status</label>
                                     <select name="status" class="form-select">
-                                        <option value="available" {{ $room->status == 'available' ? 'selected' : '' }}>Available</option>
-                                        <option value="maintenance" {{ $room->status == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
-                                        <option value="booked" {{ $room->status == 'booked' ? 'selected' : '' }}>Fully Booked</option>
+                                        <option value="available" {{ $room->status == 'available' ? 'selected' : '' }}>
+                                            Available</option>
+                                        <option value="maintenance" {{ $room->status == 'maintenance' ? 'selected' : '' }}>
+                                            Maintenance</option>
+                                        <option value="booked" {{ $room->status == 'booked' ? 'selected' : '' }}>Fully
+                                            Booked</option>
                                     </select>
                                 </div>
                             </div>
@@ -83,10 +88,12 @@
                                 <div class="form-group mb-3">
                                     <label class="form-label fw-bold">Video URL (YouTube)</label>
                                     <input type="url" name="video_url" id="video_url" class="form-control"
-                                        value="{{ old('video_url', $room->video_url) }}" placeholder="https://www.youtube.com/watch?v=...">
+                                        value="{{ old('video_url', $room->video_url) }}"
+                                        placeholder="https://www.youtube.com/watch?v=...">
                                     <small class="text-muted" id="video_preview_link">
-                                        @if($room->video_url)
-                                            <a href="{{ $room->video_url }}" target="_blank" class="text-primary mt-1 d-block">
+                                        @if ($room->video_url)
+                                            <a href="{{ $room->video_url }}" target="_blank"
+                                                class="text-primary mt-1 d-block">
                                                 <i class="fas fa-play-circle me-1"></i> Test Current Video Link
                                             </a>
                                         @endif
@@ -99,22 +106,14 @@
                             <label class="form-label fw-bold d-block mb-2">Amenities</label>
                             <div class="card bg-light border-0 p-3">
                                 <div class="row">
-                                    @php
-                                        $amenitiesList = [
-                                            'Free Wi-Fi', 'Breakfast Included', 'Air Conditioning',
-                                            'Smart TV', 'Mini Bar', 'Ocean View',
-                                            'Room Service', 'Gym Access', 'Swimming Pool'
-                                        ];
-                                        $currentAmenities = $room->amenities ?? [];
-                                    @endphp
-                                    @foreach ($amenitiesList as $amenity)
+                                    @foreach ($amenities as $amenity)
                                         <div class="col-md-4 col-lg-3 mb-2">
                                             <div class="form-check">
                                                 <input type="checkbox" class="form-check-input" name="amenities[]"
-                                                    value="{{ $amenity }}" id="am_{{ Str::slug($amenity) }}"
-                                                    {{ in_array($amenity, $currentAmenities) ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="am_{{ Str::slug($amenity) }}">
-                                                    {{ $amenity }}
+                                                    value="{{ $amenity->id }}" id="am_{{ $amenity->id }}"
+                                                    {{ $room->amenities->contains($amenity->id) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="am_{{ $amenity->id }}">
+                                                    {{ $amenity->name }}
                                                 </label>
                                             </div>
                                         </div>
@@ -126,13 +125,16 @@
                         <div class="row mb-4">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Primary Image</label>
-                                <input type="file" name="image" id="primary_image" class="form-control mb-2" accept="image/*">
-                                
+                                <input type="file" name="image" id="primary_image" class="form-control mb-2"
+                                    accept="image/*">
+
                                 <div id="primary_image_preview_container">
                                     @if ($room->image_url)
                                         <div class="position-relative d-inline-block">
-                                            <span class="badge bg-secondary position-absolute top-0 start-0 m-1">Current</span>
-                                            <img src="{{ $room->image_url }}" alt="Primary" class="img-thumbnail" style="height: 150px; width: auto;">
+                                            <span
+                                                class="badge bg-secondary position-absolute top-0 start-0 m-1">Current</span>
+                                            <img src="{{ $room->image_url }}" alt="Primary" class="img-thumbnail"
+                                                style="height: 150px; width: auto;">
                                         </div>
                                     @endif
                                 </div>
@@ -140,9 +142,10 @@
 
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Add to Gallery</label>
-                                <input type="file" name="gallery_images[]" id="gallery_images" class="form-control mb-2" multiple accept="image/*">
+                                <input type="file" name="gallery_images[]" id="gallery_images"
+                                    class="form-control mb-2" multiple accept="image/*">
                                 <div id="gallery_preview_container" class="d-flex flex-wrap gap-2">
-                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -157,14 +160,14 @@
                                                     style="width: 100px; height: 100px; object-fit: cover;">
 
                                                 <form action="{{ route('website.admin.rooms.image.delete', $img->id) }}"
-                                                    method="POST" class="position-absolute top-0 start-100 translate-middle"
+                                                    method="POST"
+                                                    class="position-absolute top-0 start-100 translate-middle"
                                                     onsubmit="return confirm('Delete this image permanently?');">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
                                                         class="btn btn-danger btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center shadow"
-                                                        style="width: 24px; height: 24px;"
-                                                        title="Delete Image">
+                                                        style="width: 24px; height: 24px;" title="Delete Image">
                                                         <span aria-hidden="true">&times;</span>
                                                     </button>
                                                 </form>
@@ -176,8 +179,8 @@
                         @endif
 
                         <div class="form-check mb-4">
-                            <input type="checkbox" class="form-check-input" name="is_featured" id="is_featured" value="1"
-                                {{ $room->is_featured ? 'checked' : '' }}>
+                            <input type="checkbox" class="form-check-input" name="is_featured" id="is_featured"
+                                value="1" {{ $room->is_featured ? 'checked' : '' }}>
                             <label class="form-check-label" for="is_featured">
                                 Feature this room on Homepage
                             </label>
@@ -202,16 +205,16 @@
         document.getElementById('primary_image').addEventListener('change', function(e) {
             const file = e.target.files[0];
             const container = document.getElementById('primary_image_preview_container');
-            
+
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     // Clear current content (including the "Current" image from DB)
                     container.innerHTML = '';
-                    
+
                     const wrapper = document.createElement('div');
                     wrapper.className = 'position-relative d-inline-block';
-                    
+
                     const badge = document.createElement('span');
                     badge.className = 'badge bg-success position-absolute top-0 start-0 m-1';
                     badge.innerText = 'New Selection';
@@ -220,7 +223,7 @@
                     img.src = e.target.result;
                     img.className = 'img-thumbnail';
                     img.style.height = '150px';
-                    
+
                     wrapper.appendChild(badge);
                     wrapper.appendChild(img);
                     container.appendChild(wrapper);
@@ -234,7 +237,7 @@
             const files = e.target.files;
             const preview = document.getElementById('gallery_preview_container');
             preview.innerHTML = ''; // Clear previous selections
-            
+
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -254,8 +257,9 @@
         document.getElementById('video_url').addEventListener('input', function(e) {
             const url = e.target.value;
             const container = document.getElementById('video_preview_link');
-            if(url.includes('http')) {
-                container.innerHTML = `<a href="${url}" target="_blank" class="text-success mt-1 d-block"><i class="fas fa-external-link-alt me-1"></i> Valid Link Format</a>`;
+            if (url.includes('http')) {
+                container.innerHTML =
+                    `<a href="${url}" target="_blank" class="text-success mt-1 d-block"><i class="fas fa-external-link-alt me-1"></i> Valid Link Format</a>`;
             } else {
                 container.innerHTML = '';
             }

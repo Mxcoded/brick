@@ -1,99 +1,93 @@
 @extends('layouts.master')
 
-@section('title', 'Booking Details')
+@section('title', 'Room Details')
 
 @section('page-content')
 <div class="row">
-    <div class="col-md-4 grid-margin stretch-card">
-        <div class="card">
+    <div class="col-md-4 mb-4">
+        <div class="card border-0 shadow-sm">
+            <img src="{{ $room->image_url }}" class="card-img-top" alt="{{ $room->name }}" style="height: 250px; object-fit: cover;">
             <div class="card-body">
-                <h4 class="card-title">Booking Status</h4>
-                <div class="text-center py-4">
-                    <h2 class="fw-bold text-primary mb-2">{{ $booking->booking_reference }}</h2>
-                    <span class="badge rounded-pill px-3 py-2 bg-{{ $booking->status === 'confirmed' ? 'success' : ($booking->status === 'pending' ? 'warning' : 'secondary') }} text-white">
-                        {{ ucfirst($booking->status) }}
-                    </span>
+                <h3 class="card-title text-primary">{{ $room->name }}</h3>
+                <h5 class="fw-bold text-success mb-3">₦{{ number_format($room->price, 2) }} <span class="text-muted small">/ night</span></h5>
+                
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Status:</span>
+                    @if ($room->status === 'available')
+                        <span class="badge bg-success">Available</span>
+                    @elseif($room->status === 'maintenance')
+                        <span class="badge bg-danger">Maintenance</span>
+                    @else
+                        <span class="badge bg-secondary">Booked</span>
+                    @endif
                 </div>
                 
-                <hr>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Capacity:</span>
+                    <span class="fw-bold">{{ $room->capacity }} Guests</span>
+                </div>
+
+                 <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Bed Type:</span>
+                    <span class="fw-bold">{{ $room->bed_type ?? 'N/A' }}</span>
+                </div>
                 
-                @if($booking->status === 'pending')
-                    <div class="d-grid gap-2">
-                        <form action="{{ route('website.admin.bookings.confirm', $booking->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn btn-success btn-block w-100 mb-2">
-                                <i class="mdi mdi-check-circle me-1"></i> Confirm Booking
-                            </button>
-                        </form>
-                        
-                        <form action="{{ route('website.admin.bookings.cancel', $booking->id) }}" method="POST" onsubmit="return confirm('Are you sure?');">
-                            @csrf
-                            <button type="submit" class="btn btn-outline-danger btn-block w-100">
-                                <i class="mdi mdi-close-circle me-1"></i> Reject / Cancel
-                            </button>
-                        </form>
-                    </div>
-                    <p class="text-muted small mt-3 text-center">
-                        <i class="mdi mdi-information"></i> Confirming will check Frontdesk availability first.
-                    </p>
-                @endif
+                <div class="d-grid gap-2 mt-4">
+                    <a href="{{ route('website.admin.rooms.edit', $room->id) }}" class="btn btn-primary">Edit Room</a>
+                    <a href="{{ route('website.admin.rooms.index') }}" class="btn btn-outline-secondary">Back to List</a>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-8 grid-margin stretch-card">
-        <div class="card">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
-                <h4 class="card-title">Reservation Details</h4>
+                <h5 class="card-title fw-bold">Description</h5>
+                <p class="text-muted">{{ $room->description }}</p>
                 
-                <div class="row mb-4">
-                    <div class="col-sm-6">
-                        <p class="text-muted mb-1">Guest Name</p>
-                        <h5 class="fw-bold">{{ $booking->guest_name }}</h5>
-                    </div>
-                    <div class="col-sm-6">
-                        <p class="text-muted mb-1">Contact Info</p>
-                        <p class="mb-0">{{ $booking->guest_email }}</p>
-                        <p class="mb-0">{{ $booking->guest_phone }}</p>
-                    </div>
-                </div>
-
-                <div class="bg-light p-3 rounded mb-4">
-                    <div class="row">
-                        <div class="col-sm-4">
-                            <small class="text-uppercase text-muted">Room Type</small>
-                            <p class="fw-bold">{{ $booking->room->name ?? 'Deleted Room' }}</p>
-                        </div>
-                        <div class="col-sm-4">
-                            <small class="text-uppercase text-muted">Check In</small>
-                            <p class="fw-bold">{{ $booking->check_in_date->format('d M Y') }}</p>
-                        </div>
-                        <div class="col-sm-4">
-                            <small class="text-uppercase text-muted">Check Out</small>
-                            <p class="fw-bold">{{ $booking->check_out_date->format('d M Y') }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-sm-6">
-                        <p class="text-muted mb-1">Guests</p>
-                        <p>{{ $booking->adults }} Adults, {{ $booking->children }} Children</p>
-                    </div>
-                    <div class="col-sm-6">
-                        <p class="text-muted mb-1">Total Amount</p>
-                        <h4 class="text-success">₦{{ number_format($booking->total_amount, 2) }}</h4>
-                    </div>
-                </div>
-
-                @if($booking->special_requests)
-                    <div class="alert alert-info mt-3">
-                        <strong>Special Requests:</strong><br>
-                        {{ $booking->special_requests }}
+                @if($room->video_url)
+                    <div class="mt-3">
+                        <a href="{{ $room->video_url }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-play me-1"></i> Watch Video Tour
+                        </a>
                     </div>
                 @endif
             </div>
         </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h5 class="card-title fw-bold mb-3">Amenities</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    @forelse($room->amenities as $amenity)
+                        <span class="badge bg-light text-dark border p-2">
+                            @if($amenity->icon) <i class="{{ $amenity->icon }} me-1"></i> @endif
+                            {{ $amenity->name }}
+                        </span>
+                    @empty
+                        <span class="text-muted small">No amenities listed.</span>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        @if($room->images->count() > 0)
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title fw-bold mb-3">Photo Gallery</h5>
+                <div class="row g-2">
+                    @foreach($room->images as $img)
+                        <div class="col-md-3 col-6">
+                            <a href="{{ $img->image_url }}" target="_blank">
+                                <img src="{{ $img->image_url }}" class="img-fluid rounded" style="height: 120px; width: 100%; object-fit: cover;">
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
     </div>
 </div>
 @endsection
