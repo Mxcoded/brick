@@ -5,9 +5,12 @@
 @section('page-content')
     <div class="row">
         <div class="col-12 grid-margin">
-            <div class="card">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <h4 class="card-title">Edit Room: {{ $room->name }}</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title mb-0">Edit Room: <span class="text-primary">{{ $room->name }}</span></h4>
+                        <a href="{{ route('website.admin.rooms.index') }}" class="btn btn-outline-secondary btn-sm">Back to List</a>
+                    </div>
 
                     <form action="{{ route('website.admin.rooms.update', $room->id) }}" method="POST"
                         enctype="multipart/form-data">
@@ -16,40 +19,40 @@
 
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Room Name</label>
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Room Name <span class="text-danger">*</span></label>
                                     <input type="text" name="name" class="form-control"
                                         value="{{ old('name', $room->name) }}" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Price per Night (₦)</label>
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Price per Night (₦) <span class="text-danger">*</span></label>
                                     <input type="number" name="price" class="form-control"
-                                        value="{{ old('price', $room->price) }}" required>
+                                        value="{{ old('price', $room->price) }}" required min="0">
                                 </div>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Capacity</label>
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Capacity</label>
                                     <input type="number" name="capacity" class="form-control"
-                                        value="{{ old('capacity', $room->capacity) }}">
+                                        value="{{ old('capacity', $room->capacity) }}" min="1">
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Size</label>
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Size</label>
                                     <input type="text" name="size" class="form-control"
                                         value="{{ old('size', $room->size) }}">
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Bed Type</label>
-                                    <select name="bed_type" class="form-control">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Bed Type</label>
+                                    <select name="bed_type" class="form-select">
                                         @foreach (['King Size', 'Queen Size', 'Twin Beds', 'Double Bed'] as $type)
                                             <option value="{{ $type }}"
                                                 {{ $room->bed_type == $type ? 'selected' : '' }}>{{ $type }}
@@ -60,109 +63,132 @@
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Description</label>
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
                             <textarea name="description" class="form-control" rows="5" required>{{ old('description', $room->description) }}</textarea>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Status</label>
-                                    <select name="status" class="form-control">
-                                        <option value="available" {{ $room->status == 'available' ? 'selected' : '' }}>
-                                            Available</option>
-                                        <option value="maintenance" {{ $room->status == 'maintenance' ? 'selected' : '' }}>
-                                            Maintenance</option>
-                                        <option value="booked" {{ $room->status == 'booked' ? 'selected' : '' }}>Fully
-                                            Booked</option>
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Status</label>
+                                    <select name="status" class="form-select">
+                                        <option value="available" {{ $room->status == 'available' ? 'selected' : '' }}>Available</option>
+                                        <option value="maintenance" {{ $room->status == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
+                                        <option value="booked" {{ $room->status == 'booked' ? 'selected' : '' }}>Fully Booked</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Video URL</label>
-                                    <input type="url" name="video_url" class="form-control"
-                                        value="{{ old('video_url', $room->video_url) }}">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Video URL (YouTube)</label>
+                                    <input type="url" name="video_url" id="video_url" class="form-control"
+                                        value="{{ old('video_url', $room->video_url) }}" placeholder="https://www.youtube.com/watch?v=...">
+                                    <small class="text-muted" id="video_preview_link">
+                                        @if($room->video_url)
+                                            <a href="{{ $room->video_url }}" target="_blank" class="text-primary mt-1 d-block">
+                                                <i class="fas fa-play-circle me-1"></i> Test Current Video Link
+                                            </a>
+                                        @endif
+                                    </small>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label class="d-block mb-2">Amenities</label>
-                            <div class="row">
-                                @php
-                                    $amenitiesList = [
-                                        'Free Wi-Fi',
-                                        'Breakfast Included',
-                                        'Air Conditioning',
-                                        'Smart TV',
-                                        'Mini Bar',
-                                        'Ocean View',
-                                        'Room Service',
-                                        'Gym Access',
-                                        'Swimming Pool',
-                                    ];
-                                    $currentAmenities = $room->amenities ?? [];
-                                @endphp
-                                @foreach ($amenitiesList as $amenity)
-                                    <div class="col-md-3 mb-2">
-                                        <div class="form-check">
-                                            <label class="form-check-label">
+                        <div class="form-group mb-4">
+                            <label class="form-label fw-bold d-block mb-2">Amenities</label>
+                            <div class="card bg-light border-0 p-3">
+                                <div class="row">
+                                    @php
+                                        $amenitiesList = [
+                                            'Free Wi-Fi', 'Breakfast Included', 'Air Conditioning',
+                                            'Smart TV', 'Mini Bar', 'Ocean View',
+                                            'Room Service', 'Gym Access', 'Swimming Pool'
+                                        ];
+                                        $currentAmenities = $room->amenities ?? [];
+                                    @endphp
+                                    @foreach ($amenitiesList as $amenity)
+                                        <div class="col-md-4 col-lg-3 mb-2">
+                                            <div class="form-check">
                                                 <input type="checkbox" class="form-check-input" name="amenities[]"
-                                                    value="{{ $amenity }}"
+                                                    value="{{ $amenity }}" id="am_{{ Str::slug($amenity) }}"
                                                     {{ in_array($amenity, $currentAmenities) ? 'checked' : '' }}>
-                                                {{ $amenity }}
-                                            </label>
+                                                <label class="form-check-label" for="am_{{ Str::slug($amenity) }}">
+                                                    {{ $amenity }}
+                                                </label>
+                                            </div>
                                         </div>
-                                    </div>
-                                @endforeach
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
 
                         <div class="row mb-4">
                             <div class="col-md-6">
-                                <label>Primary Image</label>
-                                <input type="file" name="image" class="form-control mb-2">
-                                @if ($room->image_url)
-                                    <img src="{{ $room->image_url }}" alt="Primary" class="img-thumbnail"
-                                        style="height: 100px;">
-                                @endif
+                                <label class="form-label fw-bold">Primary Image</label>
+                                <input type="file" name="image" id="primary_image" class="form-control mb-2" accept="image/*">
+                                
+                                <div id="primary_image_preview_container">
+                                    @if ($room->image_url)
+                                        <div class="position-relative d-inline-block">
+                                            <span class="badge bg-secondary position-absolute top-0 start-0 m-1">Current</span>
+                                            <img src="{{ $room->image_url }}" alt="Primary" class="img-thumbnail" style="height: 150px; width: auto;">
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
+
                             <div class="col-md-6">
-                                <label>Add Gallery Images</label>
-                                <input type="file" name="gallery_images[]" class="form-control" multiple>
+                                <label class="form-label fw-bold">Add to Gallery</label>
+                                <input type="file" name="gallery_images[]" id="gallery_images" class="form-control mb-2" multiple accept="image/*">
+                                <div id="gallery_preview_container" class="d-flex flex-wrap gap-2">
+                                    </div>
                             </div>
                         </div>
 
                         @if ($room->images && $room->images->count() > 0)
-                            <label>Current Gallery</label>
-                            <div class="d-flex flex-wrap gap-2 mb-4">
-                                @foreach ($room->images as $img)
-                                    <div class="position-relative">
-                                        <img src="{{ $img->image_url }}" class="rounded"
-                                            style="width: 100px; height: 100px; object-fit: cover;">
-                                        <a href="{{ route('website.admin.rooms.image.delete', $img->id) }}"
-                                            onclick="return confirm('Delete this image?')"
-                                            class="btn btn-xs btn-danger position-absolute top-0 start-100 translate-middle rounded-circle p-1"
-                                            style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
-                                            &times;
-                                        </a>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Current Gallery</label>
+                                <div class="card bg-light border-0 p-3">
+                                    <div class="d-flex flex-wrap gap-3">
+                                        @foreach ($room->images as $img)
+                                            <div class="position-relative d-inline-block bg-white p-1 rounded shadow-sm">
+                                                <img src="{{ $img->image_url }}" class="rounded"
+                                                    style="width: 100px; height: 100px; object-fit: cover;">
+
+                                                <form action="{{ route('website.admin.rooms.image.delete', $img->id) }}"
+                                                    method="POST" class="position-absolute top-0 start-100 translate-middle"
+                                                    onsubmit="return confirm('Delete this image permanently?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit"
+                                                        class="btn btn-danger btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center shadow"
+                                                        style="width: 24px; height: 24px;"
+                                                        title="Delete Image">
+                                                        <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        @endforeach
                                     </div>
-                                @endforeach
+                                </div>
                             </div>
                         @endif
 
                         <div class="form-check mb-4">
-                            <label class="form-check-label">
-                                <input type="checkbox" class="form-check-input" name="is_featured" value="1"
-                                    {{ $room->is_featured ? 'checked' : '' }}>
+                            <input type="checkbox" class="form-check-input" name="is_featured" id="is_featured" value="1"
+                                {{ $room->is_featured ? 'checked' : '' }}>
+                            <label class="form-check-label" for="is_featured">
                                 Feature this room on Homepage
                             </label>
                         </div>
 
-                        <button type="submit" class="btn btn-primary me-2">Update Room</button>
-                        <a href="{{ route('website.admin.rooms.index') }}" class="btn btn-light">Cancel</a>
+                        <hr>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ route('website.admin.rooms.index') }}" class="btn btn-light">Cancel</a>
+                            <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -172,55 +198,66 @@
 
 @push('scripts')
     <script>
-        // Primary Image Preview
+        // 1. Primary Image Preview
         document.getElementById('primary_image').addEventListener('change', function(e) {
             const file = e.target.files[0];
+            const container = document.getElementById('primary_image_preview_container');
+            
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    // Clear current content (including the "Current" image from DB)
+                    container.innerHTML = '';
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'position-relative d-inline-block';
+                    
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-success position-absolute top-0 start-0 m-1';
+                    badge.innerText = 'New Selection';
+
                     const img = document.createElement('img');
                     img.src = e.target.result;
-                    img.classList.add('img-fluid', 'rounded', 'shadow-sm');
-                    img.style.maxHeight = '200px';
-                    document.getElementById('primary_image_preview').innerHTML = '';
-                    document.getElementById('primary_image_preview').appendChild(img);
+                    img.className = 'img-thumbnail';
+                    img.style.height = '150px';
+                    
+                    wrapper.appendChild(badge);
+                    wrapper.appendChild(img);
+                    container.appendChild(wrapper);
                 }
                 reader.readAsDataURL(file);
             }
         });
 
-        // Additional Images Preview
-        document.getElementById('images').addEventListener('change', function(e) {
+        // 2. Gallery Images Preview
+        document.getElementById('gallery_images').addEventListener('change', function(e) {
             const files = e.target.files;
-            const preview = document.getElementById('images_preview');
-            preview.innerHTML = '';
+            const preview = document.getElementById('gallery_preview_container');
+            preview.innerHTML = ''; // Clear previous selections
+            
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const div = document.createElement('div');
-                    div.classList.add('me-2', 'mb-2');
                     const img = document.createElement('img');
                     img.src = e.target.result;
-                    img.classList.add('img-fluid', 'rounded', 'shadow-sm');
-                    img.style.maxHeight = '100px';
-                    div.appendChild(img);
-                    preview.appendChild(div);
+                    img.className = 'img-thumbnail';
+                    img.style.width = '80px';
+                    img.style.height = '80px';
+                    img.style.objectFit = 'cover';
+                    preview.appendChild(img);
                 }
                 reader.readAsDataURL(file);
             });
         });
 
-        // Video Preview
-        document.getElementById('video').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const video = document.createElement('video');
-                video.src = URL.createObjectURL(file);
-                video.controls = true;
-                video.classList.add('img-fluid', 'rounded', 'shadow-sm');
-                video.style.maxHeight = '200px';
-                document.getElementById('video_preview').innerHTML = '';
-                document.getElementById('video_preview').appendChild(video);
+        // 3. Video URL Live Check (Optional UX Enhancement)
+        document.getElementById('video_url').addEventListener('input', function(e) {
+            const url = e.target.value;
+            const container = document.getElementById('video_preview_link');
+            if(url.includes('http')) {
+                container.innerHTML = `<a href="${url}" target="_blank" class="text-success mt-1 d-block"><i class="fas fa-external-link-alt me-1"></i> Valid Link Format</a>`;
+            } else {
+                container.innerHTML = '';
             }
         });
     </script>

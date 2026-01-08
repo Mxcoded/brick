@@ -16,16 +16,17 @@ class Room extends Model
      */
     protected $fillable = [
         'name',
-        'slug',           // Critical for SEO links
-        'description',
-        'price',          // Critical: Fixes the 0 price issue
+        'slug',
+        'price',
         'capacity',
-        'size',
-        'bed_type',
-        'video_url',
-        'amenities',
-        'is_featured',
         'status',
+        'description',
+        'amenities',
+        'image_url',
+        'video_url',
+        'is_featured',
+        'bed_type',
+        'size'
     ];
 
     protected $casts = [
@@ -34,21 +35,36 @@ class Room extends Model
         'price' => 'decimal:2',
     ];
 
+    /**
+     * Relationship: Online Website Bookings
+     */
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Relationship: Physical Frontdesk Check-ins
+     * This allows us to check if a guest is currently in the room.
+     */
+    public function registrations()
+    {
+        // Check if the Frontdesk module is actually installed/enabled
+        if (class_exists(Registration::class)) {
+            return $this->hasMany(Registration::class, 'room_id');
+        }
+
+        // Fallback to prevent crashes if module is missing
+        return $this->hasMany(Booking::class)->whereRaw('1 = 0');
+    }
+
     public function amenities()
     {
         return $this->belongsToMany(Amenity::class, 'amenity_room');
     }
     public function images()
     {
-        return $this->hasMany(RoomImage::class)->orderBy('order');
-    }
-    public function bookings()
-    {
-        return $this->hasMany(Booking::class);
-    }
-    public function registrations()
-    {
-        return $this->hasMany(Registration::class);
+        return $this->hasMany(RoomImage::class);
     }
     // protected static function newFactory(): RoomFactory
     // {

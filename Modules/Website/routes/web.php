@@ -79,6 +79,12 @@ Route::middleware(['web'])->group(function () {
             // Dashboard
             Route::get('/', [WebsiteAdminController::class, 'index'])->name('dashboard');
 
+        // Image Deletion Route
+        Route::delete('/rooms/image/{id}', [AdminRoomController::class, 'deleteImage'])
+            ->name('rooms.image.delete');
+
+        // Room Resource Route (Handles index, store, update, destroy)
+        Route::resource('rooms', AdminRoomController::class);
             // Resource Management
             Route::resource('rooms', AdminRoomController::class);
             Route::resource('bookings', AdminBookingController::class);

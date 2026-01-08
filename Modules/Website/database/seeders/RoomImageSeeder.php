@@ -8,14 +8,30 @@ use Modules\Website\Models\RoomImage;
 
 class RoomImageSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+    public function run()
     {
-        $room = Room::find(1); // Or create a new one
-        RoomImage::create(['room_id' => $room->id, 'path' => 'images/room1-pic1.jpg', 'type' => 'image', 'order' => 1, 'caption' => 'Living Area']);
-        RoomImage::create(['room_id' => $room->id, 'path' => 'images/room1-pic2.jpg', 'type' => 'image', 'order' => 2, 'caption' => 'Bedroom']);
-        RoomImage::create(['room_id' => $room->id, 'path' => 'videos/room1-tour.mp4', 'type' => 'video', 'order' => 3, 'caption' => 'Room Tour']);
+        $rooms = Room::all();
+
+        // High-quality hotel images for the gallery
+        $galleryPool = [
+            'https://images.unsplash.com/photo-1584622050111-993a426fbf0a?q=80&w=800&auto=format&fit=crop', // Bathroom
+            'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=800&auto=format&fit=crop', // Interior
+            'https://images.unsplash.com/photo-1564501049412-61c2a3083791?q=80&w=800&auto=format&fit=crop', // View
+            'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=800&auto=format&fit=crop', // Bed Detail
+            'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=800&auto=format&fit=crop'  // Amenities
+        ];
+
+        foreach ($rooms as $room) {
+            // Assign 3 random images to each room's gallery
+            $randomImages = collect($galleryPool)->random(3);
+
+            foreach ($randomImages as $url) {
+                RoomImage::create([
+                    'room_id' => $room->id,
+                    'image_url' => $url,
+                    'path' => null, // No local path for seeded unsplash images
+                ]);
+            }
+        }
     }
 }

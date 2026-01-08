@@ -66,7 +66,7 @@
                             <div class="room-card card border-0 shadow-sm overflow-hidden h-100">
                                 <div class="row g-0 h-100">
                                     <div class="col-md-6 position-relative">
-                                        <img src="{{ Storage::url($room->image) }}"
+                                        <img src="{{ $room->image_url ?? 'https://via.placeholder.com/50' }}"
                                             class="img-fluid h-100 w-100 object-fit-cover" alt="{{ $room->name }}"
                                             loading="lazy">
                                         <div class="price-badge position-absolute top-0 end-0 btn-primary text-white p-3">

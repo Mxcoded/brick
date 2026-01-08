@@ -147,7 +147,7 @@
                     <div class="col-md-6 col-lg-4">
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
-                                <img src="{{ Storage::url($room->image) }}" class="card-img-top room-image"
+                                 <img src="{{ $room->image_url ?? 'https://via.placeholder.com/50' }}" class="card-img-top room-image"
                                     alt="{{ $room->name }}">
                                 <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
                                     ₦{{ number_format($room->price, 2) }} <small>/ night</small>

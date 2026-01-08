@@ -155,20 +155,17 @@ class BookingController extends Controller
             return back()->with('info', 'Booking is already confirmed.');
         }
 
-        // 1. Cross-Module Availability Check (Frontdesk Integration)
-        if ($this->isRoomOccupiedInFrontdesk($booking->room_id, $booking->check_in_date, $booking->check_out_date)) {
-            return back()->with('error', 'Cannot Confirm: Room is physically occupied in Frontdesk CRM for these dates.');
+        // RUN THE CHECK
+        if (!$this->isRoomAvailable($booking->room_id, $booking->check_in_date, $booking->check_out_date)) {
+            return back()->with('error', 'ACTION DENIED: This room is currently occupied by a Walk-In Guest (Frontdesk). You must move the guest or cancel this booking.');
         }
 
-        // 2. Update Status
-        $booking->update([
-            'status' => 'confirmed',
-            'payment_status' => 'paid', // Assuming manual confirmation means money received
-        ]);
+        $booking->update(['status' => 'confirmed']);
 
-        // Optional: Send Confirmation Email here
+        // Optional: Create a "Reserved" Registration in Frontdesk automatically?
+        // This would reserve the slot in the CRM too.
 
-        return back()->with('success', 'Booking confirmed successfully.');
+        return back()->with('success', 'Booking confirmed. Room slot secured.');
     }
 
     /**
@@ -213,5 +210,46 @@ class BookingController extends Controller
                     ->where('check_out_date', '>', $checkIn);
             })
             ->exists();
+    }
+
+    /**
+     * Check if a room is available for a given date range.
+     * Returns true if available, false if occupied.
+     */
+    private function isRoomAvailable($roomId, $checkIn, $checkOut)
+    {
+        // 1. Check Online Bookings (Website)
+        // Overlapping logic: (StartA <= EndB) and (EndA >= StartB)
+        $hasWebBooking = Booking::where('room_id', $roomId)
+            ->where('status', '!=', 'cancelled') // Ignore cancelled
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->where('check_in_date', '<', $checkOut)
+                    ->where('check_out_date', '>', $checkIn);
+            })
+            ->exists();
+
+        if ($hasWebBooking) {
+            return false; // Blocked by online booking
+        }
+
+        // 2. Check Physical Registrations (Frontdesk CRM)
+        // Only if the module class exists
+        if (class_exists(Registration::class)) {
+            $hasWalkIn = Registration::where('room_id', $roomId)
+                ->whereIn('status', ['checked_in', 'reserved', 'staying']) // Active statuses
+                ->where(function ($query) use ($checkIn, $checkOut) {
+                    // Assuming Registration uses 'check_in_date' and 'check_out_date' like Booking
+                    // If it uses 'arrival_date'/'departure_date', update these columns accordingly
+                    $query->where('check_in_date', '<', $checkOut)
+                        ->where('check_out_date', '>', $checkIn);
+                })
+                ->exists();
+
+            if ($hasWalkIn) {
+                return false; // Blocked by walk-in guest
+            }
+        }
+
+        return true; // Room is free!
     }
 }
