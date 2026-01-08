@@ -3,89 +3,87 @@
 namespace Modules\Website\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Website\Models\Room; // Ensure this matches your model namespace
+use Modules\Website\Models\Room; // Ensure namespace matches your model
 use Illuminate\Support\Str;
 
 class RoomSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
+    public function run()
     {
-        // Clear existing rooms to prevent duplicates during refresh
-        // Room::truncate(); // Uncomment if you want to wipe data every seed
+        // 1. Deluxe Room
+        Room::create([
+            'name' => 'Deluxe Ocean View',
+            'slug' => 'deluxe-ocean-view',
+            'price' => 75000.00,
+            'capacity' => 2,
+            'size' => '45 sqm',
+            'bed_type' => 'King Size',
+            'description' => 'Experience ultimate relaxation in our Deluxe Ocean View room. Featuring a private balcony with panoramic views of the Atlantic, a spacious workspace, and a luxury marble bathroom.',
+            'amenities' => ['Free Wi-Fi', 'Breakfast Included', 'Air Conditioning', 'Smart TV', 'Ocean View', 'Mini Bar'],
 
-        $rooms = [
-            [
-                'name' => 'Deluxe King Room',
-                'price' => 150000.00,
-                'capacity' => 2,
-                'size' => '35 sqm',
-                'bed_type' => 'King Size',
-                'description' => 'Experience ultimate comfort in our Deluxe King Room, featuring modern decor, a spacious work desk, and a marble bathroom with a rain shower. Perfect for business travelers and couples.',
-                'amenities' => ['Free Wi-Fi', 'Smart TV', 'Mini Bar', 'Coffee Maker', 'Safe', 'Room Service'],
-                'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Placeholder
-                'is_featured' => false,
-                'status' => 'available',
-            ],
-            [
-                'name' => 'Executive Suite',
-                'price' => 250000.00,
-                'capacity' => 3,
-                'size' => '55 sqm',
-                'bed_type' => 'King Size + Sofa Bed',
-                'description' => 'Upgrade to our Executive Suite for breathtaking city views and a separate living area. Includes access to the Executive Lounge with complimentary breakfast and evening cocktails.',
-                'amenities' => ['City View', 'Lounge Access', 'Bathtub', 'Workstation', 'High-Speed Internet', 'Premium Toiletries'],
-                'video_url' => null,
-                'is_featured' => true,
-                'status' => 'available',
-            ],
-            [
-                'name' => 'Presidential Penthouse',
-                'price' => 850000.00,
-                'capacity' => 4,
-                'size' => '120 sqm',
-                'bed_type' => '2 King Beds',
-                'description' => 'The epitome of luxury. Our Presidential Penthouse offers a private terrace, dining room for six, private jacuzzi, and 24-hour butler service. Designed for royalty.',
-                'amenities' => ['Private Terrace', 'Jacuzzi', 'Butler Service', 'Dining Area', 'Private Check-in', 'Welcome Champagne'],
-                'video_url' => null,
-                'is_featured' => true,
-                'status' => 'available',
-            ],
-            [
-                'name' => 'Twin Standard Room',
-                'price' => 120000.00,
-                'capacity' => 2,
-                'size' => '30 sqm',
-                'bed_type' => '2 Twin Beds',
-                'description' => 'Ideal for friends or colleagues, providing two comfortable twin beds and all essential modern amenities for a relaxing stay.',
-                'amenities' => ['Free Wi-Fi', 'Flat Screen TV', 'Air Conditioning', 'Tea/Coffee Maker'],
-                'video_url' => null,
-                'is_featured' => false,
-                'status' => 'available',
-            ],
-        ];
+            // Primary Image (Thumbnail)
+            'image_url' => 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=800&auto=format&fit=crop',
+            'video_url' => 'https://www.youtube.com/watch?v=gymTeL-10pE', // Example Hotel Tour
 
-        foreach ($rooms as $roomData) {
-            // Check if room exists by name to avoid duplicates
-            $existing = Room::where('name', $roomData['name'])->first();
+            'status' => 'available',
+            'is_featured' => true,
+        ]);
 
-            if (!$existing) {
-                Room::create([
-                    'name' => $roomData['name'],
-                    'slug' => Str::slug($roomData['name']), // Auto-generate slug
-                    'price' => $roomData['price'],
-                    'capacity' => $roomData['capacity'],
-                    'size' => $roomData['size'],
-                    'bed_type' => $roomData['bed_type'],
-                    'description' => $roomData['description'],
-                    'amenities' => $roomData['amenities'], // Model cast handles JSON conversion
-                    'video_url' => $roomData['video_url'],
-                    'is_featured' => $roomData['is_featured'],
-                    'status' => $roomData['status'],
-                ]);
-            }
-        }
+        // 2. Executive Suite
+        Room::create([
+            'name' => 'Executive Suite',
+            'slug' => 'executive-suite',
+            'price' => 120000.00,
+            'capacity' => 3,
+            'size' => '65 sqm',
+            'bed_type' => 'King + Sofa Bed',
+            'description' => 'Designed for business and leisure, the Executive Suite offers a separate living area, premium soundproofing, and exclusive access to the Executive Lounge.',
+            'amenities' => ['Free Wi-Fi', 'Breakfast Included', 'Air Conditioning', 'Smart TV', 'Workspace', 'Bathtub', 'Lounge Access'],
+
+            // Primary Image
+            'image_url' => 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=800&auto=format&fit=crop',
+            'video_url' => null,
+
+            'status' => 'available',
+            'is_featured' => true,
+        ]);
+
+        // 3. Family Room
+        Room::create([
+            'name' => 'Family Garden Room',
+            'slug' => 'family-garden-room',
+            'price' => 95000.00,
+            'capacity' => 4,
+            'size' => '55 sqm',
+            'bed_type' => '2 Queen Beds',
+            'description' => 'Perfect for families, this room features two queen beds, a kid-friendly layout, and direct access to the hotel gardens and pool area.',
+            'amenities' => ['Free Wi-Fi', 'Air Conditioning', 'Smart TV', 'Swimming Pool Access', 'Garden View'],
+
+            // Primary Image
+            'image_url' => 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=800&auto=format&fit=crop',
+            'video_url' => null,
+
+            'status' => 'maintenance', // Example of maintenance status
+            'is_featured' => false,
+        ]);
+
+        // 4. Presidential Suite
+        Room::create([
+            'name' => 'Presidential Penthouse',
+            'slug' => 'presidential-penthouse',
+            'price' => 500000.00,
+            'capacity' => 2,
+            'size' => '120 sqm',
+            'bed_type' => 'Emperor King',
+            'description' => 'The pinnacle of luxury. Private elevator access, personal butler service, jacuzzi, and a rooftop terrace with 360-degree city views.',
+            'amenities' => ['Free Wi-Fi', 'Breakfast Included', 'Air Conditioning', 'Smart TV', 'Jacuzzi', 'Butler Service', 'Rooftop Access'],
+
+            // Primary Image
+            'image_url' => 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=800&auto=format&fit=crop',
+            'video_url' => 'https://www.youtube.com/watch?v=sample',
+
+            'status' => 'booked', // Example of booked status
+            'is_featured' => true,
+        ]);
     }
 }

@@ -128,11 +128,11 @@ class RoomController extends Controller
     }
 
     // Kept your helper to delete specific gallery images
-    public function destroyImage($id)
+    public function deleteImage($id) // <--- Matches Route
     {
         $image = RoomImage::findOrFail($id);
 
-        if (Storage::disk('public')->exists($image->path)) {
+        if ($image->path && Storage::disk('public')->exists($image->path)) {
             Storage::disk('public')->delete($image->path);
         }
 
