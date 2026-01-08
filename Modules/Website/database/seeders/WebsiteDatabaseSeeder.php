@@ -11,6 +11,7 @@ class WebsiteDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(AmenitySeeder::class);
         $this->call(DiningSeeder::class);
         $this->call(RoomSeeder::class);
         $this->call(RoomImageSeeder::class);

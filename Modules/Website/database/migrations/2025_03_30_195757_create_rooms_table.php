@@ -18,8 +18,7 @@ return new class extends Migration
             $table->string('bed_type')->nullable(); // e.g. "King Size"
 
             $table->text('description')->nullable();
-            $table->json('amenities')->nullable(); // Stored as JSON array ["Wifi", "Pool"]
-
+           
             // MEDIA COLUMNS
             $table->string('image_url')->nullable(); // Primary/Featured Image
             $table->string('video_url')->nullable(); // YouTube/Vimeo Link

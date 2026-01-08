@@ -21,7 +21,6 @@ class Room extends Model
         'capacity',
         'status',
         'description',
-        'amenities',
         'image_url',
         'video_url',
         'is_featured',
@@ -30,11 +29,17 @@ class Room extends Model
     ];
 
     protected $casts = [
-        'amenities' => 'array',
         'is_featured' => 'boolean',
         'price' => 'decimal:2',
     ];
 
+    /**
+     * Relationship: Many-to-Many with Amenities
+     */
+    public function amenities()
+    {
+        return $this->belongsToMany(Amenity::class, 'amenity_room');
+    }
     /**
      * Relationship: Online Website Bookings
      */
@@ -42,7 +47,13 @@ class Room extends Model
     {
         return $this->hasMany(Booking::class);
     }
-
+    /**
+     * Relationship: Room Images
+     */
+    public function images()
+    {
+        return $this->hasMany(RoomImage::class);
+    }
     /**
      * Relationship: Physical Frontdesk Check-ins
      * This allows us to check if a guest is currently in the room.
@@ -58,16 +69,4 @@ class Room extends Model
         return $this->hasMany(Booking::class)->whereRaw('1 = 0');
     }
 
-    public function amenities()
-    {
-        return $this->belongsToMany(Amenity::class, 'amenity_room');
-    }
-    public function images()
-    {
-        return $this->hasMany(RoomImage::class);
-    }
-    // protected static function newFactory(): RoomFactory
-    // {
-    //     // return RoomFactory::new();
-    // }
 }
