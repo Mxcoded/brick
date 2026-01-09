@@ -80,23 +80,26 @@
                                             <h2 class="h3 mb-3">{{ $room->name }}</h2>
                                             <p class="text-muted flex-grow-1">{{ Str::limit($room->description, 150) }}</p>
 
-                                            @if (!empty($room->amenities))
-                                                <div class="amenities mb-4">
-                                                    <h5 class="h6 mb-3 text-primary">Key Amenities</h5>
-                                                    <div class="room-features d-flex flex-wrap gap-2 mb-3">
-                                                        @foreach ($room->amenities as $amenity)
-                                                            <div class="col">
-                                                                <div
-                                                                    class="amenity-item d-flex align-items-center p-3 bg-light rounded">
-                                                                    {{-- Use generic check icon since we only have string names --}}
-                                                                    <i class="fas fa-check-circle text-primary me-3"></i>
-                                                                    <span>{{ $amenity }}</span>
-                                                                </div>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            @endif
+                                            <div class="room-features d-flex flex-wrap gap-2 mb-3">
+                                                {{-- 1. Use the relationship collection directly --}}
+                                                @foreach ($room->amenities->take(3) as $amenity)
+                                                    <span class="badge bg-light text-dark border">
+                                                        {{-- 2. Use the dynamic icon from DB, fallback to check-circle if missing --}}
+                                                        <i
+                                                            class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i>
+
+                                                        {{-- 3. Output the NAME property, not the object itself --}}
+                                                        {{ $amenity->name }}
+                                                    </span>
+                                                @endforeach
+
+                                                {{-- 4. Count remaining items using the collection count --}}
+                                                @if ($room->amenities->count() > 3)
+                                                    <span class="badge bg-light text-muted border">
+                                                        +{{ $room->amenities->count() - 3 }} more
+                                                    </span>
+                                                @endif
+                                            </div>
 
                                             <div class="d-flex justify-content-between align-items-center mt-auto">
                                                 <a href="{{ route('website.rooms.show', $room->id) }}"
