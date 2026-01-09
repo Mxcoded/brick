@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\Booking;
-use Modules\Frontdeskcrm\Models\Registration;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class BookingController extends Controller
@@ -16,7 +16,7 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Booking::with('room')->latest();
+        $query = Booking::with(['room', 'user'])->latest();
 
         // 1. Filter by Status
         if ($request->filled('status')) {
@@ -45,46 +45,55 @@ class BookingController extends Controller
 
     /**
      * Show the form for creating a new resource.
-     * Note: Admins usually use Frontdesk CRM to book, but this is a fallback.
      */
     public function create()
     {
-        // Only show rooms that are operationally available (not in maintenance)
-        $rooms = Room::where('status', '!=', 'maintenance')->get();
+        $rooms = Room::where('status', 'available')->get();
         return view('website::admin.bookings.create', compact('rooms'));
     }
 
     /**
-     * Store a newly created booking in storage.
+     * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'room_id' => 'required|exists:rooms,id',
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
             'guest_phone' => 'required|string|max:20',
+            'room_id' => 'required|exists:rooms,id',
             'check_in_date' => 'required|date|after_or_equal:today',
             'check_out_date' => 'required|date|after:check_in_date',
             'adults' => 'required|integer|min:1',
             'children' => 'nullable|integer|min:0',
-            'payment_status' => 'required|in:pending,paid,failed',
-            'special_requests' => 'nullable|string'
+            'payment_status' => 'required|in:pending,paid,failed,partial',
+            'status' => 'required|in:pending,confirmed,cancelled',
+            'admin_notes' => 'nullable|string'
         ]);
 
-        $room = Room::findOrFail($validated['room_id']);
+        // 1. Availability Check (Unified Logic)
+        $isAvailable = Booking::isAvailable(
+            $validated['room_id'],
+            $validated['check_in_date'],
+            $validated['check_out_date']
+        );
 
-        // 1. Calculate Total Amount
+        if (!$isAvailable) {
+            return back()->withErrors(['room_id' => 'This room is not available for the selected dates (overlaps with another booking or active guest).'])->withInput();
+        }
+
+        // 2. Calculate Total Amount
+        $room = Room::findOrFail($validated['room_id']);
         $checkIn = Carbon::parse($validated['check_in_date']);
         $checkOut = Carbon::parse($validated['check_out_date']);
-        $nights = $checkIn->diffInDays($checkOut) ?: 1;
+        $nights = $checkIn->diffInDays($checkOut);
+
+        $nights = $nights < 1 ? 1 : $nights;
         $totalAmount = $room->price * $nights;
 
-        // 2. Create Booking
-        // Note: We DO NOT change $room->status here. Room status (available/booked) 
-        // is calculated dynamically based on dates, not a static database field.
+        // 3. Create Booking
         Booking::create([
-            'booking_reference' => 'BK-' . strtoupper(uniqid()),
+            'booking_reference' => 'BK-' . strtoupper(Str::random(8)),
             'room_id' => $validated['room_id'],
             'guest_name' => $validated['guest_name'],
             'guest_email' => $validated['guest_email'],
@@ -95,8 +104,8 @@ class BookingController extends Controller
             'children' => $validated['children'] ?? 0,
             'total_amount' => $totalAmount,
             'payment_status' => $validated['payment_status'],
-            'status' => 'confirmed', // Admin created bookings are usually confirmed immediately
-            'special_requests' => $validated['special_requests'],
+            'status' => $validated['status'],
+            'admin_notes' => $validated['admin_notes'],
         ]);
 
         return redirect()->route('website.admin.bookings.index')
@@ -108,7 +117,7 @@ class BookingController extends Controller
      */
     public function show($id)
     {
-        $booking = Booking::with('room')->findOrFail($id);
+        $booking = Booking::with(['room', 'user'])->findOrFail($id);
         return view('website::admin.bookings.show', compact('booking'));
     }
 
@@ -118,7 +127,7 @@ class BookingController extends Controller
     public function edit($id)
     {
         $booking = Booking::findOrFail($id);
-        $rooms = Room::where('status', '!=', 'maintenance')->get();
+        $rooms = Room::all();
         return view('website::admin.bookings.edit', compact('booking', 'rooms'));
     }
 
@@ -133,48 +142,76 @@ class BookingController extends Controller
             'room_id' => 'required|exists:rooms,id',
             'check_in_date' => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',
-            'status' => 'required|in:pending,confirmed,checked_in,checked_out,cancelled',
-            'payment_status' => 'required|in:pending,paid,failed,refunded',
+            'payment_status' => 'required|in:pending,paid,failed,partial',
+            'status' => 'required|in:pending,confirmed,cancelled,checked_in,completed',
+            'admin_notes' => 'nullable|string'
         ]);
+
+        // 1. Availability Check (Only if dates or room changed)
+        if (
+            $booking->room_id != $request->room_id ||
+            $booking->check_in_date->format('Y-m-d') != $request->check_in_date ||
+            $booking->check_out_date->format('Y-m-d') != $request->check_out_date
+        ) {
+            $isAvailable = Booking::isAvailable(
+                $request->room_id,
+                $request->check_in_date,
+                $request->check_out_date,
+                $id // Ignore current booking ID
+            );
+
+            if (!$isAvailable) {
+                return back()->withErrors(['room_id' => 'Room unavailable for these new dates.'])->withInput();
+            }
+
+            // Recalculate price if dates/room changed
+            $room = Room::findOrFail($request->room_id);
+            $nights = Carbon::parse($request->check_in_date)->diffInDays(Carbon::parse($request->check_out_date));
+            $booking->total_amount = $room->price * ($nights < 1 ? 1 : $nights);
+        }
 
         $booking->update($validated);
 
-        return redirect()->route('website.admin.bookings.index')
-            ->with('success', 'Booking updated successfully.');
+        return redirect()->back()->with('success', 'Booking updated successfully.');
     }
 
     /**
-     * Confirm a booking manually.
-     * Prevents Double Booking by checking Frontdesk CRM.
+     * Manual Confirm Method (For the Action Button)
      */
     public function confirm($id)
     {
         $booking = Booking::findOrFail($id);
 
-        if ($booking->status === 'confirmed') {
-            return back()->with('info', 'Booking is already confirmed.');
-        }
+        // Optional: Re-verify availability before confirming
+        $isAvailable = Booking::isAvailable(
+            $booking->room_id,
+            $booking->check_in_date,
+            $booking->check_out_date,
+            $id
+        );
 
-        // RUN THE CHECK
-        if (!$this->isRoomAvailable($booking->room_id, $booking->check_in_date, $booking->check_out_date)) {
-            return back()->with('error', 'ACTION DENIED: This room is currently occupied by a Walk-In Guest (Frontdesk). You must move the guest or cancel this booking.');
+        if (!$isAvailable) {
+            return back()->with('error', 'Cannot confirm: This room is now occupied or double-booked.');
         }
 
         $booking->update(['status' => 'confirmed']);
 
-        // Optional: Create a "Reserved" Registration in Frontdesk automatically?
-        // This would reserve the slot in the CRM too.
+        // Optional: Send Email Confirmation here
+        // Mail::to($booking->guest_email)->send(new BookingConfirmed($booking));
 
-        return back()->with('success', 'Booking confirmed. Room slot secured.');
+        return back()->with('success', 'Booking confirmed successfully.');
     }
 
     /**
-     * Cancel a booking.
+     * Manual Cancel Method (For the Action Button)
      */
     public function cancel($id)
     {
         $booking = Booking::findOrFail($id);
+
         $booking->update(['status' => 'cancelled']);
+
+        // Optional: Send Cancellation Email
 
         return back()->with('success', 'Booking cancelled successfully.');
     }
@@ -186,70 +223,7 @@ class BookingController extends Controller
     {
         $booking = Booking::findOrFail($id);
         $booking->delete();
-
         return redirect()->route('website.admin.bookings.index')
             ->with('success', 'Booking deleted successfully.');
-    }
-
-    /**
-     * Helper: Check Frontdesk CRM for conflicts.
-     * Returns TRUE if room is occupied.
-     */
-    private function isRoomOccupiedInFrontdesk($roomId, $checkIn, $checkOut)
-    {
-        // Check if Frontdesk module exists
-        if (!class_exists(Registration::class)) {
-            return false;
-        }
-
-        // Check for overlapping registrations
-        return Registration::where('room_id', $roomId)
-            ->whereIn('status', ['checked_in', 'reserved'])
-            ->where(function ($query) use ($checkIn, $checkOut) {
-                $query->where('check_in_date', '<', $checkOut)
-                    ->where('check_out_date', '>', $checkIn);
-            })
-            ->exists();
-    }
-
-    /**
-     * Check if a room is available for a given date range.
-     * Returns true if available, false if occupied.
-     */
-    private function isRoomAvailable($roomId, $checkIn, $checkOut)
-    {
-        // 1. Check Online Bookings (Website)
-        // Overlapping logic: (StartA <= EndB) and (EndA >= StartB)
-        $hasWebBooking = Booking::where('room_id', $roomId)
-            ->where('status', '!=', 'cancelled') // Ignore cancelled
-            ->where(function ($query) use ($checkIn, $checkOut) {
-                $query->where('check_in_date', '<', $checkOut)
-                    ->where('check_out_date', '>', $checkIn);
-            })
-            ->exists();
-
-        if ($hasWebBooking) {
-            return false; // Blocked by online booking
-        }
-
-        // 2. Check Physical Registrations (Frontdesk CRM)
-        // Only if the module class exists
-        if (class_exists(Registration::class)) {
-            $hasWalkIn = Registration::where('room_id', $roomId)
-                ->whereIn('status', ['checked_in', 'reserved', 'staying']) // Active statuses
-                ->where(function ($query) use ($checkIn, $checkOut) {
-                    // Assuming Registration uses 'check_in_date' and 'check_out_date' like Booking
-                    // If it uses 'arrival_date'/'departure_date', update these columns accordingly
-                    $query->where('check_in_date', '<', $checkOut)
-                        ->where('check_out_date', '>', $checkIn);
-                })
-                ->exists();
-
-            if ($hasWalkIn) {
-                return false; // Blocked by walk-in guest
-            }
-        }
-
-        return true; // Room is free!
     }
 }

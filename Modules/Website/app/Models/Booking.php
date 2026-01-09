@@ -4,20 +4,21 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use App\Models\User;
+use Modules\Frontdeskcrm\Models\Registration;
 
 class Booking extends Model
 {
     use HasFactory;
 
-    // FIX: Add all fields you want to save to this array
     protected $fillable = [
-        'booking_reference',  // This was causing your error
+        'booking_reference',
         'room_id',
-        'user_id',            // Optional: if logged in
-        'guest_profile_id',   // Optional: link to CRM
+        'user_id',            // Optional: links to registered user
+        'guest_profile_id',   // Optional: links to CRM profile
 
-        // Guest Details (Snapshot)
+        // Guest Details (Snapshot for guest checking out as guest)
         'guest_name',
         'guest_email',
         'guest_phone',
@@ -31,11 +32,11 @@ class Booking extends Model
         // Financials
         'total_amount',
         'amount_paid',
-        'payment_status',
+        'payment_status',     // pending, paid, failed, partial
         'payment_method',
 
-        // Status
-        'status',
+        // Status & Notes
+        'status',             // pending, confirmed, checked_in, cancelled, completed
         'confirmation_token',
         'special_requests',
         'admin_notes',
@@ -61,28 +62,55 @@ class Booking extends Model
      */
     public function user()
     {
-        return $this->belongsTo(\App\Models\User::class);
+        return $this->belongsTo(User::class);
     }
 
-   
-
-    // public function invoice()
-    // {
-    //     return $this->belongsTo(Invoice::class);
-    // }
-
-    public function assignedStaff()
+    /**
+     * Scope: Check if a room is available for a specific date range.
+     * Checks both WEBSITE BOOKINGS and FRONTDESK REGISTRATIONS.
+     * * @param Builder $query
+     * @param int $roomId
+     * @param string $checkIn
+     * @param string $checkOut
+     * @param int|null $ignoreBookingId (Optional: ID to ignore for updates)
+     * @return bool
+     */
+    public function scopeIsAvailable($query, $roomId, $checkIn, $checkOut, $ignoreBookingId = null)
     {
-        return $this->belongsTo(User::class, 'assigned_staff_id');
-    }
+        // 1. Check for overlapping Online Bookings
+        $hasBookingConflict = self::where('room_id', $roomId)
+            ->where('status', '!=', 'cancelled') // Ignore cancelled bookings
+            ->where(function ($q) use ($checkIn, $checkOut) {
+                // Overlap Logic: (StartA < EndB) and (EndA > StartB)
+                $q->where('check_in_date', '<', $checkOut)
+                    ->where('check_out_date', '>', $checkIn);
+            })
+            ->when($ignoreBookingId, function ($q) use ($ignoreBookingId) {
+                $q->where('id', '!=', $ignoreBookingId);
+            })
+            ->exists();
 
-    public function creator()
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
+        if ($hasBookingConflict) {
+            return false;
+        }
 
-    public function updater()
-    {
-        return $this->belongsTo(User::class, 'updated_by');
+        // 2. Check for overlapping Frontdesk Registrations (Physical Guests)
+        // We use class_exists to ensure the module is enabled without crashing
+        if (class_exists(Registration::class)) {
+            $hasPhysicalConflict = Registration::where('room_id', $roomId)
+                ->whereIn('status', ['checked_in', 'reserved', 'staying']) // Active statuses
+                ->where(function ($q) use ($checkIn, $checkOut) {
+                    // Adjust column names if your Registration table uses different names
+                    $q->where('check_in_date', '<', $checkOut)
+                        ->where('check_out_date', '>', $checkIn);
+                })
+                ->exists();
+
+            if ($hasPhysicalConflict) {
+                return false;
+            }
+        }
+
+        return true; // No conflicts found
     }
 }
