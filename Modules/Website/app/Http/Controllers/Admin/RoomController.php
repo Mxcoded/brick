@@ -134,8 +134,8 @@ class RoomController extends Controller
             }
         }
 
-        return redirect()->route('website.admin.rooms.index')
-            ->with('success', 'Room updated successfully.');
+        // ✅ UX IMPROVEMENT: Redirect back to the edit page instead of the index
+        return redirect()->back()->with('success', 'Room updated successfully.');
     }
 
     public function show($id)

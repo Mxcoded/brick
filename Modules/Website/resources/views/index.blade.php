@@ -36,30 +36,37 @@
                             <!-- Quick Booking Form - Moved below CTA buttons -->
                             <div class="quick-booking-form bg-white p-4 rounded shadow mx-auto mt-4"
                                 style="max-width: 900px;">
-                                <form action="{{ route('website.rooms.index') }}" method="GET" class="shadow-lg p-4 bg-white rounded rounded-3 position-relative z-index-1 mt-n5 mx-auto" style="max-width: 1000px;">
-    <div class="row g-3 align-items-end">
-        <div class="col-md-3">
-            <label class="form-label fw-bold text-uppercase small text-muted">Check In</label>
-            <input type="date" name="check_in" class="form-control bg-light border-0" required min="{{ date('Y-m-d') }}">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label fw-bold text-uppercase small text-muted">Check Out</label>
-            <input type="date" name="check_out" class="form-control bg-light border-0" required min="{{ date('Y-m-d', strtotime('+1 day')) }}">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label fw-bold text-uppercase small text-muted">Guests</label>
-            <select name="adults" class="form-select bg-light border-0">
-                <option value="1">1 Adult</option>
-                <option value="2">2 Adults</option>
-                <option value="3">3 Adults</option>
-                <option value="4">4+ Adults</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Check Availability</button>
-        </div>
-    </div>
-</form>
+                                <form action="{{ route('website.rooms.index') }}" method="GET"
+                                    class="shadow-lg p-4 bg-white rounded rounded-3 position-relative z-index-1 mt-n5 mx-auto"
+                                    style="max-width: 1000px;">
+                                    <div class="row g-3 align-items-end">
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold text-uppercase small text-muted">Check
+                                                In</label>
+                                            <input type="date" name="check_in" class="form-control bg-light border-0"
+                                                required min="{{ date('Y-m-d') }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold text-uppercase small text-muted">Check
+                                                Out</label>
+                                            <input type="date" name="check_out" class="form-control bg-light border-0"
+                                                required min="{{ date('Y-m-d', strtotime('+1 day')) }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold text-uppercase small text-muted">Guests</label>
+                                            <select name="adults" class="form-select bg-light border-0">
+                                                <option value="1">1 Adult</option>
+                                                <option value="2">2 Adults</option>
+                                                <option value="3">3 Adults</option>
+                                                <option value="4">4+ Adults</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Check
+                                                Availability</button>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -147,8 +154,8 @@
                     <div class="col-md-6 col-lg-4">
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
-                                 <img src="{{ $room->image_url ?? 'https://via.placeholder.com/50' }}" class="card-img-top room-image"
-                                    alt="{{ $room->name }}">
+                                <img src="{{ $room->image_url ?? 'https://via.placeholder.com/50' }}"
+                                    class="card-img-top room-image" alt="{{ $room->name }}">
                                 <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
                                     ₦{{ number_format($room->price, 2) }} <small>/ night</small>
                                 </div>
@@ -161,17 +168,23 @@
                                 <h3 class="h5 card-title">{{ $room->name }}</h3>
                                 <p class="card-text text-muted">{{ Str::limit($room->description, 100) }}</p>
                                 <div class="room-features d-flex flex-wrap gap-2 mb-3">
-                                    {{-- Fix: Wrap the array in collect() to use take(), and output the string directly --}}
-                                    @foreach (collect($room->amenities ?? [])->take(3) as $amenity)
-                                        <span class="badge bg-light text-dark">
-                                            <i class="fas fa-check-circle text-primary me-1"></i> {{ $amenity }}
+                                    {{-- 1. Use the relationship collection directly --}}
+                                    @foreach ($room->amenities->take(3) as $amenity)
+                                        <span class="badge bg-light text-dark border">
+                                            {{-- 2. Use the dynamic icon from DB, fallback to check-circle if missing --}}
+                                            <i
+                                                class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i>
+
+                                            {{-- 3. Output the NAME property, not the object itself --}}
+                                            {{ $amenity->name }}
                                         </span>
                                     @endforeach
 
-                                    {{-- Optional: Show count of remaining amenities --}}
-                                    @if (count($room->amenities ?? []) > 3)
-                                        <span class="badge bg-light text-muted">+{{ count($room->amenities) - 3 }}
-                                            more</span>
+                                    {{-- 4. Count remaining items using the collection count --}}
+                                    @if ($room->amenities->count() > 3)
+                                        <span class="badge bg-light text-muted border">
+                                            +{{ $room->amenities->count() - 3 }} more
+                                        </span>
                                     @endif
                                 </div>
                             </div>

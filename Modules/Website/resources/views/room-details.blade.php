@@ -22,9 +22,9 @@
 
             <div class="row mb-5">
                 <div class="col-lg-8">
+                    {{-- 1. Video Section (Kept as is) --}}
                     @if ($room->video_url)
                         <div class="mb-4 ratio ratio-16x9 rounded shadow-lg overflow-hidden">
-                            {{-- Check if it is a YouTube URL or local --}}
                             @if (Str::contains($room->video_url, 'youtube') || Str::contains($room->video_url, 'youtu.be'))
                                 <iframe src="{{ str_replace('watch?v=', 'embed/', $room->video_url) }}"
                                     allowfullscreen></iframe>
@@ -37,12 +37,64 @@
                         </div>
                     @endif
 
-                    {{-- Main Image Fallback --}}
-                    @if ($room->image_url)
-                        <img src="{{ $room->image_url ?? 'https://via.placeholder.com/50' }}"
-                            class="img-fluid rounded shadow-sm w-100" alt="{{ $room->name }}">
+                    {{-- 2. Gallery Carousel (Replaces Static Image) --}}
+                    @if ($room->images && $room->images->count() > 0)
+                        <div id="roomGalleryCarousel" class="carousel slide mb-5 shadow-lg rounded overflow-hidden"
+                            data-bs-ride="carousel">
+
+                            {{-- Indicators (Optional dots at bottom) --}}
+                            <div class="carousel-indicators">
+                                @foreach ($room->images as $key => $image)
+                                    <button type="button" data-bs-target="#roomGalleryCarousel"
+                                        data-bs-slide-to="{{ $key }}" class="{{ $key == 0 ? 'active' : '' }}"
+                                        aria-current="{{ $key == 0 ? 'true' : 'false' }}"
+                                        aria-label="Slide {{ $key + 1 }}"></button>
+                                @endforeach
+                            </div>
+
+                            {{-- Slides --}}
+                            <div class="carousel-inner">
+                                @foreach ($room->images as $key => $image)
+                                    <div class="carousel-item {{ $key == 0 ? 'active' : '' }}">
+                                        <img src="{{ $image->image_url }}" class="d-block w-100"
+                                            alt="{{ $room->name }} Gallery Image {{ $key + 1 }}"
+                                            style="height: 500px; object-fit: cover;">
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            {{-- Controls (Prev/Next Buttons) --}}
+                            <button class="carousel-control-prev" type="button" data-bs-target="#roomGalleryCarousel"
+                                data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#roomGalleryCarousel"
+                                data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+                        </div>
+                    @else
+                        {{-- Fallback: Show Main Image if no gallery exists --}}
+                        @if ($room->image_url)
+                            <img src="{{ $room->image_url }}" class="img-fluid rounded shadow-lg mb-5 w-100"
+                                alt="{{ $room->name }}" style="max-height: 500px; object-fit: cover;">
+                        @endif
                     @endif
 
+                    {{-- Amenities Section (Likely below this) --}}
+                    <h3 class="mb-4">Room Amenities</h3>
+                    <div class="row g-3">
+                        @foreach ($room->amenities as $amenity)
+                            <div class="col-6 col-md-4">
+                                <div class="d-flex align-items-center p-3 border rounded bg-light">
+                                    <i class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-3 fs-4"></i>
+                                    <span class="fw-medium">{{ $amenity->name }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
 
                 <div class="col-lg-4">
@@ -107,19 +159,6 @@
                         {!! nl2br(e($room->description)) !!}
                     </div>
 
-                    <h3 class="h4 fw-bold mb-4">Room Amenities</h3>
-                    <div class="row row-cols-1 row-cols-md-2 g-3 mb-5">
-                        @forelse(collect($room->amenities ?? []) as $amenity)
-                            <div class="col">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-2"></i>
-                                    <span>{{ is_string($amenity) ? $amenity : $amenity['name'] ?? 'Amenity' }}</span>
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-muted">No specific amenities listed.</p>
-                        @endforelse
-                    </div>
                 </div>
             </div>
 
@@ -131,8 +170,8 @@
                         <div class="col-md-4">
                             <div class="card border-0 shadow-sm h-100">
                                 @if ($related->image_url)
-                                    <img src="{{ $related->image_url }}" class="card-img-top" alt="{{ $related->name }}"
-                                        style="height: 200px; object-fit: cover;">
+                                    <img src="{{ $related->image_url }}" class="card-img-top"
+                                        alt="{{ $related->name }}" style="height: 200px; object-fit: cover;">
                                 @endif
                                 <div class="card-body">
                                     <h5 class="card-title">{{ $related->name }}</h5>
