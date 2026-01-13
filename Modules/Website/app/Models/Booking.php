@@ -98,11 +98,11 @@ class Booking extends Model
         // We use class_exists to ensure the module is enabled without crashing
         if (class_exists(Registration::class)) {
             $hasPhysicalConflict = Registration::where('room_id', $roomId)
-                ->whereIn('status', ['checked_in', 'reserved', 'staying']) // Active statuses
+                ->whereIn('stay_status', ['checked_in', 'reserved', 'staying']) // Active statuses
                 ->where(function ($q) use ($checkIn, $checkOut) {
                     // Adjust column names if your Registration table uses different names
-                    $q->where('check_in_date', '<', $checkOut)
-                        ->where('check_out_date', '>', $checkIn);
+                    $q->where('check_in', '<', $checkOut)
+                        ->where('check_out', '>', $checkIn);
                 })
                 ->exists();
 
