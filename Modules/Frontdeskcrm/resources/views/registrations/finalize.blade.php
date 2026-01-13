@@ -143,7 +143,7 @@
                                                         @foreach($rooms as $room)
                                                             <option value="{{ $room->id }}" 
                                                                 data-name="{{ $room->name }}"
-                                                                data-price="{{ $room->price_per_night }}" 
+                                                                data-price="{{ $room->price }}" 
                                                                 data-capacity="{{ $room->capacity }}"
                                                                 {{-- FIX: Check Old Input -> Then Check DB Value --}}
                                                                 @selected(old('room_id', $registration->room_id) == $room->id)>
@@ -240,7 +240,7 @@
                                                                         @foreach($rooms as $room)
                                                                             <option value="{{ $room->id }}"
                                                                                 data-name="{{ $room->name }}"
-                                                                                data-price="{{ $room->price_per_night }}"
+                                                                                data-price="{{ $room->price }}"
                                                                                 {{-- FIX: Check Old Input -> Then Check Member DB Value --}}
                                                                                 @selected(old('group_members.' . $member->id . '.room_id', $member->room_id) == $room->id)>
                                                                                 {{ $room->name }}
