@@ -18,8 +18,8 @@ class ContactMessageController extends Controller
 
         // Filter by Status (Read/Unread)
         if ($request->filled('status')) {
-            $isRead = $request->status === 'read';
-            $query->where('is_read', $isRead);
+            $status = $request->status;
+            $query->where('status', $status);
         }
 
         // Search

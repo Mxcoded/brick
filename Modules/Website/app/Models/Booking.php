@@ -48,7 +48,24 @@ class Booking extends Model
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
     ];
+    /**
+     * ✅ AUTOMATION LOGIC
+     * The "booted" method runs automatically whenever this Model is saved.
+     */
+    protected static function booted()
+    {
+        static::saving(function ($booking) {
+            // 1. Auto-Confirm if Paid
+            if ($booking->payment_status === 'paid' && $booking->status === 'pending') {
+                $booking->status = 'confirmed';
+            }
 
+            // 2. Auto-Generate Reference if missing
+            if (empty($booking->booking_reference)) {
+                $booking->booking_reference = 'BK-' . strtoupper(uniqid());
+            }
+        });
+    }
     /**
      * Relationship: The room being booked.
      */
@@ -66,22 +83,15 @@ class Booking extends Model
     }
 
     /**
-     * Scope: Check if a room is available for a specific date range.
-     * Checks both WEBSITE BOOKINGS and FRONTDESK REGISTRATIONS.
-     * * @param Builder $query
-     * @param int $roomId
-     * @param string $checkIn
-     * @param string $checkOut
-     * @param int|null $ignoreBookingId (Optional: ID to ignore for updates)
-     * @return bool
+     * ✅ FIXED: Changed from 'scopeIsAvailable' to 'public static function isAvailable'
+     * This ensures it returns a Boolean (true/false), not a Query Builder.
      */
-    public function scopeIsAvailable($query, $roomId, $checkIn, $checkOut, $ignoreBookingId = null)
+    public static function isAvailable($roomId, $checkIn, $checkOut, $ignoreBookingId = null)
     {
-        // 1. Check for overlapping Online Bookings
+        // 1. Check Website Bookings
         $hasBookingConflict = self::where('room_id', $roomId)
-            ->where('status', '!=', 'cancelled') // Ignore cancelled bookings
+            ->where('status', '!=', 'cancelled')
             ->where(function ($q) use ($checkIn, $checkOut) {
-                // Overlap Logic: (StartA < EndB) and (EndA > StartB)
                 $q->where('check_in_date', '<', $checkOut)
                     ->where('check_out_date', '>', $checkIn);
             })
@@ -94,13 +104,13 @@ class Booking extends Model
             return false;
         }
 
-        // 2. Check for overlapping Frontdesk Registrations (Physical Guests)
-        // We use class_exists to ensure the module is enabled without crashing
+        // 2. Check Frontdesk Registrations
         if (class_exists(Registration::class)) {
+            // Check based on your specific migration column names
             $hasPhysicalConflict = Registration::where('room_id', $roomId)
-                ->whereIn('stay_status', ['checked_in', 'reserved', 'staying']) // Active statuses
+                // ✅ UPDATED: Only check statuses that block the room
+                ->whereIn('stay_status', ['checked_in', 'draft_by_guest'])
                 ->where(function ($q) use ($checkIn, $checkOut) {
-                    // Adjust column names if your Registration table uses different names
                     $q->where('check_in', '<', $checkOut)
                         ->where('check_out', '>', $checkIn);
                 })
@@ -111,6 +121,6 @@ class Booking extends Model
             }
         }
 
-        return true; // No conflicts found
+        return true;
     }
 }

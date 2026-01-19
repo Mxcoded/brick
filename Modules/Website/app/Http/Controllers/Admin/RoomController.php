@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomImage;
 use Modules\Website\Models\Amenity; // Import Amenity
+use Modules\Website\Models\Booking;
+use Modules\Frontdeskcrm\Models\Registration; // For Frontdesk Integration
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -168,5 +170,230 @@ class RoomController extends Controller
         }
         $room->delete();
         return back()->with('success', 'Room deleted.');
+    }
+
+
+    /**
+     * Display the Monthly Tape Chart (Calendar).
+     */
+    public function calendar(Request $request)
+    {
+        // 1. Determine Month/Year (Default to current)
+        $date = $request->filled('date')
+            ? \Carbon\Carbon::parse($request->date)
+            : \Carbon\Carbon::now();
+
+        $startOfMonth = $date->copy()->startOfMonth();
+        $endOfMonth = $date->copy()->endOfMonth();
+        $daysInMonth = $date->daysInMonth;
+
+        // 2. Fetch Rooms with Bookings overlapping this month
+        // We eagerly load bookings to avoid "N+1" query performance issues
+        $rooms = \Modules\Website\Models\Room::with(['bookings' => function ($query) use ($startOfMonth, $endOfMonth) {
+            $query->where('status', '!=', 'cancelled')
+                ->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                    $q->whereBetween('check_in_date', [$startOfMonth, $endOfMonth])
+                        ->orWhereBetween('check_out_date', [$startOfMonth, $endOfMonth])
+                        ->orWhere(function ($sub) use ($startOfMonth, $endOfMonth) {
+                            $sub->where('check_in_date', '<', $startOfMonth)
+                                ->where('check_out_date', '>', $endOfMonth);
+                        });
+                });
+        }])->get();
+
+        // 3. Prepare View Data
+        return view('website::admin.rooms.calendar', compact('rooms', 'date', 'daysInMonth', 'startOfMonth'));
+    }
+    /**
+     * ✅ API 1: Live Room Rack Data (Merged & Prioritized)
+     */
+    public function getRoomStatus()
+    {
+        // 1. Get all rooms
+        $rooms = Room::select('id', 'name', 'capacity', 'status')->get();
+        $today = now()->format('Y-m-d');
+
+        // 2. Fetch Active FRONTDESK Registrations (Priority 1)
+        // We grab entries that are physically in-house
+        $activeRegistrations = collect();
+        if (class_exists(Registration::class)) {
+            $activeRegistrations = Registration::whereIn('stay_status', ['checked_in', 'draft_by_guest'])
+                ->get();
+        }
+
+        // 3. Fetch Active WEBSITE Bookings (Priority 2)
+        $activeBookings = Booking::where('status', '!=', 'cancelled')
+            ->whereDate('check_in_date', '<=', $today)
+            ->whereDate('check_out_date', '>', $today)
+            ->get()
+            ->keyBy('room_id');
+
+        // 4. Map Status
+        $data = $rooms->map(function ($room) use ($activeRegistrations, $activeBookings) {
+
+            // A. Maintenance Check
+            if ($room->status === 'maintenance') {
+                return $this->formatStatus($room, 'maintenance', 'secondary', 'Maintenance');
+            }
+
+            // B. Frontdesk Priority Check (The "Think Deep" Logic)
+            // 1. Try strict ID match
+            $registration = $activeRegistrations->firstWhere('room_id', $room->id);
+
+            // 2. Fallback: If room_id is missing, match name string (Legacy Support)
+            if (!$registration) {
+                $registration = $activeRegistrations->firstWhere('room_allocation', $room->name);
+            }
+
+            if ($registration) {
+                return $this->formatStatus(
+                    $room,
+                    'occupied',
+                    'danger', // Red = Physically Occupied
+                    $registration->full_name,
+                    $registration->check_out
+                );
+            }
+
+            // C. Website Booking Check
+            $booking = $activeBookings->get($room->id);
+            if ($booking) {
+                $isCheckingOut = $booking->check_out_date === now()->format('Y-m-d');
+                return $this->formatStatus(
+                    $room,
+                    'occupied',
+                    $isCheckingOut ? 'warning' : 'primary', // Blue/Orange
+                    $booking->guest_name,
+                    $booking->check_out_date
+                );
+            }
+
+            // D. Available
+            return $this->formatStatus($room, 'available', 'success', 'Vacant');
+        });
+
+        return response()->json($data);
+    }
+
+    private function formatStatus($room, $status, $color, $guest, $checkout = null)
+    {
+        return [
+            'id' => $room->id,
+            'name' => $room->name,
+            'status' => $status,
+            'color' => $color,
+            'guest' => $guest,
+            'checkout' => $checkout ? \Carbon\Carbon::parse($checkout)->format('M d') : null,
+        ];
+    }
+
+    /**
+     * ✅ API 2: Calendar Data (Merged)
+     */
+    public function getCalendarData(Request $request)
+    {
+        $start = $request->input('start') ? \Carbon\Carbon::parse($request->input('start')) : now()->startOfMonth();
+        $end = $request->input('end') ? \Carbon\Carbon::parse($request->input('end')) : now()->endOfMonth();
+
+        $rooms = Room::all();
+
+        // Get Website Bookings
+        $bookings = Booking::where('status', '!=', 'cancelled')
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('check_in_date', [$start, $end])
+                    ->orWhereBetween('check_out_date', [$start, $end]);
+            })->get();
+
+        // Get Frontdesk Registrations
+        $registrations = collect();
+        if (class_exists(Registration::class)) {
+            $registrations = Registration::where('stay_status', '!=', 'cancelled')
+                ->where(function ($q) use ($start, $end) {
+                    $q->whereBetween('check_in', [$start, $end])
+                        ->orWhereBetween('check_out', [$start, $end]);
+                })->get();
+        }
+
+        $roomData = $rooms->map(function ($room) use ($bookings, $registrations) {
+            $events = [];
+
+            // 1. Maintenance
+            if ($room->status === 'maintenance') {
+                $events[] = [
+                    'id' => 'maint-' . $room->id,
+                    'title' => 'Maintenance',
+                    'start' => now()->startOfMonth()->toDateString(),
+                    'end' => now()->endOfMonth()->toDateString(),
+                    'color' => '#6c757d',
+                    'status' => 'maintenance'
+                ];
+            }
+
+            // 2. Frontdesk Events (Red/Green)
+            foreach ($registrations as $reg) {
+                // Strict ID match OR Name fallback
+                if ($reg->room_id == $room->id || $reg->room_allocation == $room->name) {
+                    $color = ($reg->stay_status === 'checked_out') ? '#198754' : '#dc3545';
+
+                    $events[] = [
+                        'id' => 'reg-' . $reg->id,
+                        'title' => $reg->full_name . ' (House)',
+                        'start' => $reg->check_in,
+                        'end' => $reg->check_out,
+                        'color' => $color,
+                        'status' => $reg->stay_status,
+                        // If you have a route to view registration details:
+                        // 'details_url' => route('frontdesk.registrations.show', $reg->id) 
+                    ];
+                }
+            }
+
+            // 3. Website Events (Blue/Yellow)
+            foreach ($bookings as $booking) {
+                if ($booking->room_id == $room->id) {
+                    // Check for overlap with Frontdesk to avoid double visual stacking? 
+                    // Usually better to show both so Admin sees the conflict.
+
+                    $events[] = [
+                        'id' => 'bk-' . $booking->id,
+                        'title' => $booking->guest_name . ' (Web)',
+                        'start' => $booking->check_in_date,
+                        'end' => $booking->check_out_date,
+                        'color' => ($booking->status === 'confirmed') ? '#0d6efd' : '#ffc107',
+                        'status' => $booking->status,
+                        'details_url' => route('website.admin.bookings.edit', $booking->id)
+                    ];
+                }
+            }
+
+            return [
+                'id' => $room->id,
+                'name' => $room->name,
+                'capacity' => $room->capacity,
+                'events' => $events
+            ];
+        });
+
+        return response()->json([
+            'rooms' => $roomData,
+            'days' => $this->generateDateHeaders($start, $end)
+        ]);
+    }
+
+    private function generateDateHeaders($start, $end)
+    {
+        $dates = [];
+        $current = $start->copy();
+        while ($current->lte($end)) {
+            $dates[] = [
+                'date' => $current->format('Y-m-d'),
+                'day' => $current->format('d'),
+                'weekday' => $current->format('D'),
+                'is_weekend' => $current->isWeekend(),
+                'is_today' => $current->isToday(),
+            ];
+            $current->addDay();
+        }
+        return $dates;
     }
 }

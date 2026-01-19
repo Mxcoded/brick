@@ -39,7 +39,7 @@
             --color-gold: #C8A165;
             --color-dark-gray: #333333;
             --color-soft-neutral: #F5F5F0;
-            
+
             --font-primary: 'Proxima Nova', Arial, Helvetica, sans-serif;
         }
 
@@ -57,7 +57,12 @@
             color: var(--color-dark-gray);
         }
 
-        h1, h2, h3, h4, h5, h6 {
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
             font-family: var(--font-primary);
             color: var(--color-dark-gray);
         }
@@ -78,12 +83,14 @@
         .btn-primary {
             background-color: var(--color-gold);
             border-color: var(--color-gold);
-            color: var(--color-dark-gray); /* Dark text for contrast on Gold */
+            color: var(--color-dark-gray);
+            /* Dark text for contrast on Gold */
             font-weight: 600;
         }
 
         .btn-primary:hover {
-            background-color: #b08d55; /* Darker Gold */
+            background-color: #b08d55;
+            /* Darker Gold */
             border-color: #b08d55;
             color: var(--color-white);
         }
@@ -102,19 +109,44 @@
         .btn-outline-light:hover {
             color: var(--color-dark-gray);
         }
+
         /* Enhanced logo styling */
         .navbar-brand {
             padding: 0;
         }
-        
+
         .navbar-brand img {
-            height: 60px; /* Larger default size */
+            height: 100px;
+            /* Larger default size */
             width: auto;
             transition: transform 0.3s ease;
         }
 
         .navbar-brand img:hover {
             transform: scale(1.05);
+        }
+
+        .nav-link {
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem !important;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link.active {
+            color: #d4a017 !important;
+            /* Gold/Primary Color */
+        }
+
+        .active-link {
+            color: black !important;
+            font-weight: bold;
+            background-color: rgba(255, 215, 0, 0.1);
+            /* subtle gold highlight */
+            border-left: 4px solid gold;
+            /* optional accent */
         }
 
         /* Footer logo styling */
@@ -129,7 +161,7 @@
             .navbar-brand img {
                 height: 50px;
             }
-            
+
             .footer-logo {
                 height: 60px;
             }
@@ -137,7 +169,7 @@
 
         @media (max-width: 768px) {
             .navbar-brand img {
-                height: 45px;
+                height: 50px;
             }
         }
 
@@ -145,7 +177,7 @@
             .navbar-brand img {
                 height: 40px;
             }
-            
+
             .footer-logo {
                 height: 50px;
             }
@@ -159,7 +191,7 @@
         .text-muted-footer {
             opacity: 0.8;
         }
-        
+
         /* Ensure proper footer layout */
         .footer-content {
             display: flex;
@@ -172,26 +204,33 @@
 <body class="d-flex flex-column min-vh-100">
     <!-- Navigation -->
     <header class="sticky-top">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-2">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm py-3">
             <div class="container">
-                <a class="navbar-brand" href="{{ route('website.home') }}">
-                    <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" alt="Brickspoint ApartHotel"
-                        class="d-inline-block align-top">
+                <a class="navbar-brand d-flex align-items-center" href="{{ route('website.home') }}">
+                    <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
+                        alt="Brickspoint ApartHotel" height="50" class="d-inline-block"
+                        style="width: auto; object-fit: contain;">
                 </a>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false"
+                    aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarMain">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0 align-items-lg-center">
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.home') ? 'active' : '' }}"
                                 href="{{ route('website.home') }}">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('website.rooms.index') ? 'active' : '' }}"
+                            <a class="nav-link {{ request()->routeIs('website.rooms.*', 'website.booking') ? 'active' : '' }}"
                                 href="{{ route('website.rooms.index') }}">Rooms & Suites</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('website.dining') ? 'active' : '' }}"
+                                href="{{ route('website.dining') }}">Dining</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.amenities') ? 'active' : '' }}"
@@ -210,12 +249,21 @@
                                 href="{{ route('website.contact') }}">Contact</a>
                         </li>
                     </ul>
-
-                    <div class="d-flex">
-                        <a href="{{ route('website.booking') }}" class="btn btn-primary px-4">
-                            <i class="fas fa-calendar-check me-2"></i>Book Now
-                        </a>
-                    </div>
+                    @guest
+                        <div class="d-flex align-items-center">
+                            <a href="{{ route('website.booking') }}"
+                                class="btn btn-primary px-4 py-2 rounded fw-bold shadow-sm btn-book-mobile">
+                                <i class="fas fa-calendar-check me-2"></i>Book Now
+                            </a>
+                        </div>
+                    @else
+                        <div class="d-flex align-items-center">
+                            <a href="{{ route('home') }}"
+                                class="btn btn-primary px-4 py-2 rounded fw-bold shadow-sm btn-book-mobile">
+                                <i class="fas fa-dashboard me-2"></i>Dashboard
+                            </a>
+                        </div>
+                    @endguest
                 </div>
             </div>
         </nav>
@@ -231,12 +279,16 @@
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-4">
-                     <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" alt="Brickspoint Logo" class="footer-logo">
-                    <p class="text-muted-footer">Experience the pinnacle of luxury and comfort in the heart of Abuja city.</p>
+                    <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
+                        alt="Brickspoint Logo" class="footer-logo">
+                    <p class="text-muted-footer">Experience the pinnacle of luxury and comfort in the heart of Abuja
+                        city.</p>
                     <div class="mt-4">
-                        <a href="https://fb.com/bpaparthotel" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="https://fb.com/bpaparthotel" class="text-white me-3"><i
+                                class="fab fa-facebook-f"></i></a>
                         <a href="https://x.com/bpaparthotel" class="text-white me-3"><i class="fab fa-x"></i></a>
-                        <a href="https://instagram.com/brickspoint_asokoro" class="text-white me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="https://instagram.com/brickspoint_asokoro" class="text-white me-3"><i
+                                class="fab fa-instagram"></i></a>
                         <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>
                     </div>
                 </div>
@@ -260,7 +312,8 @@
                 <div class="col-lg-3 col-md-4">
                     <h4 class="h5 mb-4">Contact Info</h4>
                     <ul class="list-unstyled text-muted-footer">
-                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2 text-primary"></i> 24 Jose Marti Crescent,
+                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2 text-primary"></i> 24 Jose Marti
+                            Crescent,
                             Asokoro, Abuja</li>
                         <li class="mb-2"><i class="fas fa-phone me-2 text-primary"></i> +234 (809) 999-9627</li>
                         <li class="mb-2"><i class="fas fa-envelope me-2 text-primary"></i> rsv@brickspoint.com</li>
@@ -272,8 +325,10 @@
                     <p class="text-muted-footer">Subscribe for special offers and updates</p>
                     <form class="mb-3">
                         <div class="input-group">
-                            <input type="email" class="form-control bg-secondary border-0" placeholder="Your Email">
-                            <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane"></i></button>
+                            <input type="email" class="form-control bg-secondary border-0"
+                                placeholder="Your Email">
+                            <button class="btn btn-primary" type="submit"><i
+                                    class="fas fa-paper-plane"></i></button>
                         </div>
                     </form>
                 </div>
@@ -283,7 +338,8 @@
 
             <div class="row align-items-center">
                 <div class="col-md-6 text-center text-md-start">
-                    <p class="mb-0 text-muted-footer">&copy; {{ date('Y') }} Brickspoint ApartHotel. All rights reserved.</p>
+                    <p class="mb-0 text-muted-footer">&copy; {{ date('Y') }} Brickspoint ApartHotel. All rights
+                        reserved.</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
                     <a href="#" class="text-muted-footer text-decoration-none me-3">Privacy Policy</a>
@@ -303,4 +359,5 @@
 
     @stack('scripts')
 </body>
+
 </html>
