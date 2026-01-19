@@ -1,8 +1,9 @@
+
 @extends('layouts.master')
 
-@section('title', 'Edit Room')
+@section('title', 'Edit Room') --}}
 
-@section('page-content')
+ @section('page-content')
     <div class="row">
         <div class="col-12 grid-margin">
             <div class="card border-0 shadow-sm">

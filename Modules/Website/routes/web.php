@@ -10,6 +10,7 @@ use Modules\Website\Http\Controllers\GuestController;
 use Modules\Website\Http\Controllers\Admin\WebsiteAdminController;
 use Modules\Website\Http\Controllers\Admin\RoomController as AdminRoomController;
 use Modules\Website\Http\Controllers\Admin\BookingController as AdminBookingController;
+use Modules\Website\Http\Controllers\Admin\DiningController;
 use Modules\Website\Http\Controllers\Admin\AmenityController;
 use Modules\Website\Http\Controllers\Admin\SettingController;
 use Modules\Website\Http\Controllers\Admin\ContactMessageController;
@@ -49,22 +50,33 @@ Route::middleware(['web'])->group(function () {
 
         // Form Submission
         Route::post('/contact/send', 'sendMessage')->name('website.contact.send');
+        Route::post('/check-email', 'checkEmail')->name('website.checkEmail');
+        Route::post('/booking/resend', 'resendConfirmation')->name('website.booking.resend');
     });
 
     // =========================================================================
     // 2. GUEST DASHBOARD (Authenticated Users)
     // =========================================================================
-    Route::middleware(['auth'])->prefix('guest')->name('website.guest.')->group(function () {
-        Route::controller(GuestController::class)->group(function () {
-            Route::get('/dashboard', 'dashboard')->name('dashboard');
+    // Route::middleware(['auth'])->prefix('guest')->name('website.guest.')->group(function () {
+    //     Route::controller(GuestController::class)->group(function () {
+    //         Route::get('/dashboard', 'dashboard')->name('dashboard');
 
-            Route::get('/profile', 'profile')->name('profile');
-            Route::put('/profile', 'updateProfile')->name('profile.update');
+    //         Route::get('/profile', 'profile')->name('profile');
+    //         Route::put('/profile', 'updateProfile')->name('profile.update');
 
-            Route::get('/my-bookings', 'bookings')->name('bookings.index');
-            Route::get('/my-bookings/{ref}', 'bookingDetails')->name('bookings.show');
-            Route::post('/my-bookings/{ref}/cancel', 'cancelBooking')->name('bookings.cancel');
-        });
+    //         Route::get('/my-bookings', 'bookings')->name('bookings.index');
+    //         Route::get('/my-bookings/{ref}', 'bookingDetails')->name('bookings.show');
+    //         Route::post('/my-bookings/{ref}/cancel', 'cancelBooking')->name('bookings.cancel');
+    //     });
+    // });
+    Route::middleware(['auth'])->prefix('guest')->name('guest.')->group(function () {
+        Route::get('/dashboard', [GuestController::class, 'dashboard'])->name('dashboard');
+        Route::get('/bookings', [GuestController::class, 'bookings'])->name('bookings');
+        Route::post('/bookings/{id}/cancel', [GuestController::class, 'cancelBooking'])->name('bookings.cancel');
+
+        // Profile Routes
+        Route::get('/profile', [GuestController::class, 'profile'])->name('profile');
+        Route::put('/profile', [GuestController::class, 'updateProfile'])->name('profile.update'); // New Route
     });
 
     // =========================================================================
@@ -79,21 +91,23 @@ Route::middleware(['web'])->group(function () {
             // Dashboard
             Route::get('/', [WebsiteAdminController::class, 'index'])->name('dashboard');
 
-        // Image Deletion Route
-        Route::delete('/rooms/image/{id}', [AdminRoomController::class, 'deleteImage'])
-            ->name('rooms.image.delete');
+            // Image Deletion Route
+            Route::delete('/rooms/image/{id}', [AdminRoomController::class, 'deleteImage'])
+                ->name('rooms.image.delete');
 
-        // Room Resource Route (Handles index, store, update, destroy)
-        Route::resource('rooms', AdminRoomController::class);
+            // Room Resource Route (Handles index, store, update, destroy)
             // Resource Management
             Route::resource('rooms', AdminRoomController::class);
             Route::resource('bookings', AdminBookingController::class);
             Route::resource('amenities', AmenityController::class);
             Route::resource('settings', SettingController::class);
-
-        // Contact Messages (Read Only / Reply)
-        Route::resource('contact-messages', ContactMessageController::class)
-            ->only(['index', 'show', 'destroy', 'update']);
+            Route::resource('dining', DiningController::class);
+            Route::get('/api/room-status', [AdminRoomController::class, 'getRoomStatus'])->name('api.room.status');
+            Route::get('/calendar', [AdminRoomController::class, 'calendar'])->name('rooms.calendar');
+            Route::get('/api/calendar-data', [AdminRoomController::class, 'getCalendarData'])->name('api.calendar.data');
+            // Contact Messages (Read Only / Reply)
+            Route::resource('contact-messages', ContactMessageController::class)
+                ->only(['index', 'show', 'destroy', 'update']);
 
             // Manual specific routes if Resources don't cover everything
             Route::post('/rooms/image/upload', [AdminRoomController::class, 'uploadImage'])->name('rooms.image.upload');
@@ -101,5 +115,6 @@ Route::middleware(['web'])->group(function () {
 
             Route::post('/bookings/{id}/confirm', [AdminBookingController::class, 'confirm'])->name('bookings.confirm');
             Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'cancel'])->name('bookings.cancel');
+            Route::post('/bookings/{id}/resend', [AdminBookingController::class, 'resendConfirmation'])->name('bookings.resend');
         });
 });

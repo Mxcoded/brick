@@ -8,6 +8,9 @@ use Modules\Website\Models\Room;
 use Modules\Website\Models\Booking;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use Modules\Website\Emails\BookingConfirmation;
+use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
 {
@@ -194,10 +197,20 @@ class BookingController extends Controller
             return back()->with('error', 'Cannot confirm: This room is now occupied or double-booked.');
         }
 
-        $booking->update(['status' => 'confirmed']);
+        // 1. Update Status & Mark as PAID
+        $booking->update([
+            'status' => 'confirmed',
+            'payment_status' => 'paid', // ✅ Manual Payment Confirmation
+        ]);
 
-        // Optional: Send Email Confirmation here
-        // Mail::to($booking->guest_email)->send(new BookingConfirmed($booking));
+        // 2. Send Confirmation Email
+        try {
+            Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
+            $message = 'Booking confirmed, marked as PAID, and email sent.';
+        } catch (\Exception $e) {
+            Log::error("Manual Confirm Email Failed: " . $e->getMessage());
+            $message = 'Booking confirmed and marked as PAID, but email failed to send.';
+        }
 
         return back()->with('success', 'Booking confirmed successfully.');
     }
@@ -209,7 +222,10 @@ class BookingController extends Controller
     {
         $booking = Booking::findOrFail($id);
 
-        $booking->update(['status' => 'cancelled']);
+        $booking->update([
+            'status' => 'cancelled',
+            'payment_status' => 'void',
+        ]);
 
         // Optional: Send Cancellation Email
 
@@ -225,5 +241,21 @@ class BookingController extends Controller
         $booking->delete();
         return redirect()->route('website.admin.bookings.index')
             ->with('success', 'Booking deleted successfully.');
+    }
+    /**
+     * Resend the confirmation email manually.
+     */
+    public function resendConfirmation($id)
+    {
+        $booking = Booking::findOrFail($id);
+
+        try {
+            Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
+
+            return back()->with('success', 'Confirmation email sent successfully to ' . $booking->guest_email);
+        } catch (\Exception $e) {
+            Log::error("Admin Resend Email Failed: " . $e->getMessage());
+            return back()->with('error', 'Failed to send email. Check mail server logs.');
+        }
     }
 }

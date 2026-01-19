@@ -20,6 +20,11 @@
         <i class="fas fa-bed me-2"></i> Room Inventory
     </a>
 
+    <a href="{{ route('website.admin.dining.index') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.dining.*') ? 'active' : '' }}">
+        <i class="fas fa-utensils me-2"></i>Dining
+    </a>
+
     <a href="{{ route('website.admin.bookings.index') }}"
         class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.bookings.*') ? 'active' : '' }}">
         <i class="fas fa-calendar-check me-2"></i> Web Bookings
@@ -39,7 +44,7 @@
     <a href="{{ route('website.admin.contact-messages.index') }}"
         class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.contact-messages.*') ? 'active' : '' }}">
         <i class="fas fa-envelope me-2"></i> Messages
-         @if (\Modules\Website\Models\ContactMessage::where('status', 'unread')->count() > 0)
+        @if (\Modules\Website\Models\ContactMessage::where('status', 'unread')->count() > 0)
             <span class="badge bg-danger rounded-pill float-end">
                 {{ \Modules\Website\Models\ContactMessage::where('status', 'unread')->count() }}
             </span>

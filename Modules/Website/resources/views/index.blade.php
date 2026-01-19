@@ -22,7 +22,7 @@
                         <div class="hero-content text-white text-center w-100 pt-5 pb-6">
                             <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
                                 alt="Brickspoint Logo" class="mb-4 hotel-logo">
-                            <h4 class="display-3 fw-light mb-4 animate__animated animate__fadeInDown"
+                            <h4 class="display-3 fw-light mb-4 animate__animated animate__fadeInDown text-white"
                                 style="text-transform: uppercase;">Experience Unmatched Luxury</h4>
                             <p class="lead mb-5 animate__animated animate__fadeInUp animate__delay-1s">Discover our
                                 exquisite accommodations in the heart of Abuja</p>
@@ -79,7 +79,7 @@
                     </div>
                     <div class="container h-100 d-flex align-items-center">
                         <div class="hero-content text-white text-center w-100">
-                            <h1 class="display-3 fw-bold mb-4">Premium Amenities</h1>
+                            <h1 class="display-3 fw-bold mb-4 text-white">Premium Amenities</h1>
                             <p class="lead mb-5">Enjoy world-class services and facilities</p>
                             <div class="d-flex justify-content-center gap-3 mb-5">
                                 <a href="{{ route('website.amenities') }}"
@@ -134,7 +134,7 @@
             <!-- Scroll Indicator -->
             <div class="scroll-down-indicator">
                 <a href="#featured-rooms" class="">
-                    <i class="fas fa-chevron-down fa-2x"></i>
+                    <i class="fas fa-chevron-down fa-2x text-primary"></i>
                 </a>
             </div>
         </div>
@@ -245,7 +245,7 @@
                                     <i class="fas fa-utensils fa-lg"></i>
                                 </div>
                                 <div>
-                                    <h3 class="h5 mb-2">Gourmet Dining</h3>
+                                    <h3 class="h5 mb-2">Taste Restaurant</h3>
                                     <p class="mb-0 text-muted">Award-winning restaurants offering world-class cuisine.</p>
                                 </div>
                             </div>
@@ -276,7 +276,7 @@
                 @foreach ($dining as $option)
                     <div class="col-md-4">
                         <div class="card border-0 shadow-sm h-100 overflow-hidden dining-card">
-                            <img src="{{ $option->image }}" class="card-img-top dining-image"
+                            <img src="{{ $option->image_url }}" class="card-img-top dining-image"
                                 alt="{{ $option->name }}">
                             <div class="card-body">
                                 <h3 class="h5 card-title">{{ $option->name }}</h3>
