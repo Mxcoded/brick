@@ -1,6 +1,3 @@
-<div class="list-group-item list-group-item-action bg-light text-uppercase fw-bold text-muted small mt-3">
-    Website & Bookings
-</div>
 <a class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
     data-bs-toggle="collapse" href="#websiteAdminSubmenu" role="button"
     aria-expanded="{{ request()->routeIs('website.admin.*') ? 'true' : 'false' }}" aria-controls="websiteAdminSubmenu"

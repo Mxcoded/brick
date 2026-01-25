@@ -223,34 +223,68 @@
                                     <i class="fas fa-envelope me-1"></i> Resend Confirmation Email
                                 </button>
                             </form>
+                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#moveRoomModal">
+                                <i class="fas fa-exchange-alt"></i> Move Room
+                            </button>
+
+                            <div class="modal fade" id="moveRoomModal" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <form action="{{ route('website.admin.bookings.move', $booking->id) }}"
+                                        method="POST" class="modal-content">
+                                        @csrf
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Move Reservation</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Current Room: <strong>{{ $booking->room->name }}</strong></p>
+                                            <div class="form-group">
+                                                <label>Select New Room</label>
+                                                <select name="new_room_id" class="form-select" required>
+                                                    @foreach (\Modules\Website\Models\Room::where('id', '!=', $booking->room_id)->get() as $room)
+<option value="{{ $room->id }}">{{ $room->name }}</option>
+@endforeach
+                                                                                </select>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="modal-footer">
+                                                                            <button type="submit" class="btn btn-primary">Save Change</button>
+                                                                        </div>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
                             <a href="{{ route('website.admin.bookings.edit', $booking->id) }}"
                                 class="btn btn-outline-primary mt-2">
                                 <i class="fas fa-edit me-2"></i> Edit Details
                             </a>
 
                             @if ($booking->status !== 'cancelled')
-                                <form action="{{ route('website.admin.bookings.cancel', $booking->id) }}" method="POST"
+<form action="{{ route('website.admin.bookings.cancel', $booking->id) }}" method="POST"
                                     onsubmit="return confirm('Are you sure you want to cancel this booking?');">
-                                    @csrf
-                                    <button type="submit" class="btn btn-outline-danger w-100 mt-2">
-                                        <i class="fas fa-ban me-2"></i> Cancel Booking
-                                    </button>
-                                </form>
-                            @endif
+                                                @csrf
+                                                <button type="submit" class="btn btn-outline-danger w-100 mt-2">
+                                                    <i class="fas fa-ban me-2"></i> Cancel Booking
+                                                </button>
+                                            </form>
+     @endif
 
-                            <form action="{{ route('website.admin.bookings.destroy', $booking->id) }}" method="POST"
-                                onsubmit="return confirm('WARNING: This will permanently delete the record. Are you sure?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-link text-danger text-decoration-none w-100 mt-2">
-                                    <small>Delete Record Permanently</small>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+                                                        <form
+                                                        action="{{ route('website.admin.bookings.destroy', $booking->id) }}"
+                                                        method="POST"
+                                                        onsubmit="return confirm('WARNING: This will permanently delete the record. Are you sure?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit"
+                                                        class="btn btn-link text-danger text-decoration-none w-100 mt-2">
+                                                        <small>Delete Record Permanently</small>
+                                                        </button>
+                                                        </form>
+                                                        </div>
+                                                        </div>
+                                                        </div>
 
-            </div>
-        </div>
-    </div>
-@endsection
+                                                        </div>
+                                                        </div>
+                                                        </div>
+                                                    @endsection)

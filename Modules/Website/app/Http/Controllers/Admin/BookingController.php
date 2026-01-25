@@ -41,7 +41,7 @@ class BookingController extends Controller
             });
         }
 
-        $bookings = $query->paginate(15)->withQueryString();
+        $bookings = $query->paginate(10)->withQueryString();
 
         return view('website::admin.bookings.index', compact('bookings'));
     }
@@ -257,5 +257,36 @@ class BookingController extends Controller
             Log::error("Admin Resend Email Failed: " . $e->getMessage());
             return back()->with('error', 'Failed to send email. Check mail server logs.');
         }
+    }
+
+    /**
+     * Move Booking to a Different Room
+     */
+    /**
+     * Move a booking to a different room.
+     */
+    public function moveRoom(Request $request, $id)
+    {
+        $booking = Booking::findOrFail($id);
+
+        $request->validate([
+            'new_room_id' => 'required|exists:rooms,id|different:old_room_id'
+        ]);
+
+        // Availability Check for the NEW room
+        $isAvailable = Booking::isAvailable(
+            $request->new_room_id,
+            $booking->check_in_date,
+            $booking->check_out_date,
+            $booking->id // Ignore self
+        );
+
+        if (!$isAvailable) {
+            return back()->with('error', 'Target room is not available for these dates.');
+        }
+
+        $booking->update(['room_id' => $request->new_room_id]);
+
+        return back()->with('success', 'Booking moved successfully.');
     }
 }

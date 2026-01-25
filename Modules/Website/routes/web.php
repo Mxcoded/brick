@@ -46,12 +46,18 @@ Route::middleware(['web'])->group(function () {
         Route::any('/check-availability', 'checkAvailability')->name('website.room.checkAvailability');
         Route::get('/booking', 'booking')->name('website.booking');
         Route::post('/booking', 'storeBooking')->name('website.booking.store');
+        // ✅ NEW: Paystack Callback Route
+        Route::get('/payment/callback', 'verifyPayment')->name('website.payment.callback');
         Route::get('/booking/confirmation/{ref?}', 'confirmation')->name('website.booking.confirmation');
 
         // Form Submission
         Route::post('/contact/send', 'sendMessage')->name('website.contact.send');
         Route::post('/check-email', 'checkEmail')->name('website.checkEmail');
         Route::post('/booking/resend', 'resendConfirmation')->name('website.booking.resend');
+
+        // Guest Booking Management
+        Route::get('/my-booking', 'bookingLogin')->name('website.booking.login');
+        Route::post('/my-booking/find', 'findBooking')->name('website.booking.find');
     });
 
     // =========================================================================
@@ -116,5 +122,6 @@ Route::middleware(['web'])->group(function () {
             Route::post('/bookings/{id}/confirm', [AdminBookingController::class, 'confirm'])->name('bookings.confirm');
             Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'cancel'])->name('bookings.cancel');
             Route::post('/bookings/{id}/resend', [AdminBookingController::class, 'resendConfirmation'])->name('bookings.resend');
+            Route::post('/bookings/{id}/move', [AdminBookingController::class, 'moveRoom'])->name('bookings.move');
         });
 });

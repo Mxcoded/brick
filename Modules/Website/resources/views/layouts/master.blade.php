@@ -248,6 +248,12 @@
                             <a class="nav-link {{ request()->routeIs('website.contact') ? 'active' : '' }}"
                                 href="{{ route('website.contact') }}">Contact</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('website.booking.login') ? 'active' : '' }}"
+                                href="{{ route('website.booking.login') }}">
+                                <i class="fas fa-search me-1 small"></i>My Booking
+                            </a>
+                        </li>
                     </ul>
                     @guest
                         <div class="d-flex align-items-center">
@@ -306,6 +312,8 @@
                                 class="text-muted-footer text-decoration-none">About Us</a></li>
                         <li class="mb-2"><a href="{{ route('website.contact') }}"
                                 class="text-muted-footer text-decoration-none">Contact</a></li>
+                        <li class="mb-2"><a href="{{ route('website.booking.login') }}"
+                                class="text-muted-footer text-decoration-none">Manage Booking</a></li>
                     </ul>
                 </div>
 

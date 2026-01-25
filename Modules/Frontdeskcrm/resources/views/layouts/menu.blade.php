@@ -7,12 +7,23 @@
     <i class="fas fa-chevron-down small"></i>
 </a>
 <div class="collapse {{ request()->routeIs('frontdesk.*') ? 'show' : '' }}" id="frontdeskSubmenu">
-    <a href="{{ route('frontdesk.registrations.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.registrations.dashboard') ? 'active' : '' }}" style="color: #ddd; border: none;">Guest List</a>
     
+    <a href="{{ route('frontdesk.rooms.schedule') }}" class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.rooms.schedule') ? 'active' : '' }}" style="color: #ddd; border: none; padding-left: 3rem;">
+        <i class="fas fa-calendar-alt me-2"></i> Calendar / D. Chart
+    </a>
+ 
+    {{-- Guest Management --}}
+    <a href="{{ route('frontdesk.registrations.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.registrations.dashboard') ? 'active' : '' }}" style="color: #ddd; border: none; padding-left: 3rem;">
+        <i class="fas fa-users me-2"></i> Guest List
+    </a>
+    
+    {{-- Check-In Actions --}}
     @can('check_in_guest')
-    <a href="{{ route('frontdesk.registrations.create') }}" class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.registrations.create') ? 'active' : '' }}" style="color: #ddd; border: none;">Check In</a>
-    <a href="{{ route('frontdesk.registrations.createWalkin') }}" class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.registrations.createWalkin') ? 'active' : '' }}" style="color: #ddd; border: none;">Walk-in</a>
+    <a href="{{ route('frontdesk.registrations.createWalkin') }}" class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.registrations.createWalkin') ? 'active' : '' }}" style="color: #ddd; border: none; padding-left: 3rem;">
+        <i class="fas fa-walking me-2"></i> Walk-In (VIP)
+    </a>
     @endcan
-    
+
+   
 </div>
 @endcan
