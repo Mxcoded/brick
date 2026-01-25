@@ -267,9 +267,10 @@
                             }, 1000);
                         } else {
                             // FAIL: Room is occupied (Show smart suggestion)
-                            resultDiv.classList.remove('bg-success', 'text-success', 'bg-warning',
-                                'text-warning');
-                            resultDiv.classList.add('bg-danger', 'bg-opacity-10', 'text-danger');
+                           // ✅ FIX: Removed 'bg-opacity-10' and 'text-danger'
+                            // ✅ NEW: Added 'text-white' so it reads clearly on the red background
+                            resultDiv.classList.remove('bg-success', 'text-success', 'bg-warning', 'text-warning', 'bg-opacity-10');
+                            resultDiv.classList.add('bg-danger', 'text-white');
                             resultDiv.innerHTML =
                                 `<i class=\"fas fa-times-circle me-1\"></i> ${data.message}`;
 
@@ -277,17 +278,13 @@
                             if (data.suggestion) {
                                 const suggestBtn = document.createElement('button');
                                 suggestBtn.type = 'button';
-                                suggestBtn.className =
-                                    'btn btn-sm btn-outline-dark mt-2 d-block mx-auto';
+                                // ✅ UI POLISH: Changed button to 'btn-light' so it stands out against the red background
+                                suggestBtn.className = 'btn btn-sm btn-light text-danger fw-bold mt-2 d-block mx-auto';
                                 suggestBtn.innerHTML = 'Use Available Dates';
 
-                                // Click handler for suggestion
                                 suggestBtn.onclick = function() {
-                                    document.getElementById('check_in_date').value = data.suggestion
-                                        .check_in;
-                                    document.getElementById('check_out_date').value = data
-                                        .suggestion.check_out;
-                                    // Trigger submit again automatically
+                                    document.getElementById('check_in_date').value = data.suggestion.check_in;
+                                    document.getElementById('check_out_date').value = data.suggestion.check_out;
                                     form.requestSubmit();
                                 };
                                 resultDiv.appendChild(suggestBtn);

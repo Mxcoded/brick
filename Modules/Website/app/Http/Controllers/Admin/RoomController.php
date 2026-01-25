@@ -288,7 +288,7 @@ class RoomController extends Controller
     }
 
     /**
-     * ✅ API 2: Calendar Data (Merged)
+     * ✅ API 2: Calendar Data (Merged & Color Coded)
      */
     public function getCalendarData(Request $request)
     {
@@ -317,51 +317,69 @@ class RoomController extends Controller
         $roomData = $rooms->map(function ($room) use ($bookings, $registrations) {
             $events = [];
 
-            // 1. Maintenance
+            // 1. Maintenance -> MAGENTA
             if ($room->status === 'maintenance') {
                 $events[] = [
                     'id' => 'maint-' . $room->id,
                     'title' => 'Maintenance',
                     'start' => now()->startOfMonth()->toDateString(),
                     'end' => now()->endOfMonth()->toDateString(),
-                    'color' => '#6c757d',
+                    'color' => '#FF00FF', // ✅ Magenta
                     'status' => 'maintenance'
                 ];
             }
 
-            // 2. Frontdesk Events (Red/Green)
+            // 2. Frontdesk Events
             foreach ($registrations as $reg) {
                 // Strict ID match OR Name fallback
                 if ($reg->room_id == $room->id || $reg->room_allocation == $room->name) {
-                    $color = ($reg->stay_status === 'checked_out') ? '#198754' : '#dc3545';
+
+                    // ✅ NEW COLOR LOGIC
+                    $color = '#6c757d'; // Default Grey
+
+                    if ($reg->stay_status === 'checked_out') {
+                        $color = '#006400'; // ✅ Dark Green
+                    } elseif ($reg->stay_status === 'checked_in') {
+                        $color = '#32CD32'; // ✅ Light Green
+                    } elseif ($reg->stay_status === 'reserved') {
+                        $color = '#0DCAF0'; // ✅ Cyan
+                    } elseif ($reg->stay_status === 'draft_by_guest') {
+                        $color = '#ffc107'; // Yellow (Draft/Pending)
+                    }
 
                     $events[] = [
                         'id' => 'reg-' . $reg->id,
-                        'title' => $reg->full_name . ' (House)',
+                        'title' => $reg->full_name . ' (' . ucfirst($reg->stay_status) . ')',
                         'start' => $reg->check_in,
                         'end' => $reg->check_out,
                         'color' => $color,
                         'status' => $reg->stay_status,
-                        // If you have a route to view registration details:
-                        // 'details_url' => route('frontdesk.registrations.show', $reg->id) 
                     ];
                 }
             }
+          
 
-            // 3. Website Events (Blue/Yellow)
+            // 3. Website Events -> BLUE (Standard)
             foreach ($bookings as $booking) {
                 if ($booking->room_id == $room->id) {
-                    // Check for overlap with Frontdesk to avoid double visual stacking? 
-                    // Usually better to show both so Admin sees the conflict.
-
                     $events[] = [
-                        'id' => 'bk-' . $booking->id,
-                        'title' => $booking->guest_name . ' (Web)',
-                        'start' => $booking->check_in_date,
-                        'end' => $booking->check_out_date,
-                        'color' => ($booking->status === 'confirmed') ? '#0d6efd' : '#ffc107',
-                        'status' => $booking->status,
-                        'details_url' => route('website.admin.bookings.edit', $booking->id)
+                        'id'          => 'bk-' . $booking->id,
+                        'title'       => "{$booking->guest_name} (Web)",
+                        'start'       => $booking->check_in_date instanceof \Carbon\Carbon
+                            ? $booking->check_in_date->format('Y-m-d H:i:s')
+                            : $booking->check_in_date,
+                        'end'         => $booking->check_out_date instanceof \Carbon\Carbon
+                            ? $booking->check_out_date->format('Y-m-d H:i:s')
+                            : $booking->check_out_date,
+                        'color'       => match ($booking->status) {
+                            'confirmed'  => '#0d6efd',   // Blue
+                            'checked_in' => '#32CD32', // LimeGreen
+                            'completed' => '#006400',   // DarkGreen // checked out.
+                            'cancelled'  => '#FF0000',   // Red
+                            default      => '#07b0ff',   // pending Fallback color
+                        },
+                        'status'      => $booking->status,
+                        'details_url' => route('website.admin.bookings.edit', $booking->id),
                     ];
                 }
             }

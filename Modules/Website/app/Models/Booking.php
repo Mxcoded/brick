@@ -88,7 +88,7 @@ class Booking extends Model
      */
     public static function isAvailable($roomId, $checkIn, $checkOut, $ignoreBookingId = null)
     {
-        // 1. Check Website Bookings
+        // 1. Check Website Bookings (Existing Logic)
         $hasBookingConflict = self::where('room_id', $roomId)
             ->where('status', '!=', 'cancelled')
             ->where(function ($q) use ($checkIn, $checkOut) {
@@ -104,12 +104,11 @@ class Booking extends Model
             return false;
         }
 
-        // 2. Check Frontdesk Registrations
+        // 2. Check Frontdesk Registrations (THE FIX)
         if (class_exists(Registration::class)) {
-            // Check based on your specific migration column names
             $hasPhysicalConflict = Registration::where('room_id', $roomId)
-                // ✅ UPDATED: Only check statuses that block the room
-                ->whereIn('stay_status', ['checked_in', 'draft_by_guest'])
+                // ✅ FIX: Add 'reserved' to block future walk-ins too
+                ->whereIn('stay_status', ['checked_in', 'draft_by_guest', 'reserved'])
                 ->where(function ($q) use ($checkIn, $checkOut) {
                     $q->where('check_in', '<', $checkOut)
                         ->where('check_out', '>', $checkIn);
