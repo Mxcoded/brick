@@ -5,6 +5,8 @@ namespace Modules\Gym\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
+use Modules\Account\Models\OrderItems;
+
 // use Modules\Gym\Database\Factories\MembershipFactory;
 
 class Membership extends Model
@@ -63,6 +65,10 @@ class Membership extends Model
     public function isDueSoon(): bool
     {
         return now()->addDays(7)->gte($this->next_billing_date);
+    }
+
+    public function orderItems() {
+        return $this->morphMany(OrderItems::class, 'itemable');
     }
 
     // protected static function newFactory(): MembershipFactory

@@ -5,6 +5,7 @@ namespace Modules\Website\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
+use Modules\Account\Models\OrderItems;
 
 class Booking extends Model
 {
@@ -69,6 +70,10 @@ class Booking extends Model
     public function assignedStaff()
     {
         return $this->belongsTo(User::class, 'assigned_staff_id');
+    }
+
+    public function orderItems() {
+        return $this->morphMany(OrderItems::class, 'itemable');
     }
 
     public function creator()

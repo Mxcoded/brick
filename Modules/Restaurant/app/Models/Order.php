@@ -30,8 +30,10 @@ class Order extends Model
 
     public function orderItems()
     {
+        $this->morphMany(OrderItem::class, 'itemable');
         return $this->hasMany(OrderItem::class, 'restaurant_order_id');
     }
+
 
     public function getSourceAttribute()
     {
