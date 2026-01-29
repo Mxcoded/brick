@@ -1,270 +1,531 @@
 @extends('website::layouts.master')
 
-@section('title', 'Book Your Stay')
+@section('title', 'Complete Your Reservation')
 
 @section('content')
-<section class="booking-section py-5 bg-light">
-    <div class="container">
-        <div class="row justify-content-center">
+    <div class="container py-5">
+        <div class="row">
             <div class="col-lg-8">
-                <div class="card shadow-sm border-0 overflow-hidden">
-                    <div class="card-header bg-primary text-white py-4">
-                        <h1 class="h3 mb-0 text-center">Reserve Your Luxury Stay</h1>
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h4 class="card-title mb-0 fw-bold text-primary">
+                            <i class="fas fa-user-circle me-2"></i>Guest Details
+                        </h4>
                     </div>
-                    <div class="card-body p-4 p-md-5">
+                    <div class="card-body p-4">
+
+                        {{-- ✅ FIX 1: Display Session Errors (The "Silent Return" Fix) --}}
+                        @if (session('error'))
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        @endif
+
+                        @if (session('success'))
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        @endif
+
+                        {{-- Validation Errors --}}
                         @if ($errors->any())
-                            <div class="alert alert-danger">
-                                <ul>
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <ul class="mb-0 ps-3">
                                     @foreach ($errors->all() as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
                             </div>
                         @endif
-                        <form action="{{ route('website.booking.submit') }}" method="POST" id="bookingForm">
+
+                        {{-- AJAX Availability Alert --}}
+                        <div id="availabilityAlert" class="alert alert-warning d-none"></div>
+
+                        <form action="{{ route('website.booking.store') }}" method="POST" id="bookingForm">
                             @csrf
-                            <div class="row g-4">
-                                <!-- Room Selection -->
-                                <div class="col-md-12">
-                                    <div class="form-floating">
-                                        <select class="form-select" name="room_id" id="room_id" required>
-                                            <option value="" selected disabled>Select a room</option>
-                                            @foreach ($rooms as $room)
-                                                <option value="{{ $room->id }}" data-price="{{ $room->price_per_night }}">
-                                                    {{ $room->name }} - ₦{{ number_format($room->price_per_night, 2) }}/night
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <label for="room_id">Room Type</label>
-                                    </div>
-                                </div>
-                                <!-- Date Selection -->
+
+                            @php
+                                $reqRoomId = old('room_id', request('room_id', $selectedRoom->id ?? ''));
+                                $reqCheckIn = old('check_in_date', request('check_in_date', request('check_in')));
+                                $reqCheckOut = old('check_out_date', request('check_out_date', request('check_out')));
+                            @endphp
+
+                            {{-- Dates Section --}}
+                            <div class="row g-3 mb-4">
                                 <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control flatpickr" name="check_in" id="check_in" 
-                                               placeholder="Check-In Date" required>
-                                        <label for="check_in">Check-In Date</label>
-                                    </div>
+                                    <label class="form-label fw-bold">Check-In Date <span
+                                            class="text-danger">*</span></label>
+                                    <input type="date" name="check_in_date" id="check_in_date"
+                                        class="form-control form-control-lg" value="{{ $reqCheckIn }}"
+                                        min="{{ date('Y-m-d') }}" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control flatpickr" name="check_out" id="check_out" 
-                                               placeholder="Check-Out Date" required>
-                                        <label for="check_out">Check-Out Date</label>
-                                    </div>
-                                </div>
-                                <!-- Guest Information -->
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" name="guest_name" id="guest_name" 
-                                               pattern="[A-Za-z ]+" required>
-                                        <label for="guest_name">Full Name</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="email" class="form-control" name="guest_email" id="guest_email" required>
-                                        <label for="guest_email">Email Address</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="tel" class="form-control" name="guest_phone" id="guest_phone" 
-                                               pattern="[0-9]{10,15}" required>
-                                        <label for="guest_phone">Phone Number</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="number" class="form-control" name="guests" id="guests" 
-                                               min="1" max="10" value="1" required>
-                                        <label for="guests">Number of Guests</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="number" class="form-control" name="number_of_children" id="number_of_children" 
-                                               min="0" max="10" value="0" required>
-                                        <label for="number_of_children">Number of Children</label>
-                                    </div>
-                                </div>
-                                <!-- Special Requests -->
-                                <div class="col-12">
-                                    <div class="form-floating">
-                                        <textarea class="form-control" name="special_requests" id="special_requests" 
-                                                  style="height: 100px"></textarea>
-                                        <label for="special_requests">Special Requests (Optional)</label>
-                                    </div>
-                                </div>
-                                <!-- Booking Summary -->
-                                <div class="col-12 mt-4">
-                                    <div class="booking-summary p-4 bg-light rounded">
-                                        <h5 class="mb-3">Booking Summary</h5>
-                                        <div class="d-flex justify-content-between mb-2">
-                                            <span>Room Rate:</span>
-                                            <span id="roomRate">₦0.00</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between mb-2">
-                                            <span>Nights:</span>
-                                            <span id="nightsCount">0</span>
-                                        </div>
-                                        <hr>
-                                        <div class="d-flex justify-content-between fw-bold">
-                                            <span>Total Estimate:</span>
-                                            <span id="totalEstimate">₦0.00</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Submit Button -->
-                                <div class="col-12 mt-4">
-                                    <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
-                                        <i class="fas fa-calendar-check me-2"></i> Confirm Reservation
-                                    </button>
+                                    <label class="form-label fw-bold">Check-Out Date <span
+                                            class="text-danger">*</span></label>
+                                    <input type="date" name="check_out_date" id="check_out_date"
+                                        class="form-control form-control-lg" value="{{ $reqCheckOut }}"
+                                        min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
                                 </div>
                             </div>
+
+                            {{-- Room Selection --}}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Select Room <span class="text-danger">*</span></label>
+                                <select name="room_id" id="room_id" class="form-select form-select-lg" required>
+                                    <option value="" disabled {{ empty($reqRoomId) ? 'selected' : '' }}>-- Choose a
+                                        Room --</option>
+                                    @foreach ($rooms as $roomOption)
+                                        <option value="{{ $roomOption->id }}" data-price="{{ $roomOption->price }}"
+                                            data-image="{{ $roomOption->image_url }}" data-name="{{ $roomOption->name }}"
+                                            data-capacity="{{ $roomOption->capacity }}"
+                                            {{ $reqRoomId == $roomOption->id ? 'selected' : '' }}>
+                                            {{ $roomOption->name }} (₦{{ number_format($roomOption->price, 2) }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- Personal Information --}}
+                            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                                <div class="card-header bg-white p-4 border-bottom">
+                                    <h5 class="fw-bold mb-0 text-dark"><i
+                                            class="fas fa-user-circle text-primary me-2"></i>Guest Information</h5>
+                                </div>
+                                <div class="card-body p-4">
+                                    <div class="row g-3">
+                                        {{-- Name & Email --}}
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Full Name <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="text" name="guest_name" class="form-control"
+                                                value="{{ old('guest_name', Auth::user()->name ?? '') }}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Email Address <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="email" name="guest_email" id="guest_email" class="form-control"
+                                                value="{{ old('guest_email', Auth::user()->email ?? '') }}" required>
+                                            <div id="emailFeedback" class="invalid-feedback"></div>
+                                        </div>
+
+                                        {{-- Phone & Gender (NEW) --}}
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Phone Number <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="tel" name="guest_phone" class="form-control"
+                                                value="{{ old('guest_phone') }}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Gender <span
+                                                    class="text-danger">*</span></label>
+                                            <select name="guest_gender" class="form-select" required>
+                                                <option value="" disabled selected>Select Gender...</option>
+                                                <option value="male"
+                                                    {{ old('guest_gender') == 'male' ? 'selected' : '' }}>Male</option>
+                                                <option value="female"
+                                                    {{ old('guest_gender') == 'female' ? 'selected' : '' }}>Female</option>
+                                            </select>
+                                        </div>
+
+                                        {{-- Address (NEW) --}}
+                                        <div class="col-12">
+                                            <label class="form-label fw-bold">Home Address <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="text" name="guest_address" class="form-control"
+                                                placeholder="Street Address, City, State"
+                                                value="{{ old('guest_address') }}" required>
+                                        </div>
+                                        {{-- ✅ NEW: Identity Verification --}}
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">ID Card Type <span
+                                                    class="text-danger">*</span></label>
+                                            <select name="guest_id_type" class="form-select" required>
+                                                <option value="" disabled selected>Select ID Type...</option>
+                                                <option value="International Passport"
+                                                    {{ old('guest_id_type') == 'International Passport' ? 'selected' : '' }}>
+                                                    International Passport</option>
+                                                <option value="NIN"
+                                                    {{ old('guest_id_type') == 'NIN' ? 'selected' : '' }}>NIN (National ID)
+                                                </option>
+                                                <option value="Drivers License"
+                                                    {{ old('guest_id_type') == 'Drivers License' ? 'selected' : '' }}>
+                                                    Driver's License</option>
+                                                <option value="Voters Card"
+                                                    {{ old('guest_id_type') == 'Voters Card' ? 'selected' : '' }}>Voter's
+                                                    Card</option>
+                                                <option value="Other"
+                                                    {{ old('guest_id_type') == 'Other' ? 'selected' : '' }}>Other Govt ID
+                                                </option>
+                                            </select>
+                                            <div class="form-text text-muted">Present this ID at the front desk for
+                                                verification.</div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">ID Number <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="text" name="guest_id_number" class="form-control"
+                                                placeholder="e.g. A01234567" value="{{ old('guest_id_number') }}"
+                                                required>
+                                        </div>
+                                        {{-- Nationality & DOB (NEW) --}}
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Nationality/Country <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="text" name="guest_nationality" class="form-control"
+                                                value="{{ old('guest_nationality', 'Nigeria') }}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Date of Birth</label>
+                                            <input type="date" name="guest_dob" class="form-control"
+                                                value="{{ old('guest_dob') }}">
+                                            <div class="form-text text-muted">Required for age verification.</div>
+                                        </div>
+
+                                        {{-- Guests Count --}}
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Adults</label>
+                                            <input type="number" name="adults" class="form-control"
+                                                value="{{ old('adults', 1) }}" min="1" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">Children</label>
+                                            <input type="number" name="children" class="form-control"
+                                                value="{{ old('children', 0) }}" min="0">
+                                        </div>
+                                    </div>
+
+                                    {{-- Create Account Toggle (Keep this logic) --}}
+                                    @if (!Auth::check())
+                                        <div class="form-check form-switch mt-4">
+                                            <input class="form-check-input" type="checkbox" id="createAccountToggle"
+                                                name="create_account" value="1"
+                                                {{ old('create_account') ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold" for="createAccountToggle">Create an
+                                                account for faster booking next time</label>
+                                        </div>
+                                        <div class="collapse mt-3 {{ old('create_account') ? 'show' : '' }}"
+                                            id="accountFields">
+                                            <div class="p-3 bg-light rounded border">
+                                                <label class="form-label fw-bold">Choose Password</label>
+                                                <input type="password" name="password" class="form-control"
+                                                    placeholder="Min. 8 characters">
+                                            </div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Special Requests</label>
+                                <textarea name="special_requests" class="form-control" rows="3">{{ old('special_requests') }}</textarea>
+                            </div>
+
+                            {{-- ✅ NEW: Payment Options --}}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Payment Option <span
+                                        class="text-danger">*</span></label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check border p-3 rounded w-100">
+                                        <input class="form-check-input" type="radio" name="payment_method"
+                                            id="pay_now" value="paystack" checked>
+                                        <label class="form-check-label fw-bold d-block" for="pay_now">
+                                            <i class="fas fa-credit-card text-primary me-2"></i> Pay Now (Secure)
+                                            <small class="d-block text-muted fw-normal">Instant confirmation via
+                                                Card/Transfer</small>
+                                        </label>
+                                    </div>
+                                    <div class="form-check border p-3 rounded w-100">
+                                        <input class="form-check-input" type="radio" name="payment_method"
+                                            id="pay_arrival" value="pay_on_arrival">
+                                        <label class="form-check-label fw-bold d-block" for="pay_arrival">
+                                            <i class="fas fa-hotel text-secondary me-2"></i> Pay upon Check-in
+                                            <small class="d-block text-muted fw-normal">Pay at the front desk</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn"
+                                class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow-sm">
+                                <span id="btnText">Confirm Reservation</span>
+                                <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                            </button>
                         </form>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Summary Sidebar --}}
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm sticky-top" style="top: 2rem; z-index: 10;">
+                    <div class="card-header bg-dark text-white py-3">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-receipt me-2"></i>Summary</h5>
+                    </div>
+
+                    <img id="summary-image" src="{{ $selectedRoom->image_url ?? asset('images/default-room.jpg') }}"
+                        class="card-img-top {{ $selectedRoom ? '' : 'd-none' }}"
+                        style="height: 200px; object-fit: cover;">
+
+                    <div class="card-body p-4">
+                        <h5 id="summary-name" class="fw-bold text-primary mb-1">
+                            {{ $selectedRoom->name ?? 'Select a Room' }}</h5>
+                        <div class="mb-3 text-muted small">
+                            <i class="fas fa-user-friends me-1"></i> Max <span
+                                id="summary-capacity">{{ $selectedRoom->capacity ?? '-' }}</span> Guests
+                        </div>
+
+                        <ul class="list-group list-group-flush mb-4">
+                            <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                                <span class="text-muted small">Check-in</span>
+                                <span class="fw-bold"
+                                    id="summary-checkin">{{ $reqCheckIn ? \Carbon\Carbon::parse($reqCheckIn)->format('M d, Y') : '...' }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                                <span class="text-muted small">Check-out</span>
+                                <span class="fw-bold"
+                                    id="summary-checkout">{{ $reqCheckOut ? \Carbon\Carbon::parse($reqCheckOut)->format('M d, Y') : '...' }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                                <span class="text-muted small">Nights</span>
+                                <span class="fw-bold" id="summary-nights">1</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                                <span class="text-muted small">Rate</span>
+                                <span id="summary-rate">₦{{ number_format($selectedRoom->price ?? 0, 2) }}</span>
+                            </li>
+                        </ul>
+
+                        <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                            <span class="h5 mb-0 text-muted">Total:</span>
+                            <span class="h3 mb-0 text-success fw-bold" id="summary-total">
+                                ₦0.00
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</section>
 
-@push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<style>
-    .booking-section {
-        background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), 
-                    url('{{ asset('images/booking-bg.jpg') }}') no-repeat center center;
-        background-size: cover;
-    }
-    .card {
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    .form-control:focus, .form-select:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-    .booking-summary {
-        border: 1px solid #dee2e6;
-    }
-    .flatpickr-input {
-        background: transparent;
-    }
-</style>
-@endpush
+    {{-- ✅ FIX 2: Script moved OUTSIDE @push to guarantee execution --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const roomSelect = document.getElementById('room_id');
+            const checkInInput = document.getElementById('check_in_date');
+            const checkOutInput = document.getElementById('check_out_date');
+            const emailInput = document.getElementById('guest_email');
+            const emailFeedback = document.getElementById('emailFeedback');
+            const accountToggle = document.getElementById('createAccountToggle');
 
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const roomSelect = document.getElementById('room_id');
-        const checkIn = document.getElementById('check_in');
-        const checkOut = document.getElementById('check_out');
-        const roomRate = document.getElementById('roomRate');
-        const nightsCount = document.getElementById('nightsCount');
-        const totalEstimate = document.getElementById('totalEstimate');
+            // Summary Elements
+            const summaryName = document.getElementById('summary-name');
+            const summaryRate = document.getElementById('summary-rate');
+            const summaryTotal = document.getElementById('summary-total');
+            const summaryImage = document.getElementById('summary-image');
+            const summaryCapacity = document.getElementById('summary-capacity');
+            const summaryNights = document.getElementById('summary-nights');
+            const summaryCheckIn = document.getElementById('summary-checkin');
+            const summaryCheckOut = document.getElementById('summary-checkout');
 
-        // Initialize Flatpickr
-        const checkInPicker = flatpickr('#check_in', {
-            dateFormat: 'Y-m-d',
-            minDate: 'today',
-            onChange: function(selectedDates, dateStr) {
-                const nextDay = new Date(selectedDates[0]);
-                nextDay.setDate(nextDay.getDate() + 1);
-                checkOutPicker.set('minDate', nextDay);
-                if (checkOut.value && new Date(checkOut.value) <= nextDay) {
-                    checkOutPicker.setDate(nextDay);
-                }
-                calculateTotal();
-            }
-        });
+            const availabilityAlert = document.getElementById('availabilityAlert');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const bookingForm = document.getElementById('bookingForm');
 
-        const checkOutPicker = flatpickr('#check_out', {
-            dateFormat: 'Y-m-d',
-            minDate: new Date().setDate(new Date().getDate() + 1),
-            onChange: function(selectedDates, dateStr) {
-                const checkInDate = new Date(checkIn.value);
-                if (selectedDates[0] <= checkInDate) {
-                    const nextDay = new Date(checkInDate);
-                    nextDay.setDate(nextDay.getDate() + 1);
-                    checkOutPicker.setDate(nextDay);
-                }
-                calculateTotal();
-            }
-        });
-
-        checkIn.addEventListener('change', calculateTotal);
-        checkOut.addEventListener('change', calculateTotal);
-        roomSelect.addEventListener('change', calculateTotal);
-
-        function calculateTotal() {
-            if (roomSelect.value && checkIn.value && checkOut.value) {
-                const price = Math.abs(parseFloat(roomSelect.options[roomSelect.selectedIndex].dataset.price));
-                const checkInDate = new Date(checkIn.value);
-                const checkOutDate = new Date(checkOut.value);
-
-                if (checkOutDate <= checkInDate) {
-                    console.warn('Invalid dates: check-out must be after check-in', {
-                        checkIn: checkIn.value,
-                        checkOut: checkOut.value
-                    });
-                    const nextDay = new Date(checkIn.value);
-                    nextDay.setDate(nextDay.getDate() + 1);
-                    checkOut.value = nextDay.toISOString().split('T')[0];
-                    checkOutDate.setTime(nextDay.getTime());
-                }
-
-                const timeDiff = checkOutDate - checkInDate;
-                const nights = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
-
-                roomRate.textContent = `₦${price.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
-                nightsCount.textContent = nights;
-                const total = Math.max(0, (price * nights).toFixed(2));
-                totalEstimate.textContent = `₦${parseFloat(total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
-            }
-        }
-
-        document.getElementById('bookingForm').addEventListener('submit', function(e) {
-            try {
-                const checkInDate = new Date(checkIn.value);
-                const checkOutDate = new Date(checkOut.value);
-                if (!checkIn.value || !checkOut.value || isNaN(checkInDate) || isNaN(checkOutDate)) {
-                    e.preventDefault();
-                    alert('Please select valid check-in and check-out dates.');
-                    console.error('Invalid date values', { checkIn: checkIn.value, checkOut: checkOut.value });
-                    return;
-                }
-                if (checkOutDate <= checkInDate) {
-                    e.preventDefault();
-                    alert('Check-out date must be after check-in date.');
-                    const nextDay = new Date(checkIn.value);
-                    nextDay.setDate(nextDay.getDate() + 1);
-                    checkOut.value = nextDay.toISOString().split('T')[0];
-                    calculateTotal();
-                    console.warn('Adjusted check-out date', { newCheckOut: checkOut.value });
-                    return;
-                }
-                console.log('Submitting form:', {
-                    room_id: roomSelect.value,
-                    check_in: checkIn.value,
-                    check_out: checkOut.value,
-                    guest_name: document.getElementById('guest_name').value,
-                    guest_email: document.getElementById('guest_email').value,
-                    guest_phone: document.getElementById('guest_phone').value,
-                    guests: document.getElementById('guests').value,
-                    number_of_children: document.getElementById('number_of_children').value
+            // Helpers
+            const formatMoney = (amount) => '₦' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+            const formatDate = (dateString) => {
+                if (!dateString) return '...';
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
                 });
-            } catch (error) {
-                e.preventDefault();
-                console.error('Form submission error:', error);
-                alert('An error occurred while submitting the form. Please try again.');
-            }
-        });
+            };
 
-        calculateTotal();
-    });
-</script>
-@endpush
+            // --- Email Checker (Existing Logic) ---
+            if (emailInput) {
+                emailInput.addEventListener('blur', function() {
+                    const email = this.value;
+                    if (email && email.includes('@')) {
+                        fetch('/website/check-email', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
+                                },
+                                body: JSON.stringify({
+                                    email: email
+                                })
+                            })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.exists) {
+                                    emailInput.classList.add('is-invalid');
+                                    emailFeedback.style.display = 'block';
+                                    emailFeedback.innerHTML =
+                                        `<strong>Account found!</strong> <a href="/login">Login here</a> to book faster.`;
+                                    if (accountToggle) {
+                                        accountToggle.checked = false;
+                                        accountToggle.disabled = true;
+                                        document.getElementById('accountFields').classList.remove(
+                                            'show');
+                                    }
+                                } else {
+                                    emailInput.classList.remove('is-invalid');
+                                    emailFeedback.style.display = 'none';
+                                    if (accountToggle) accountToggle.disabled = false;
+                                }
+                            })
+                            .catch(() => {});
+                    }
+                });
+            }
+
+            function calculateNights() {
+                if (checkInInput.value && checkOutInput.value) {
+                    const start = new Date(checkInInput.value);
+                    const end = new Date(checkOutInput.value);
+                    if (end > start) {
+                        const diffTime = Math.abs(end - start);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        return diffDays > 0 ? diffDays : 1;
+                    }
+                }
+                return 1;
+            }
+
+            function updateSummary() {
+                const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+
+                summaryCheckIn.textContent = formatDate(checkInInput.value);
+                summaryCheckOut.textContent = formatDate(checkOutInput.value);
+
+                const nights = calculateNights();
+                summaryNights.textContent = nights;
+
+                if (selectedOption.value) {
+                    const price = parseFloat(selectedOption.dataset.price);
+
+                    summaryName.textContent = selectedOption.dataset.name;
+                    summaryCapacity.textContent = selectedOption.dataset.capacity;
+                    summaryRate.textContent = formatMoney(price);
+                    summaryTotal.textContent = formatMoney(price * nights);
+
+                    if (selectedOption.dataset.image) {
+                        summaryImage.src = selectedOption.dataset.image;
+                        summaryImage.classList.remove('d-none');
+                    }
+
+                    // Trigger the AJAX Check
+                    checkAvailability();
+                }
+            }
+
+            function checkAvailability() {
+                const roomId = roomSelect.value;
+                const checkIn = checkInInput.value;
+                const checkOut = checkOutInput.value;
+
+                // Only check if we have all data
+                if (roomId && checkIn && checkOut) {
+                    // UI: Show checking state
+                    btnText.textContent = 'Checking Availability...';
+                    submitBtn.disabled = true;
+
+                    const queryParams = new URLSearchParams({
+                        room_id: roomId,
+                        check_in_date: checkIn,
+                        check_out_date: checkOut
+                    });
+
+                    fetch(`{{ route('website.room.checkAvailability') }}?${queryParams.toString()}`, {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.available === false) {
+                                // ❌ UNAVAILABLE: Show Red Alert
+                                availabilityAlert.classList.remove('d-none', 'alert-success', 'alert-warning');
+                                availabilityAlert.classList.add('alert-danger');
+
+                                availabilityAlert.innerHTML =
+                                    `<i class="fas fa-times-circle me-2"></i> ${data.message}`;
+
+                                // Add "Use Dates" button if suggestion exists
+                                if (data.suggestion) {
+                                    const suggestBtn = document.createElement('button');
+                                    suggestBtn.type = 'button';
+                                    suggestBtn.className =
+                                        'btn btn-sm btn-light text-danger fw-bold mt-2 d-block';
+                                    suggestBtn.innerHTML =
+                                        `Use Available: ${formatDate(data.suggestion.check_in)} - ${formatDate(data.suggestion.check_out)}`;
+
+                                    suggestBtn.onclick = function() {
+                                        checkInInput.value = data.suggestion.check_in;
+                                        checkOutInput.value = data.suggestion.check_out;
+                                        updateSummary(); // Re-trigger check
+                                    };
+                                    availabilityAlert.appendChild(suggestBtn);
+                                }
+
+                                submitBtn.classList.add('btn-secondary');
+                                submitBtn.classList.remove('btn-primary');
+                                submitBtn.disabled = true; // Keep disabled
+                                btnText.textContent = 'Room Unavailable';
+
+                            } else {
+                                // ✅ AVAILABLE: Hide Alert & Enable Button
+                                availabilityAlert.classList.add('d-none');
+
+                                submitBtn.disabled = false;
+                                submitBtn.classList.add('btn-primary');
+                                submitBtn.classList.remove('btn-secondary');
+                                btnText.textContent = 'Confirm & Pay Reservation';
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Check failed:', err);
+                            // On error (e.g. network), we default to allowing the attempt so the backend can validate
+                            submitBtn.disabled = false;
+                            btnText.textContent = 'Confirm & Pay Reservation';
+                        });
+                }
+            }
+
+            // Listeners
+            roomSelect.addEventListener('change', updateSummary);
+            checkInInput.addEventListener('change', updateSummary);
+            checkOutInput.addEventListener('change', updateSummary);
+
+            bookingForm.addEventListener('submit', function() {
+                if (!submitBtn.disabled) {
+                    submitBtn.disabled = true;
+                    btnText.textContent = 'Processing...';
+                    btnSpinner.classList.remove('d-none');
+                }
+            });
+
+            if (accountToggle) {
+                accountToggle.addEventListener('change', function() {
+                    document.getElementById('accountFields').classList.toggle('show', this.checked);
+                });
+            }
+
+            // Initial Run
+            if (roomSelect.value) updateSummary();
+        });
+    </script>
 @endsection

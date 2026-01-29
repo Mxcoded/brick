@@ -1,4 +1,3 @@
-
 <div class="border-end" id="sidebar-wrapper" style="background-color: #333333;">
 
     <div class="sidebar-heading">
@@ -31,6 +30,11 @@
         @can('access_frontdesk_dashboard')
             @includeIf('frontdeskcrm::layouts.menu')
         @endcan
+       
+        {{-- WEBSITE MODULE --}}
+        @can('access_website_dashboard')
+            @includeIf('website::layouts.menu')
+        @endcan
 
         {{-- STAFF MODULE --}}
         @can('access_staff_dashboard')
@@ -53,7 +57,7 @@
         @endcan
 
         {{-- OPERATIONS (Tasks & Maintenance) --}}
-        @if(auth()->user()->can('access_tasks_dashboard') || auth()->user()->can('access_maintenance_dashboard'))
+        @if (auth()->user()->can('access_tasks_dashboard') || auth()->user()->can('access_maintenance_dashboard'))
             <div class="sidebar-heading mt-3 text-uppercase text-gold small fw-bold px-3">Operations</div>
             @includeIf('tasks::layouts.menu')
             @includeIf('maintenance::layouts.menu')
@@ -65,9 +69,9 @@
         @endcan
 
         <a href="{{ route('logout') }}"
-           onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-           class="list-group-item list-group-item-action p-3 text-danger"
-           style="background-color: transparent; border-color: rgba(255,255,255,0.1);">
+            onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+            class="list-group-item list-group-item-action p-3 text-danger"
+            style="background-color: transparent; border-color: rgba(255,255,255,0.1);">
             <i class="fas fa-power-off fa-fw me-3"></i> Logout
         </a>
         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
@@ -116,7 +120,8 @@
     #sidebar-wrapper .list-group-item:hover {
         background-color: rgba(255, 255, 255, 0.05) !important;
         color: #C8A165 !important;
-        padding-left: 1.5rem !important; /* Slide effect */
+        padding-left: 1.5rem !important;
+        /* Slide effect */
     }
 
     #sidebar-wrapper .list-group-item.active {

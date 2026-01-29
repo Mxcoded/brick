@@ -51,7 +51,7 @@
             @if (Route::has('login'))
                 <div class="hidden md:flex items-center space-x-3">
                     @auth
-                        <a href="{{ url('/dashboard') }}"
+                        <a href="{{ route('home') }}"
                             class="px-4 py-2 rounded-full text-sm font-semibold ring-1 ring-gray-900 hover:var(--accent-color) hover:text-white dark:text-gray-200 dark:ring-gray-200 dark:hover:bg-gray-200 dark:hover:text-gray-900 transition">
                             Dashboard
                         </a>

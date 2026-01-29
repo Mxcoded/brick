@@ -6,29 +6,36 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description');
-            $table->decimal('price_per_night', 8, 2);
-            $table->string('image')->nullable();
-            $table->boolean('featured')->default(false);
+            $table->string('slug')->unique(); // Important for SEO URLs
+            $table->decimal('price', 10, 2);  // "price" not "price_per_night" to match Booking model
             $table->integer('capacity');
-            $table->integer('size');
+            $table->string('size')->nullable();     // e.g. "45 sqm"
+            $table->string('bed_type')->nullable(); // e.g. "King Size"
+
+            $table->text('description')->nullable();
+           
+            // MEDIA COLUMNS
+            $table->string('image_url')->nullable(); // Primary/Featured Image
+            $table->string('video_url')->nullable(); // YouTube/Vimeo Link
+
+            $table->string('status')->default('available'); // available, maintenance, booked
+            $table->boolean('is_featured')->default(false);
+
             $table->timestamps();
+            $table->softDeletes(); // Protect against accidental deletion
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
+        // FIX: Disable checks to allow dropping referenced table
+        Schema::disableForeignKeyConstraints();
         Schema::dropIfExists('rooms');
+        Schema::enableForeignKeyConstraints();
     }
 };

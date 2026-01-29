@@ -1,8 +1,8 @@
-@extends('website::layouts.admin')
+@extends('layouts.master')
 
 @section('title', 'Manage Amenities')
 
-@section('content')
+@section('page-content')
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h1 class="h3 mb-0">Manage Amenities</h1>

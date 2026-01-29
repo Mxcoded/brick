@@ -1,202 +1,246 @@
-@extends('website::layouts.admin')
 
-@section('title', 'Edit Room')
+@extends('layouts.master')
 
-@section('content')
-    <div class="card">
-        <div class="card-header">
-            <h1 class="h3 mb-0">Edit Room</h1>
-        </div>
-        <div class="card-body">
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul>
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-            <form action="{{ route('website.admin.rooms.update', $room) }}" method="POST" enctype="multipart/form-data" id="update-room-form">
-                @csrf
-                @method('PUT')
-                <!-- Basic Info Section -->
-                <h4 class="mt-4">Basic Information</h4>
-                <div class="mb-3">
-                    <label for="name" class="form-label">Room Name</label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $room->name) }}" required>
-                    @error('name')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="mb-3">
-                    <label for="description" class="form-label">Description</label>
-                    <textarea class="form-control @error('description') is-invalid @enderror" id="description" name="description">{{ old('description', $room->description) }}</textarea>
-                    @error('description')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="mb-3">
-                    <label for="price_per_night" class="form-label">Price per Night</label>
-                    <input type="number" step="0.01" class="form-control @error('price_per_night') is-invalid @enderror" id="price_per_night" name="price_per_night" value="{{ old('price_per_night', $room->price_per_night) }}" required>
-                    @error('price_per_night')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="mb-3">
-                    <label for="capacity" class="form-label">Capacity</label>
-                    <input type="number" class="form-control @error('capacity') is-invalid @enderror" id="capacity" name="capacity" value="{{ old('capacity', $room->capacity) }}" required>
-                    @error('capacity')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="mb-3">
-                    <label for="size" class="form-label">Size (e.g., 30 sqm)</label>
-                    <input type="text" class="form-control @error('size') is-invalid @enderror" id="size" name="size" value="{{ old('size', $room->size) }}" required>
-                    @error('size')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="mb-3">
-                    <label for="featured" class="form-label">Featured</label>
-                    <select class="form-control @error('featured') is-invalid @enderror" id="featured" name="featured">
-                        <option value="1" {{ old('featured', $room->featured) ? 'selected' : '' }}>Yes</option>
-                        <option value="0" {{ old('featured', $room->featured) ? '' : 'selected' }}>No</option>
-                    </select>
-                    @error('featured')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
+@section('title', 'Edit Room') --}}
 
-                <!-- Media Upload Section -->
-                <h4 class="mt-4">Media Uploads</h4>
-                <div class="mb-3">
-                    <label for="primary_image" class="form-label">Primary Image (Optional - replaces current)</label>
-                    <input type="file" class="form-control @error('primary_image') is-invalid @enderror" id="primary_image" name="primary_image" accept="image/*">
-                    @error('primary_image')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                    @if ($room->image)
-                        <div class="mt-2">
-                            <img src="{{ Storage::url($room->image) }}" alt="Current Primary Image" class="img-fluid rounded shadow-sm" style="max-height: 200px;">
+ @section('page-content')
+    <div class="row">
+        <div class="col-12 grid-margin">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="card-title mb-0">Edit Room: <span class="text-primary">{{ $room->name }}</span></h4>
+                        <a href="{{ route('website.admin.rooms.index') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i> Back to List
+                        </a>
+                    </div>
+
+                    {{-- ✅ NICE UI: SUCCESS MESSAGE --}}
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-circle me-2 fs-4 text-success"></i>
+                                <div>
+                                    <strong>Success!</strong> {{ session('success') }}
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     @endif
-                    <div id="primary_image_preview" class="mt-2"></div>
-                </div>
-                <div class="mb-3">
-                    <label for="images" class="form-label">Additional Images (Optional - appends to existing)</label>
-                    <input type="file" class="form-control @error('images') is-invalid @enderror" id="images" name="images[]" accept="image/*" multiple>
-                    @error('images')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                    <div id="images_preview" class="mt-2 d-flex flex-wrap"></div>
-                </div>
-                <!-- Current Images Section -->
-                <h5 class="mt-4">Current Additional Images</h5>
-                @if ($room->images->isEmpty())
-                    <p class="text-muted">No additional images uploaded.</p>
-                @else
-                    <div class="row">
-                        @foreach ($room->images as $image)
-                            <div class="col-md-3 mb-3">
-                                <div class="card">
-                                    <img src="{{ Storage::url($image->path) }}" class="card-img-top" alt="Room Image" style="height: 150px; object-fit: cover;">
-                                    <div class="card-body text-center">
-                                        <p>Manage images on <a href="{{ route('website.admin.rooms.show', $room) }}">show page</a></p>
+
+                    {{-- ⚠️ NICE UI: ERROR MESSAGES --}}
+                    @if ($errors->any())
+                        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="fas fa-exclamation-circle me-2 fs-4 text-danger"></i>
+                                <strong>Please fix the following errors:</strong>
+                            </div>
+                            <ul class="mb-0 mt-2 ps-4">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    <form action="{{ route('website.admin.rooms.update', $room->id) }}" method="POST"
+                        enctype="multipart/form-data">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Room Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="name" class="form-control"
+                                        value="{{ old('name', $room->name) }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Price per Night (₦) <span
+                                            class="text-danger">*</span></label>
+                                    <input type="number" name="price" class="form-control" step="0.01"
+                                        value="{{ old('price', $room->price) }}" required>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Capacity (Guests) <span
+                                            class="text-danger">*</span></label>
+                                    <input type="number" name="capacity" class="form-control"
+                                        value="{{ old('capacity', $room->capacity) }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Room Size (e.g. 30 sqm)</label>
+                                    <input type="text" name="size" class="form-control"
+                                        value="{{ old('size', $room->size) }}">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Bed Type</label>
+                                    <input type="text" name="bed_type" class="form-control"
+                                        value="{{ old('bed_type', $room->bed_type) }}" placeholder="e.g. King Size">
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                                    <textarea name="description" class="form-control" rows="4" required>{{ old('description', $room->description) }}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Status <span class="text-danger">*</span></label>
+                                    <select name="status" class="form-control" required>
+                                        <option value="available" {{ $room->status == 'available' ? 'selected' : '' }}>
+                                            Available</option>
+                                        <option value="booked" {{ $room->status == 'booked' ? 'selected' : '' }}>Booked
+                                        </option>
+                                        <option value="maintenance" {{ $room->status == 'maintenance' ? 'selected' : '' }}>
+                                            Maintenance</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Video URL (Optional)</label>
+                                    <input type="url" name="video_url" id="video_url" class="form-control"
+                                        value="{{ old('video_url', $room->video_url) }}" placeholder="https://youtube.com/...">
+                                    <div id="video_preview_link"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mb-4">
+                                <label class="form-label fw-bold d-block mb-2">Amenities</label>
+                                <div class="card bg-light border-0 p-3">
+                                    <div class="row">
+                                        @foreach ($amenities as $amenity)
+                                            <div class="col-md-4 col-lg-3 mb-2">
+                                                <div class="form-check">
+                                                    <input type="checkbox" class="form-check-input" name="amenities[]"
+                                                        value="{{ $amenity->id }}" id="am_{{ $amenity->id }}"
+                                                        {{ $room->amenities->contains($amenity->id) ? 'checked' : '' }}>
+                                                    <label class="form-check-label" for="am_{{ $amenity->id }}">
+                                                        {{ $amenity->name }}
+                                                        @if($amenity->icon) <i class="{{ $amenity->icon }} ms-1 text-muted"></i> @endif
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
                                 </div>
                             </div>
-                        @endforeach
-                    </div>
-                @endif
-                <div class="mb-3">
-                    <label for="video" class="form-label">Video (Optional - replaces current)</label>
-                    <input type="file" class="form-control @error('video') is-invalid @enderror" id="video" name="video" accept="video/*">
-                    @error('video')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                    @if ($room->video)
-                        <div class="mt-2">
-                            <video src="{{ Storage::url($room->video) }}" controls class="img-fluid rounded shadow-sm" style="max-height: 200px;"></video>
-                            <p class="mt-2">Manage video on <a href="{{ route('website.admin.rooms.show', $room) }}">show page</a></p>
-                        </div>
-                    @endif
-                    <div id="video_preview" class="mt-2"></div>
-                </div>
 
-                <!-- Amenities Section -->
-                <h4 class="mt-4">Amenities</h4>
-                <div class="row">
-                    @foreach (\Modules\Website\Models\Amenity::all() as $amenity)
-                        <div class="col-md-4">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="amenity_{{ $amenity->id }}" name="amenities[]" value="{{ $amenity->id }}" {{ in_array($amenity->id, old('amenities', $room->amenities->pluck('id')->toArray())) ? 'checked' : '' }}>
-                                <label class="form-check-label" for="amenity_{{ $amenity->id }}">{{ $amenity->name }}</label>
+                            <div class="col-md-12 mb-4">
+                                <label class="form-label fw-bold">Main Room Image</label>
+                                <div class="d-flex align-items-start gap-3 flex-wrap">
+                                    @if ($room->image_url)
+                                        <div class="text-center">
+                                            <img src="{{ $room->image_url }}" alt="Main Image" class="img-thumbnail shadow-sm"
+                                                style="width: 150px; height: 100px; object-fit: cover;">
+                                            <small class="d-block text-muted mt-1">Current Main Image</small>
+                                        </div>
+                                    @endif
+                                    <div class="flex-grow-1">
+                                        <input type="file" name="image" class="form-control" accept="image/*">
+                                        <small class="text-muted">Upload to replace the current main image.</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-12 mb-4">
+                                <label class="form-label fw-bold">Room Gallery</label>
+                                <div class="card bg-light border-0 p-3">
+                                    @if ($room->images->count() > 0)
+                                        <div class="row mb-3">
+                                            <div class="col-12"><small class="text-muted mb-2 d-block fw-bold">Current Gallery Images</small></div>
+                                            @foreach ($room->images as $img)
+                                                <div class="col-6 col-md-3 col-lg-2 position-relative mb-2">
+                                                    <img src="{{ $img->image_url }}" class="img-thumbnail w-100 shadow-sm"
+                                                        style="height: 100px; object-fit: cover;">
+
+                                                    <button type="button"
+                                                        class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle p-0 d-flex align-items-center justify-content-center shadow"
+                                                        style="width: 24px; height: 24px;"
+                                                        title="Delete this image"
+                                                        onclick="if(confirm('Are you sure you want to delete this image?')) { document.getElementById('delete-img-{{ $img->id }}').submit(); }">
+                                                        <i class="fas fa-times" style="font-size: 12px;"></i>
+                                                    </button>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    <div class="form-group">
+                                        <label>Add More Gallery Images</label>
+                                        <input type="file" name="gallery_images[]" id="gallery_images"
+                                            class="form-control" multiple accept="image/*">
+                                        <div class="mt-2 row" id="gallery_preview_container"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-3">
+                                <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                                    <i class="fas fa-save me-1"></i> Save Changes
+                                </button>
                             </div>
                         </div>
+                    </form> @foreach ($room->images as $img)
+                        <form id="delete-img-{{ $img->id }}"
+                            action="{{ route('website.admin.rooms.image.delete', $img->id) }}" method="POST"
+                            style="display: none;">
+                            @csrf
+                            @method('DELETE')
+                        </form>
                     @endforeach
-                </div>
-                @error('amenities')
-                    <div class="invalid-feedback d-block">{{ $message }}</div>
-                @enderror
 
-                <button type="submit" class="btn btn-primary mt-4">Update Room</button>
-            </form>
+                </div>
+            </div>
         </div>
     </div>
 @endsection
 
 @push('scripts')
     <script>
-        // Primary Image Preview
-        document.getElementById('primary_image').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.classList.add('img-fluid', 'rounded', 'shadow-sm');
-                    img.style.maxHeight = '200px';
-                    document.getElementById('primary_image_preview').innerHTML = '';
-                    document.getElementById('primary_image_preview').appendChild(img);
-                }
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Additional Images Preview
-        document.getElementById('images').addEventListener('change', function(e) {
+        // Gallery Images Preview
+        document.getElementById('gallery_images').addEventListener('change', function(e) {
             const files = e.target.files;
-            const preview = document.getElementById('images_preview');
-            preview.innerHTML = '';
+            const preview = document.getElementById('gallery_preview_container');
+            preview.innerHTML = ''; // Clear previous selections
+
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const div = document.createElement('div');
-                    div.classList.add('me-2', 'mb-2');
                     const img = document.createElement('img');
                     img.src = e.target.result;
-                    img.classList.add('img-fluid', 'rounded', 'shadow-sm');
-                    img.style.maxHeight = '100px';
-                    div.appendChild(img);
-                    preview.appendChild(div);
+                    img.className = 'img-thumbnail me-2 mb-2 shadow-sm';
+                    img.style.width = '80px';
+                    img.style.height = '80px';
+                    img.style.objectFit = 'cover';
+                    preview.appendChild(img);
                 }
                 reader.readAsDataURL(file);
             });
         });
 
-        // Video Preview
-        document.getElementById('video').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const video = document.createElement('video');
-                video.src = URL.createObjectURL(file);
-                video.controls = true;
-                video.classList.add('img-fluid', 'rounded', 'shadow-sm');
-                video.style.maxHeight = '200px';
-                document.getElementById('video_preview').innerHTML = '';
-                document.getElementById('video_preview').appendChild(video);
+        // Video URL Live Check
+        document.getElementById('video_url').addEventListener('input', function(e) {
+            const url = e.target.value;
+            const container = document.getElementById('video_preview_link');
+            if (url.includes('http')) {
+                container.innerHTML =
+                    `<a href="${url}" target="_blank" class="text-success mt-1 d-block"><i class="fas fa-external-link-alt me-1"></i> Valid Link Format</a>`;
+            } else {
+                container.innerHTML = '';
             }
         });
     </script>

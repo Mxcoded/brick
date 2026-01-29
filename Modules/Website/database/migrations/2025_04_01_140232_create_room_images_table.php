@@ -13,11 +13,9 @@ return new class extends Migration
     {
         Schema::create('room_images', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained('rooms')->onDelete('cascade');
-            $table->string('path'); // File path (e.g., 'images/room1-pic1.jpg' or 'videos/room1-video.mp4')
-            $table->string('type')->default('image'); // 'image' or 'video'
-            $table->integer('order')->default(0); // For sorting gallery items
-            $table->string('caption')->nullable(); // Optional description
+            $table->foreignId('room_id')->constrained()->onDelete('cascade');
+            $table->string('image_url'); // Full URL for display
+            $table->string('path')->nullable(); // Storage path for deletion
             $table->timestamps();
         });
     }
