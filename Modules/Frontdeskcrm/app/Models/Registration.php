@@ -117,4 +117,23 @@ class Registration extends Model
     {
         return $this->belongsTo(\Modules\Website\Models\Booking::class);
     }
+    /**
+     * Get the payment history for this registration.
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(RegistrationPayment::class)->latest('payment_date');
+    }
+
+    /**
+     * Helper to get total paid amount from the new table
+     */
+    public function getTotalPaidAttribute()
+    {
+        // Sum from local payments + any online booking payment
+        $localTotal = $this->payments()->sum('amount');
+        $onlineTotal = $this->booking ? $this->booking->amount_paid : 0;
+
+        return $localTotal + $onlineTotal;
+    }
 }

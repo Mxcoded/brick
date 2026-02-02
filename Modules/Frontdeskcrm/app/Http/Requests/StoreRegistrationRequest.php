@@ -28,7 +28,7 @@ class StoreRegistrationRequest extends FormRequest
             'full_name' => 'required|string|max:255',
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
-            'no_of_guests' => 'required|integer|min:1|max:10',
+            'no_of_guests' => 'required|integer|min:1|max:22',
             // ✅ CONDITIONAL: Only require specific fields if NOT an agent walk-in
             'is_group_lead' => 'boolean',
             'agreed_to_policies' => $isAgentWalkin ? 'nullable' : 'required|accepted',

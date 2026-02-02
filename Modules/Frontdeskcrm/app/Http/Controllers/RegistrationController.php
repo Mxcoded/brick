@@ -236,7 +236,6 @@ class RegistrationController extends Controller
             // 5. REGISTRATION SNAPSHOT
             $registrationData = [
                 'guest_id' => $guest->id,
-                'stay_status' => 'draft_by_guest',
                 // ✅ NEW: Retrieve the booking ID from session if it exists
                 'booking_id' => session('linked_booking_id') ?? null,
                 'stay_status' => 'draft_by_guest',
@@ -340,46 +339,44 @@ class RegistrationController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Registration::with('guest')
-            ->whereNull('parent_registration_id'); // Only show group leads/individuals
+        // 1. Existing Registration Logic (Search/Filter)
+        $query = Registration::query()->with(['room', 'guest']);
 
-        // 1. Search Filter (Name, Contact, Email)
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = $request->search;
             $query->where(function ($q) use ($search) {
-                // Search in Registration Snapshot
                 $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('contact_number', 'like', "%{$search}%")
-                    // Search in Linked Guest Profile (for email or updated info)
-                    ->orWhereHas('guest', function ($guestQ) use ($search) {
-                        $guestQ->where('full_name', 'like', "%{$search}%")
-                            ->orWhere('contact_number', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
-                    });
+                    ->orWhere('booking_reference', 'like', "%{$search}%");
             });
         }
 
-        // 2. Status Filter
         if ($request->filled('status')) {
-            $query->where('stay_status', $request->input('status'));
+            $query->where('stay_status', $request->status);
         }
 
-        // 3. Date Filter (Optional but helpful: Filter by Check-in date)
         if ($request->filled('date')) {
-            $query->whereDate('check_in', $request->input('date'));
+            $query->whereDate('check_in', $request->date);
         }
 
-        $registrations = $query->latest()
-            ->paginate(5)
-            ->appends($request->all()); // Keep search params in pagination links
+        $registrations = $query->latest()->paginate(10);
 
-        return view('frontdeskcrm::registrations.index', compact('registrations'));
+        // 2. ✅ NEW: Fetch Expected Arrivals (Confirmed Bookings NOT yet checked in)
+        // We look for bookings with 'confirmed' or 'pending' status
+        // that do NOT have a matching 'checked_in' status in the bookings table
+        // (Recall: We updated processBookingCheckin to change booking status to 'checked_in')
+
+        $expectedArrivals = Booking::whereIn('status', ['confirmed', 'pending'])
+            ->whereDate('check_in_date', '>=', now()->subDays(1)) // Show yesterday's no-shows too
+            ->orderBy('check_in_date', 'asc')
+            ->get();
+
+        return view('frontdeskcrm::registrations.index', compact('registrations', 'expectedArrivals'));
     }
     // --- NEW "WALK-IN" FEATURE (Scenario 3) ---
 
-    /**
-     * Show the agent a simple form to create a new walk-in guest.
-     */
+
     /**
      * Show the agent a simple form to create a new walk-in guest.
      */
@@ -444,11 +441,25 @@ class RegistrationController extends Controller
         $guest = Guest::firstOrCreate(
             ['contact_number' => $request->contact_number],
             [
+                'title' => $request->title ?? null,
                 'full_name' => $request->full_name,
                 'email' => $request->email,
-                'gender' => $request->gender,
-                'address' => $request->address,
-                'identification_number' => $request->identification_number
+                'gender' => $request->gender ?? null,
+                'home_address' => $request->home_address ?? null,
+                'identification_number' => $request->identification_number ?? null,
+                'nationality' => $request->nationality ?? null,
+                'zip_code' => $request->zip_code ?? null,
+                'identification_type' => $request->identification_type ?? null,
+                'birthday' => $request->birthday ?? null,
+                'occupation' => $request->occupation ?? null,
+                'company_name' => $request->company_name ?? null,
+                'city' => $request->city ?? null,
+                'state' => $request->state ?? null,
+                'emergency_name' => $request->emergency_name ?? null,
+                'emergency_relationship' => $request->emergency_relationship ?? null,
+                'emergency_contact' => $request->emergency_contact ?? null,
+                'opt_in_data_save' => $request->boolean('opt_in_data_save', true),
+                
             ]
         );
 
@@ -499,7 +510,7 @@ class RegistrationController extends Controller
             'front_desk_agent' => Auth::user()->name,
 
             // ✅ GROUP LOGIC (Auto-detect)
-            'is_group_lead' => $request->no_of_guests > 1,
+            // 'is_group_lead' => $request->no_of_guests > 1,
 
             'room_id' => $request->room_id,
             'room_allocation' => $roomName,
@@ -1098,57 +1109,74 @@ class RegistrationController extends Controller
     /**
      * Process the Conversion (Booking -> Registration)
      */
+    /**
+     * Convert an Online Booking into a Registration (Smart Check).
+     */
     public function processBookingCheckin(Request $request, $ref)
     {
-        $booking = \Modules\Website\Models\Booking::where('booking_reference', $ref)->firstOrFail();
+        // 1. Fetch Booking
+        $booking = Booking::where('booking_reference', $ref)->firstOrFail();
 
-        // Validate the NEW room selection
+        // 2. Validate Room (Ensure room is still valid)
         $request->validate([
             'room_id' => 'required|exists:rooms,id',
-            'identification_number' => 'required|string'
         ]);
 
-        // 1. Sync Guest
-        $guest = Guest::firstOrCreate(
-            ['email' => $booking->guest_email],
-            [
+        return DB::transaction(function () use ($booking, $request) {
+
+            // =========================================================
+            // 3. SMART STATUS LOGIC (The Fix)
+            // =========================================================
+            $bookedDate = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
+            $today = \Carbon\Carbon::today();
+
+            if ($bookedDate->gt($today)) {
+                // Scenario A: Future Booking -> Create Reservation
+                $status = 'reserved';
+                $checkInTime = $booking->check_in_date; // Keep original future date
+                $message = 'Booking confirmed as a Reservation (Future Arrival).';
+            } else {
+                // Scenario B: Today (or Past) -> Check In Guest Now
+                $status = 'checked_in';
+                $checkInTime = now(); // Clock start time now
+                $message = 'Guest checked in successfully.';
+            }
+
+            // 4. Create Registration Record
+            $registration = Registration::create([
+                'guest_id' => $booking->guest_profile_id,
+                'booking_id' => $booking->id,
+                'room_id' => $request->room_id,
+                'room_allocation' => Room::find($request->room_id)->name,
+
+                // Guest Info
                 'full_name' => $booking->guest_name,
+                'email' => $booking->guest_email,
                 'contact_number' => $booking->guest_phone,
-                'user_id' => $booking->user_id,
-                'identification_number' => $request->identification_number
-            ]
-        );
 
-        // 2. Determine Room Name (Snapshot)
-        $allocatedRoom = \Modules\Website\Models\Room::find($request->room_id);
+                // Timing & Status (Using Smart Logic)
+                'check_in' => $checkInTime,
+                'check_out' => $booking->check_out_date,
+                // Calculate nights based on actual check-in vs checkout
+                'no_of_nights' => \Carbon\Carbon::parse($checkInTime)->diffInDays($booking->check_out_date) ?: 1,
 
-        // 3. Create Registration (Using the ALLOCATED room, not necessarily the booked one)
-        $registration = Registration::create([
-            'guest_id' => $guest->id,
-            'room_id' => $request->room_id, // ✅ FDA Decision
-            'booking_id' => $booking->id,
-            'full_name' => $booking->guest_name,
-            'contact_number' => $booking->guest_phone,
-            'room_allocation' => $allocatedRoom->name, // ✅ Snapshot Name
-            'check_in' => now(),
-            'check_out' => $booking->check_out_date,
-            'stay_status' => 'checked_in',
-            'billing_type' => 'consolidated',
-            'room_rate' => $booking->total_amount,
-            'number_of_guests' => $booking->adults + $booking->children,
-            'checked_in_at' => now(),
-        ]);
+                // Financials
+                'room_rate' => Room::find($request->room_id)->price,
+                'total_amount' => $booking->total_amount,
+                'stay_status' => $status, // ✅ 'reserved' or 'checked_in'
 
-        // 4. Update Booking Status
-        // OPTIONAL: Update the booking to reflect the move? 
-        // Ideally yes, so history is accurate.
-        $booking->update([
-            'status' => 'checked_in',
-            'room_id' => $request->room_id // Sync the booking to the actual room used
-        ]);
+                'front_desk_agent' => Auth::user()->name,
+            ]);
 
-        return redirect()->route('frontdesk.registrations.dashboard')
-            ->with('success', 'Guest checked in successfully to ' . $allocatedRoom->name);
+            // 5. Sync Online Booking Status
+            $booking->update([
+                'status' => $status, // Syncs so website knows it's processed
+                'room_id' => $request->room_id,
+            ]);
+
+            return redirect()->route('frontdesk.registrations.show', $registration)
+                ->with('success', $message);
+        });
     }
     /**
      * DRY Helper to send email notifications safely
@@ -1167,4 +1195,30 @@ class RegistrationController extends Controller
             }
         }
     }
+    /**
+     * Store a new payment for a registration.
+     */
+    public function storePayment(Request $request, Registration $registration)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0',
+            'payment_method' => 'required|string',
+            'payment_date' => 'required|date',
+            'reference' => 'nullable|string|max:50',
+            'notes' => 'nullable|string|max:255',
+        ]);
+
+        // Create Payment Record
+        $registration->payments()->create([
+            'amount' => $validated['amount'],
+            'payment_method' => $validated['payment_method'],
+            'payment_date' => $validated['payment_date'],
+            'reference' => $validated['reference'],
+            'notes' => $validated['notes'],
+            'received_by' => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Payment recorded successfully.');
+    }
+
 }

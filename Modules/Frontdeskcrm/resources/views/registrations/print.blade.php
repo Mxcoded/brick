@@ -220,22 +220,49 @@
 
         <table style="width: 100%; border: 0;">
             <tr>
-                {{-- Financial Summary --}}
+                {{-- Financial Summary (UPDATED FOR AUDIT) --}}
                 <td style="width: 50%; padding-right: 10px; vertical-align: top; border: 0;">
-                    <div class="section-title">Financial Summary</div>
+                    <div class="section-title">Financial & Payment History</div>
                     <table class="detail-table">
+                        {{-- Bill Breakdown --}}
                         <tr>
-                            <td class="w-50"><strong>Billing Type:</strong></td>
-                            <td class="w-50">{{ $registration->billing_type ? ucfirst($registration->billing_type) : 'N/A' }}</td>
+                            <td class="w-50"><strong>Total Bill:</strong></td>
+                            <td class="w-50 text-right"><strong>{{ number_format($registration->total_amount, 2) }}</strong></td>
                         </tr>
+
+                        {{-- Payment Ledger --}}
                         <tr>
-                            <td><strong>Payment Method:</strong></td>
-                            <td>{{ $registration->payment_method ? ucfirst($registration->payment_method) : 'N/A' }}</td>
+                            <td colspan="2" style="background-color: #eee; font-weight: bold; font-size: 9px;">Payments Received</td>
                         </tr>
+
+                        {{-- Online Payment --}}
+                        @if($registration->booking && $registration->booking->amount_paid > 0)
                         <tr>
-                            <td><strong>Total Bill (Est.):</strong></td>
+                            <td>Online Booking ({{ $registration->booking->booking_reference }})</td>
+                            <td class="text-right">{{ number_format($registration->booking->amount_paid, 2) }}</td>
+                        </tr>
+                        @endif
+
+                        {{-- Manual Payments Loop --}}
+                        @foreach($registration->payments as $pay)
+                        <tr>
                             <td>
-                                <strong>{{ number_format($registration->total_amount, 2) }}</strong>
+                                {{ $pay->payment_date->format('M d') }} - {{ ucfirst($pay->payment_method) }}
+                                @if($pay->reference) <br><span style="font-size: 8px; color: #666;">Ref: {{ $pay->reference }}</span> @endif
+                            </td>
+                            <td class="text-right">{{ number_format($pay->amount, 2) }}</td>
+                        </tr>
+                        @endforeach
+
+                        {{-- Totals --}}
+                        <tr style="border-top: 2px solid #000;">
+                            <td><strong>Total Paid:</strong></td>
+                            <td class="text-right"><strong>{{ number_format($registration->total_paid, 2) }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Balance Due:</strong></td>
+                            <td class="text-right">
+                                <strong>{{ number_format($registration->total_amount - $registration->total_paid, 2) }}</strong>
                             </td>
                         </tr>
                     </table>
