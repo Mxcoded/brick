@@ -4,6 +4,7 @@
 
 @section('page-content')
     <div class="container-fluid py-4">
+       
         {{-- Header --}}
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
             <div class="mb-3 mb-md-0">
@@ -44,7 +45,114 @@
                 </div>
             </div>
         @endif
+        {{-- ✅ BYD QUEUE: Guests who just submitted via QR --}}
+    @php
+        $drafts = \Modules\Frontdeskcrm\Models\Registration::where('stay_status', 'pending_approval')->get();
+    @endphp
 
+    @if($drafts->count() > 0)
+    <div class="alert alert-warning border-warning shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="fas fa-mobile-alt me-2"></i>Guest Queue (BYD Submissions)
+            </h5>
+            <span class="badge bg-danger rounded-pill">{{ $drafts->count() }} Waiting</span>
+        </div>
+        
+        <div class="table-responsive bg-white rounded border">
+            <table class="table mb-0 align-middle">
+                <thead class="table-light small">
+                    <tr>
+                        <th>Guest Name</th>
+                        <th>Type</th>
+                        <th>Signature</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($drafts as $draft)
+                    <tr>
+                        <td class="fw-bold">{{ $draft->full_name }} <br> <small class="text-muted">{{ $draft->contact_number }}</small></td>
+                        <td>
+                            @if($draft->booking_id) 
+                                <span class="badge bg-primary">Pre-Booked</span> 
+                            @else 
+                                <span class="badge bg-secondary">Walk-in</span> 
+                            @endif
+                        </td>
+                        <td>
+                            @if($draft->guest_signature) <i class="fas fa-check-circle text-success"></i> Signed @else <span class="text-danger">Pending</span> @endif
+                        </td>
+                        <td class="text-end">
+                            {{-- This button opens the draft for the FDA to Finalize --}}
+                            <a href="{{ route('frontdesk.registrations.show', $draft->id) }}" class="btn btn-sm btn-dark fw-bold">
+                                Accept & Assign Room <i class="fas fa-arrow-right ms-1"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+{{-- ✅ NEW: Expected Arrivals Section --}}
+        @if($expectedArrivals->count() > 0)
+        <div class="card border-0 shadow-sm rounded-3 mb-4">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-plane-arrival me-2"></i>Expected Arrivals (Online Bookings)</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Guest Name</th>
+                            <th>Reference</th>
+                            <th>Dates</th>
+                            <th>Payment</th>
+                            <th class="text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($expectedArrivals as $booking)
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-bold text-dark">{{ $booking->guest_name }}</span>
+                                <br><small class="text-muted">{{ $booking->guest_phone }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ $booking->booking_reference }}</span>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <span class="text-success"><i class="fas fa-sign-in-alt me-1"></i>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('M d') }}</span>
+                                    <i class="fas fa-arrow-right mx-1 text-muted"></i>
+                                    <span class="text-danger"><i class="fas fa-sign-out-alt me-1"></i>{{ \Carbon\Carbon::parse($booking->check_out_date)->format('M d') }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                @if($booking->payment_status === 'paid')
+                                    <span class="badge bg-success">Paid (₦{{ number_format($booking->amount_paid) }})</span>
+                                @else
+                                    <span class="badge bg-warning text-dark">Pay on Arrival</span>
+                                @endif
+                            </td>
+                            <td class="text-end pe-4">
+                                {{-- ✅ THE MAGIC BUTTON: Links to the Check-in Form --}}
+                                <a href="{{ route('frontdesk.bookings.checkin', $booking->booking_reference) }}" 
+                                   class="btn btn-sm btn-primary fw-bold shadow-sm">
+                                    <i class="fas fa-key me-1"></i> Check In
+                                </a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
+       
         {{-- Search & Filter Card --}}
         <div class="card border-0 shadow-sm rounded-3 mb-4">
             <div class="card-body p-4">
@@ -233,58 +341,6 @@
             </div>
         </div>
 
-        {{-- TODAY'S ARRIVALS (Online Bookings) --}}
-        <div class="card border-0 shadow-sm rounded-3 mt-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-plane-arrival me-2 text-gold"></i>Expected Arrivals (Web
-                    Bookings)</h5>
-            </div>
-            <div class="card-body p-0">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>Ref</th>
-                            <th>Guest</th>
-                            <th>Room</th>
-                            <th>Payment</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                            // Fetch bookings checking in today that are NOT yet checked in
-                            $arrivals = \Modules\Website\Models\Booking::whereDate('check_in_date', '<=', now())
-                                ->where('status', 'confirmed') // Or 'pending' depending on your flow
-                                ->get();
-                        @endphp
-
-                        @forelse($arrivals as $booking)
-                            <tr>
-                                <td>{{ $booking->booking_reference }}</td>
-                                <td>{{ $booking->guest_name }}</td>
-                                <td>{{ $booking->room->name }}</td>
-                                <td>
-                                    <span
-                                        class="badge {{ $booking->payment_status == 'paid' ? 'bg-success' : 'bg-warning text-dark' }}">
-                                        {{ $booking->payment_status }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="{{ route('frontdesk.bookings.checkin', $booking->booking_reference) }}"
-                                        class="btn btn-sm btn-primary">
-                                        <i class="fas fa-key me-1"></i> Check In
-                                    </a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-3">No expected web arrivals for today.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
+       
     </div>
 @endsection

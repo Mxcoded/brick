@@ -234,7 +234,7 @@ class WebsiteController extends Controller
             $booking = DB::transaction(function () use ($validated, $request) {
 
                 // ====================================================
-                // 3. SMART GUEST HANDLING (The Fix)
+                // 3. SMART GUEST HANDLING
                 // ====================================================
                 $userId = Auth::id(); // Null if not logged in
 
@@ -325,7 +325,7 @@ class WebsiteController extends Controller
             session()->put('just_booked_ref', $booking->booking_reference);
 
             return redirect()->route('website.booking.confirmation', $booking->booking_reference)
-                ->with('success', 'Booking confirmed! Please pay upon arrival.');
+                ->with('success', 'Booking Reserved! Please pay upon arrival.');
         } catch (\Exception $e) {
             Log::error($e);
             return back()->with('error', 'Error: ' . $e->getMessage())->withInput();
@@ -347,6 +347,7 @@ class WebsiteController extends Controller
 
         if (!$canView) {
             abort(403, 'Access denied. Please login to view your booking.');
+            return redirect()->route('website.home')->with('error', 'You are not authorized to view this booking.');
         }
 
         return view('website::booking-confirmation', compact('booking'));

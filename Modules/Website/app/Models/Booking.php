@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\User;
+use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Website\Models\Room;
+
 
 class Booking extends Model
 {
@@ -71,6 +74,7 @@ class Booking extends Model
      */
     public function room()
     {
+        // Update the namespace below if your Room model exists elsewhere
         return $this->belongsTo(Room::class);
     }
 
@@ -80,6 +84,14 @@ class Booking extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    /**
+     * Link to the detailed CRM Guest Profile.
+     */
+    public function guest()
+    {
+        // Links 'guest_profile_id' in bookings table to 'id' in guests table
+        return $this->belongsTo(Guest::class, 'guest_profile_id');
     }
 
     /**
