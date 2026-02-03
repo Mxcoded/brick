@@ -60,7 +60,7 @@
                         <button type="submit" class="btn btn-success me-2 shadow-sm">
                             <i class="fas fa-truck me-2"></i>Initiate Transfer
                         </button>
-                        <a href="{{ route('inventory.index') }}" class="btn btn-secondary shadow-sm">
+                        <a href="{{ route('inventory.dashboard') }}" class="btn btn-secondary shadow-sm">
                             <i class="fas fa-times me-2"></i>Cancel
                         </a>
                     </div>

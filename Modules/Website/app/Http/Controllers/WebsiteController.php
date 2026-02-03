@@ -154,9 +154,7 @@ class WebsiteController extends Controller
 
         return view('website::room-details', compact('room', 'relatedRooms'));
     }
-    /**
-     * Display the booking form.
-     */
+    
     /**
      * Show the Booking Form (GET)
      */
@@ -451,6 +449,7 @@ class WebsiteController extends Controller
 
         $checkIn = Carbon::parse($validated['check_in_date']);
         $checkOut = Carbon::parse($validated['check_out_date']);
+       
 
         // 1. Find Conflicts in WEBSITE BOOKINGS
         $bookingConflicts = Booking::where('room_id', $validated['room_id'])
@@ -506,7 +505,7 @@ class WebsiteController extends Controller
         $message = "This room is currently booked until " . $occupiedUntil->format('l, F j') . ".";
 
         if ($occupiedUntil->lt($checkOut)) {
-            $message .= " However, it is available from " . $occupiedUntil->format('M j') . " to " . $checkOut->format('M j') . ". Would you like to adjust your dates?";
+            $message .= " However, it is available from " . $occupiedUntil->format('M j') . " to " . $occupiedUntil->copy()->addDay()->format('M j') . ". Would you like to adjust your dates?";
         } else {
             $message .= " Please select different dates.";
         }
@@ -517,7 +516,7 @@ class WebsiteController extends Controller
                 'message' => $message,
                 'suggestion' => [
                     'check_in' => $occupiedUntil->format('Y-m-d'),
-                    'check_out' => $checkOut->format('Y-m-d')
+                    'check_out' => $occupiedUntil->copy()->addDay()->format('Y-m-d')
                 ]
             ]);
         }

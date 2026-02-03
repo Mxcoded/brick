@@ -85,13 +85,13 @@
                 departmentDropdown.empty().append('<option value="">Loading departments...</option>');
 
                 $.ajax({
-                    url: `/inventory/api/stores/${storeId}/departments`, // We will create this API route
+                    url: `/api/stores/{store}/departments`, // We will create this API route
                     method: 'GET',
                     success: function(response) {
                         departmentDropdown.empty().append('<option value="">Select a department</option>');
                         if (response.length > 0) {
                             response.forEach(department => {
-                                departmentDropdown.append(`<option value="${department.id}">${department.name}</option>`);
+                                departmentDropdown.append(`<option value="${departments.id}">${departments.name}</option>`);
                             });
                         } else {
                             departmentDropdown.empty().append('<option value="">No departments found</option>');
