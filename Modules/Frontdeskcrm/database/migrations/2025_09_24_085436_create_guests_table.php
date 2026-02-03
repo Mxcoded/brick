@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('guests', function (Blueprint $table) {
             $table->id();
             $table->string('title')->nullable();
-            $table->string('full_name');
+            $table->string('full_name', 191);
             $table->string('nationality')->nullable();
-            $table->string('contact_number')->unique();
+            $table->string('contact_number', 191)->unique();
             $table->date('birthday')->nullable();
             $table->string('gender')->nullable();
-            $table->string('email')->unique()->nullable();
+            $table->string('email', 191)->unique()->nullable();
             $table->string('occupation')->nullable();
             $table->string('company_name')->nullable();
             $table->text('home_address')->nullable();
