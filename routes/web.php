@@ -17,7 +17,8 @@ use App\Http\Controllers\ProfileController;
 
 // 1. Public Landing Page
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('website.home');
+    // return view('welcome');
 });
 
 // 2. Authentication Routes (Login, Register, Password Reset)
