@@ -8,7 +8,7 @@ use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Enums\RoleEnum;
-use Modules\Website\Models\GuestProfile;
+use Modules\Frontdeskcrm\Models\Guest;
 
 class RegisterController extends Controller
 {
@@ -48,10 +48,11 @@ class RegisterController extends Controller
 
         // 2. DATA: Create the Guest Profile link immediately
         // This prevents "Call to a member function on null" errors in the dashboard
-        GuestProfile::create([
+        Guest::create([
             'user_id' => $user->id,
             'full_name' => $user->name,
             'email' => $user->email,
+            'contact_number' => $data['contact_number'] ?? null,
         ]);
 
         return $user;

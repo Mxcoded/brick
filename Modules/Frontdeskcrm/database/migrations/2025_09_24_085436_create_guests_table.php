@@ -31,7 +31,7 @@ return new class extends Migration
             $table->boolean('opt_in_data_save')->default(true);
             $table->timestamps();
 
-            $table->index(['email', 'contact_number', 'full_name', 'last_visit_at']);
+            $table->index(['full_name', 'last_visit_at']);
         });
     }
 
