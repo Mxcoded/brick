@@ -21,6 +21,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-/.zip
+*.zip
 /pubstor.zip
 pubstor.zip
