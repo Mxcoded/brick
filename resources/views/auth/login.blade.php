@@ -1,97 +1,423 @@
-@extends('layouts.app')
-
-@section('content')
-<div class="login-container d-flex justify-content-center align-items-center min-vh-100 bg-light">
-    <div class="card shadow-lg border-0 rounded-lg" style="width: 100%; max-width: 450px;">
-        <div class="card-header bg-white py-4 border-0 text-center">
-            <div class="login-icon mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#0d6efd" class="bi bi-person-circle" viewBox="0 0 16 16">
-                    <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                    <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
-                </svg>
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ config('app.name', 'Brickspoint') }} - Sign In</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=Playfair+Display:400,500,600,700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --color-gold: #C8A165;
+            --color-gold-dark: #b08d55;
+            --color-dark: #1a1a1a;
+            --color-cream: #F5F5F0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Proxima Nova', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .auth-container {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+        
+        /* Left Side - Image/Branding */
+        .auth-brand {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(26, 26, 26, 0.9) 0%, rgba(26, 26, 26, 0.7) 100%),
+                        url('{{ asset("images/hotel-lobby.jpg") }}') center/cover no-repeat;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            position: relative;
+            color: #fff;
+        }
+        
+        .auth-brand::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 100%);
+        }
+        
+        .brand-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .brand-logo {
+            width: 180px;
+            height: auto;
+            margin-bottom: 2rem;
+            filter: brightness(0) invert(1);
+        }
+        
+        .brand-tagline {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+        
+        .brand-subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .brand-features {
+            margin-top: 3rem;
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+        }
+        
+        .brand-feature {
+            text-align: center;
+        }
+        
+        .brand-feature i {
+            font-size: 1.5rem;
+            color: var(--color-gold);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .brand-feature span {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        /* Right Side - Form */
+        .auth-form-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            background: #fff;
+        }
+        
+        .auth-form-wrapper {
+            width: 100%;
+            max-width: 420px;
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        
+        .auth-header .mobile-logo {
+            display: none;
+            width: 120px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .auth-header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--color-dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .auth-header p {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .form-control {
+            padding: 0.875rem 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+        
+        .form-control:focus {
+            border-color: var(--color-gold);
+            box-shadow: 0 0 0 3px rgba(200, 161, 101, 0.15);
+            background: #fff;
+        }
+        
+        .form-control::placeholder {
+            color: #aaa;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            z-index: 4;
+        }
+        
+        .input-group .form-control {
+            padding-left: 2.75rem;
+        }
+        
+        .btn-gold {
+            background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);
+            border: none;
+            color: #fff;
+            padding: 0.875rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-gold:hover {
+            background: linear-gradient(135deg, var(--color-gold-dark) 0%, #9a7a45 100%);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(200, 161, 101, 0.4);
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--color-gold);
+            border-color: var(--color-gold);
+        }
+        
+        .form-check-input:focus {
+            box-shadow: 0 0 0 3px rgba(200, 161, 101, 0.25);
+        }
+        
+        .auth-link {
+            color: var(--color-gold);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .auth-link:hover {
+            color: var(--color-gold-dark);
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            color: #aaa;
+            font-size: 0.85rem;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e0e0e0;
+        }
+        
+        .divider span {
+            padding: 0 1rem;
+        }
+        
+        .auth-footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #eee;
+        }
+        
+        .auth-footer p {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        /* Back to website link */
+        .back-link {
+            position: absolute;
+            top: 1.5rem;
+            left: 1.5rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+            z-index: 10;
+        }
+        
+        .back-link:hover {
+            color: var(--color-gold);
+        }
+        
+        /* Responsive */
+        @media (max-width: 991px) {
+            .auth-brand {
+                display: none;
+            }
+            
+            .auth-form-container {
+                background: linear-gradient(135deg, var(--color-cream) 0%, #fff 100%);
+            }
+            
+            .auth-header .mobile-logo {
+                display: inline-block;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .auth-form-container {
+                padding: 2rem 1.5rem;
+            }
+            
+            .auth-header h1 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Left Branding Panel -->
+        <div class="auth-brand">
+            <a href="{{ route('website.home') }}" class="back-link">
+                <i class="fas fa-arrow-left me-2"></i>Back to Website
+            </a>
+            
+            <div class="brand-content">
+                <img src="{{ Storage::url('images/brickspoint_logo.png') }}" alt="Brickspoint" class="brand-logo">
+                <h2 class="brand-tagline">Experience Luxury Living</h2>
+                <p class="brand-subtitle">
+                    Welcome to Brickspoint Boutique Aparthotel. Your sanctuary of comfort and elegance in the heart of Abuja.
+                </p>
+                
+                <div class="brand-features">
+                    <div class="brand-feature">
+                        <i class="fas fa-concierge-bell"></i>
+                        <span>24/7 Service</span>
+                    </div>
+                    <div class="brand-feature">
+                        <i class="fas fa-wifi"></i>
+                        <span>Free WiFi</span>
+                    </div>
+                    <div class="brand-feature">
+                        <i class="fas fa-utensils"></i>
+                        <span>Fine Dining</span>
+                    </div>
+                </div>
             </div>
-            <h3 class="my-2">Welcome back</h3>
-            <p class="text-muted mb-0">Sign in to your account</p>
         </div>
         
-        <div class="card-body p-5">
-            <form method="POST" action="{{ route('login') }}">
-                @csrf
+        <!-- Right Form Panel -->
+        <div class="auth-form-container">
+            <div class="auth-form-wrapper">
+                <div class="auth-header">
+                    <img src="{{ Storage::url('images/brickspoint_logo.png') }}" alt="Brickspoint" class="mobile-logo">
+                    <h1>Welcome Back</h1>
+                    <p>Sign in to access your account</p>
+                </div>
                 
-                <div class="mb-4">
-                    <label for="email" class="form-label">Email address</label>
-                    <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" 
-                           name="email" value="{{ old('email') }}" required autocomplete="email" autofocus
-                           placeholder="Enter your email">
-                    @error('email')
-                        <div class="invalid-feedback">
-                            {{ $message }}
+                <form method="POST" action="{{ route('login') }}">
+                    @csrf
+                    
+                    <div class="mb-4">
+                        <label for="email" class="form-label">Email Address</label>
+                        <div class="input-group">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input id="email" type="email" 
+                                   class="form-control @error('email') is-invalid @enderror" 
+                                   name="email" value="{{ old('email') }}" 
+                                   required autocomplete="email" autofocus
+                                   placeholder="Enter your email">
                         </div>
-                    @enderror
-                </div>
-
-                <div class="mb-4">
-                    <label for="password" class="form-label">Password</label>
-                    <input id="password" type="password" class="form-control @error('password') is-invalid @enderror" 
-                           name="password" required autocomplete="current-password"
-                           placeholder="Enter your password">
-                    @error('password')
-                        <div class="invalid-feedback">
-                            {{ $message }}
-                        </div>
-                    @enderror
-                </div>
-
-                <div class="mb-4 d-flex justify-content-between align-items-center">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-                        <label class="form-check-label" for="remember">
-                            Remember me
-                        </label>
+                        @error('email')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
                     </div>
                     
-                    @if (Route::has('password.request'))
-                    <div>
-                        <a href="{{ route('password.request') }}" class="text-decoration-none">Forgot password?</a>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input id="password" type="password" 
+                                   class="form-control @error('password') is-invalid @enderror" 
+                                   name="password" required autocomplete="current-password"
+                                   placeholder="Enter your password">
+                        </div>
+                        @error('password')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
                     </div>
-                    @endif
-                </div>
-
-                <div class="d-grid mb-4">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        Sign in
-                    </button>
-                </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="remember" id="remember" 
+                                   {{ old('remember') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="remember">Remember me</label>
+                        </div>
+                        @if (Route::has('password.request'))
+                            <a href="{{ route('password.request') }}" class="auth-link">Forgot Password?</a>
+                        @endif
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-gold">
+                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                        </button>
+                    </div>
+                </form>
                 
                 @if (Route::has('register'))
-                <div class="text-center pt-3">
-                    <p class="text-muted">Don't have an account? <a href="{{ route('register') }}" class="text-decoration-none">Sign up</a></p>
+                <div class="auth-footer">
+                    <p>Don't have an account? <a href="{{ route('register') }}" class="auth-link">Create Account</a></p>
                 </div>
                 @endif
-            </form>
+                
+                <div class="text-center mt-4">
+                    <a href="{{ route('website.home') }}" class="auth-link" style="font-size: 0.85rem;">
+                        <i class="fas fa-home me-1"></i>Return to Website
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-
-<style>
-    .login-container {
-        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
-    }
-    .login-icon {
-        width: 80px;
-        height: 80px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: rgba(13, 110, 253, 0.1);
-        border-radius: 50%;
-    }
-    .card {
-        border: none;
-    }
-    .form-control:focus {
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-</style>
-@endsection
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
