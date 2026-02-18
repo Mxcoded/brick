@@ -102,13 +102,13 @@
                                             </div>
 
                                             <div class="d-flex justify-content-between align-items-center mt-auto">
-                                                <a href="{{ route('website.rooms.show', $room->id) }}"
-                                                    class="text-decoration-none text-primary">
-                                                    View Details <i class="fas fa-arrow-right ms-1"></i>
+                                                <a href="{{ route('website.rooms.show', $room->slug ?? $room->id) }}"
+                                                    class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye me-1"></i> View Details
                                                 </a>
-                                                <a href="{{ route('website.booking', ['room_id' => $room->id]) }}"
+                                                <a href="{{ route('website.rooms.show', $room->slug ?? $room->id) }}"
                                                     class="btn btn-primary btn-sm">
-                                                    Book Now
+                                                    <i class="fas fa-arrow-right me-1"></i> Select Room
                                                 </a>
                                             </div>
                                         </div>

@@ -5,6 +5,9 @@
 @section('content')
     <section class="room-details-section py-5 py-lg-7">
         <div class="container">
+            {{-- Progress Indicator --}}
+            @include('website::partials.booking-progress', ['step' => 2])
+
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('website.home') }}">Home</a></li>
@@ -124,17 +127,22 @@
                                 </div>
 
                                 <button type="submit" id="checkBtn" class="btn btn-primary w-100 py-3 fw-bold">
-                                    <span class="btn-text">Check Availability</span>
+                                    <span class="btn-text"><i class="fas fa-search me-2"></i>Check Availability</span>
                                     <span class="spinner-border spinner-border-sm d-none" role="status"
                                         aria-hidden="true"></span>
                                 </button>
 
                                 <div id="availabilityResult" class="mt-3 text-center small fw-bold p-2 rounded d-none">
                                 </div>
+
+                                {{-- Book Now button (hidden until availability confirmed) --}}
+                                <a href="#" id="bookNowBtn" class="btn btn-success w-100 py-3 fw-bold mt-3 d-none">
+                                    <i class="fas fa-arrow-right me-2"></i>Book This Room
+                                </a>
                             </form>
                         </div>
                         <div class="card-footer bg-light p-3 text-center">
-                            <small class="text-muted"><i class="fas fa-lock me-1"></i> Best Price Guaranteed</small>
+                            <small class="text-muted"><i class="fas fa-shield-alt me-1"></i> Best Price Guaranteed</small>
                         </div>
                     </div>
                 </div>
@@ -175,9 +183,11 @@
                                 @endif
                                 <div class="card-body">
                                     <h5 class="card-title">{{ $related->name }}</h5>
-                                    <p class="card-text text-primary fw-bold">₦{{ number_format($related->price, 2) }}</p>
+                                    <p class="card-text text-primary fw-bold">₦{{ number_format($related->price, 2) }} <small class="text-muted fw-normal">/ night</small></p>
                                     <a href="{{ route('website.rooms.show', $related->slug ?? $related->id) }}"
-                                        class="btn btn-outline-primary btn-sm stretched-link">View Details</a>
+                                        class="btn btn-primary btn-sm stretched-link">
+                                        <i class="fas fa-arrow-right me-1"></i> Select Room
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -252,19 +262,22 @@
                     .then(data => {
                         // Show result div
                         resultDiv.classList.remove('d-none');
+                        const bookNowBtn = document.getElementById('bookNowBtn');
 
                         if (data.available) {
-                            // SUCCESS: Room is free
+                            // SUCCESS: Room is free - show Book Now button
                             resultDiv.classList.remove('bg-danger', 'text-danger', 'bg-warning',
                                 'text-warning');
                             resultDiv.classList.add('bg-success', 'bg-opacity-10', 'text-success');
                             resultDiv.innerHTML =
-                                `<i class=\"fas fa-check-circle me-1\"></i> ${data.message} Redirecting...`;
+                                `<i class=\"fas fa-check-circle me-1\"></i> ${data.message}`;
 
-                            // Redirect to booking page
-                            setTimeout(() => {
-                                window.location.href = data.redirect_url;
-                            }, 1000);
+                            // Show and configure Book Now button
+                            bookNowBtn.href = data.redirect_url;
+                            bookNowBtn.classList.remove('d-none');
+                            
+                            // Hide check availability button, show success state
+                            btn.classList.add('d-none');
                         } else {
                             // FAIL: Room is occupied (Show smart suggestion)
                            // ✅ FIX: Removed 'bg-opacity-10' and 'text-danger'
@@ -292,8 +305,10 @@
 
                             // Reset button state
                             btn.disabled = false;
-                            btnText.textContent = 'Check Availability';
+                            btn.classList.remove('d-none');
+                            btnText.innerHTML = '<i class="fas fa-search me-2"></i>Check Availability';
                             spinner.classList.add('d-none');
+                            bookNowBtn.classList.add('d-none');
                         }
                     })
                     .catch(error => {
@@ -308,7 +323,8 @@
                             `<i class=\"fas fa-exclamation-triangle me-1\"></i> ${error.message}`;
 
                         btn.disabled = false;
-                        btnText.textContent = 'Check Availability';
+                        btn.classList.remove('d-none');
+                        btnText.innerHTML = '<i class="fas fa-search me-2"></i>Check Availability';
                         spinner.classList.add('d-none');
                     });
             });

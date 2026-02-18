@@ -28,9 +28,12 @@
                                 exquisite accommodations in the heart of Abuja</p>
                             <div
                                 class="d-flex justify-content-center gap-3 animate__animated animate__fadeInUp animate__delay-2s mb-5">
-                                <a href="{{ route('website.booking') }}" class="btn btn-primary btn-lg px-5 py-3">Book Your
-                                    Stay</a>
-                                <a href="#featured-rooms" class="btn btn-outline-light btn-lg px-5 py-3">Explore Rooms</a>
+                                <a href="{{ route('website.rooms.index') }}" class="btn btn-primary btn-lg px-5 py-3">
+                                    <i class="fas fa-bed me-2"></i>Explore Rooms
+                                </a>
+                                <a href="{{ route('website.booking') }}" class="btn btn-outline-light btn-lg px-5 py-3">
+                                    <i class="fas fa-calendar-check me-2"></i>Book Direct
+                                </a>
                             </div>
 
                             <!-- Quick Booking Form - Moved below CTA buttons -->
@@ -62,8 +65,9 @@
                                             </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Check
-                                                Availability</button>
+                                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                                                <i class="fas fa-search me-1"></i> Find Rooms
+                                            </button>
                                         </div>
                                     </div>
                                 </form>
@@ -112,7 +116,9 @@
                                         </select>
                                     </div>
                                     <div class="col-md-3">
-                                        <button type="submit" class="btn btn-primary w-100">Check Availability</button>
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-search me-1"></i> Find Rooms
+                                        </button>
                                     </div>
                                 </form>
                             </div>
@@ -189,8 +195,10 @@
                                 </div>
                             </div>
                             <div class="card-footer bg-white border-0">
-                                <a href="{{ route('website.booking', ['room_id' => $room->id]) }}"
-                                    class="btn btn-primary w-100">Book Now</a>
+                                <a href="{{ route('website.rooms.show', $room->slug ?? $room->id) }}"
+                                    class="btn btn-primary w-100">
+                                    <i class="fas fa-arrow-right me-2"></i>Select Room
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -388,9 +396,13 @@
             <h2 class="display-5 fw-bold mb-4">Ready for an Unforgettable Experience?</h2>
             <p class="lead mb-5 mx-auto" style="max-width: 700px;">Book your stay today and discover the perfect blend of
                 luxury, comfort, and exceptional service.</p>
-            <div class="d-flex justify-content-center gap-3">
-                <a href="{{ route('website.booking') }}" class="btn btn-light btn-lg px-5">Book Now</a>
-                <a href="{{ route('website.contact') }}" class="btn btn-outline-light btn-lg px-5">Contact Us</a>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="{{ route('website.rooms.index') }}" class="btn btn-light btn-lg px-5">
+                    <i class="fas fa-bed me-2"></i>Browse Rooms
+                </a>
+                <a href="{{ route('website.contact') }}" class="btn btn-outline-light btn-lg px-5">
+                    <i class="fas fa-envelope me-2"></i>Contact Us
+                </a>
             </div>
         </div>
     </section>

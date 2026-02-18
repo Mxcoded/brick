@@ -14,7 +14,7 @@
     <meta name="author" content="{{ $author ?? config('app.name') }}">
 
     <!-- Favicon -->
-    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" href=" {{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" type="image/x-icon">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
 
     <!-- Preconnect to CDNs -->
@@ -196,6 +196,82 @@
         .footer-content {
             display: flex;
             flex-wrap: wrap;
+        }
+
+        /* Booking Progress Indicator */
+        .booking-progress-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .booking-progress {
+            position: relative;
+        }
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+        .progress-step .step-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .progress-step.pending .step-icon {
+            background-color: #e9ecef;
+            color: #6c757d;
+            border: 2px solid #dee2e6;
+        }
+        .progress-step.active .step-icon {
+            background-color: var(--color-gold);
+            color: #fff;
+            border: 2px solid var(--color-gold);
+            box-shadow: 0 0 0 4px rgba(200, 161, 101, 0.2);
+        }
+        .progress-step.completed .step-icon {
+            background-color: #198754;
+            color: #fff;
+            border: 2px solid #198754;
+        }
+        .progress-step .step-label {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+        }
+        .progress-step.active .step-label {
+            color: var(--color-gold);
+        }
+        .progress-step.completed .step-label {
+            color: #198754;
+        }
+        .progress-line {
+            flex: 1;
+            height: 3px;
+            background-color: #dee2e6;
+            margin: 0 0.5rem;
+            margin-bottom: 1.5rem;
+            transition: background-color 0.3s ease;
+        }
+        .progress-line.completed {
+            background-color: #198754;
+        }
+        @media (max-width: 576px) {
+            .progress-step .step-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 0.85rem;
+            }
+            .progress-line {
+                margin-bottom: 1rem;
+            }
         }
     </style>
     @stack('styles')

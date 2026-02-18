@@ -4,6 +4,9 @@
 
 @section('content')
     <div class="container py-5">
+        {{-- Progress Indicator --}}
+        @include('website::partials.booking-progress', ['step' => 3])
+
         <div class="row">
             <div class="col-lg-8">
                 <div class="card border-0 shadow-sm mb-4">
@@ -253,9 +256,12 @@
 
                             <button type="submit" id="submitBtn"
                                 class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow-sm">
-                                <span id="btnText">Confirm Reservation</span>
+                                <span id="btnText"><i class="fas fa-lock me-2"></i>Complete Booking</span>
                                 <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
                             </button>
+                            <p class="text-center text-muted small mt-3 mb-0">
+                                <i class="fas fa-shield-alt me-1"></i> Your payment is secure and encrypted
+                            </p>
                         </form>
                     </div>
                 </div>

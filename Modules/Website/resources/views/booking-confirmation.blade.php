@@ -5,6 +5,9 @@
 @section('content')
     <section class="py-5 bg-light">
         <div class="container">
+            {{-- Progress Indicator --}}
+            @include('website::partials.booking-progress', ['step' => 4])
+
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     
@@ -136,16 +139,31 @@
                         </div>
                     </div>
 
-                    {{-- Bottom Actions (Dashboard vs Home) --}}
+                    {{-- Bottom Actions --}}
                     <div class="d-print-none mt-4 text-center">
-                        @auth
-                            <a href="{{ route('guest.dashboard') }}" class="btn btn-primary px-4 shadow-sm">
-                                <i class="fas fa-tachometer-alt me-2"></i> Go to Dashboard
-                            </a>
-                        @else
-                            <p class="text-muted small">Want to save this booking permanently? Create an account using this email.</p>
-                            <a href="{{ route('register') }}" class="btn btn-outline-primary px-4">Create Account</a>
-                        @endauth
+                        <div class="d-flex justify-content-center gap-3 flex-wrap">
+                            @auth
+                                <a href="{{ route('guest.bookings') }}" class="btn btn-primary px-4 shadow-sm">
+                                    <i class="fas fa-list me-2"></i>View My Bookings
+                                </a>
+                                <a href="{{ route('website.rooms.index') }}" class="btn btn-outline-primary px-4">
+                                    <i class="fas fa-plus me-2"></i>Book Another Stay
+                                </a>
+                            @else
+                                <a href="{{ route('website.rooms.index') }}" class="btn btn-primary px-4 shadow-sm">
+                                    <i class="fas fa-plus me-2"></i>Book Another Stay
+                                </a>
+                                <a href="{{ route('website.home') }}" class="btn btn-outline-secondary px-4">
+                                    <i class="fas fa-home me-2"></i>Return Home
+                                </a>
+                            @endauth
+                        </div>
+                        @guest
+                            <p class="text-muted small mt-3 mb-0">
+                                <i class="fas fa-user-plus me-1"></i> 
+                                <a href="{{ route('register') }}" class="text-primary">Create an account</a> to manage your bookings easily
+                            </p>
+                        @endguest
                     </div>
 
                 </div>
