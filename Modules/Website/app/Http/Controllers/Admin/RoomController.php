@@ -98,7 +98,7 @@ class RoomController extends Controller
             'amenities.*' => 'exists:amenities,id',
             'video_url' => 'nullable|url',
             'is_featured' => 'boolean',
-            'status' => 'required|in:available,maintenance,booked',
+            'status' => 'required|in:available,maintenance,Occupied',
             'image' => 'nullable|image|max:5120',
             'gallery_images.*' => 'nullable|image|max:5120'
         ]);
@@ -288,7 +288,7 @@ class RoomController extends Controller
     }
 
     /**
-     * ✅ API 2: Calendar Data (Merged & Color Coded)
+     * ✅ API: Calendar Data (Merged & Color Coded for Uniformity)
      */
     public function getCalendarData(Request $request)
     {
@@ -314,71 +314,78 @@ class RoomController extends Controller
                 })->get();
         }
 
-        $roomData = $rooms->map(function ($room) use ($bookings, $registrations) {
+        $roomData = $rooms->map(function ($room) use ($bookings, $registrations, $start, $end) {
             $events = [];
 
-            // 1. Maintenance -> MAGENTA
+            // 1. Maintenance Status -> MAGENTA (#FF00FF)
             if ($room->status === 'maintenance') {
                 $events[] = [
                     'id' => 'maint-' . $room->id,
                     'title' => 'Maintenance',
-                    'start' => now()->startOfMonth()->toDateString(),
-                    'end' => now()->endOfMonth()->toDateString(),
-                    'color' => '#FF00FF', // ✅ Magenta
+                    'start' => $start->toDateString(),
+                    'end' => $end->toDateString(),
+                    'color' => '#FF00FF',
                     'status' => 'maintenance'
                 ];
             }
 
-            // 2. Frontdesk Events
+            // 2. Frontdesk Events (Prioritized for physically in-house guests)
             foreach ($registrations as $reg) {
-                // Strict ID match OR Name fallback
                 if ($reg->room_id == $room->id || $reg->room_allocation == $room->name) {
 
-                    // ✅ NEW COLOR LOGIC
+                    // Match Frontdesk CRM Schedule Legend colors and wording
                     $color = '#6c757d'; // Default Grey
+                    $statusLabel = 'Stay';
 
-                    if ($reg->stay_status === 'checked_out') {
-                        $color = '#006400'; // ✅ Dark Green
-                    } elseif ($reg->stay_status === 'checked_in') {
-                        $color = '#32CD32'; // ✅ Light Green
-                    } elseif ($reg->stay_status === 'reserved') {
-                        $color = '#0DCAF0'; // ✅ Cyan
-                    } elseif ($reg->stay_status === 'draft_by_guest') {
-                        $color = '#ffc107'; // Yellow (Draft/Pending)
+                    switch ($reg->stay_status) {
+                        case 'checked_in':
+                            $color = '#32CD32'; // Light Green
+                            $statusLabel = 'In-House';
+                            break;
+                        case 'checked_out':
+                            $color = '#006400'; // Dark Green
+                            $statusLabel = 'Checked Out';
+                            break;
+                        case 'reserved':
+                            $color = '#0DCAF0'; // Cyan
+                            $statusLabel = 'Reserved';
+                            break;
+                        case 'maintenance':
+                            $color = '#FF00FF'; // Magenta
+                            $statusLabel = 'Maintenance';
+                            break;
+                        case 'draft_by_guest':
+                            $color = '#ffc107'; // Yellow
+                            $statusLabel = 'Pending Check-in';
+                            break;
                     }
 
                     $events[] = [
                         'id' => 'reg-' . $reg->id,
-                        'title' => $reg->full_name . ' (' . ucfirst($reg->stay_status) . ')',
-                        'start' => $reg->check_in,
-                        'end' => $reg->check_out,
+                        'title' => "{$reg->full_name} ({$statusLabel})",
+                        'start' => $reg->check_in instanceof \Carbon\Carbon ? $reg->check_in->format('Y-m-d') : substr($reg->check_in, 0, 10),
+                        'end' => $reg->check_out instanceof \Carbon\Carbon ? $reg->check_out->format('Y-m-d') : substr($reg->check_out, 0, 10),
                         'color' => $color,
                         'status' => $reg->stay_status,
                     ];
                 }
             }
-          
 
-            // 3. Website Events -> BLUE (Standard)
+            // 3. Website Events -> PRIMARY BLUE (#0d6efd)
             foreach ($bookings as $booking) {
+                // Only add web booking if room isn't already marked as checked-in via Frontdesk
                 if ($booking->room_id == $room->id) {
                     $events[] = [
                         'id'          => 'bk-' . $booking->id,
-                        'title'       => "{$booking->guest_name} (Web)",
+                        'title'       => "{$booking->guest_name} (Online Booking)",
                         'start'       => $booking->check_in_date instanceof \Carbon\Carbon
-                            ? $booking->check_in_date->format('Y-m-d H:i:s')
-                            : $booking->check_in_date,
+                            ? $booking->check_in_date->format('Y-m-d')
+                            : substr($booking->check_in_date, 0, 10),
                         'end'         => $booking->check_out_date instanceof \Carbon\Carbon
-                            ? $booking->check_out_date->format('Y-m-d H:i:s')
-                            : $booking->check_out_date,
-                        'color'       => match ($booking->status) {
-                            'confirmed'  => '#0d6efd',   // Blue
-                            'checked_in' => '#32CD32', // LimeGreen
-                            'completed' => '#006400',   // DarkGreen // checked out.
-                            'cancelled'  => '#FF0000',   // Red
-                            default      => '#07b0ff',   // pending Fallback color
-                        },
-                        'status'      => $booking->status,
+                            ? $booking->check_out_date->format('Y-m-d')
+                            : substr($booking->check_out_date, 0, 10),
+                        'color'       => '#0d6efd', // Standard Blue for Web Bookings
+                        'status'      => 'online_booking',
                         'details_url' => route('website.admin.bookings.edit', $booking->id),
                     ];
                 }

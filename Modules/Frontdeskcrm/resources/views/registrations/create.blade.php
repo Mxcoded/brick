@@ -103,8 +103,46 @@
                                     <i class="fas fa-search fa-3x  mb-3 text-gold"></i>
                                 </div>
                                 <h3 class="fw-bold mb-3">Find Your Profile</h3>
-                                <p class="text-muted mb-4">Enter your email or contact number to quickly retrieve your
-                                    information</p>
+                                <p class="text-muted mb-4">Enter your booking ref, email or contact number to quickly
+                                    retrieve your information</p>
+
+                                {{-- Standardize the feedback loop in create.blade.php --}}
+                                <div class="notifications-wrapper mb-4">
+                                    {{-- Error: Format not recognized or Reference used (Fraud Prevention) --}}
+                                    @if (session('error'))
+                                        <div
+                                            class="alert alert-danger border-0 shadow-sm d-flex align-items-center animate__animated animate__shakeX">
+                                            <i class="fas fa-exclamation-triangle me-3 fs-4"></i>
+                                            <div class="py-2">
+                                                <strong>Hold on!</strong> {{ session('error') }}
+                                            </div>
+                                            <button type="button" class="btn-close ms-auto"
+                                                data-bs-dismiss="alert"></button>
+                                        </div>
+                                    @endif
+
+                                    {{-- Info: Valid format but no record found (Redirecting to New Guest) --}}
+                                    @if (session('status'))
+                                        <div class="alert alert-info border-0 shadow-sm d-flex align-items-center">
+                                            <i class="fas fa-user-plus me-3 fs-4"></i>
+                                            <div>
+                                                <strong>Welcome!</strong> {{ session('status') }}
+                                            </div>
+                                            <button type="button" class="btn-close ms-auto"
+                                                data-bs-dismiss="alert"></button>
+                                        </div>
+                                    @endif
+
+                                    {{-- Success: Returning Guest or Booking Found --}}
+                                    @if (session('success'))
+                                        <div class="alert alert-success border-0 shadow-sm d-flex align-items-center">
+                                            <i class="fas fa-check-circle me-3 fs-4"></i>
+                                            <div>{{ session('success') }}</div>
+                                            <button type="button" class="btn-close ms-auto"
+                                                data-bs-dismiss="alert"></button>
+                                        </div>
+                                    @endif
+                                </div>
 
                                 <form action="{{ route('frontdesk.registrations.handle-search') }}" method="POST"
                                     class="mx-auto" style="max-width: 500px;">
@@ -117,7 +155,8 @@
                                             <input type="text"
                                                 class="form-control border-start-0 @error('search_query') is-invalid @enderror"
                                                 id="search_query" name="search_query"
-                                                placeholder="email@example.com or +1234567890" required autofocus>
+                                                placeholder="Booking Ref, email@example.com or +1234567890" required
+                                                autofocus>
                                             @error('search_query')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -132,8 +171,36 @@
                         @else
                             {{-- STAGE 2: MULTI-STEP REGISTRATION FORM --}}
 
+                            @php
+                                // === DYNAMIC STEP LOGIC ===
+                                $guestData = session('guest_data', []);
+                                $isReturning = session()->has('returning_guest');
+                                $hasBookingData = session()->has('linked_booking_id');
+                                
+                                // Use old('search_query') first if it exists from a failed validation
+                                $searchQuery = old('search_query', session('search_query', ''));
+                                $email = Str::contains($searchQuery, '@') ? $searchQuery : ($guestData['email'] ?? '');
+                                $contact = !Str::contains($searchQuery, '@') ? $searchQuery : ($guestData['contact_number'] ?? '');
+
+                                // Check data completeness for each step
+                                $hasPersonalInfo = !empty($guestData['full_name']) && !empty($guestData['contact_number']);
+                                $hasEmergencyContact = !empty($guestData['emergency_name']) && !empty($guestData['emergency_contact']);
+                                $hasStayDetails = !empty($guestData['check_in']) && !empty($guestData['check_out']);
+
+                                // Determine starting step (first incomplete step)
+                                $startStep = 1;
+                                if ($isReturning && $hasPersonalInfo) {
+                                    $startStep = $hasEmergencyContact ? 3 : 2;
+                                }
+                                
+                                // For Stay Details defaults
+                                $defaultCheckIn = $guestData['check_in'] ?? now()->format('Y-m-d');
+                                $defaultCheckOut = $guestData['check_out'] ?? now()->addDay()->format('Y-m-d');
+                                $defaultGuests = $guestData['no_of_guests'] ?? 1;
+                            @endphp
+
                             {{-- === SECURITY BRIDGE START === --}}
-                            @if (session()->has('returning_guest'))
+                            @if ($isReturning)
                                 <div class="alert alert-success border-left-success" role="alert">
                                     <h4 class="alert-heading"><i class="fas fa-user-check me-2"></i>Welcome Back,
                                         {{ session('returning_guest.name') }}!</h4>
@@ -147,6 +214,11 @@
                                             <strong>Email:</strong> {{ session('returning_guest.masked_email') }}
                                         </div>
                                     </div>
+                                    @if ($hasPersonalInfo && !$hasEmergencyContact)
+                                        <div class="mt-2">
+                                            <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle me-1"></i>Emergency contact needed</span>
+                                        </div>
+                                    @endif
                                     <div class="mt-3">
                                         <p class="mb-0 text-muted small">Not you? Or need to update your info?</p>
                                         <a href="{{ route('frontdesk.registrations.create', ['clear' => 1]) }}"
@@ -158,23 +230,16 @@
                             @endif
                             {{-- === SECURITY BRIDGE END === --}}
 
-                            <form action="{{ route('frontdesk.registrations.store') }}" method="POST" id="checkin-form">
+                            {{-- Hidden field to pass start step to JS --}}
+                            <input type="hidden" id="dynamic-start-step" value="{{ $startStep }}">
+
+                            <form action="{{ route('frontdesk.registrations.store') }}" method="POST"
+                                id="checkin-form">
                                 @csrf
                                 <input type="hidden" name="is_guest_draft" value="1">
-                                {{-- IF RETURNING: SKIP STEPS 1 & 2 --}}
-                                @if (!session()->has('returning_guest'))
-                                    @php
-                                        $guestData = session('guest_data', []);
-                                        // Use old('search_query') first if it exists from a failed validation
-                                        $searchQuery = old('search_query', session('search_query', ''));
 
-                                        $email = Str::contains($searchQuery, '@')
-                                            ? $searchQuery
-                                            : $guestData['email'] ?? '';
-                                        $contact = !Str::contains($searchQuery, '@')
-                                            ? $searchQuery
-                                            : $guestData['contact_number'] ?? '';
-                                    @endphp
+                                {{-- Step 1: Personal Details (Show if returning guest needs to fill OR new guest) --}}
+                                @if (!$isReturning || !$hasPersonalInfo)
 
                                     {{-- Step 1: Personal Details --}}
                                     <div class="form-step" id="step-1">
@@ -347,7 +412,10 @@
                                         </div>
                                     </div>
 
-                                    {{-- Step 2: Emergency Contact --}}
+                                @endif
+
+                                {{-- Step 2: Emergency Contact (Show if not complete) --}}
+                                @if (!$isReturning || !$hasEmergencyContact)
                                     <div class="form-step d-none" id="step-2">
                                         <div class="step-header mb-4">
                                             <h5 class="fw-bold text-gold mb-2">
@@ -391,27 +459,36 @@
                                         </div>
 
                                         <div class="d-flex justify-content-between mt-4">
-                                            <button type="button" class="btn btn-outline-secondary prev-step"
-                                                data-prev="1">
-                                                <i class="fas fa-arrow-left me-2"></i>Back to Personal Details
-                                            </button>
+                                            @if (!$isReturning || !$hasPersonalInfo)
+                                                <button type="button" class="btn btn-outline-secondary prev-step"
+                                                    data-prev="1">
+                                                    <i class="fas fa-arrow-left me-2"></i>Back to Personal Details
+                                                </button>
+                                            @else
+                                                <div></div>
+                                            @endif
                                             <button type="button" class="btn btn-gold next-step" data-next="3">
                                                 Continue to Stay Details <i class="fas fa-arrow-right ms-2"></i>
                                             </button>
                                         </div>
                                     </div>
                                 @endif
-                                {{-- Step 3: Stay Details (ALWAYS SHOW) --}}
-                                {{-- IMPORTANT: If returning, make this ID "step-1" so JS shows it first --}}
-                                <div class="form-step {{ session()->has('returning_guest') ? '' : 'd-none' }}"
-                                    id="{{ session()->has('returning_guest') ? 'step-1' : 'step-3' }}">
 
+                                {{-- Step 3: Stay Details (ALWAYS SHOW) --}}
+                                <div class="form-step d-none" id="step-3">
                                     <div class="step-header mb-4">
                                         <h5 class="fw-bold text-gold mb-2">
                                             <i class="fas fa-calendar-day me-2"></i>Stay Details
                                         </h5>
                                         <p class="text-muted">Tell us about your stay with us</p>
                                     </div>
+
+                                    @if($hasBookingData)
+                                        <div class="alert alert-info mb-4">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Your booking dates have been pre-filled. You may adjust if needed.
+                                        </div>
+                                    @endif
 
                                     <div class="row">
                                         <div class="col-lg-4 mb-3">
@@ -422,7 +499,7 @@
                                                         class="fas fa-users text-muted"></i></span>
                                                 <input type="number"
                                                     class="form-control @error('no_of_guests') is-invalid @enderror"
-                                                    name="no_of_guests" value="{{ old('no_of_guests', 1) }}"
+                                                    name="no_of_guests" value="{{ old('no_of_guests', $defaultGuests) }}"
                                                     min="1" required>
                                             </div>
                                             @error('no_of_guests')
@@ -437,7 +514,7 @@
                                                         class="fas fa-sign-in-alt text-muted"></i></span>
                                                 <input type="date"
                                                     class="form-control @error('check_in') is-invalid @enderror"
-                                                    name="check_in" value="{{ old('check_in', now()->format('Y-m-d')) }}"
+                                                    name="check_in" value="{{ old('check_in', $defaultCheckIn) }}"
                                                     required>
                                             </div>
                                             @error('check_in')
@@ -453,7 +530,7 @@
                                                 <input type="date"
                                                     class="form-control @error('check_out') is-invalid @enderror"
                                                     name="check_out"
-                                                    value="{{ old('check_out', now()->addDay()->format('Y-m-d')) }}"
+                                                    value="{{ old('check_out', $defaultCheckOut) }}"
                                                     required>
                                             </div>
                                             @error('check_out')
@@ -463,16 +540,19 @@
                                     </div>
 
                                     <div class="d-flex justify-content-between mt-4">
-                                        @if (!session()->has('returning_guest'))
+                                        @if (!$isReturning || !$hasEmergencyContact)
                                             <button type="button" class="btn btn-outline-secondary prev-step"
                                                 data-prev="2">
                                                 <i class="fas fa-arrow-left me-2"></i>Back
                                             </button>
+                                        @elseif (!$isReturning || !$hasPersonalInfo)
+                                            <button type="button" class="btn btn-outline-secondary prev-step"
+                                                data-prev="1">
+                                                <i class="fas fa-arrow-left me-2"></i>Back
+                                            </button>
                                         @else
-                                            <div></div> {{-- Spacer for returning guest --}}
+                                            <div></div>
                                         @endif
-
-                                        {{-- If returning, next step is 2 (Group), otherwise 4 --}}
                                         {{-- FIXED: Always go to Step 4 next, since Step 2 is skipped for returning guests --}}
                                         <button type="button" class="btn btn-gold next-step" data-next="4">
                                             Continue <i class="fas fa-arrow-right ms-2"></i>
@@ -747,14 +827,43 @@
 @push('page-scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // 1. Check if we are in "New Guest" mode via the session's search_query
+            const searchQuery = "{{ session('search_query') }}";
+            const statusMessage = "{{ session('status') }}";
+
+            if (searchQuery && statusMessage) {
+                // Detect intent again to fill the right field
+                const isEmail = searchQuery.includes('@');
+                const emailField = document.getElementById('email');
+                const phoneField = document.getElementById('contact_number');
+                const regForm = document.getElementById('registration-form-section');
+
+                if (isEmail && emailField) {
+                    emailField.value = searchQuery;
+                } else if (phoneField) {
+                    phoneField.value = searchQuery;
+                }
+
+                // Smooth scroll to the form so the user knows where to continue
+                if (regForm) {
+                    regForm.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }
             // Multi-step form functionality
-            let currentStep = 1;
+            // Get dynamic start step from hidden input (set by PHP based on data completeness)
+            const dynamicStartStepEl = document.getElementById('dynamic-start-step');
+            let currentStep = dynamicStartStepEl ? parseInt(dynamicStartStepEl.value) : 1;
             let signaturePad = null;
 
             // Initialize form
             initForm();
 
             function initForm() {
+                // Show the correct starting step
+                showStep(currentStep);
                 updateProgress();
 
                 // Set nationality from old input
@@ -793,21 +902,36 @@
                     stepEl.classList.add('d-none');
                 });
 
-                // Show current step
-                document.getElementById(`step-${step}`).classList.remove('d-none');
+                // Show current step (if it exists)
+                const stepEl = document.getElementById(`step-${step}`);
+                if (stepEl) {
+                    stepEl.classList.remove('d-none');
+                    currentStep = step;
+                } else {
+                    // Step doesn't exist (was skipped), find next available step
+                    for (let i = step; i <= 5; i++) {
+                        const nextStepEl = document.getElementById(`step-${i}`);
+                        if (nextStepEl) {
+                            nextStepEl.classList.remove('d-none');
+                            currentStep = i;
+                            break;
+                        }
+                    }
+                }
 
-                // Update current step
-                currentStep = step;
                 updateProgress();
 
                 // Reinitialize signature pad if we're on step 5
-                if (step === 5) {
+                if (currentStep === 5) {
                     setTimeout(initSignaturePad, 100);
                 }
             }
 
             function validateStep(step) {
                 const stepEl = document.getElementById(`step-${step}`);
+                // If step doesn't exist (was skipped), it's valid
+                if (!stepEl) return true;
+                
                 const requiredFields = stepEl.querySelectorAll('[required]');
                 let isValid = true;
 
@@ -1037,7 +1161,7 @@
                     foreach ($errorFields as $field) {
                         if (str_contains($field, 'full_name') || str_contains($field, 'contact_number') || str_contains($field, 'email')) {
                             $errorSteps[] = 1;
-                        } elseif (str_contains($field, 'emergency')) {
+                        } elseif (str_contains($field, 'emergency_name') || str_contains($field, 'emergency_contact')||str_contains($field, 'emergency_relationship')) {
                             $errorSteps[] = 2;
                         } elseif (str_contains($field, 'check_in') || str_contains($field, 'check_out') || str_contains($field, 'no_of_guests')) {
                             $errorSteps[] = 3;

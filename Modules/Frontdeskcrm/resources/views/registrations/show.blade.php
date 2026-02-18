@@ -93,8 +93,16 @@ $checkoutConfirmMsg = $isGroupLead
                             @if ($isGroupLead)
                                 <span class="badge bg-secondary ms-2">Group Lead</span>
                             @endif
+                            @if ($registration->booking_id)
+                                <span class="badge bg-info ms-2"><i class="fas fa-globe me-1"></i>Online Booking</span>
+                            @endif
                         </h3>
-                        <p class="text-muted mb-0">Created {{ $registration->created_at->format('M d, Y h:i A') }}</p>
+                        <p class="text-muted mb-0">
+                            Created {{ $registration->created_at->format('M d, Y h:i A') }}
+                            @if ($registration->booking)
+                                <span class="ms-2">| Ref: <strong>{{ $registration->booking->booking_reference }}</strong></span>
+                            @endif
+                        </p>
                     </div>
                 </div>
             </div>
@@ -227,59 +235,167 @@ $checkoutConfirmMsg = $isGroupLead
                                 </div>
                             </div>
                         </div>
-                        {{-- ✅ NEW: Payment History Table --}}
+                        {{-- ✅ COMPREHENSIVE FINANCIAL BREAKDOWN --}}
+                        @php
+                            // Calculate all financial components
+                            $roomRate = $registration->room_rate ?? 0;
+                            $nights = $registration->no_of_nights ?? $totalNights;
+                            $roomCharges = $roomRate * $nights;
+                            
+                            // Online booking data
+                            $hasOnlineBooking = $registration->booking !== null;
+                            $onlineAmountPaid = $hasOnlineBooking ? ($registration->booking->amount_paid ?? 0) : 0;
+                            $originalBookingNights = $hasOnlineBooking ? $registration->booking->check_in_date->diffInDays($registration->booking->check_out_date) : 0;
+                            $originalBookingAmount = $hasOnlineBooking ? ($registration->booking->total_amount ?? 0) : 0;
+                            
+                            // Calculate adjustments
+                            $lateArrivalDays = 0;
+                            $extensionDays = 0;
+                            $unusedNightsCredit = 0;
+                            
+                            if ($hasOnlineBooking) {
+                                $originalCheckIn = $registration->booking->check_in_date->startOfDay();
+                                $originalCheckOut = $registration->booking->check_out_date->startOfDay();
+                                $actualCheckIn = $registration->check_in->startOfDay();
+                                $actualCheckOut = $registration->check_out->startOfDay();
+                                
+                                // Late arrival: actual check-in is after original
+                                if ($actualCheckIn->gt($originalCheckIn)) {
+                                    $lateArrivalDays = $originalCheckIn->diffInDays($actualCheckIn);
+                                }
+                                
+                                // Extension: actual checkout is after original
+                                if ($actualCheckOut->gt($originalCheckOut)) {
+                                    $extensionDays = $originalCheckOut->diffInDays($actualCheckOut);
+                                }
+                                
+                                // Credit from unused nights (if flexible billing was applied)
+                                if ($lateArrivalDays > 0 && $onlineAmountPaid > $roomCharges) {
+                                    $unusedNightsCredit = $onlineAmountPaid - $roomCharges;
+                                }
+                            }
+                            
+                            // Staff recorded payments
+                            $staffPayments = $registration->payments->sum('amount');
+                            
+                            // Total paid and balance
+                            $totalPaid = $onlineAmountPaid + $staffPayments;
+                            $totalCharges = $registration->total_amount ?? $roomCharges;
+                            $balanceDue = $totalCharges - $totalPaid;
+                            $hasCredit = $balanceDue < 0;
+                        @endphp
+                        
                         <div class="mt-4 p-3 bg-light rounded-3">
-                            <h6 class="fw-bold text-dark mb-3"><i class="fas fa-receipt me-2"></i>Payment History</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-borderless small mb-0">
-                                    <thead class="text-muted border-bottom">
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Method</th>
-                                            <th>Reference</th>
-                                            <th class="text-end">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {{-- 1. Online Booking Payment (if exists) --}}
-                                        @if($registration->booking && $registration->booking->amount_paid > 0)
-                                            <tr>
-                                                <td>{{ $registration->booking->created_at->format('M d') }}</td>
-                                                <td>Online</td>
-                                                <td>{{ $registration->booking->booking_reference }}</td>
-                                                <td class="text-end text-success">+ ₦{{ number_format($registration->booking->amount_paid, 2) }}</td>
-                                            </tr>
+                            <h6 class="fw-bold text-dark mb-3"><i class="fas fa-file-invoice-dollar me-2"></i>Financial Summary</h6>
+                            
+                            {{-- Charges Breakdown --}}
+                            <div class="mb-3">
+                                <p class="text-muted small text-uppercase fw-bold mb-2">Charges</p>
+                                <div class="bg-white rounded p-2">
+                                    <div class="d-flex justify-content-between small py-1">
+                                        <span>Room ({{ $nights }} {{ Str::plural('night', $nights) }} @ ₦{{ number_format($roomRate) }})</span>
+                                        <span>₦{{ number_format($roomCharges, 2) }}</span>
+                                    </div>
+                                    @if ($registration->bed_breakfast)
+                                        <div class="d-flex justify-content-between small py-1 text-muted">
+                                            <span><i class="fas fa-coffee me-1"></i>Bed & Breakfast</span>
+                                            <span>Included</span>
+                                        </div>
+                                    @endif
+                                    @if ($extensionDays > 0)
+                                        <div class="d-flex justify-content-between small py-1 text-info">
+                                            <span><i class="fas fa-calendar-plus me-1"></i>Extension ({{ $extensionDays }} {{ Str::plural('night', $extensionDays) }})</span>
+                                            <span>+ ₦{{ number_format($extensionDays * $roomRate, 2) }}</span>
+                                        </div>
+                                    @endif
+                                    <div class="d-flex justify-content-between small py-1 border-top fw-bold">
+                                        <span>Total Charges</span>
+                                        <span>₦{{ number_format($totalCharges, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {{-- Payments Breakdown --}}
+                            <div class="mb-3">
+                                <p class="text-muted small text-uppercase fw-bold mb-2">Payments Received</p>
+                                <div class="bg-white rounded p-2">
+                                    @if ($hasOnlineBooking && $onlineAmountPaid > 0)
+                                        <div class="d-flex justify-content-between small py-1">
+                                            <span>
+                                                <i class="fas fa-globe text-info me-1"></i>Online Payment
+                                                <small class="text-muted">({{ $registration->booking->booking_reference }})</small>
+                                            </span>
+                                            <span class="text-success">+ ₦{{ number_format($onlineAmountPaid, 2) }}</span>
+                                        </div>
+                                        @if ($originalBookingNights != $nights)
+                                            <div class="small text-muted ps-3 py-1 fst-italic">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Originally booked: {{ $originalBookingNights }} nights (₦{{ number_format($originalBookingAmount, 2) }})
+                                                @if ($lateArrivalDays > 0)
+                                                    <span class="badge bg-warning text-dark ms-1">{{ $lateArrivalDays }}d late</span>
+                                                @endif
+                                            </div>
                                         @endif
-
-                                        {{-- 2. Staff Recorded Payments --}}
-                                        @forelse($registration->payments as $payment)
-                                            <tr>
-                                                <td>{{ $payment->payment_date->format('M d') }}</td>
-                                                <td>{{ ucfirst($payment->payment_method) }}</td>
-                                                <td>{{ $payment->reference ?? '-' }}</td>
-                                                <td class="text-end text-success">+ ₦{{ number_format($payment->amount, 2) }}</td>
-                                            </tr>
-                                        @empty
-                                            @if(!$registration->booking || $registration->booking->amount_paid <= 0)
-                                            <tr>
-                                                <td colspan="4" class="text-center text-muted fst-italic py-2">No payments recorded yet.</td>
-                                            </tr>
+                                    @endif
+                                    
+                                    @forelse($registration->payments as $payment)
+                                        <div class="d-flex justify-content-between small py-1">
+                                            <span>
+                                                <i class="fas fa-money-bill-wave text-success me-1"></i>
+                                                {{ ucfirst($payment->payment_method) }}
+                                                <small class="text-muted">({{ $payment->payment_date->format('M d') }})</small>
+                                                @if ($payment->reference)
+                                                    <small class="text-muted">- {{ $payment->reference }}</small>
+                                                @endif
+                                            </span>
+                                            <span class="text-success">+ ₦{{ number_format($payment->amount, 2) }}</span>
+                                        </div>
+                                    @empty
+                                        @if (!$hasOnlineBooking || $onlineAmountPaid <= 0)
+                                            <div class="text-center text-muted fst-italic small py-2">
+                                                No payments recorded yet
+                                            </div>
+                                        @endif
+                                    @endforelse
+                                    
+                                    <div class="d-flex justify-content-between small py-1 border-top fw-bold text-success">
+                                        <span>Total Paid</span>
+                                        <span>₦{{ number_format($totalPaid, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {{-- Balance Summary --}}
+                            <div class="p-3 rounded {{ $hasCredit ? 'bg-success bg-opacity-10 border border-success' : ($balanceDue > 0 ? 'bg-danger bg-opacity-10 border border-danger' : 'bg-success bg-opacity-10 border border-success') }}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <p class="mb-0 fw-bold {{ $hasCredit ? 'text-success' : ($balanceDue > 0 ? 'text-danger' : 'text-success') }}">
+                                            @if ($hasCredit)
+                                                <i class="fas fa-gift me-2"></i>Guest Credit
+                                            @elseif ($balanceDue > 0)
+                                                <i class="fas fa-exclamation-circle me-2"></i>Balance Due
+                                            @else
+                                                <i class="fas fa-check-circle me-2"></i>Fully Paid
                                             @endif
-                                        @endforelse
-                                        
-                                        {{-- 3. Totals --}}
-                                        <tr class="border-top border-dark">
-                                            <td colspan="3" class="fw-bold text-dark pt-2">Total Paid</td>
-                                            <td class="text-end fw-bold text-success pt-2">₦{{ number_format($registration->total_paid, 2) }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="3" class="fw-bold text-danger">Balance Due</td>
-                                            <td class="text-end fw-bold text-danger">
-                                                ₦{{ number_format($registration->total_amount - $registration->total_paid, 2) }}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                        </p>
+                                        @if ($hasCredit)
+                                            <small class="text-muted">Can apply to extras or refund</small>
+                                        @elseif ($balanceDue > 0)
+                                            <small class="text-muted">Collect before checkout</small>
+                                        @endif
+                                    </div>
+                                    <div class="text-end">
+                                        <p class="mb-0 fw-bold fs-4 {{ $hasCredit ? 'text-success' : ($balanceDue > 0 ? 'text-danger' : 'text-success') }}">
+                                            @if ($hasCredit)
+                                                ₦{{ number_format(abs($balanceDue), 2) }}
+                                            @elseif ($balanceDue > 0)
+                                                ₦{{ number_format($balanceDue, 2) }}
+                                            @else
+                                                ₦ 0.00
+                                            @endif
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -472,7 +588,7 @@ $checkoutConfirmMsg = $isGroupLead
                 @endif
 
                 {{-- Guest Profile Card --}}
-                <div class="card border-0 shadow-sm rounded-3">
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
                     <div class="card-header border-0 bg-white py-3">
                         <div class="d-flex align-items-center">
                             <div class="rounded-circle bg-light p-2 me-3">
@@ -484,32 +600,113 @@ $checkoutConfirmMsg = $isGroupLead
 
                     <div class="card-body">
                         <h6 class="card-title mb-3 text-dark">
-                            {{ $registration->guest->full_name ?? $registration->full_name }}</h6>
-                        <ul class="list-unstyled mb-0">
-                            <li class="mb-3 d-flex">
-                                <i class="fas fa-envelope text-muted mt-1 me-3"></i>
-                                <span>{{ $registration->guest->email ?? 'N/A' }}</span>
-                            </li>
-                            <li class="mb-3 d-flex">
-                                <i class="fas fa-phone text-muted mt-1 me-3"></i>
-                                <span>{{ $registration->guest->contact_number ?? 'N/A' }}</span>
-                            </li>
-                            <li class="mb-3 d-flex">
-                                <i class="fas fa-map-marker-alt text-muted mt-1 me-3"></i>
-                                <span>{{ $registration->guest->home_address ?? 'N/A' }}</span>
-                            </li>
-                            <li class="d-flex align-items-center">
-                                <i class="fas fa-history text-muted me-3"></i>
-                                <span
-                                    class="badge {{ ($registration->guest->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }}">
+                            {{ $registration->title }} {{ $registration->guest->full_name ?? $registration->full_name }}
+                        </h6>
+                        
+                        {{-- Contact Info --}}
+                        <div class="mb-3 pb-3 border-bottom">
+                            <small class="text-muted text-uppercase fw-bold">Contact</small>
+                            <ul class="list-unstyled mb-0 mt-2">
+                                <li class="mb-2 d-flex">
+                                    <i class="fas fa-envelope text-muted mt-1 me-3" style="width: 16px;"></i>
+                                    <span>{{ $registration->email ?? $registration->guest->email ?? 'N/A' }}</span>
+                                </li>
+                                <li class="mb-2 d-flex">
+                                    <i class="fas fa-phone text-muted mt-1 me-3" style="width: 16px;"></i>
+                                    <span>{{ $registration->contact_number ?? $registration->guest->contact_number ?? 'N/A' }}</span>
+                                </li>
+                                <li class="d-flex">
+                                    <i class="fas fa-map-marker-alt text-muted mt-1 me-3" style="width: 16px;"></i>
+                                    <span>{{ $registration->home_address ?? $registration->guest->home_address ?? 'N/A' }}</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {{-- Personal Info --}}
+                        <div class="mb-3 pb-3 border-bottom">
+                            <small class="text-muted text-uppercase fw-bold">Personal</small>
+                            <ul class="list-unstyled mb-0 mt-2">
+                                <li class="mb-2 d-flex">
+                                    <i class="fas fa-flag text-muted mt-1 me-3" style="width: 16px;"></i>
+                                    <span>{{ $registration->nationality ?? $registration->guest->nationality ?? 'N/A' }}</span>
+                                </li>
+                                <li class="mb-2 d-flex">
+                                    <i class="fas fa-venus-mars text-muted mt-1 me-3" style="width: 16px;"></i>
+                                    <span>{{ ucfirst($registration->gender ?? $registration->guest->gender ?? 'N/A') }}</span>
+                                </li>
+                                <li class="d-flex">
+                                    <i class="fas fa-briefcase text-muted mt-1 me-3" style="width: 16px;"></i>
+                                    <span>{{ $registration->occupation ?? $registration->guest->occupation ?? 'N/A' }}</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {{-- Emergency Contact --}}
+                        <div class="mb-3 pb-3 border-bottom">
+                            <small class="text-muted text-uppercase fw-bold">Emergency Contact</small>
+                            <ul class="list-unstyled mb-0 mt-2">
+                                <li class="mb-2 d-flex">
+                                    <i class="fas fa-user-shield text-muted mt-1 me-3" style="width: 16px;"></i>
+                                    <span>{{ $registration->emergency_name ?? $registration->guest->emergency_name ?? 'N/A' }}</span>
+                                </li>
+                                <li class="d-flex">
+                                    <i class="fas fa-phone-alt text-muted mt-1 me-3" style="width: 16px;"></i>
+                                    <span>{{ $registration->emergency_contact ?? $registration->guest->emergency_contact ?? 'N/A' }}</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {{-- Guest History --}}
+                        <div>
+                            <small class="text-muted text-uppercase fw-bold">History</small>
+                            <div class="mt-2 d-flex align-items-center">
+                                <i class="fas fa-history text-muted me-3" style="width: 16px;"></i>
+                                <span class="badge {{ ($registration->guest->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }}">
                                     {{ ($registration->guest->visit_count ?? 1) > 1 ? 'Returning Guest' : 'New Guest' }}
                                 </span>
-                                <small class="text-muted ms-2">(Visits:
-                                    {{ $registration->guest->visit_count ?? 1 }})</small>
-                            </li>
-                        </ul>
+                                <small class="text-muted ms-2">({{ $registration->guest->visit_count ?? 1 }} visits)</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                {{-- Booking Source Card (if from online booking) --}}
+                @if ($registration->booking)
+                    <div class="card border-0 shadow-sm rounded-3">
+                        <div class="card-header border-0 bg-info bg-opacity-10 py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-info bg-opacity-25 p-2 me-3">
+                                    <i class="fas fa-globe text-info"></i>
+                                </div>
+                                <h5 class="mb-0 text-dark fw-bold">Online Booking Details</h5>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2 d-flex justify-content-between">
+                                    <span class="text-muted">Booking Ref:</span>
+                                    <span class="fw-bold">{{ $registration->booking->booking_reference }}</span>
+                                </li>
+                                <li class="mb-2 d-flex justify-content-between">
+                                    <span class="text-muted">Booked On:</span>
+                                    <span>{{ $registration->booking->created_at->format('M d, Y') }}</span>
+                                </li>
+                                <li class="mb-2 d-flex justify-content-between">
+                                    <span class="text-muted">Payment Status:</span>
+                                    <span class="badge {{ $registration->booking->payment_status === 'paid' ? 'bg-success' : 'bg-warning text-dark' }}">
+                                        {{ ucfirst($registration->booking->payment_status ?? 'Pending') }}
+                                    </span>
+                                </li>
+                                @if ($registration->booking->amount_paid > 0)
+                                    <li class="d-flex justify-content-between">
+                                        <span class="text-muted">Amount Paid Online:</span>
+                                        <span class="fw-bold text-success">₦{{ number_format($registration->booking->amount_paid, 2) }}</span>
+                                    </li>
+                                @endif
+                            </ul>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
 

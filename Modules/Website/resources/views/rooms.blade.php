@@ -118,6 +118,11 @@
                         </div>
                     @endforeach
                 </div>
+
+                <!-- Pagination Links -->
+                <div class="d-flex justify-content-center mt-5">
+                    {{ $rooms->links() }}
+                </div>
             @endif
 
             <!-- CTA -->
@@ -161,6 +166,32 @@
 
             .filters {
                 border-radius: 10px;
+            }
+
+            /* Gold-themed Pagination */
+            .pagination {
+                gap: 0.25rem;
+            }
+            .pagination .page-link {
+                color: #b8860b;
+                border-color: #d4af37;
+                border-radius: 5px;
+                padding: 0.5rem 0.85rem;
+                transition: all 0.3s ease;
+            }
+            .pagination .page-link:hover {
+                background-color: #d4af37;
+                border-color: #d4af37;
+                color: #fff;
+            }
+            .pagination .page-item.active .page-link {
+                background-color: #b8860b;
+                border-color: #b8860b;
+                color: #fff;
+            }
+            .pagination .page-item.disabled .page-link {
+                color: #ccc;
+                border-color: #e9e9e9;
             }
         </style>
     @endpush

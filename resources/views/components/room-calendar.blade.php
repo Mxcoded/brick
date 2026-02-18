@@ -13,11 +13,34 @@
     {{-- Legend --}}
     <div class="card-body bg-light py-2 border-bottom small">
         <div class="d-flex gap-3 justify-content-center flex-wrap">
-            <span class="d-flex align-items-center"><span class="badge bg-danger me-1">&nbsp;</span> Checked In</span>
-            <span class="d-flex align-items-center"><span class="badge bg-primary me-1">&nbsp;</span> Confirmed</span>
-            <span class="d-flex align-items-center"><span class="badge bg-warning text-dark me-1">&nbsp;</span> Pending</span>
-            <span class="d-flex align-items-center"><span class="badge bg-success me-1">&nbsp;</span> Checked Out</span>
-            <span class="d-flex align-items-center"><span class="badge bg-secondary me-1">&nbsp;</span> Maintenance</span>
+            <div class="card-body bg-light py-2 border-bottom small">
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <span class="d-flex align-items-center">
+                    <span class="badge me-1" style="background-color: #32CD32;">&nbsp;</span> 
+                    In-House (Light Green)
+                </span>
+
+                <span class="d-flex align-items-center">
+                    <span class="badge me-1" style="background-color: #006400;">&nbsp;</span> 
+                    Checked Out (Dark Green)
+                </span>
+
+                <span class="d-flex align-items-center">
+                    <span class="badge me-1" style="background-color: #0DCAF0;">&nbsp;</span> 
+                    Reserved (Cyan)
+                </span>
+
+                <span class="d-flex align-items-center">
+                    <span class="badge me-1" style="background-color: #FF00FF;">&nbsp;</span> 
+                    Maintenance (Magenta)
+                </span>
+
+                <span class="d-flex align-items-center">
+                    <span class="badge bg-primary me-1">&nbsp;</span> 
+                    Online Booking
+                </span>
+            </div>
+        </div>
         </div>
     </div>
 

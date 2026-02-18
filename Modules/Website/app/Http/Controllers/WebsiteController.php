@@ -130,7 +130,7 @@ class WebsiteController extends Controller
         }
 
         // 8. Pagination
-        $rooms = $query->paginate(9)->withQueryString();
+        $rooms = $query->with('amenities')->paginate(10)->withQueryString();
 
         return view('website::rooms', compact('rooms'));
     }

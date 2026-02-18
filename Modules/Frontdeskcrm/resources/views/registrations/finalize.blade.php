@@ -41,6 +41,147 @@
                                 </div>
                             @endif
 
+                            {{-- BILLING RECONCILIATION ALERT (For Online Bookings with Date Discrepancies) --}}
+                            @if ($registration->booking)
+                                @php
+                                    $booking = $registration->booking;
+                                    $today = now()->startOfDay();
+                                    $originalCheckIn = \Carbon\Carbon::parse($booking->check_in_date)->startOfDay();
+                                    $originalCheckOut = \Carbon\Carbon::parse($booking->check_out_date)->startOfDay();
+                                    $actualCheckIn = $today->gt($originalCheckIn) ? $today : $originalCheckIn;
+                                    $proposedCheckOut = $registration->check_out->startOfDay();
+                                    
+                                    $originalNights = $originalCheckIn->diffInDays($originalCheckOut);
+                                    $lateArrivalDays = $today->gt($originalCheckIn) ? $originalCheckIn->diffInDays($today) : 0;
+                                    $extensionDays = $proposedCheckOut->gt($originalCheckOut) ? $originalCheckOut->diffInDays($proposedCheckOut) : 0;
+                                    
+                                    $roomRate = $booking->room->price ?? $registration->room_rate ?? 0;
+                                    $amountPaid = $booking->amount_paid ?? $booking->total_amount ?? 0;
+                                    
+                                    // Strict policy: Billing from original date
+                                    $strictNights = $originalCheckIn->diffInDays($proposedCheckOut);
+                                    $strictTotal = $strictNights * $roomRate;
+                                    $strictBalance = $strictTotal - $amountPaid;
+                                    
+                                    // Flexible policy: Only actual nights
+                                    $actualNights = $actualCheckIn->diffInDays($proposedCheckOut);
+                                    $flexibleTotal = $actualNights * $roomRate;
+                                    $flexibleBalance = $flexibleTotal - $amountPaid;
+                                    $unusedCredit = $amountPaid - $flexibleTotal;
+                                @endphp
+
+                                @if ($lateArrivalDays > 0 || $extensionDays > 0)
+                                    <div class="card border-warning mb-5">
+                                        <div class="card-header bg-warning bg-opacity-25 border-0 py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-warning p-2 me-3">
+                                                    <i class="fas fa-calculator text-dark"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="mb-0 text-dark fw-bold">Billing Reconciliation Required</h5>
+                                                    <p class="mb-0 text-muted small">Guest's actual stay differs from original booking</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            {{-- Original Booking Summary --}}
+                                            <div class="row mb-4">
+                                                <div class="col-md-6">
+                                                    <h6 class="fw-bold text-muted mb-2"><i class="fas fa-calendar-check me-2"></i>Original Booking</h6>
+                                                    <ul class="list-unstyled mb-0">
+                                                        <li><strong>Dates:</strong> {{ $originalCheckIn->format('M d') }} → {{ $originalCheckOut->format('M d, Y') }}</li>
+                                                        <li><strong>Nights:</strong> {{ $originalNights }} nights @ ₦{{ number_format($roomRate) }}/night</li>
+                                                        <li><strong>Amount Paid:</strong> <span class="text-success fw-bold">₦{{ number_format($amountPaid) }}</span></li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6 class="fw-bold text-muted mb-2"><i class="fas fa-calendar-alt me-2"></i>Actual Stay</h6>
+                                                    <ul class="list-unstyled mb-0">
+                                                        <li><strong>Arrival:</strong> {{ $actualCheckIn->format('M d, Y') }}
+                                                            @if ($lateArrivalDays > 0)
+                                                                <span class="badge bg-warning text-dark">{{ $lateArrivalDays }} days late</span>
+                                                            @endif
+                                                        </li>
+                                                        <li><strong>Checkout:</strong> {{ $proposedCheckOut->format('M d, Y') }}
+                                                            @if ($extensionDays > 0)
+                                                                <span class="badge bg-info">+{{ $extensionDays }} days extended</span>
+                                                            @endif
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+
+                                            {{-- Billing Policy Selection --}}
+                                            <h6 class="fw-bold text-dark mb-3"><i class="fas fa-balance-scale me-2"></i>Select Billing Policy</h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <div class="form-check card p-3 border {{ $strictBalance > 0 ? 'border-danger' : 'border-success' }}">
+                                                        <input class="form-check-input" type="radio" name="billing_policy" id="policy_strict" value="strict" checked>
+                                                        <label class="form-check-label w-100" for="policy_strict">
+                                                            <strong class="d-block mb-1">Strict Policy</strong>
+                                                            <small class="text-muted d-block mb-2">No refunds for late arrival. Bill from original check-in date.</small>
+                                                            <div class="bg-light p-2 rounded small">
+                                                                <div class="d-flex justify-content-between">
+                                                                    <span>Total ({{ $strictNights }} nights):</span>
+                                                                    <span>₦{{ number_format($strictTotal) }}</span>
+                                                                </div>
+                                                                <div class="d-flex justify-content-between">
+                                                                    <span>Amount Paid:</span>
+                                                                    <span class="text-success">- ₦{{ number_format($amountPaid) }}</span>
+                                                                </div>
+                                                                <hr class="my-1">
+                                                                <div class="d-flex justify-content-between fw-bold {{ $strictBalance > 0 ? 'text-danger' : 'text-success' }}">
+                                                                    <span>{{ $strictBalance > 0 ? 'Balance Due:' : 'Credit:' }}</span>
+                                                                    <span>₦{{ number_format(abs($strictBalance)) }}</span>
+                                                                </div>
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-check card p-3 border {{ $flexibleBalance > 0 ? 'border-warning' : 'border-success' }}">
+                                                        <input class="form-check-input" type="radio" name="billing_policy" id="policy_flexible" value="flexible">
+                                                        <label class="form-check-label w-100" for="policy_flexible">
+                                                            <strong class="d-block mb-1">Flexible Policy</strong>
+                                                            <small class="text-muted d-block mb-2">Credit unused nights. Bill only actual stay.</small>
+                                                            <div class="bg-light p-2 rounded small">
+                                                                <div class="d-flex justify-content-between">
+                                                                    <span>Total ({{ $actualNights }} nights):</span>
+                                                                    <span>₦{{ number_format($flexibleTotal) }}</span>
+                                                                </div>
+                                                                <div class="d-flex justify-content-between">
+                                                                    <span>Amount Paid:</span>
+                                                                    <span class="text-success">- ₦{{ number_format($amountPaid) }}</span>
+                                                                </div>
+                                                                <hr class="my-1">
+                                                                @if ($unusedCredit > 0)
+                                                                    <div class="d-flex justify-content-between fw-bold text-success">
+                                                                        <span>Guest Credit:</span>
+                                                                        <span>₦{{ number_format($unusedCredit) }}</span>
+                                                                    </div>
+                                                                    <small class="text-muted">Can apply to extension or future stay</small>
+                                                                @else
+                                                                    <div class="d-flex justify-content-between fw-bold text-danger">
+                                                                        <span>Balance Due:</span>
+                                                                        <span>₦{{ number_format(abs($flexibleBalance)) }}</span>
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {{-- Hidden fields to pass calculated values --}}
+                                            <input type="hidden" name="original_check_in" value="{{ $originalCheckIn->format('Y-m-d') }}">
+                                            <input type="hidden" name="amount_paid_online" value="{{ $amountPaid }}">
+                                            <input type="hidden" name="late_arrival_days" value="{{ $lateArrivalDays }}">
+                                            <input type="hidden" name="extension_days" value="{{ $extensionDays }}">
+                                        </div>
+                                    </div>
+                                @endif
+                            @endif
+
                             {{-- SECTION 1: Guest Submitted Data (Read-only) --}}
                             <div class="card border rounded-3 mb-5">
                                 <div class="card-header bg-light border-0 py-3">
