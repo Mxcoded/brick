@@ -3,17 +3,24 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomImage;
-use Modules\Website\Models\Amenity; // Import Amenity
+use Modules\Website\Models\Amenity;
 use Modules\Website\Models\Booking;
-use Modules\Frontdeskcrm\Models\Registration; // For Frontdesk Integration
+use Modules\Frontdeskcrm\Models\Registration;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class RoomController extends Controller
 {
+    protected ImageService $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
     public function index()
     {
         $rooms = Room::latest()->paginate(10);
@@ -41,16 +48,19 @@ class RoomController extends Controller
             'video_url' => 'nullable|url',
             'is_featured' => 'boolean',
             'status' => 'required|in:available,maintenance,booked',
-            'image' => 'required|image|max:5120',
-            'gallery_images.*' => 'nullable|image|max:5120'
+            'image' => 'required|image|max:20480', // 20MB - will be compressed to <5MB
+            'gallery_images.*' => 'nullable|image|max:20480'
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
 
-        // Upload Primary Image
+        // Upload & Compress Primary Image
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('rooms', 'public');
-            $validated['image_url'] = Storage::url($path);
+            $result = $this->imageService->compressAndStore(
+                $request->file('image'),
+                'rooms'
+            );
+            $validated['image_url'] = $result['url'];
         }
 
         $room = Room::create($validated);
@@ -60,14 +70,14 @@ class RoomController extends Controller
             $room->amenities()->sync($validated['amenities']);
         }
 
-        // Handle Gallery
+        // Handle Gallery Images with Compression
         if ($request->hasFile('gallery_images')) {
             foreach ($request->file('gallery_images') as $file) {
-                $path = $file->store('room_gallery', 'public');
+                $result = $this->imageService->compressAndStore($file, 'room_gallery');
                 RoomImage::create([
                     'room_id' => $room->id,
-                    'image_url' => Storage::url($path),
-                    'path' => $path
+                    'image_url' => $result['url'],
+                    'path' => $result['path']
                 ]);
             }
         }
@@ -99,21 +109,24 @@ class RoomController extends Controller
             'video_url' => 'nullable|url',
             'is_featured' => 'boolean',
             'status' => 'required|in:available,maintenance,Occupied',
-            'image' => 'nullable|image|max:5120',
-            'gallery_images.*' => 'nullable|image|max:5120'
+            'image' => 'nullable|image|max:20480', // 20MB - will be compressed to <5MB
+            'gallery_images.*' => 'nullable|image|max:20480'
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
 
+        // Upload & Compress Primary Image
         if ($request->hasFile('image')) {
+            // Delete old image
             if ($room->image_url) {
-                $oldPath = str_replace('/storage/', '', $room->image_url);
-                if (Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
-                }
+                $this->imageService->deleteByUrl($room->image_url);
             }
-            $path = $request->file('image')->store('rooms', 'public');
-            $validated['image_url'] = Storage::url($path);
+            // Compress and store new image
+            $result = $this->imageService->compressAndStore(
+                $request->file('image'),
+                'rooms'
+            );
+            $validated['image_url'] = $result['url'];
         }
 
         $room->update($validated);
@@ -122,16 +135,17 @@ class RoomController extends Controller
         if (isset($validated['amenities'])) {
             $room->amenities()->sync($validated['amenities']);
         } else {
-            $room->amenities()->detach(); // If none selected, clear all
+            $room->amenities()->detach();
         }
 
+        // Handle Gallery Images with Compression
         if ($request->hasFile('gallery_images')) {
             foreach ($request->file('gallery_images') as $file) {
-                $path = $file->store('room_gallery', 'public');
+                $result = $this->imageService->compressAndStore($file, 'room_gallery');
                 RoomImage::create([
                     'room_id' => $room->id,
-                    'image_url' => Storage::url($path),
-                    'path' => $path
+                    'image_url' => $result['url'],
+                    'path' => $result['path']
                 ]);
             }
         }
@@ -149,25 +163,29 @@ class RoomController extends Controller
     public function deleteImage($id)
     {
         $image = RoomImage::findOrFail($id);
-        if ($image->path && Storage::disk('public')->exists($image->path)) {
-            Storage::disk('public')->delete($image->path);
+        if ($image->path) {
+            $this->imageService->delete($image->path);
         }
         $image->delete();
         return back()->with('success', 'Gallery image deleted.');
     }
 
-    // Add destroy method if missing
     public function destroy($id)
     {
         $room = Room::findOrFail($id);
-        // Clean up images
+        
+        // Clean up primary image
         if ($room->image_url) {
-            $path = str_replace('/storage/', '', $room->image_url);
-            Storage::disk('public')->delete($path);
+            $this->imageService->deleteByUrl($room->image_url);
         }
+        
+        // Clean up gallery images
         foreach ($room->images as $img) {
-            if ($img->path) Storage::disk('public')->delete($img->path);
+            if ($img->path) {
+                $this->imageService->delete($img->path);
+            }
         }
+        
         $room->delete();
         return back()->with('success', 'Room deleted.');
     }
