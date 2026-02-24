@@ -1,7 +1,7 @@
 
 @extends('layouts.master')
 
-@section('title', 'Edit Room') --}}
+@section('title', 'Edit Room')
 
  @section('page-content')
     <div class="row">

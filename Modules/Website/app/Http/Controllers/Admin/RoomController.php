@@ -108,7 +108,7 @@ class RoomController extends Controller
             'amenities.*' => 'exists:amenities,id',
             'video_url' => 'nullable|url',
             'is_featured' => 'boolean',
-            'status' => 'required|in:available,maintenance,Occupied',
+            'status' => 'required|in:available,maintenance,Booked',
             'image' => 'nullable|image|max:20480', // 20MB - will be compressed to <5MB
             'gallery_images.*' => 'nullable|image|max:20480'
         ]);
