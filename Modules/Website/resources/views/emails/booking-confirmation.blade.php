@@ -23,12 +23,13 @@
         <div class="details">
             <h3>Reservation Details</h3>
             <p><strong>Reference:</strong> {{ $booking->booking_reference }}</p>
-            <p><strong>Room:</strong> {{ $booking->room->name ?? 'Room' }}</p>
+            <p><strong>Room Type:</strong> {{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Room' }}</p>
             <p><strong>Check-in:</strong> {{ \Carbon\Carbon::parse($booking->check_in_date)->format('D, M d, Y') }}</p>
             <p><strong>Check-out:</strong> {{ \Carbon\Carbon::parse($booking->check_out_date)->format('D, M d, Y') }}</p>
             <p><strong>Guests:</strong> {{ $booking->adults }} Adults, {{ $booking->children }} Children</p>
             <p><strong>Total Amount:</strong> ₦{{ number_format($booking->total_amount, 2) }}</p>
             <p><strong>Status:</strong> <span style="color: green;">{{ ucfirst($booking->status) }}</span></p>
+            <p><em>Note: A specific room will be assigned at check-in.</em></p>
         </div>
 
         <p style="text-align: center;">

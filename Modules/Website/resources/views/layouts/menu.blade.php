@@ -12,9 +12,14 @@
         <i class="fas fa-tachometer-alt me-2"></i> Overview
     </a>
 
+    <a href="{{ route('website.admin.room-types.index') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.room-types.*') ? 'active' : '' }}">
+        <i class="fas fa-bed me-2"></i> Room Types
+    </a>
+
     <a href="{{ route('website.admin.rooms.index') }}"
         class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.rooms.*') ? 'active' : '' }}">
-        <i class="fas fa-bed me-2"></i> Room Inventory
+        <i class="fas fa-door-open me-2"></i> Rooms (Legacy)
     </a>
 
     <a href="{{ route('website.admin.dining.index') }}"

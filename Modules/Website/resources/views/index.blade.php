@@ -156,46 +156,43 @@
             </div>
 
             <div class="row g-4">
-                @foreach ($featuredRooms as $room)
+                @foreach ($featuredRooms as $roomType)
                     <div class="col-md-6 col-lg-4">
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
-                                <img src="{{ $room->image_url ?? 'https://via.placeholder.com/50' }}"
-                                    class="card-img-top room-image" alt="{{ $room->name }}">
+                                <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
+                                    class="card-img-top room-image" alt="{{ $roomType->name }}">
                                 <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
-                                    ₦{{ number_format($room->price, 2) }} <small>/ night</small>
+                                    ₦{{ number_format($roomType->price, 2) }} <small>/ night</small>
                                 </div>
+                                <span class="position-absolute bottom-0 start-0 m-2 badge bg-success">
+                                    {{ $roomType->units_count }} {{ Str::plural('unit', $roomType->units_count) }}
+                                </span>
                                 <div class="room-overlay d-flex align-items-center justify-content-center">
-                                    <a href="{{ route('website.rooms.show', $room->id) }}"
+                                    <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
                                         class="btn btn-outline-light btn-lg">View Details</a>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <h3 class="h5 card-title">{{ $room->name }}</h3>
-                                <p class="card-text text-muted">{{ Str::limit($room->description, 100) }}</p>
+                                <h3 class="h5 card-title">{{ $roomType->name }}</h3>
+                                <p class="card-text text-muted">{{ Str::limit($roomType->description, 100) }}</p>
                                 <div class="room-features d-flex flex-wrap gap-2 mb-3">
-                                    {{-- 1. Use the relationship collection directly --}}
-                                    @foreach ($room->amenities->take(3) as $amenity)
+                                    @foreach ($roomType->amenities->take(3) as $amenity)
                                         <span class="badge bg-light text-dark border">
-                                            {{-- 2. Use the dynamic icon from DB, fallback to check-circle if missing --}}
-                                            <i
-                                                class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i>
-
-                                            {{-- 3. Output the NAME property, not the object itself --}}
+                                            <i class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i>
                                             {{ $amenity->name }}
                                         </span>
                                     @endforeach
 
-                                    {{-- 4. Count remaining items using the collection count --}}
-                                    @if ($room->amenities->count() > 3)
+                                    @if ($roomType->amenities->count() > 3)
                                         <span class="badge bg-light text-muted border">
-                                            +{{ $room->amenities->count() - 3 }} more
+                                            +{{ $roomType->amenities->count() - 3 }} more
                                         </span>
                                     @endif
                                 </div>
                             </div>
                             <div class="card-footer bg-white border-0">
-                                <a href="{{ route('website.rooms.show', $room->slug ?? $room->id) }}"
+                                <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
                                     class="btn btn-primary w-100">
                                     <i class="fas fa-arrow-right me-2"></i>Select Room
                                 </a>

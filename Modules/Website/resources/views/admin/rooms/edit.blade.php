@@ -96,7 +96,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group mb-3">
                                     <label class="form-label fw-bold">Status <span class="text-danger">*</span></label>
                                     <select name="status" class="form-control" required>
@@ -109,12 +109,33 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="form-group mb-3">
                                     <label class="form-label fw-bold">Video URL (Optional)</label>
                                     <input type="url" name="video_url" id="video_url" class="form-control"
                                         value="{{ old('video_url', $room->video_url) }}" placeholder="https://youtube.com/...">
                                     <div id="video_preview_link"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">URL Slug</label>
+                                    <input type="text" name="slug" class="form-control"
+                                        value="{{ old('slug', $room->slug) }}" placeholder="auto-generated-from-name" readonly>
+                                    <small class="text-muted">Auto-generated from room name</small>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mb-3">
+                                <div class="card bg-light border-0 p-3">
+                                    <div class="form-check form-switch">
+                                        <input type="checkbox" name="is_featured" value="1" class="form-check-input" 
+                                               id="is_featured" {{ old('is_featured', $room->is_featured) ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-bold" for="is_featured">
+                                            <i class="fas fa-star text-warning me-1"></i> Featured Room
+                                        </label>
+                                        <small class="d-block text-muted mt-1">Featured rooms appear on the homepage</small>
+                                    </div>
                                 </div>
                             </div>
 

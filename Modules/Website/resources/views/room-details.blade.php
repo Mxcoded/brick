@@ -1,6 +1,6 @@
 @extends('website::layouts.master')
 
-@section('title', $room->name . ' - Room Details')
+@section('title', $roomType->name . ' - Room Details')
 
 @section('content')
     <section class="room-details-section py-5 py-lg-7">
@@ -12,42 +12,48 @@
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('website.home') }}">Home</a></li>
                     <li class="breadcrumb-item"><a href="{{ route('website.rooms.index') }}">Rooms & Suites</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">{{ $room->name }}</li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ $roomType->name }}</li>
                 </ol>
             </nav>
 
             <div class="row mb-5">
                 <div class="col-12">
-                    <h1 class="display-4 fw-bold mb-3">{{ $room->name }}</h1>
-                    <p class="lead text-muted">{{ $room->description }}</p>
+                    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                        <h1 class="display-4 fw-bold mb-0">{{ $roomType->name }}</h1>
+                        <span class="badge bg-success fs-6 py-2 px-3">
+                            <i class="fas fa-check-circle me-1"></i>
+                            {{ $roomType->units->count() }} {{ Str::plural('unit', $roomType->units->count()) }} available
+                        </span>
+                    </div>
+                    <p class="lead text-muted">{{ $roomType->short_description ?? Str::limit($roomType->description, 200) }}</p>
                 </div>
             </div>
 
             <div class="row mb-5">
                 <div class="col-lg-8">
-                    {{-- 1. Video Section (Kept as is) --}}
-                    @if ($room->video_url)
+                    {{-- 1. Video Section --}}
+                    @if ($roomType->video_url)
                         <div class="mb-4 ratio ratio-16x9 rounded shadow-lg overflow-hidden">
-                            @if (Str::contains($room->video_url, 'youtube') || Str::contains($room->video_url, 'youtu.be'))
-                                <iframe src="{{ str_replace('watch?v=', 'embed/', $room->video_url) }}"
+                            @if (Str::contains($roomType->video_url, 'youtube') || Str::contains($roomType->video_url, 'youtu.be'))
+                                <iframe src="{{ str_replace('watch?v=', 'embed/', $roomType->video_url) }}"
                                     allowfullscreen></iframe>
                             @else
                                 <video controls>
-                                    <source src="{{ $room->video_url }}" type="video/mp4">
+                                    <source src="{{ $roomType->video_url }}" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                             @endif
                         </div>
                     @endif
 
-                    {{-- 2. Gallery Carousel (Replaces Static Image) --}}
-                    @if ($room->images && $room->images->count() > 0)
+                    {{-- 2. Gallery Carousel --}}
+                    @if ($roomType->images && $roomType->images->count() > 0)
                         <div id="roomGalleryCarousel" class="carousel slide mb-5 shadow-lg rounded overflow-hidden"
                             data-bs-ride="carousel">
 
-                            {{-- Indicators (Optional dots at bottom) --}}
+                            {{-- Indicators --}}
                             <div class="carousel-indicators">
-                                @foreach ($room->images as $key => $image)
+                                @foreach ($roomType->images as $key => $image)
                                     <button type="button" data-bs-target="#roomGalleryCarousel"
                                         data-bs-slide-to="{{ $key }}" class="{{ $key == 0 ? 'active' : '' }}"
                                         aria-current="{{ $key == 0 ? 'true' : 'false' }}"
@@ -57,16 +63,16 @@
 
                             {{-- Slides --}}
                             <div class="carousel-inner">
-                                @foreach ($room->images as $key => $image)
+                                @foreach ($roomType->images as $key => $image)
                                     <div class="carousel-item {{ $key == 0 ? 'active' : '' }}">
                                         <img src="{{ $image->image_url }}" class="d-block w-100"
-                                            alt="{{ $room->name }} Gallery Image {{ $key + 1 }}"
+                                            alt="{{ $roomType->name }} Gallery Image {{ $key + 1 }}"
                                             style="height: 500px; object-fit: cover;">
                                     </div>
                                 @endforeach
                             </div>
 
-                            {{-- Controls (Prev/Next Buttons) --}}
+                            {{-- Controls --}}
                             <button class="carousel-control-prev" type="button" data-bs-target="#roomGalleryCarousel"
                                 data-bs-slide="prev">
                                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -80,16 +86,16 @@
                         </div>
                     @else
                         {{-- Fallback: Show Main Image if no gallery exists --}}
-                        @if ($room->image_url)
-                            <img src="{{ $room->image_url }}" class="img-fluid rounded shadow-lg mb-5 w-100"
-                                alt="{{ $room->name }}" style="max-height: 500px; object-fit: cover;">
+                        @if ($roomType->image_url)
+                            <img src="{{ $roomType->image_url }}" class="img-fluid rounded shadow-lg mb-5 w-100"
+                                alt="{{ $roomType->name }}" style="max-height: 500px; object-fit: cover;">
                         @endif
                     @endif
 
-                    {{-- Amenities Section (Likely below this) --}}
+                    {{-- Amenities Section --}}
                     <h3 class="mb-4">Room Amenities</h3>
                     <div class="row g-3">
-                        @foreach ($room->amenities as $amenity)
+                        @foreach ($roomType->amenities as $amenity)
                             <div class="col-6 col-md-4">
                                 <div class="d-flex align-items-center p-3 border rounded bg-light">
                                     <i class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-3 fs-4"></i>
@@ -104,14 +110,14 @@
                     <div class="card shadow border-0 sticky-top" style="top: 100px; z-index: 10;">
                         <div class="card-body p-4">
                             <div class="mb-4">
-                                <span class="h2 fw-bold text-primary">₦{{ number_format($room->price, 2) }}</span>
+                                <span class="h2 fw-bold text-primary">₦{{ number_format($roomType->price, 2) }}</span>
                                 <span class="text-muted">/ night</span>
                             </div>
 
                             <form id="checkAvailabilityForm" action="{{ route('website.room.checkAvailability') }}"
                                 method="POST">
                                 @csrf
-                                <input type="hidden" name="room_id" value="{{ $room->id }}">
+                                <input type="hidden" name="room_type_id" value="{{ $roomType->id }}">
 
                                 <div class="row g-2 mb-3">
                                     <div class="col-6">
@@ -137,7 +143,7 @@
 
                                 {{-- Book Now button (hidden until availability confirmed) --}}
                                 <a href="#" id="bookNowBtn" class="btn btn-success w-100 py-3 fw-bold mt-3 d-none">
-                                    <i class="fas fa-arrow-right me-2"></i>Book This Room
+                                    <i class="fas fa-arrow-right me-2"></i>Book This Room Type
                                 </a>
                             </form>
                         </div>
@@ -152,19 +158,22 @@
                 <div class="col-lg-8">
                     <div class="d-flex flex-wrap gap-3 mb-5 text-muted">
                         <div class="d-flex align-items-center bg-light px-3 py-2 rounded">
-                            <i class="fas fa-user-friends me-2"></i> {{ $room->capacity }} Guests
+                            <i class="fas fa-user-friends me-2"></i> {{ $roomType->capacity }} Guests
                         </div>
                         <div class="d-flex align-items-center bg-light px-3 py-2 rounded">
-                            <i class="fas fa-ruler-combined me-2"></i> {{ $room->size ?? 'N/A' }}
+                            <i class="fas fa-ruler-combined me-2"></i> {{ $roomType->size ?? 'N/A' }}
                         </div>
                         <div class="d-flex align-items-center bg-light px-3 py-2 rounded">
-                            <i class="fas fa-bed me-2"></i> {{ $room->bed_type ?? 'King Bed' }}
+                            <i class="fas fa-bed me-2"></i> {{ $roomType->bed_type ?? 'King Bed' }}
+                        </div>
+                        <div class="d-flex align-items-center bg-light px-3 py-2 rounded">
+                            <i class="fas fa-door-open me-2"></i> {{ $roomType->units->count() }} Units
                         </div>
                     </div>
 
                     <h3 class="h4 fw-bold mb-3">Description</h3>
                     <div class="mb-5">
-                        {!! nl2br(e($room->description)) !!}
+                        {!! nl2br(e($roomType->description)) !!}
                     </div>
 
                 </div>

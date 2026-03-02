@@ -19,7 +19,7 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Booking::with(['room', 'user'])->latest();
+        $query = Booking::with(['roomType', 'roomUnit', 'room', 'user'])->latest();
 
         // 1. Filter by Status
         if ($request->filled('status')) {
@@ -120,7 +120,7 @@ class BookingController extends Controller
      */
     public function show($id)
     {
-        $booking = Booking::with(['room', 'user'])->findOrFail($id);
+        $booking = Booking::with(['roomType', 'roomUnit', 'room', 'user'])->findOrFail($id);
         return view('website::admin.bookings.show', compact('booking'));
     }
 

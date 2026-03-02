@@ -66,7 +66,7 @@
                                 <div class="fw-bold text-dark">{{ $booking->guest_name }}</div>
                                 <div class="small text-muted">{{ $booking->guest_phone }}</div>
                             </td>
-                            <td>{{ $booking->room->name ?? 'Deleted Room' }}</td>
+                            <td>{{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Room' }}</td>
                             <td>
                                 <div class="small">
                                     <span class="text-success"><i class="fas fa-sign-in-alt me-1"></i> {{ $booking->check_in_date->format('M d') }}</span>

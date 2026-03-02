@@ -52,7 +52,7 @@
                             @csrf
 
                             @php
-                                $reqRoomId = old('room_id', request('room_id', $selectedRoom->id ?? ''));
+                                $reqRoomTypeId = old('room_type_id', request('room_type_id', request('room_id', $selectedRoomType->id ?? '')));
                                 $reqCheckIn = old('check_in_date', request('check_in_date', request('check_in')));
                                 $reqCheckOut = old('check_out_date', request('check_out_date', request('check_out')));
                             @endphp
@@ -75,21 +75,23 @@
                                 </div>
                             </div>
 
-                            {{-- Room Selection --}}
+                            {{-- Room Type Selection --}}
                             <div class="mb-4">
-                                <label class="form-label fw-bold">Select Room <span class="text-danger">*</span></label>
-                                <select name="room_id" id="room_id" class="form-select form-select-lg" required>
-                                    <option value="" disabled {{ empty($reqRoomId) ? 'selected' : '' }}>-- Choose a
-                                        Room --</option>
-                                    @foreach ($rooms as $roomOption)
+                                <label class="form-label fw-bold">Select Room Type <span class="text-danger">*</span></label>
+                                <select name="room_type_id" id="room_type_id" class="form-select form-select-lg" required>
+                                    <option value="" disabled {{ empty($reqRoomTypeId) ? 'selected' : '' }}>-- Choose a
+                                        Room Type --</option>
+                                    @foreach ($roomTypes as $roomOption)
                                         <option value="{{ $roomOption->id }}" data-price="{{ $roomOption->price }}"
                                             data-image="{{ $roomOption->image_url }}" data-name="{{ $roomOption->name }}"
                                             data-capacity="{{ $roomOption->capacity }}"
-                                            {{ $reqRoomId == $roomOption->id ? 'selected' : '' }}>
-                                            {{ $roomOption->name }} (₦{{ number_format($roomOption->price, 2) }})
+                                            data-units="{{ $roomOption->units_count }}"
+                                            {{ $reqRoomTypeId == $roomOption->id ? 'selected' : '' }}>
+                                            {{ $roomOption->name }} (₦{{ number_format($roomOption->price, 2) }}) - {{ $roomOption->units_count }} units
                                         </option>
                                     @endforeach
                                 </select>
+                                <div class="form-text text-muted">A specific room will be assigned at check-in.</div>
                             </div>
 
                             {{-- Personal Information --}}
@@ -274,16 +276,16 @@
                         <h5 class="mb-0 fw-bold"><i class="fas fa-receipt me-2"></i>Summary</h5>
                     </div>
 
-                    <img id="summary-image" src="{{ $selectedRoom->image_url ?? asset('images/default-room.jpg') }}"
-                        class="card-img-top {{ $selectedRoom ? '' : 'd-none' }}"
+                    <img id="summary-image" src="{{ $selectedRoomType->image_url ?? asset('images/default-room.jpg') }}"
+                        class="card-img-top {{ $selectedRoomType ? '' : 'd-none' }}"
                         style="height: 200px; object-fit: cover;">
 
                     <div class="card-body p-4">
                         <h5 id="summary-name" class="fw-bold text-primary mb-1">
-                            {{ $selectedRoom->name ?? 'Select a Room' }}</h5>
+                            {{ $selectedRoomType->name ?? 'Select a Room Type' }}</h5>
                         <div class="mb-3 text-muted small">
                             <i class="fas fa-user-friends me-1"></i> Max <span
-                                id="summary-capacity">{{ $selectedRoom->capacity ?? '-' }}</span> Guests
+                                id="summary-capacity">{{ $selectedRoomType->capacity ?? '-' }}</span> Guests
                         </div>
 
                         <ul class="list-group list-group-flush mb-4">
@@ -303,7 +305,7 @@
                             </li>
                             <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
                                 <span class="text-muted small">Rate</span>
-                                <span id="summary-rate">₦{{ number_format($selectedRoom->price ?? 0, 2) }}</span>
+                                <span id="summary-rate">₦{{ number_format($selectedRoomType->price ?? 0, 2) }}</span>
                             </li>
                         </ul>
 
@@ -313,6 +315,9 @@
                                 ₦0.00
                             </span>
                         </div>
+                        <p class="text-muted small mt-3 mb-0">
+                            <i class="fas fa-info-circle me-1"></i> Specific room assigned at check-in
+                        </p>
                     </div>
                 </div>
             </div>
@@ -323,7 +328,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Elements
-            const roomSelect = document.getElementById('room_id');
+            const roomSelect = document.getElementById('room_type_id');
             const checkInInput = document.getElementById('check_in_date');
             const checkOutInput = document.getElementById('check_out_date');
             const emailInput = document.getElementById('guest_email');
@@ -438,18 +443,18 @@
             }
 
             function checkAvailability() {
-                const roomId = roomSelect.value;
+                const roomTypeId = roomSelect.value;
                 const checkIn = checkInInput.value;
                 const checkOut = checkOutInput.value;
 
                 // Only check if we have all data
-                if (roomId && checkIn && checkOut) {
+                if (roomTypeId && checkIn && checkOut) {
                     // UI: Show checking state
                     btnText.textContent = 'Checking Availability...';
                     submitBtn.disabled = true;
 
                     const queryParams = new URLSearchParams({
-                        room_id: roomId,
+                        room_type_id: roomTypeId,
                         check_in_date: checkIn,
                         check_out_date: checkOut
                     });

@@ -4,6 +4,7 @@ namespace Modules\Website\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Modules\Website\Models\Room;
+use Modules\Website\Models\RoomType;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Models\Dining;
 use Modules\Website\Models\Booking;
@@ -32,31 +33,32 @@ class WebsiteController extends Controller
         // 1. Settings can remain an array (accessed by key)
         $settings = \Modules\Website\Models\Settings::pluck('value', 'key')->toArray();
 
-        // 2. FIX: Ensure these return Collections (REMOVE ->toArray())
-        // The view calls ->take(3) on these, so they MUST be Collections.
-        $featuredRooms = Room::where('is_featured', true)
-            ->where('status', 'available')
-            ->latest()
-            ->get(); // Returns Collection
+        // 2. Featured Room Types (NEW architecture)
+        $featuredRooms = RoomType::where('is_featured', true)
+            ->where('is_active', true)
+            ->withCount('units')
+            ->with('amenities')
+            ->ordered()
+            ->get();
 
         $testimonials = Testimonial::where('approved', true)
             ->latest()
-            ->get(); // Returns Collection
+            ->get();
 
-        $dining = Dining::all(); // Returns Collection
+        $dining = Dining::all();
 
         return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining'));
     }
 
     /**
-     * Display the rooms page with filtering.
+     * Display the rooms page with filtering (NOW uses RoomType).
      */
     public function rooms(Request $request)
     {
-        // 1. Base Query
-        $query = Room::where('status', 'available');
-
-        // ... (Search, Price, and Guest filters remain the same) ...
+        // 1. Base Query - Room Types (not individual rooms)
+        $query = RoomType::where('is_active', true)
+            ->withCount('units')
+            ->with(['amenities', 'units']);
 
         // 2. Search (Name/Description)
         $query->when($request->filled('search'), function ($q) use ($request) {
@@ -81,38 +83,7 @@ class WebsiteController extends Controller
             $q->where('capacity', '>=', $request->guests);
         });
 
-        // =========================================================
-        // 6. AVAILABILITY CHECK (THE FIX)
-        // =========================================================
-        if ($request->filled(['check_in', 'check_out'])) {
-            $checkIn = Carbon::parse($request->check_in);
-            $checkOut = Carbon::parse($request->check_out);
-
-            // A. Exclude Rooms with Conflicting WEBSITE Bookings
-            $query->whereDoesntHave('bookings', function ($q) use ($checkIn, $checkOut) {
-                $q->where('status', '!=', 'cancelled')
-                    ->where(function ($sub) use ($checkIn, $checkOut) {
-                        $sub->where('check_in_date', '<', $checkOut)
-                            ->where('check_out_date', '>', $checkIn);
-                    });
-            });
-
-            // B. Exclude Rooms with Conflicting FRONTDESK Registrations
-            // We must check 'registrations' relationship for Walk-ins/Reserved
-            if (class_exists(Registration::class)) {
-                $query->whereDoesntHave('registrations', function ($q) use ($checkIn, $checkOut) {
-                    $q->whereIn('stay_status', ['checked_in', 'draft_by_guest', 'reserved'])
-                        ->where(function ($sub) use ($checkIn, $checkOut) {
-                            $sub->where('check_in', '<', $checkOut)
-                                ->where('check_out', '>', $checkIn);
-                        });
-                });
-            }
-        }
-
-        // ... (Sorting and Pagination remain the same) ...
-
-        // 7. Sorting
+        // 6. Sorting
         if ($request->filled('sort')) {
             switch ($request->sort) {
                 case 'price_asc':
@@ -122,37 +93,41 @@ class WebsiteController extends Controller
                     $query->orderBy('price', 'desc');
                     break;
                 default:
-                    $query->latest();
+                    $query->ordered();
                     break;
             }
         } else {
-            $query->latest();
+            $query->ordered();
         }
 
-        // 8. Pagination
-        $rooms = $query->with('amenities')->paginate(10)->withQueryString();
+        // 7. Pagination
+        $roomTypes = $query->paginate(10)->withQueryString();
 
-        return view('website::rooms', compact('rooms'));
+        // 8. If dates provided, calculate availability for each type
+        $checkIn = $request->check_in;
+        $checkOut = $request->check_out;
+
+        return view('website::rooms', compact('roomTypes', 'checkIn', 'checkOut'));
     }
     /**
-     * Show details for a specific room.
+     * Show details for a specific room type.
      */
     public function roomDetails($slug)
     {
-        // 1. Fetch the main room by Slug or ID
-        $room = is_numeric($slug)
-            ? Room::findOrFail($slug)
-            : Room::where('slug', $slug)->firstOrFail();
+        // 1. Fetch the room type by Slug or ID
+        $roomType = is_numeric($slug)
+            ? RoomType::with(['amenities', 'images', 'units'])->findOrFail($slug)
+            : RoomType::with(['amenities', 'images', 'units'])->where('slug', $slug)->firstOrFail();
 
-        // 2. FIX: Fetch Related Rooms
-        // Logic: Get other available rooms, exclude current one, take 3 random ones
-        $relatedRooms = Room::where('id', '!=', $room->id)
-            ->where('status', 'available')
-            ->inRandomOrder() // Or ->latest()
+        // 2. Fetch Related Room Types
+        $relatedRooms = RoomType::where('id', '!=', $roomType->id)
+            ->where('is_active', true)
+            ->with('amenities')
+            ->inRandomOrder()
             ->take(3)
             ->get();
 
-        return view('website::room-details', compact('room', 'relatedRooms'));
+        return view('website::room-details', compact('roomType', 'relatedRooms'));
     }
     
     /**
@@ -160,20 +135,22 @@ class WebsiteController extends Controller
      */
     public function booking(Request $request)
     {
-        // 1. Get ALL available rooms for the dropdown list (Restored your logic)
-        $rooms = Room::where('status', 'available')->get();
+        // 1. Get ALL active room types for the dropdown
+        $roomTypes = RoomType::where('is_active', true)
+            ->withCount('units')
+            ->ordered()
+            ->get();
 
-        // 2. Determine the "Selected Room" (if any)
-        // We check 'old' (validation error), then 'request' (URL), then null.
-        $roomId = old('room_id', $request->room_id);
+        // 2. Determine the "Selected Room Type" (if any)
+        $roomTypeId = old('room_type_id', $request->room_type_id ?? $request->room_id);
 
-        $selectedRoom = null;
-        if ($roomId) {
-            $selectedRoom = Room::find($roomId);
+        $selectedRoomType = null;
+        if ($roomTypeId) {
+            $selectedRoomType = RoomType::find($roomTypeId);
         }
 
-        // Pass both the list ($rooms) and the specific selection ($selectedRoom)
-        return view('website::booking', compact('rooms', 'selectedRoom'));
+        // Pass both the list and the specific selection
+        return view('website::booking', compact('roomTypes', 'selectedRoomType'));
     }
 
     public function checkEmail(Request $request)
@@ -191,18 +168,18 @@ class WebsiteController extends Controller
 
     public function storeBooking(Request $request)
     {
-        // 1. Validation (Updated with new fields)
+        // 1. Validation (Updated for RoomType architecture)
         $rules = [
-            'room_id' => 'required|exists:rooms,id',
+            'room_type_id' => 'required|exists:room_types,id',
             'check_in_date' => 'required|date|after_or_equal:today',
             'check_out_date' => 'required|date|after:check_in_date',
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
             'guest_phone' => 'required|string|max:20',
-            'guest_gender' => 'required|in:male,female,other', // ✅ New
-            'guest_address' => 'required|string|max:500',      // ✅ New
-            'guest_nationality' => 'required|string|max:100',  // ✅ New
-            'guest_dob' => 'nullable|date',                    // ✅ New
+            'guest_gender' => 'required|in:male,female,other',
+            'guest_address' => 'required|string|max:500',
+            'guest_nationality' => 'required|string|max:100',
+            'guest_dob' => 'nullable|date',
             'guest_id_type' => 'required|string|max:50',
             'guest_id_number' => 'required|string|max:50',
             'adults' => 'required|integer|min:1',
@@ -212,29 +189,29 @@ class WebsiteController extends Controller
 
         if (!Auth::check() && $request->has('create_account')) {
             $rules['password'] = 'required|string|min:8';
-            $rules['guest_email'] = 'required|email|unique:users,email'; // Only unique for USERS, not guests
+            $rules['guest_email'] = 'required|email|unique:users,email';
         }
 
         $validated = $request->validate($rules);
 
-        // 2. Check Availability
-        $isAvailable = Booking::isAvailable(
-            $validated['room_id'],
+        // 2. Check Availability at RoomType level
+        $roomType = RoomType::with('units')->findOrFail($validated['room_type_id']);
+        $availableUnits = $roomType->getAvailableUnitsForDates(
             $validated['check_in_date'],
             $validated['check_out_date']
         );
 
-        if (!$isAvailable) {
-            return back()->with('error', 'Sorry, this room is no longer available for these dates.')->withInput();
+        if ($availableUnits->isEmpty()) {
+            return back()->with('error', 'Sorry, no rooms of this type are available for these dates.')->withInput();
         }
 
         try {
-            $booking = DB::transaction(function () use ($validated, $request) {
+            $booking = DB::transaction(function () use ($validated, $request, $roomType) {
 
                 // ====================================================
                 // 3. SMART GUEST HANDLING
                 // ====================================================
-                $userId = Auth::id(); // Null if not logged in
+                $userId = Auth::id();
 
                 // A. Handle "Create Account" Request
                 if (!$userId && $request->has('create_account')) {
@@ -244,29 +221,26 @@ class WebsiteController extends Controller
                         'password' => Hash::make($request->password),
                     ]);
                     $userId = $newUser->id;
-                    Auth::login($newUser); // Auto-login
+                    Auth::login($newUser);
                 }
 
                 // B. Find or Create the Guest Profile
-                // We check by Email OR Phone to find returning guests
                 $guest = Guest::where('email', $validated['guest_email'])
                     ->orWhere('contact_number', $validated['guest_phone'])
                     ->first();
 
                 if ($guest) {
-                    // Update existing guest with latest info (Address, etc.)
                     $guest->update([
                         'full_name' => $validated['guest_name'],
                         'gender' => $validated['guest_gender'],
-                        'home_address' => $validated['guest_address'], // Maps to 'home_address' in DB
+                        'home_address' => $validated['guest_address'],
                         'nationality' => $validated['guest_nationality'],
                         'birthday' => $validated['guest_dob'],
                         'identification_type' => $validated['guest_id_type'],
                         'identification_number' => $validated['guest_id_number'],
-                        'user_id' => $userId ?? $guest->user_id, // Link user account if created
+                        'user_id' => $userId ?? $guest->user_id,
                     ]);
                 } else {
-                    // Create New Guest Profile
                     $guest = Guest::create([
                         'user_id' => $userId,
                         'full_name' => $validated['guest_name'],
@@ -277,28 +251,27 @@ class WebsiteController extends Controller
                         'nationality' => $validated['guest_nationality'],
                         'birthday' => $validated['guest_dob'],
                         'identification_type' => $validated['guest_id_type'],
-                        'identification_number' => $validated['guest_id_number'], // for verification
+                        'identification_number' => $validated['guest_id_number'],
                     ]);
                 }
 
                 // ====================================================
-                // 4. Create Booking (Linked to Guest)
+                // 4. Create Booking (Linked to RoomType, unit assigned at check-in)
                 // ====================================================
 
-                // Generate Unique Reference
                 do {
                     $reference = 'BK' . date('y') . strtoupper(Str::random(4));
                 } while (Booking::where('booking_reference', $reference)->exists());
 
-                $room = Room::findOrFail($validated['room_id']);
                 $days = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']) ?: 1;
-                $totalAmount = $room->price * $days;
+                $totalAmount = $roomType->price * $days;
 
                 return Booking::create([
                     'booking_reference' => $reference,
                     'user_id' => $userId,
-                    'guest_profile_id' => $guest->id, // ✅ Critical: Links to CRM Guest
-                    'room_id' => $room->id,
+                    'guest_profile_id' => $guest->id,
+                    'room_type_id' => $roomType->id,
+                    'room_unit_id' => null, // Assigned at check-in by front desk
                     'guest_name' => $validated['guest_name'],
                     'guest_email' => $validated['guest_email'],
                     'guest_phone' => $validated['guest_phone'],
@@ -332,7 +305,7 @@ class WebsiteController extends Controller
 
     public function confirmation($ref)
     {
-        $booking = Booking::with('room')->where('booking_reference', $ref)->firstOrFail();
+        $booking = Booking::with('roomType')->where('booking_reference', $ref)->firstOrFail();
 
         // Security Check
         $canView = false;
@@ -437,87 +410,90 @@ class WebsiteController extends Controller
     }
     /**
      * Smart Availability Check
-     * Checks Website Bookings AND Frontdesk Registrations.
+     * Checks Website Bookings AND Frontdesk Registrations at RoomType level.
      */
     public function checkAvailability(Request $request)
     {
         $validated = $request->validate([
-            'room_id' => 'required|exists:rooms,id',
+            'room_type_id' => 'required|exists:room_types,id',
             'check_in_date' => 'required|date|after_or_equal:today',
             'check_out_date' => 'required|date|after:check_in_date',
         ]);
 
         $checkIn = Carbon::parse($validated['check_in_date']);
         $checkOut = Carbon::parse($validated['check_out_date']);
-       
 
-        // 1. Find Conflicts in WEBSITE BOOKINGS
-        $bookingConflicts = Booking::where('room_id', $validated['room_id'])
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($query) use ($checkIn, $checkOut) {
-                $query->where('check_in_date', '<', $checkOut)
-                    ->where('check_out_date', '>', $checkIn);
-            })
-            ->get();
+        // Get the room type with units
+        $roomType = RoomType::with('units')->findOrFail($validated['room_type_id']);
+        
+        // Check availability at room type level
+        $availableUnits = $roomType->getAvailableUnitsForDates($checkIn, $checkOut);
+        $availableCount = $availableUnits->count();
+        $totalUnits = $roomType->units->count();
 
-        // 2. Find Conflicts in FRONTDESK REGISTRATIONS (THE FIX)
-        $registrationConflicts = collect();
-        if (class_exists(Registration::class)) {
-            $registrationConflicts = Registration::where('room_id', $validated['room_id'])
-                // ✅ FIX: Include 'reserved' so the website knows it's taken
-                ->whereIn('stay_status', ['checked_in', 'draft_by_guest', 'reserved'])
-                ->where(function ($query) use ($checkIn, $checkOut) {
-                    $query->where('check_in', '<', $checkOut)
-                        ->where('check_out', '>', $checkIn);
-                })
-                ->get();
-        }
-
-        // 3. Scenario A: Room is fully available (No conflicts in either system)
-        if ($bookingConflicts->isEmpty() && $registrationConflicts->isEmpty()) {
+        // Scenario A: At least one unit available
+        if ($availableCount > 0) {
             if ($request->wantsJson()) {
                 return response()->json([
                     'available' => true,
-                    'message' => 'Room is available!',
-                    'redirect_url' => route('website.booking', $validated)
+                    'message' => "{$availableCount} of {$totalUnits} rooms available!",
+                    'available_count' => $availableCount,
+                    'redirect_url' => route('website.booking', [
+                        'room_type_id' => $validated['room_type_id'],
+                        'check_in' => $validated['check_in_date'],
+                        'check_out' => $validated['check_out_date'],
+                    ])
                 ]);
             }
-            return redirect()->route('website.booking', $validated)
-                ->with('success', 'Room is available! Please complete your booking.');
+            return redirect()->route('website.booking', [
+                'room_type_id' => $validated['room_type_id'],
+                'check_in' => $validated['check_in_date'],
+                'check_out' => $validated['check_out_date'],
+            ])->with('success', 'Room type available! Please complete your booking.');
         }
 
-        // 4. Scenario B: Room is Occupied - Find the latest end date
-        // We need to find out WHEN it becomes free.
-        $latestBookingDate = $bookingConflicts->max('check_out_date');
-        $latestRegDate = $registrationConflicts->max('check_out'); // 'check_out' column in registrations
+        // Scenario B: All units occupied - find next available date
+        $message = "All {$totalUnits} rooms of this type are booked for your selected dates.";
 
-        // Compare dates safely
-        $occupiedUntil = null;
-        if ($latestBookingDate && $latestRegDate) {
-            $occupiedUntil = $latestBookingDate > $latestRegDate ? Carbon::parse($latestBookingDate) : Carbon::parse($latestRegDate);
-        } elseif ($latestBookingDate) {
-            $occupiedUntil = Carbon::parse($latestBookingDate);
-        } else {
-            $occupiedUntil = Carbon::parse($latestRegDate);
+        // Find the earliest checkout date for booked units
+        $earliestAvailable = null;
+        foreach ($roomType->units as $unit) {
+            // Check bookings
+            $latestBooking = Booking::where('room_unit_id', $unit->id)
+                ->orWhere(function($q) use ($unit, $checkIn, $checkOut) {
+                    $q->where('room_type_id', $unit->room_type_id)
+                      ->whereNull('room_unit_id')
+                      ->where('check_in_date', '<', $checkOut)
+                      ->where('check_out_date', '>', $checkIn);
+                })
+                ->where('status', '!=', 'cancelled')
+                ->where('check_in_date', '<', $checkOut)
+                ->where('check_out_date', '>', $checkIn)
+                ->orderBy('check_out_date')
+                ->first();
+
+            if ($latestBooking) {
+                $unitFreeDate = Carbon::parse($latestBooking->check_out_date);
+                if (!$earliestAvailable || $unitFreeDate->lt($earliestAvailable)) {
+                    $earliestAvailable = $unitFreeDate;
+                }
+            }
         }
 
-        // Construct Message
-        $message = "This room is currently booked until " . $occupiedUntil->format('l, F j') . ".";
-
-        if ($occupiedUntil->lt($checkOut)) {
-            $message .= " However, it is available from " . $occupiedUntil->format('M j') . " to " . $occupiedUntil->copy()->addDay()->format('M j') . ". Would you like to adjust your dates?";
-        } else {
-            $message .= " Please select different dates.";
+        $suggestion = null;
+        if ($earliestAvailable) {
+            $message .= " Next available from " . $earliestAvailable->format('M j, Y') . ".";
+            $suggestion = [
+                'check_in' => $earliestAvailable->format('Y-m-d'),
+                'check_out' => $earliestAvailable->copy()->addDay()->format('Y-m-d')
+            ];
         }
 
         if ($request->wantsJson()) {
             return response()->json([
                 'available' => false,
                 'message' => $message,
-                'suggestion' => [
-                    'check_in' => $occupiedUntil->format('Y-m-d'),
-                    'check_out' => $occupiedUntil->copy()->addDay()->format('Y-m-d')
-                ]
+                'suggestion' => $suggestion
             ]);
         }
 

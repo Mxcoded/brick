@@ -136,13 +136,25 @@ class RoomType extends Model
     /**
      * Get units available for specific dates.
      * Checks both website bookings and frontdesk registrations.
+     * Also accounts for bookings at room_type level that haven't been assigned a unit yet.
      */
     public function getAvailableUnitsForDates($checkIn, $checkOut)
     {
         $checkIn = \Carbon\Carbon::parse($checkIn);
         $checkOut = \Carbon\Carbon::parse($checkOut);
 
-        return $this->units()
+        // 1. Count bookings at room TYPE level (no unit assigned yet)
+        $unassignedBookingsCount = Booking::where('room_type_id', $this->id)
+            ->whereNull('room_unit_id')
+            ->where('status', '!=', 'cancelled')
+            ->where(function ($q) use ($checkIn, $checkOut) {
+                $q->where('check_in_date', '<', $checkOut)
+                    ->where('check_out_date', '>', $checkIn);
+            })
+            ->count();
+
+        // 2. Get units that are not blocked/maintenance and don't have assigned conflicting bookings
+        $availableUnits = $this->units()
             ->where('status', '!=', 'maintenance')
             ->where('status', '!=', 'blocked')
             ->whereDoesntHave('bookings', function ($q) use ($checkIn, $checkOut) {
@@ -162,6 +174,13 @@ class RoomType extends Model
                 });
             })
             ->get();
+
+        // 3. Subtract unassigned bookings from available units
+        // (These bookings will need units, so we reserve capacity for them)
+        $actuallyAvailable = max(0, $availableUnits->count() - $unassignedBookingsCount);
+
+        // Return a subset of available units (to maintain collection return type)
+        return $availableUnits->take($actuallyAvailable);
     }
 
     /**

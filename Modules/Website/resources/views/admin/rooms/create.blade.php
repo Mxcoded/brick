@@ -159,11 +159,15 @@
                             </div>
                         </div>
 
-                        <div class="form-check mb-4">
-                            <label class="form-check-label">
-                                <input type="checkbox" class="form-check-input" name="is_featured" value="1">
-                                Feature this room on Homepage
-                            </label>
+                        <div class="card bg-light border-0 p-3 mb-4">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" name="is_featured" value="1" class="form-check-input" 
+                                       id="is_featured" {{ old('is_featured') ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold" for="is_featured">
+                                    <i class="fas fa-star text-warning me-1"></i> Featured Room
+                                </label>
+                                <small class="d-block text-muted mt-1">Featured rooms appear on the homepage</small>
+                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary me-2" id="submitBtn">

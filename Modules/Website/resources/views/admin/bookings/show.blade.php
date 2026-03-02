@@ -77,16 +77,25 @@
 
                             <div class="col-md-6 ps-md-4">
                                 <h6 class="text-uppercase text-muted small fw-bold mb-3">Room Details</h6>
-                                @if ($booking->room)
+                                @php
+                                    // Support both new roomType and legacy room
+                                    $roomInfo = $booking->roomType ?? $booking->room;
+                                @endphp
+                                @if ($roomInfo)
                                     <div class="d-flex align-items-start mb-3">
-                                        @if ($booking->room->image_url)
-                                            <img src="{{ $booking->room->image_url }}" class="rounded me-3"
+                                        @if ($roomInfo->image_url)
+                                            <img src="{{ $roomInfo->image_url }}" class="rounded me-3"
                                                 style="width: 60px; height: 60px; object-fit: cover;">
                                         @endif
                                         <div>
-                                            <h6 class="fw-bold mb-1">{{ $booking->room->name }}</h6>
+                                            <h6 class="fw-bold mb-1">{{ $roomInfo->name }}</h6>
                                             <span
-                                                class="badge bg-light text-dark border">{{ $booking->room->bed_type }}</span>
+                                                class="badge bg-light text-dark border">{{ $roomInfo->bed_type ?? 'Standard' }}</span>
+                                            @if($booking->roomUnit)
+                                                <span class="badge bg-primary ms-1">Room {{ $booking->roomUnit->room_number }}</span>
+                                            @elseif($booking->roomType)
+                                                <span class="badge bg-warning text-dark ms-1">Room TBA</span>
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="alert alert-light border small mb-0">
@@ -130,8 +139,8 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td>Room Charge ({{ $booking->room->name ?? 'Room' }})</td>
-                                        <td class="text-end">₦{{ number_format($booking->room->price ?? 0, 2) }}</td>
+                                        <td>Room Charge ({{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Room' }})</td>
+                                        <td class="text-end">₦{{ number_format(optional($booking->roomType)->price ?? optional($booking->room)->price ?? 0, 2) }}</td>
                                         <td class="text-center">
                                             {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }}</td>
                                         <td class="text-end fw-bold">₦{{ number_format($booking->total_amount, 2) }}</td>
@@ -238,16 +247,16 @@
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <p>Current Room: <strong>{{ $booking->room->name }}</strong></p>
+                                            <p>Current Room: <strong>{{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Not Assigned' }}</strong></p>
                                             <div class="form-group">
-                                                <label>Select New Room</label>
+                                                <label>Select New Room Type</label>
                                                 <select name="new_room_id" class="form-select" required>
-                                                    @foreach (\Modules\Website\Models\Room::where('id', '!=', $booking->room_id)->get() as $room)
-<option value="{{ $room->id }}">{{ $room->name }}</option>
-@endforeach
-                                                                                </select>
-                                                                            </div>
-                                                                        </div>
+                                                    @foreach (\Modules\Website\Models\RoomType::where('is_active', true)->get() as $roomType)
+                                                        <option value="{{ $roomType->id }}" {{ ($booking->room_type_id ?? $booking->room_id) == $roomType->id ? 'selected' : '' }}>{{ $roomType->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
                                                                         <div class="modal-footer">
                                                                             <button type="submit" class="btn btn-primary">Save Change</button>
                                                                         </div>

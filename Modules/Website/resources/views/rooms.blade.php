@@ -53,63 +53,89 @@
                 </form>
             </div>
 
-            <!-- Rooms List -->
-            @if ($rooms->isEmpty())
+            <!-- Room Types List -->
+            @if ($roomTypes->isEmpty())
                 <div class="text-center py-5">
                     <h3 class="text-muted">No rooms match your criteria.</h3>
                     <a href="{{ route('website.rooms.index') }}" class="btn btn-primary mt-3">View All Rooms</a>
                 </div>
             @else
                 <div class="row g-4">
-                    @foreach ($rooms as $room)
+                    @foreach ($roomTypes as $roomType)
+                        @php
+                            // Calculate availability if dates provided
+                            $availableUnits = $roomType->units_count;
+                            if (!empty($checkIn) && !empty($checkOut)) {
+                                $availableUnits = $roomType->getAvailableUnitsForDates($checkIn, $checkOut)->count();
+                            }
+                        @endphp
                         <div class="col-lg-6">
                             <div class="room-card card border-0 shadow-sm overflow-hidden h-100">
                                 <div class="row g-0 h-100">
                                     <div class="col-md-6 position-relative">
-                                        <img src="{{ $room->image_url ?? 'https://via.placeholder.com/50' }}"
-                                            class="img-fluid h-100 w-100 object-fit-cover" alt="{{ $room->name }}"
+                                        <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
+                                            class="img-fluid h-100 w-100 object-fit-cover" alt="{{ $roomType->name }}"
                                             loading="lazy">
                                         <div class="price-badge position-absolute top-0 end-0 btn-primary text-white p-3">
                                             <span
-                                                class="d-block fs-4 fw-bold">&#8358;{{ number_format($room->price) }}</span>
+                                                class="d-block fs-4 fw-bold">&#8358;{{ number_format($roomType->price) }}</span>
                                             <small class="d-block text-center">per night</small>
+                                        </div>
+                                        {{-- Availability Badge --}}
+                                        <div class="position-absolute bottom-0 start-0 m-2">
+                                            @if ($availableUnits > 0)
+                                                <span class="badge bg-success py-2 px-3">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    {{ $availableUnits }} {{ Str::plural('unit', $availableUnits) }} available
+                                                </span>
+                                            @else
+                                                <span class="badge bg-danger py-2 px-3">
+                                                    <i class="fas fa-times-circle me-1"></i> Fully Booked
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="card-body p-4 d-flex flex-column h-100">
-                                            <h2 class="h3 mb-3">{{ $room->name }}</h2>
-                                            <p class="text-muted flex-grow-1">{{ Str::limit($room->description, 150) }}</p>
+                                            <h2 class="h3 mb-2">{{ $roomType->name }}</h2>
+                                            <div class="d-flex gap-2 mb-2 text-muted small">
+                                                <span><i class="fas fa-user-friends me-1"></i> {{ $roomType->capacity }} Guests</span>
+                                                @if($roomType->bed_type)
+                                                    <span><i class="fas fa-bed me-1"></i> {{ $roomType->bed_type }}</span>
+                                                @endif
+                                            </div>
+                                            <p class="text-muted flex-grow-1">{{ Str::limit($roomType->description, 120) }}</p>
 
                                             <div class="room-features d-flex flex-wrap gap-2 mb-3">
-                                                {{-- 1. Use the relationship collection directly --}}
-                                                @foreach ($room->amenities->take(3) as $amenity)
+                                                @foreach ($roomType->amenities->take(3) as $amenity)
                                                     <span class="badge bg-light text-dark border">
-                                                        {{-- 2. Use the dynamic icon from DB, fallback to check-circle if missing --}}
-                                                        <i
-                                                            class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i>
-
-                                                        {{-- 3. Output the NAME property, not the object itself --}}
+                                                        <i class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i>
                                                         {{ $amenity->name }}
                                                     </span>
                                                 @endforeach
 
-                                                {{-- 4. Count remaining items using the collection count --}}
-                                                @if ($room->amenities->count() > 3)
+                                                @if ($roomType->amenities->count() > 3)
                                                     <span class="badge bg-light text-muted border">
-                                                        +{{ $room->amenities->count() - 3 }} more
+                                                        +{{ $roomType->amenities->count() - 3 }} more
                                                     </span>
                                                 @endif
                                             </div>
 
                                             <div class="d-flex justify-content-between align-items-center mt-auto">
-                                                <a href="{{ route('website.rooms.show', $room->slug ?? $room->id) }}"
+                                                <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
                                                     class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-eye me-1"></i> View Details
                                                 </a>
-                                                <a href="{{ route('website.rooms.show', $room->slug ?? $room->id) }}"
-                                                    class="btn btn-primary btn-sm">
-                                                    <i class="fas fa-arrow-right me-1"></i> Select Room
-                                                </a>
+                                                @if ($availableUnits > 0)
+                                                    <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
+                                                        class="btn btn-primary btn-sm">
+                                                        <i class="fas fa-arrow-right me-1"></i> Select Room
+                                                    </a>
+                                                @else
+                                                    <span class="btn btn-secondary btn-sm disabled">
+                                                        <i class="fas fa-ban me-1"></i> Unavailable
+                                                    </span>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -121,7 +147,7 @@
 
                 <!-- Pagination Links -->
                 <div class="d-flex justify-content-center mt-5">
-                    {{ $rooms->links() }}
+                    {{ $roomTypes->links() }}
                 </div>
             @endif
 

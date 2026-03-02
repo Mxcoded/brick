@@ -80,14 +80,14 @@
                                 </div>
                             </div>
 
-                            {{-- Room & Payment --}}
+                            {{-- Room Type & Payment --}}
                             <div class="mb-4">
                                 <table class="table table-borderless">
                                     <tbody>
                                         <tr>
                                             <td class="ps-0">
-                                                <span class="fw-bold text-dark d-block">{{ $booking->room->name ?? 'Room' }}</span>
-                                                <small class="text-muted">Accommodation Charge</small>
+                                                <span class="fw-bold text-dark d-block">{{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Room' }}</span>
+                                                <small class="text-muted">Accommodation Charge (Room assigned at check-in)</small>
                                             </td>
                                             <td class="text-end fw-bold pe-0 align-middle">
                                                 ₦{{ number_format($booking->total_amount, 2) }}
