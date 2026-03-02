@@ -35,7 +35,9 @@ class Registration extends Model
         'emergency_contact',
         'emergency_relationship',
         'room_allocation',
-        'room_id', // ✅ Verified
+        'room_id',           // Legacy: will be deprecated
+        'room_type_id',      // NEW: The room type
+        'room_unit_id',      // NEW: The assigned unit
         'room_rate',
         'bed_breakfast',
         'check_in',
@@ -108,6 +110,26 @@ class Registration extends Model
         return $this->belongsTo(\App\Models\User::class, 'checked_out_by_agent_id');
     }
 
+    /**
+     * Relationship: The room type.
+     */
+    public function roomType(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Website\Models\RoomType::class);
+    }
+
+    /**
+     * Relationship: The assigned room unit.
+     */
+    public function roomUnit(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Website\Models\RoomUnit::class);
+    }
+
+    /**
+     * Legacy: The room (backward compatibility).
+     * @deprecated Use roomType() and roomUnit() instead.
+     */
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);

@@ -9,6 +9,7 @@ use Modules\Website\Http\Controllers\GuestController;
 // Admin Controllers (Aliased to prevent conflicts)
 use Modules\Website\Http\Controllers\Admin\WebsiteAdminController;
 use Modules\Website\Http\Controllers\Admin\RoomController as AdminRoomController;
+use Modules\Website\Http\Controllers\Admin\RoomTypeController;
 use Modules\Website\Http\Controllers\Admin\BookingController as AdminBookingController;
 use Modules\Website\Http\Controllers\Admin\DiningController;
 use Modules\Website\Http\Controllers\Admin\AmenityController;
@@ -103,11 +104,26 @@ Route::middleware(['web'])->group(function () {
 
             // Room Resource Route (Handles index, store, update, destroy)
             // Resource Management
-            Route::resource('rooms', AdminRoomController::class);
+            Route::resource('rooms', AdminRoomController::class); // Legacy - will be deprecated
             Route::resource('bookings', AdminBookingController::class);
             Route::resource('amenities', AmenityController::class);
             Route::resource('settings', SettingController::class);
             Route::resource('dining', DiningController::class);
+
+            // Room Types & Units Management (NEW)
+            Route::resource('room-types', RoomTypeController::class);
+            Route::delete('room-types/images/{id}', [RoomTypeController::class, 'deleteImage'])
+                ->name('room-types.images.destroy');
+            
+            // Room Units
+            Route::post('room-types/{roomType}/units', [RoomTypeController::class, 'storeUnit'])
+                ->name('room-types.units.store');
+            Route::post('room-types/{roomType}/units/bulk', [RoomTypeController::class, 'bulkStoreUnits'])
+                ->name('room-types.units.bulk');
+            Route::put('room-units/{unit}', [RoomTypeController::class, 'updateUnit'])
+                ->name('room-units.update');
+            Route::delete('room-units/{unit}', [RoomTypeController::class, 'destroyUnit'])
+                ->name('room-units.destroy');
             Route::get('/api/room-status', [AdminRoomController::class, 'getRoomStatus'])->name('api.room.status');
             Route::get('/calendar', [AdminRoomController::class, 'calendar'])->name('rooms.calendar');
             Route::get('/api/calendar-data', [AdminRoomController::class, 'getCalendarData'])->name('api.calendar.data');
