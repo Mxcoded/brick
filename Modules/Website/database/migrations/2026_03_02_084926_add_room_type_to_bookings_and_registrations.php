@@ -31,16 +31,48 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Safely rollback bookings table
         Schema::table('bookings', function (Blueprint $table) {
-            $table->dropForeign(['room_type_id']);
-            $table->dropForeign(['room_unit_id']);
-            $table->dropColumn(['room_type_id', 'room_unit_id']);
+            // Use try-catch to safely ignore if the foreign key is already gone
+            try {
+                $table->dropForeign(['room_type_id']);
+            } catch (\Exception $e) {
+            }
+
+            try {
+                $table->dropForeign(['room_unit_id']);
+            } catch (\Exception $e) {
+            }
+
+            // Check if column exists before dropping to prevent column missing errors
+            if (Schema::hasColumn('bookings', 'room_type_id')) {
+                $table->dropColumn('room_type_id');
+            }
+            if (Schema::hasColumn('bookings', 'room_unit_id')) {
+                $table->dropColumn('room_unit_id');
+            }
         });
 
-        Schema::table('registrations', function (Blueprint $table) {
-            $table->dropForeign(['room_type_id']);
-            $table->dropForeign(['room_unit_id']);
-            $table->dropColumn(['room_type_id', 'room_unit_id']);
-        });
+        // Safely rollback registrations table (if it exists)
+        if (Schema::hasTable('registrations')) {
+            Schema::table('registrations', function (Blueprint $table) {
+                try {
+                    $table->dropForeign(['room_type_id']);
+                } catch (\Exception $e) {
+                }
+
+                try {
+                    $table->dropForeign(['room_unit_id']);
+                } catch (\Exception $e) {
+                }
+
+                if (Schema::hasColumn('registrations', 'room_type_id')) {
+                    $table->dropColumn('room_type_id');
+                }
+                if (Schema::hasColumn('registrations', 'room_unit_id')) {
+                    $table->dropColumn('room_unit_id');
+                }
+            });
+        }
     }
 };
