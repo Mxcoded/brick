@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Mail; // ✅ Import Mail Facade
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Website\Emails\BookingConfirmation; // ✅ Import Booking Mail
 use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Contact Mail
+use Modules\Website\Services\BookingCartService;
 
 class WebsiteController extends Controller
 {
@@ -131,26 +132,55 @@ class WebsiteController extends Controller
     }
     
     /**
-     * Show the Booking Form (GET)
+     * Show the Booking Form (GET) - Step 2: Guest Details
+     * Supports both cart-based multi-room booking and legacy single-room booking.
+     * Redirects to /book if no rooms are selected.
      */
     public function booking(Request $request)
     {
-        // 1. Get ALL active room types for the dropdown
+        $cartService = new BookingCartService();
+        $cart = $cartService->getCartSummary();
+
+        // If cart has items, use cart-based booking flow
+        if (!empty($cart['items'])) {
+            // Validate cart availability before showing form
+            $unavailable = $cartService->validateAvailability();
+            if (!empty($unavailable)) {
+                return redirect()->route('website.book')
+                    ->with('error', 'Some rooms in your cart are no longer available. Please review your selection.');
+            }
+
+            return view('website::booking', [
+                'cart' => $cart,
+                'roomTypes' => collect(),
+                'selectedRoomType' => null,
+                'useCart' => true,
+            ]);
+        }
+
+        // Check if room_type_id is provided (legacy direct booking from room details)
+        $roomTypeId = old('room_type_id', $request->room_type_id ?? $request->room_id);
+        
+        // If no cart and no room selected, redirect to room selection page
+        if (!$roomTypeId) {
+            return redirect()->route('website.book')
+                ->with('info', 'Please select your rooms first.');
+        }
+
+        // Legacy: Single room booking flow (direct link from room details page)
         $roomTypes = RoomType::where('is_active', true)
             ->withCount('units')
             ->ordered()
             ->get();
 
-        // 2. Determine the "Selected Room Type" (if any)
-        $roomTypeId = old('room_type_id', $request->room_type_id ?? $request->room_id);
+        $selectedRoomType = RoomType::find($roomTypeId);
 
-        $selectedRoomType = null;
-        if ($roomTypeId) {
-            $selectedRoomType = RoomType::find($roomTypeId);
-        }
-
-        // Pass both the list and the specific selection
-        return view('website::booking', compact('roomTypes', 'selectedRoomType'));
+        return view('website::booking', [
+            'cart' => $cart,
+            'roomTypes' => $roomTypes,
+            'selectedRoomType' => $selectedRoomType,
+            'useCart' => false,
+        ]);
     }
 
     public function checkEmail(Request $request)
@@ -162,17 +192,49 @@ class WebsiteController extends Controller
 
         return response()->json(['exists' => $exists]);
     }
+
+    /**
+     * API: Get available units for a room type and dates.
+     */
+    public function getAvailableUnits(Request $request)
+    {
+        $validated = $request->validate([
+            'room_type_id' => 'required|exists:room_types,id',
+            'check_in_date' => 'required|date',
+            'check_out_date' => 'required|date|after:check_in_date',
+        ]);
+
+        $roomType = RoomType::with('units')->findOrFail($validated['room_type_id']);
+        $availableUnits = $roomType->getAvailableUnitsForDates(
+            $validated['check_in_date'],
+            $validated['check_out_date']
+        );
+
+        return response()->json([
+            'units' => $availableUnits->map(function ($unit) {
+                return [
+                    'id' => $unit->id,
+                    'room_number' => $unit->room_number,
+                    'floor' => $unit->floor,
+                    'status' => $unit->status,
+                ];
+            }),
+            'count' => $availableUnits->count(),
+        ]);
+    }
+
     /**
      * Handle Booking Submission (POST)
+     * Supports both cart-based multi-room booking and legacy single-room booking.
      */
-
     public function storeBooking(Request $request)
     {
-        // 1. Validation (Updated for RoomType architecture)
+        $cartService = new BookingCartService();
+        $cart = $cartService->getCartSummary();
+        $useCart = !empty($cart['items']);
+
+        // 1. Validation - Guest details are always required
         $rules = [
-            'room_type_id' => 'required|exists:room_types,id',
-            'check_in_date' => 'required|date|after_or_equal:today',
-            'check_out_date' => 'required|date|after:check_in_date',
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
             'guest_phone' => 'required|string|max:20',
@@ -187,6 +249,14 @@ class WebsiteController extends Controller
             'payment_method' => 'required|in:paystack,pay_on_arrival',
         ];
 
+        // Legacy single-room validation (when not using cart)
+        if (!$useCart) {
+            $rules['room_type_id'] = 'required|exists:room_types,id';
+            $rules['room_unit_id'] = 'nullable|exists:room_units,id';
+            $rules['check_in_date'] = 'required|date|after_or_equal:today';
+            $rules['check_out_date'] = 'required|date|after:check_in_date';
+        }
+
         if (!Auth::check() && $request->has('create_account')) {
             $rules['password'] = 'required|string|min:8';
             $rules['guest_email'] = 'required|email|unique:users,email';
@@ -194,26 +264,41 @@ class WebsiteController extends Controller
 
         $validated = $request->validate($rules);
 
-        // 2. Check Availability at RoomType level
-        $roomType = RoomType::with('units')->findOrFail($validated['room_type_id']);
-        $availableUnits = $roomType->getAvailableUnitsForDates(
-            $validated['check_in_date'],
-            $validated['check_out_date']
-        );
+        // 2. Validate Cart Availability (if using cart)
+        if ($useCart) {
+            $unavailable = $cartService->validateAvailability();
+            if (!empty($unavailable)) {
+                $message = 'Some rooms are no longer available: ';
+                $message .= implode(', ', array_map(fn($u) => $u['name'] . ' - ' . $u['message'], $unavailable));
+                return back()->with('error', $message)->withInput();
+            }
+        } else {
+            // Legacy: Check single room availability
+            $roomType = RoomType::with('units')->findOrFail($validated['room_type_id']);
+            $availableUnits = $roomType->getAvailableUnitsForDates(
+                $validated['check_in_date'],
+                $validated['check_out_date']
+            );
 
-        if ($availableUnits->isEmpty()) {
-            return back()->with('error', 'Sorry, no rooms of this type are available for these dates.')->withInput();
+            if ($availableUnits->isEmpty()) {
+                return back()->with('error', 'Sorry, no rooms of this type are available for these dates.')->withInput();
+            }
+
+            $selectedUnitId = $request->filled('room_unit_id') ? $validated['room_unit_id'] : null;
+            if ($selectedUnitId && !$availableUnits->contains('id', $selectedUnitId)) {
+                return back()->with('error', 'The selected room is no longer available. Please choose another.')->withInput();
+            }
         }
 
         try {
-            $booking = DB::transaction(function () use ($validated, $request, $roomType) {
+            $result = DB::transaction(function () use ($validated, $request, $cart, $useCart, $cartService) {
 
                 // ====================================================
-                // 3. SMART GUEST HANDLING
+                // SMART GUEST HANDLING
                 // ====================================================
                 $userId = Auth::id();
 
-                // A. Handle "Create Account" Request
+                // Handle "Create Account" Request
                 if (!$userId && $request->has('create_account')) {
                     $newUser = User::create([
                         'name' => $validated['guest_name'],
@@ -224,7 +309,7 @@ class WebsiteController extends Controller
                     Auth::login($newUser);
                 }
 
-                // B. Find or Create the Guest Profile
+                // Find or Create the Guest Profile
                 $guest = Guest::where('email', $validated['guest_email'])
                     ->orWhere('contact_number', $validated['guest_phone'])
                     ->first();
@@ -256,50 +341,182 @@ class WebsiteController extends Controller
                 }
 
                 // ====================================================
-                // 4. Create Booking (Linked to RoomType, unit assigned at check-in)
+                // CREATE BOOKING(S)
                 // ====================================================
+                $bookings = [];
+                $bookingGroupId = null;
+                $totalAmount = 0;
 
-                do {
-                    $reference = 'BK' . date('y') . strtoupper(Str::random(4));
-                } while (Booking::where('booking_reference', $reference)->exists());
+                if ($useCart) {
+                    // CART-BASED BOOKING: Create bookings from cart
+                    // Calculate total rooms across all cart items
+                    $totalRoomsInCart = array_sum(array_column($cart['items'], 'quantity'));
+                    
+                    // Only generate group ID if booking more than 1 room
+                    if ($totalRoomsInCart > 1) {
+                        $bookingGroupId = 'GRP' . date('y') . strtoupper(Str::random(6));
+                    }
 
-                $days = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']) ?: 1;
-                $totalAmount = $roomType->price * $days;
+                    foreach ($cart['items'] as $item) {
+                        // Create one booking per room quantity
+                        for ($i = 0; $i < $item['quantity']; $i++) {
+                            do {
+                                $reference = 'BK' . date('y') . strtoupper(Str::random(4));
+                            } while (Booking::where('booking_reference', $reference)->exists());
 
-                return Booking::create([
-                    'booking_reference' => $reference,
-                    'user_id' => $userId,
-                    'guest_profile_id' => $guest->id,
-                    'room_type_id' => $roomType->id,
-                    'room_unit_id' => null, // Assigned at check-in by front desk
-                    'guest_name' => $validated['guest_name'],
-                    'guest_email' => $validated['guest_email'],
-                    'guest_phone' => $validated['guest_phone'],
-                    'check_in_date' => $validated['check_in_date'],
-                    'check_out_date' => $validated['check_out_date'],
-                    'adults' => $validated['adults'],
-                    'children' => $validated['children'] ?? 0,
+                            $booking = Booking::create([
+                                'booking_reference' => $reference,
+                                'booking_group_id' => $bookingGroupId, // null for single room
+                                'user_id' => $userId,
+                                'guest_profile_id' => $guest->id,
+                                'room_type_id' => $item['room_type_id'],
+                                'room_unit_id' => null, // Assigned at check-in
+                                'guest_name' => $validated['guest_name'],
+                                'guest_email' => $validated['guest_email'],
+                                'guest_phone' => $validated['guest_phone'],
+                                'check_in_date' => $cart['check_in'],
+                                'check_out_date' => $cart['check_out'],
+                                'adults' => $validated['adults'],
+                                'children' => $validated['children'] ?? 0,
+                                'total_amount' => $item['price_per_night'] * $item['nights'],
+                                'payment_status' => 'pending',
+                                'status' => 'pending',
+                                'payment_method' => $validated['payment_method'],
+                                'special_requests' => $validated['special_requests'] ?? null,
+                            ]);
+
+                            $bookings[] = $booking;
+                            $totalAmount += $booking->total_amount;
+                        }
+                    }
+
+                    // Clear cart after successful booking
+                    $cartService->clear();
+
+                } else {
+                    // SINGLE-ROOM: Legacy booking flow
+                    $roomType = RoomType::findOrFail($validated['room_type_id']);
+                    $selectedUnitId = $request->filled('room_unit_id') ? $validated['room_unit_id'] : null;
+
+                    do {
+                        $reference = 'BK' . date('y') . strtoupper(Str::random(4));
+                    } while (Booking::where('booking_reference', $reference)->exists());
+
+                    $days = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']) ?: 1;
+                    $totalAmount = $roomType->price * $days;
+
+                    $booking = Booking::create([
+                        'booking_reference' => $reference,
+                        'user_id' => $userId,
+                        'guest_profile_id' => $guest->id,
+                        'room_type_id' => $roomType->id,
+                        'room_unit_id' => $selectedUnitId,
+                        'guest_name' => $validated['guest_name'],
+                        'guest_email' => $validated['guest_email'],
+                        'guest_phone' => $validated['guest_phone'],
+                        'check_in_date' => $validated['check_in_date'],
+                        'check_out_date' => $validated['check_out_date'],
+                        'adults' => $validated['adults'],
+                        'children' => $validated['children'] ?? 0,
+                        'total_amount' => $totalAmount,
+                        'payment_status' => 'pending',
+                        'status' => 'pending',
+                        'payment_method' => $validated['payment_method'],
+                        'special_requests' => $validated['special_requests'] ?? null,
+                    ]);
+
+                    $bookings[] = $booking;
+                }
+
+                return [
+                    'bookings' => $bookings,
+                    'group_id' => $bookingGroupId,
                     'total_amount' => $totalAmount,
-                    'payment_status' => 'pending',
-                    'status' => 'pending',
-                    'payment_method' => $validated['payment_method'],
-                    'special_requests' => $validated['special_requests'] ?? null,
-                ]);
+                    'primary_booking' => $bookings[0], // First booking for payment/email
+                ];
             });
 
-            // 5. Payment or Confirmation
+            $primaryBooking = $result['primary_booking'];
+
+            // Payment or Confirmation
             if ($validated['payment_method'] === 'paystack') {
-                return $this->initializePaystack($booking);
+                // For multi-room, we'll charge the total and update all bookings
+                if ($result['group_id']) {
+                    session()->put('booking_group_id', $result['group_id']);
+                }
+                return $this->initializePaystackGrouped($result['bookings'], $result['total_amount']);
             }
 
-            $this->sendConfirmationEmail($booking);
-            session()->put('just_booked_ref', $booking->booking_reference);
+            // Send confirmation emails
+            foreach ($result['bookings'] as $booking) {
+                $this->sendConfirmationEmail($booking);
+            }
 
-            return redirect()->route('website.booking.confirmation', $booking->booking_reference)
+            // Store reference or group ID for confirmation page
+            if ($result['group_id']) {
+                session()->put('just_booked_group', $result['group_id']);
+                session()->put('just_booked_ref', $primaryBooking->booking_reference);
+            } else {
+                session()->put('just_booked_ref', $primaryBooking->booking_reference);
+            }
+
+            return redirect()->route('website.booking.confirmation', $primaryBooking->booking_reference)
                 ->with('success', 'Booking Reserved! Please pay upon arrival.');
+
         } catch (\Exception $e) {
             Log::error($e);
             return back()->with('error', 'Error: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    /**
+     * Initialize Paystack for grouped bookings (multi-room)
+     */
+    private function initializePaystackGrouped(array $bookings, float $totalAmount)
+    {
+        $primaryBooking = $bookings[0];
+        $url = "https://api.paystack.co/transaction/initialize";
+        $secretKey = config('services.paystack.secret');
+
+        if (!$secretKey) {
+            return back()->with('error', 'Payment configuration missing.');
+        }
+
+        try {
+            // Generate a unique reference for the group payment
+            $paymentRef = $primaryBooking->booking_group_id ?? $primaryBooking->booking_reference;
+
+            $response = \Illuminate\Support\Facades\Http::withOptions([
+                'verify' => false,
+            ])->withHeaders([
+                'Authorization' => 'Bearer ' . $secretKey,
+                'Content-Type' => 'application/json',
+            ])->post($url, [
+                'email' => $primaryBooking->guest_email,
+                'amount' => $totalAmount * 100, // Amount in Kobo
+                'reference' => $paymentRef,
+                'callback_url' => route('website.payment.callback'),
+                'metadata' => [
+                    'booking_ids' => array_map(fn($b) => $b->id, $bookings),
+                    'booking_group_id' => $primaryBooking->booking_group_id,
+                    'custom_fields' => [
+                        ['display_name' => "Guest Name", 'variable_name' => "guest_name", 'value' => $primaryBooking->guest_name],
+                        ['display_name' => "Rooms", 'variable_name' => "rooms_count", 'value' => count($bookings)],
+                        ['display_name' => "Primary Ref", 'variable_name' => "primary_ref", 'value' => $primaryBooking->booking_reference]
+                    ]
+                ]
+            ]);
+
+            $result = $response->json();
+
+            if ($result['status']) {
+                return redirect($result['data']['authorization_url']);
+            } else {
+                return back()->with('error', 'Payment initialization failed: ' . ($result['message'] ?? 'Unknown error'));
+            }
+        } catch (\Exception $e) {
+            Log::error("Paystack Init Error: " . $e->getMessage());
+            return back()->with('error', 'Could not connect to payment gateway.');
         }
     }
 
@@ -312,6 +529,8 @@ class WebsiteController extends Controller
 
         if (session('just_booked_ref') === $ref) {
             $canView = true;
+        } elseif (session('just_booked_group') === $booking->booking_group_id) {
+            $canView = true;
         } elseif (Auth::check() && $booking->user_id === Auth::id()) {
             $canView = true;
         }
@@ -321,7 +540,18 @@ class WebsiteController extends Controller
             return redirect()->route('website.home')->with('error', 'You are not authorized to view this booking.');
         }
 
-        return view('website::booking-confirmation', compact('booking'));
+        // Get all bookings in the group (if this is a multi-room booking)
+        $groupedBookings = collect([$booking]);
+        if ($booking->booking_group_id) {
+            $groupedBookings = Booking::with('roomType')
+                ->where('booking_group_id', $booking->booking_group_id)
+                ->get();
+        }
+
+        $totalAmount = $groupedBookings->sum('total_amount');
+        $isGroupBooking = $groupedBookings->count() > 1;
+
+        return view('website::booking-confirmation', compact('booking', 'groupedBookings', 'totalAmount', 'isGroupBooking'));
     }
 
     public function amenities()
@@ -438,14 +668,14 @@ class WebsiteController extends Controller
                     'available' => true,
                     'message' => "{$availableCount} of {$totalUnits} rooms available!",
                     'available_count' => $availableCount,
-                    'redirect_url' => route('website.booking', [
+                    'redirect_url' => route('website.book', [
                         'room_type_id' => $validated['room_type_id'],
                         'check_in' => $validated['check_in_date'],
                         'check_out' => $validated['check_out_date'],
                     ])
                 ]);
             }
-            return redirect()->route('website.booking', [
+            return redirect()->route('website.book', [
                 'room_type_id' => $validated['room_type_id'],
                 'check_in' => $validated['check_in_date'],
                 'check_out' => $validated['check_out_date'],
@@ -595,6 +825,7 @@ class WebsiteController extends Controller
 
     /**
      * ✅ Verify Paystack Transaction (Callback)
+     * Supports both single booking and grouped multi-room bookings.
      */
     public function verifyPayment(Request $request)
     {
@@ -616,22 +847,50 @@ class WebsiteController extends Controller
             $result = $response->json();
 
             if ($result['status'] && $result['data']['status'] === 'success') {
-                // Payment Successful
-                $booking = Booking::where('booking_reference', $reference)->first();
+                // Check if this is a group payment (reference starts with GRP)
+                $isGroupPayment = str_starts_with($reference, 'GRP');
 
-                if ($booking) {
-                    $booking->update([
-                        'payment_status' => 'paid',
-                        'amount_paid' => $booking->total_amount,
-                        'status' => 'confirmed', // Auto-confirm since paid
-                    ]);
+                if ($isGroupPayment) {
+                    // Update all bookings in the group
+                    $bookings = Booking::where('booking_group_id', $reference)->get();
+                    
+                    if ($bookings->isEmpty()) {
+                        return redirect()->route('website.booking')->with('error', 'Booking not found.');
+                    }
 
-                    // Send Email & Set Session
-                    $this->sendConfirmationEmail($booking);
-                    session()->put('just_booked_ref', $booking->booking_reference);
+                    foreach ($bookings as $booking) {
+                        $booking->update([
+                            'payment_status' => 'paid',
+                            'amount_paid' => $booking->total_amount,
+                            'status' => 'confirmed',
+                        ]);
+                        $this->sendConfirmationEmail($booking);
+                    }
 
-                    return redirect()->route('website.booking.confirmation', $booking->booking_reference)
-                        ->with('success', 'Payment successful! Your booking is confirmed.');
+                    $primaryBooking = $bookings->first();
+                    session()->put('just_booked_ref', $primaryBooking->booking_reference);
+                    session()->put('just_booked_group', $reference);
+
+                    return redirect()->route('website.booking.confirmation', $primaryBooking->booking_reference)
+                        ->with('success', 'Payment successful! All ' . $bookings->count() . ' rooms are confirmed.');
+
+                } else {
+                    // Single booking payment
+                    $booking = Booking::where('booking_reference', $reference)->first();
+
+                    if ($booking) {
+                        $booking->update([
+                            'payment_status' => 'paid',
+                            'amount_paid' => $booking->total_amount,
+                            'status' => 'confirmed',
+                        ]);
+
+                        $this->sendConfirmationEmail($booking);
+                        session()->put('just_booked_ref', $booking->booking_reference);
+
+                        return redirect()->route('website.booking.confirmation', $booking->booking_reference)
+                            ->with('success', 'Payment successful! Your booking is confirmed.');
+                    }
                 }
             }
 
@@ -664,6 +923,7 @@ class WebsiteController extends Controller
 
     /**
      * Authenticate Guest via Reference & Email
+     * Supports both individual booking references (BK...) and group references (GRP...)
      */
     public function findBooking(Request $request)
     {
@@ -672,9 +932,32 @@ class WebsiteController extends Controller
             'email' => 'required|email',
         ]);
 
-        // Find booking matching BOTH ref and email
-        $booking = Booking::where('booking_reference', $request->booking_reference)
-            ->where('guest_email', $request->email)
+        $reference = strtoupper(trim($request->booking_reference));
+        $email = $request->email;
+
+        // Check if searching by group reference (GRP...)
+        if (str_starts_with($reference, 'GRP')) {
+            // Find any booking in the group with matching email
+            $booking = Booking::where('booking_group_id', $reference)
+                ->where('guest_email', $email)
+                ->first();
+
+            if (!$booking) {
+                return back()->with('error', 'No booking found with this group reference. Please check your details.');
+            }
+
+            // Grant access to the entire group
+            session()->put('just_booked_ref', $booking->booking_reference);
+            session()->put('just_booked_group', $reference);
+
+            return redirect()->route('website.booking.confirmation', $booking->booking_reference)
+                ->with('success', 'Group booking found! Showing all ' . 
+                    Booking::where('booking_group_id', $reference)->count() . ' rooms.');
+        }
+
+        // Standard individual booking reference (BK...)
+        $booking = Booking::where('booking_reference', $reference)
+            ->where('guest_email', $email)
             ->first();
 
         if (!$booking) {
@@ -682,10 +965,176 @@ class WebsiteController extends Controller
         }
 
         // ✅ SECURITY: Grant temporary access via session
-        // This allows them to pass the check in the confirmation() method
         session()->put('just_booked_ref', $booking->booking_reference);
+        
+        // If this booking belongs to a group, also grant group access
+        if ($booking->booking_group_id) {
+            session()->put('just_booked_group', $booking->booking_group_id);
+        }
 
         return redirect()->route('website.booking.confirmation', $booking->booking_reference)
             ->with('success', 'Booking found!');
+    }
+
+    // =========================================================================
+    // MULTI-ROOM BOOKING CART METHODS
+    // =========================================================================
+
+    /**
+     * Step 1: Room Selection Page
+     */
+    public function bookStep1(Request $request)
+    {
+        $cartService = new BookingCartService();
+        
+        // Get dates from request or cart
+        $cartDates = $cartService->getDates();
+        $checkIn = $request->check_in ?? $cartDates['check_in'] ?? date('Y-m-d');
+        $checkOut = $request->check_out ?? $cartDates['check_out'] ?? date('Y-m-d', strtotime('+1 day'));
+        $adults = $request->adults ?? 1;
+        $children = $request->children ?? 0;
+
+        // If a specific room_type_id is passed (from room-details availability check), auto-add to cart
+        if ($request->filled('room_type_id')) {
+            $roomType = RoomType::find($request->room_type_id);
+            if ($roomType && $roomType->getAvailabilityCountForDates($checkIn, $checkOut) > 0) {
+                // Auto-add 1 room of this type to the cart
+                $cartService->add($roomType->id, 1, $checkIn, $checkOut);
+            }
+        }
+
+        // Get all active room types with availability for these dates
+        $roomTypes = RoomType::where('is_active', true)
+            ->with(['amenities', 'units'])
+            ->withCount('units')
+            ->ordered()
+            ->get()
+            ->map(function ($roomType) use ($checkIn, $checkOut) {
+                $roomType->available_count = $roomType->getAvailabilityCountForDates($checkIn, $checkOut);
+                return $roomType;
+            });
+
+        $cart = $cartService->getCartSummary();
+
+        return view('website::book', compact('roomTypes', 'checkIn', 'checkOut', 'adults', 'children', 'cart'));
+    }
+
+    /**
+     * API: Get room availability for dates
+     */
+    public function getRoomAvailability(Request $request)
+    {
+        $validated = $request->validate([
+            'check_in' => 'required|date|after_or_equal:today',
+            'check_out' => 'required|date|after:check_in',
+        ]);
+
+        $roomTypes = RoomType::where('is_active', true)
+            ->with('amenities')
+            ->withCount('units')
+            ->ordered()
+            ->get()
+            ->map(function ($roomType) use ($validated) {
+                return [
+                    'id' => $roomType->id,
+                    'name' => $roomType->name,
+                    'slug' => $roomType->slug,
+                    'price' => (float) $roomType->price,
+                    'capacity' => $roomType->capacity,
+                    'image_url' => $roomType->image_url,
+                    'bed_type' => $roomType->bed_type,
+                    'description' => $roomType->description,
+                    'total_units' => $roomType->units_count,
+                    'available_count' => $roomType->getAvailabilityCountForDates(
+                        $validated['check_in'],
+                        $validated['check_out']
+                    ),
+                    'amenities' => $roomType->amenities->map(fn($a) => [
+                        'name' => $a->name,
+                        'icon' => $a->icon,
+                    ]),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'room_types' => $roomTypes,
+            'check_in' => $validated['check_in'],
+            'check_out' => $validated['check_out'],
+        ]);
+    }
+
+    /**
+     * Cart: Add room to cart
+     */
+    public function cartAdd(Request $request)
+    {
+        $validated = $request->validate([
+            'room_type_id' => 'required|exists:room_types,id',
+            'quantity' => 'required|integer|min:1|max:10',
+            'check_in' => 'required|date|after_or_equal:today',
+            'check_out' => 'required|date|after:check_in',
+        ]);
+
+        $cartService = new BookingCartService();
+        $result = $cartService->add(
+            $validated['room_type_id'],
+            $validated['quantity'],
+            $validated['check_in'],
+            $validated['check_out']
+        );
+
+        return response()->json($result);
+    }
+
+    /**
+     * Cart: Update quantity
+     */
+    public function cartUpdate(Request $request)
+    {
+        $validated = $request->validate([
+            'room_type_id' => 'required|exists:room_types,id',
+            'quantity' => 'required|integer|min:0|max:10',
+        ]);
+
+        $cartService = new BookingCartService();
+        $result = $cartService->update($validated['room_type_id'], $validated['quantity']);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Cart: Remove room type from cart
+     */
+    public function cartRemove($roomTypeId)
+    {
+        $cartService = new BookingCartService();
+        $result = $cartService->remove((int) $roomTypeId);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Cart: Clear all items
+     */
+    public function cartClear()
+    {
+        $cartService = new BookingCartService();
+        $result = $cartService->clear();
+
+        return response()->json($result);
+    }
+
+    /**
+     * Cart: Get cart contents
+     */
+    public function cartGet()
+    {
+        $cartService = new BookingCartService();
+        
+        return response()->json([
+            'success' => true,
+            'cart' => $cartService->getCartSummary(),
+        ]);
     }
 }

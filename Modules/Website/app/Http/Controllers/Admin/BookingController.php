@@ -31,13 +31,15 @@ class BookingController extends Controller
             $query->whereDate('check_in_date', $request->date);
         }
 
-        // 3. Search by Name, Email, or Reference
+        // 3. Search by Name, Email, Reference, or Group ID
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('booking_reference', 'like', "%$search%")
+                    ->orWhere('booking_group_id', 'like', "%$search%")
                     ->orWhere('guest_name', 'like', "%$search%")
-                    ->orWhere('guest_email', 'like', "%$search%");
+                    ->orWhere('guest_email', 'like', "%$search%")
+                    ->orWhere('guest_phone', 'like', "%$search%");
             });
         }
 

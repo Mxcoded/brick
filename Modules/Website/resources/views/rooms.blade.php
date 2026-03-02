@@ -63,11 +63,18 @@
                 <div class="row g-4">
                     @foreach ($roomTypes as $roomType)
                         @php
-                            // Calculate availability if dates provided
-                            $availableUnits = $roomType->units_count;
+                            // Calculate real-time availability
+                            // If dates provided, use those. Otherwise, show availability for today.
+                            $today = \Carbon\Carbon::today();
+                            $tomorrow = $today->copy()->addDay();
+                            
                             if (!empty($checkIn) && !empty($checkOut)) {
                                 $availableUnits = $roomType->getAvailableUnitsForDates($checkIn, $checkOut)->count();
+                            } else {
+                                // Default: Show today's availability
+                                $availableUnits = $roomType->getAvailabilityCountForDates($today, $tomorrow);
                             }
+                            $totalUnits = $roomType->units_count;
                         @endphp
                         <div class="col-lg-6">
                             <div class="room-card card border-0 shadow-sm overflow-hidden h-100">
@@ -86,7 +93,7 @@
                                             @if ($availableUnits > 0)
                                                 <span class="badge bg-success py-2 px-3">
                                                     <i class="fas fa-check-circle me-1"></i>
-                                                    {{ $availableUnits }} {{ Str::plural('unit', $availableUnits) }} available
+                                                    {{ $availableUnits }}/{{ $totalUnits }} Available
                                                 </span>
                                             @else
                                                 <span class="badge bg-danger py-2 px-3">

@@ -5,7 +5,7 @@
 @section('content')
     <div class="container py-5">
         {{-- Progress Indicator --}}
-        @include('website::partials.booking-progress', ['step' => 3])
+        @include('website::partials.booking-progress', ['step' => isset($useCart) && $useCart ? 2 : 3])
 
         <div class="row">
             <div class="col-lg-8">
@@ -17,7 +17,7 @@
                     </div>
                     <div class="card-body p-4">
 
-                        {{-- ✅ FIX 1: Display Session Errors (The "Silent Return" Fix) --}}
+                        {{-- Display Session Errors --}}
                         @if (session('error'))
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
@@ -52,47 +52,69 @@
                             @csrf
 
                             @php
+                                $useCartFlow = isset($useCart) && $useCart && !empty($cart['items']);
                                 $reqRoomTypeId = old('room_type_id', request('room_type_id', request('room_id', $selectedRoomType->id ?? '')));
-                                $reqCheckIn = old('check_in_date', request('check_in_date', request('check_in')));
-                                $reqCheckOut = old('check_out_date', request('check_out_date', request('check_out')));
+                                $reqCheckIn = $useCartFlow ? ($cart['check_in'] ?? '') : old('check_in_date', request('check_in_date', request('check_in')));
+                                $reqCheckOut = $useCartFlow ? ($cart['check_out'] ?? '') : old('check_out_date', request('check_out_date', request('check_out')));
                             @endphp
 
-                            {{-- Dates Section --}}
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Check-In Date <span
-                                            class="text-danger">*</span></label>
-                                    <input type="date" name="check_in_date" id="check_in_date"
-                                        class="form-control form-control-lg" value="{{ $reqCheckIn }}"
-                                        min="{{ date('Y-m-d') }}" required>
+                            @if($useCartFlow)
+                                {{-- CART-BASED BOOKING: Show cart summary instead of room selection --}}
+                                <div class="alert alert-info mb-4">
+                                    <i class="fas fa-shopping-cart me-2"></i>
+                                    <strong>{{ $cart['total_rooms'] }} room(s) selected</strong> for 
+                                    {{ \Carbon\Carbon::parse($cart['check_in'])->format('M d') }} - 
+                                    {{ \Carbon\Carbon::parse($cart['check_out'])->format('M d, Y') }}
+                                    ({{ $cart['nights'] }} {{ Str::plural('night', $cart['nights']) }})
+                                    <a href="{{ route('website.book') }}" class="float-end">Modify Selection</a>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Check-Out Date <span
-                                            class="text-danger">*</span></label>
-                                    <input type="date" name="check_out_date" id="check_out_date"
-                                        class="form-control form-control-lg" value="{{ $reqCheckOut }}"
-                                        min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
+                            @else
+                                {{-- LEGACY SINGLE-ROOM BOOKING: Dates & Room Type Selection --}}
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Check-In Date <span
+                                                class="text-danger">*</span></label>
+                                        <input type="date" name="check_in_date" id="check_in_date"
+                                            class="form-control form-control-lg" value="{{ $reqCheckIn }}"
+                                            min="{{ date('Y-m-d') }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Check-Out Date <span
+                                                class="text-danger">*</span></label>
+                                        <input type="date" name="check_out_date" id="check_out_date"
+                                            class="form-control form-control-lg" value="{{ $reqCheckOut }}"
+                                            min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
+                                    </div>
                                 </div>
-                            </div>
 
-                            {{-- Room Type Selection --}}
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">Select Room Type <span class="text-danger">*</span></label>
-                                <select name="room_type_id" id="room_type_id" class="form-select form-select-lg" required>
-                                    <option value="" disabled {{ empty($reqRoomTypeId) ? 'selected' : '' }}>-- Choose a
-                                        Room Type --</option>
-                                    @foreach ($roomTypes as $roomOption)
-                                        <option value="{{ $roomOption->id }}" data-price="{{ $roomOption->price }}"
-                                            data-image="{{ $roomOption->image_url }}" data-name="{{ $roomOption->name }}"
-                                            data-capacity="{{ $roomOption->capacity }}"
-                                            data-units="{{ $roomOption->units_count }}"
-                                            {{ $reqRoomTypeId == $roomOption->id ? 'selected' : '' }}>
-                                            {{ $roomOption->name }} (₦{{ number_format($roomOption->price, 2) }}) - {{ $roomOption->units_count }} units
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <div class="form-text text-muted">A specific room will be assigned at check-in.</div>
-                            </div>
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Select Room Type <span class="text-danger">*</span></label>
+                                    <select name="room_type_id" id="room_type_id" class="form-select form-select-lg" required>
+                                        <option value="" disabled {{ empty($reqRoomTypeId) ? 'selected' : '' }}>-- Choose a
+                                            Room Type --</option>
+                                        @foreach ($roomTypes as $roomOption)
+                                            <option value="{{ $roomOption->id }}" data-price="{{ $roomOption->price }}"
+                                                data-image="{{ $roomOption->image_url }}" data-name="{{ $roomOption->name }}"
+                                                data-capacity="{{ $roomOption->capacity }}"
+                                                data-units="{{ $roomOption->units_count }}"
+                                                {{ $reqRoomTypeId == $roomOption->id ? 'selected' : '' }}>
+                                                {{ $roomOption->name }} (₦{{ number_format($roomOption->price, 2) }}) - {{ $roomOption->units_count }} units
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="mb-4" id="roomUnitSection" style="display: none;">
+                                    <label class="form-label fw-bold">Select Room Unit <span class="text-muted fw-normal">(Optional)</span></label>
+                                    <select name="room_unit_id" id="room_unit_id" class="form-select">
+                                        <option value="">-- Auto-assign at check-in --</option>
+                                    </select>
+                                    <div class="form-text text-muted">Optionally choose a specific room unit (e.g., Room 101, Room 205) or leave blank for auto-assignment at check-in.</div>
+                                    <div id="unitLoadingSpinner" class="text-center py-2 d-none">
+                                        <span class="spinner-border spinner-border-sm text-primary"></span> Loading available units...
+                                    </div>
+                                </div>
+                            @endif
 
                             {{-- Personal Information --}}
                             <div class="card border-0 shadow-sm rounded-3 mb-4">
@@ -276,49 +298,94 @@
                         <h5 class="mb-0 fw-bold"><i class="fas fa-receipt me-2"></i>Summary</h5>
                     </div>
 
-                    <img id="summary-image" src="{{ $selectedRoomType->image_url ?? asset('images/default-room.jpg') }}"
-                        class="card-img-top {{ $selectedRoomType ? '' : 'd-none' }}"
-                        style="height: 200px; object-fit: cover;">
+                    @if($useCartFlow)
+                        {{-- CART-BASED SUMMARY --}}
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between text-muted small mb-2">
+                                    <span>Check-in</span>
+                                    <span class="fw-bold text-dark">{{ \Carbon\Carbon::parse($cart['check_in'])->format('M d, Y') }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span>Check-out</span>
+                                    <span class="fw-bold text-dark">{{ \Carbon\Carbon::parse($cart['check_out'])->format('M d, Y') }}</span>
+                                </div>
+                            </div>
 
-                    <div class="card-body p-4">
-                        <h5 id="summary-name" class="fw-bold text-primary mb-1">
-                            {{ $selectedRoomType->name ?? 'Select a Room Type' }}</h5>
-                        <div class="mb-3 text-muted small">
-                            <i class="fas fa-user-friends me-1"></i> Max <span
-                                id="summary-capacity">{{ $selectedRoomType->capacity ?? '-' }}</span> Guests
+                            <hr>
+
+                            <h6 class="fw-bold mb-3">Selected Rooms</h6>
+                            @foreach($cart['items'] as $item)
+                                <div class="d-flex justify-content-between align-items-start mb-3 pb-2 border-bottom">
+                                    <div>
+                                        <div class="fw-bold small">{{ $item['room_type_name'] }}</div>
+                                        <div class="text-muted small">{{ $item['quantity'] }} room × {{ $item['nights'] }} nights</div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fw-bold text-success">₦{{ number_format($item['subtotal'], 2) }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
+
+                            <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-2">
+                                <div>
+                                    <span class="h6 mb-0 text-muted">Total</span>
+                                    <div class="small text-muted">{{ $cart['total_rooms'] }} room(s), {{ $cart['nights'] }} nights</div>
+                                </div>
+                                <span class="h4 mb-0 text-success fw-bold">
+                                    {{ $cart['formatted_total'] }}
+                                </span>
+                            </div>
+                            <p class="text-muted small mt-3 mb-0">
+                                <i class="fas fa-info-circle me-1"></i> Rooms assigned at check-in
+                            </p>
                         </div>
+                    @else
+                        {{-- LEGACY SINGLE-ROOM SUMMARY --}}
+                        <img id="summary-image" src="{{ $selectedRoomType->image_url ?? asset('images/default-room.jpg') }}"
+                            class="card-img-top {{ $selectedRoomType ? '' : 'd-none' }}"
+                            style="height: 200px; object-fit: cover;">
 
-                        <ul class="list-group list-group-flush mb-4">
-                            <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
-                                <span class="text-muted small">Check-in</span>
-                                <span class="fw-bold"
-                                    id="summary-checkin">{{ $reqCheckIn ? \Carbon\Carbon::parse($reqCheckIn)->format('M d, Y') : '...' }}</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
-                                <span class="text-muted small">Check-out</span>
-                                <span class="fw-bold"
-                                    id="summary-checkout">{{ $reqCheckOut ? \Carbon\Carbon::parse($reqCheckOut)->format('M d, Y') : '...' }}</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
-                                <span class="text-muted small">Nights</span>
-                                <span class="fw-bold" id="summary-nights">1</span>
-                            </li>
-                            <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
-                                <span class="text-muted small">Rate</span>
-                                <span id="summary-rate">₦{{ number_format($selectedRoomType->price ?? 0, 2) }}</span>
-                            </li>
-                        </ul>
+                        <div class="card-body p-4">
+                            <h5 id="summary-name" class="fw-bold text-primary mb-1">
+                                {{ $selectedRoomType->name ?? 'Select a Room Type' }}</h5>
+                            <div class="mb-3 text-muted small">
+                                <i class="fas fa-user-friends me-1"></i> Max <span
+                                    id="summary-capacity">{{ $selectedRoomType->capacity ?? '-' }}</span> Guests
+                            </div>
 
-                        <div class="d-flex justify-content-between align-items-center border-top pt-3">
-                            <span class="h5 mb-0 text-muted">Total:</span>
-                            <span class="h3 mb-0 text-success fw-bold" id="summary-total">
-                                ₦0.00
-                            </span>
+                            <ul class="list-group list-group-flush mb-4">
+                                <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                                    <span class="text-muted small">Check-in</span>
+                                    <span class="fw-bold"
+                                        id="summary-checkin">{{ $reqCheckIn ? \Carbon\Carbon::parse($reqCheckIn)->format('M d, Y') : '...' }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                                    <span class="text-muted small">Check-out</span>
+                                    <span class="fw-bold"
+                                        id="summary-checkout">{{ $reqCheckOut ? \Carbon\Carbon::parse($reqCheckOut)->format('M d, Y') : '...' }}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                                    <span class="text-muted small">Nights</span>
+                                    <span class="fw-bold" id="summary-nights">1</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                                    <span class="text-muted small">Rate</span>
+                                    <span id="summary-rate">₦{{ number_format($selectedRoomType->price ?? 0, 2) }}</span>
+                                </li>
+                            </ul>
+
+                            <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                                <span class="h5 mb-0 text-muted">Total:</span>
+                                <span class="h3 mb-0 text-success fw-bold" id="summary-total">
+                                    ₦0.00
+                                </span>
+                            </div>
+                            <p class="text-muted small mt-3 mb-0">
+                                <i class="fas fa-info-circle me-1"></i> Specific room assigned at check-in
+                            </p>
                         </div>
-                        <p class="text-muted small mt-3 mb-0">
-                            <i class="fas fa-info-circle me-1"></i> Specific room assigned at check-in
-                        </p>
-                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -439,7 +506,70 @@
 
                     // Trigger the AJAX Check
                     checkAvailability();
+                    
+                    // Load available units
+                    loadAvailableUnits();
                 }
+            }
+
+            function loadAvailableUnits() {
+                const roomTypeId = roomSelect.value;
+                const checkIn = checkInInput.value;
+                const checkOut = checkOutInput.value;
+                const unitSection = document.getElementById('roomUnitSection');
+                const unitSelect = document.getElementById('room_unit_id');
+                const unitSpinner = document.getElementById('unitLoadingSpinner');
+
+                if (!roomTypeId || !checkIn || !checkOut) {
+                    unitSection.style.display = 'none';
+                    return;
+                }
+
+                // Show section and loading spinner
+                unitSection.style.display = 'block';
+                unitSpinner.classList.remove('d-none');
+                unitSelect.disabled = true;
+
+                const queryParams = new URLSearchParams({
+                    room_type_id: roomTypeId,
+                    check_in_date: checkIn,
+                    check_out_date: checkOut
+                });
+
+                fetch(`/website/api/available-units?${queryParams.toString()}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    unitSpinner.classList.add('d-none');
+                    unitSelect.disabled = false;
+                    
+                    // Clear existing options except first
+                    unitSelect.innerHTML = '<option value="">-- Auto-assign at check-in --</option>';
+                    
+                    if (data.units && data.units.length > 0) {
+                        data.units.forEach(unit => {
+                            const option = document.createElement('option');
+                            option.value = unit.id;
+                            option.textContent = `Room ${unit.room_number}` + (unit.floor ? ` (Floor ${unit.floor})` : '');
+                            unitSelect.appendChild(option);
+                        });
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'No rooms available for these dates';
+                        option.disabled = true;
+                        unitSelect.appendChild(option);
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to load units:', err);
+                    unitSpinner.classList.add('d-none');
+                    unitSelect.disabled = false;
+                });
             }
 
             function checkAvailability() {

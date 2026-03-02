@@ -31,7 +31,7 @@
                                 <a href="{{ route('website.rooms.index') }}" class="btn btn-primary btn-lg px-5 py-3">
                                     <i class="fas fa-bed me-2"></i>Explore Rooms
                                 </a>
-                                <a href="{{ route('website.booking') }}" class="btn btn-outline-light btn-lg px-5 py-3">
+                            <a href="{{ route('website.book') }}" class="btn btn-outline-light btn-lg px-5 py-3">
                                     <i class="fas fa-calendar-check me-2"></i>Book Direct
                                 </a>
                             </div>
@@ -94,7 +94,7 @@
                             <!-- Quick Booking Form for second slide -->
                             <div class="quick-booking-form bg-white p-4 rounded shadow mx-auto mt-4"
                                 style="max-width: 900px;">
-                                <form action="{{ route('website.booking') }}" method="GET"
+                                <form action="{{ route('website.book') }}" method="GET"
                                     class="row g-3 align-items-end">
                                     <div class="col-md-3">
                                         <label for="check_in_2" class="form-label">Check-In</label>
@@ -165,8 +165,8 @@
                                 <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
                                     ₦{{ number_format($roomType->price, 2) }} <small>/ night</small>
                                 </div>
-                                <span class="position-absolute bottom-0 start-0 m-2 badge bg-success">
-                                    {{ $roomType->units_count }} {{ Str::plural('unit', $roomType->units_count) }}
+                                <span class="position-absolute bottom-0 start-0 m-2 badge bg-info">
+                                    <i class="fas fa-door-open me-1"></i>{{ $roomType->units_count }} {{ Str::plural('Room', $roomType->units_count) }}
                                 </span>
                                 <div class="room-overlay d-flex align-items-center justify-content-center">
                                     <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"

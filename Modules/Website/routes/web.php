@@ -45,9 +45,11 @@ Route::middleware(['web'])->group(function () {
 
         // Availability & Booking Logic
         Route::any('/check-availability', 'checkAvailability')->name('website.room.checkAvailability');
-        Route::get('/booking', 'booking')->name('website.booking');
+        
+        // Booking Flow: /book (Step 1: Room Selection) -> /booking (Step 2: Guest Details)
+        Route::get('/book', 'bookStep1')->name('website.book'); // Step 1: Select rooms with cart
+        Route::get('/booking', 'booking')->name('website.booking'); // Step 2: Guest details / checkout
         Route::post('/booking', 'storeBooking')->name('website.booking.store');
-        // ✅ NEW: Paystack Callback Route
         Route::get('/payment/callback', 'verifyPayment')->name('website.payment.callback');
         Route::get('/booking/confirmation/{ref?}', 'confirmation')->name('website.booking.confirmation');
 
@@ -55,6 +57,15 @@ Route::middleware(['web'])->group(function () {
         Route::post('/contact/send', 'sendMessage')->name('website.contact.send');
         Route::post('/check-email', 'checkEmail')->name('website.checkEmail');
         Route::post('/booking/resend', 'resendConfirmation')->name('website.booking.resend');
+
+        // Booking Cart API
+        Route::get('/api/available-units', 'getAvailableUnits')->name('website.api.available-units');
+        Route::get('/api/room-availability', 'getRoomAvailability')->name('website.api.room-availability');
+        Route::post('/cart/add', 'cartAdd')->name('website.cart.add');
+        Route::put('/cart/update', 'cartUpdate')->name('website.cart.update');
+        Route::delete('/cart/remove/{roomTypeId}', 'cartRemove')->name('website.cart.remove');
+        Route::delete('/cart/clear', 'cartClear')->name('website.cart.clear');
+        Route::get('/cart', 'cartGet')->name('website.cart.get');
 
         // Guest Booking Management
         Route::get('/my-booking', 'bookingLogin')->name('website.booking.login');

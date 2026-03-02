@@ -46,9 +46,13 @@
                         <tbody class="border-top-0">
                             @forelse($roomTypes as $roomType)
                                 @php
-                                    $availableUnits = $roomType->units->where('status', 'available')->count();
-                                    $maintenanceUnits = $roomType->units->where('status', 'maintenance')->count();
+                                    // Calculate real-time availability for today
+                                    $today = \Carbon\Carbon::today();
                                     $totalUnits = $roomType->units_count;
+                                    $maintenanceUnits = $roomType->units->where('status', 'maintenance')->count();
+                                    
+                                    // Get truly available units (considering bookings for today)
+                                    $availableUnits = $roomType->getAvailabilityCountForDates($today, $today->copy()->addDay());
                                 @endphp
                                 <tr>
                                     {{-- Room Type Name & Image --}}
@@ -163,9 +167,10 @@
 
         {{-- Legend --}}
         <div class="mt-3 small text-muted">
-            <span class="me-3"><i class="fas fa-circle text-success"></i> Available</span>
+            <span class="me-3"><i class="fas fa-circle text-success"></i> Available Today</span>
             <span class="me-3"><i class="fas fa-circle text-warning"></i> Maintenance</span>
-            <span><i class="fas fa-circle text-danger"></i> Occupied/Blocked</span>
+            <span><i class="fas fa-circle text-danger"></i> Booked/Occupied</span>
+            <span class="ms-3 text-muted">| Availability shown is real-time for today</span>
         </div>
     </div>
 @endsection

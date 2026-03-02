@@ -333,7 +333,7 @@
                     </ul>
                     @guest
                         <div class="d-flex align-items-center">
-                            <a href="{{ route('website.booking') }}"
+                            <a href="{{ route('website.book') }}"
                                 class="btn btn-primary px-4 py-2 rounded fw-bold shadow-sm btn-book-mobile">
                                 <i class="fas fa-calendar-check me-2"></i>Book Now
                             </a>

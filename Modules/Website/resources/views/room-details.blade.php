@@ -20,11 +20,12 @@
                 <div class="col-12">
                     <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                         <h1 class="display-4 fw-bold mb-0">{{ $roomType->name }}</h1>
-                        <span class="badge bg-success fs-6 py-2 px-3">
-                            <i class="fas fa-check-circle me-1"></i>
-                            {{ $roomType->units->count() }} {{ Str::plural('unit', $roomType->units->count()) }} available
+                        <span class="badge bg-info fs-6 py-2 px-3">
+                            <i class="fas fa-door-open me-1"></i>
+                            {{ $roomType->units->count() }} {{ Str::plural('Room', $roomType->units->count()) }}
                         </span>
                     </div>
+                    <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i>Select dates below to check real-time availability</p>
                     <p class="lead text-muted">{{ $roomType->short_description ?? Str::limit($roomType->description, 200) }}</p>
                 </div>
             </div>

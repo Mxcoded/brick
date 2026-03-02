@@ -17,6 +17,7 @@ class Booking extends Model
 
     protected $fillable = [
         'booking_reference',
+        'booking_group_id',   // NEW: Links multiple bookings from a single cart transaction
         'room_id',            // Legacy: will be deprecated
         'room_type_id',       // NEW: The room type booked
         'room_unit_id',       // NEW: Assigned unit (nullable until check-in)
