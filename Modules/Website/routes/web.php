@@ -122,9 +122,10 @@ Route::middleware(['web'])->group(function () {
             Route::resource('dining', DiningController::class);
 
             // Room Types & Units Management (NEW)
-            Route::resource('room-types', RoomTypeController::class);
-            Route::delete('room-types/images/{id}', [RoomTypeController::class, 'deleteImage'])
+            // IMPORTANT: This route MUST be before the resource to avoid conflict
+            Route::delete('room-types/images/{imageId}', [RoomTypeController::class, 'deleteImage'])
                 ->name('room-types.images.destroy');
+            Route::resource('room-types', RoomTypeController::class);
             
             // Room Units
             Route::post('room-types/{roomType}/units', [RoomTypeController::class, 'storeUnit'])

@@ -231,13 +231,21 @@ class RoomTypeController extends Controller
     /**
      * Delete a gallery image.
      */
-    public function deleteImage($id)
+    public function deleteImage($imageId)
     {
-        $image = RoomTypeImage::findOrFail($id);
+        $image = RoomTypeImage::findOrFail($imageId);
+        
+        // Get the room type for reference
+        $roomTypeId = $image->room_type_id;
+        
+        // Delete the file
         if ($image->path) {
             $this->imageService->delete($image->path);
         }
+        
+        // Delete the database record
         $image->delete();
+        
         return back()->with('success', 'Gallery image deleted.');
     }
 
