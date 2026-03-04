@@ -290,7 +290,7 @@ class RoomTypeSeeder extends Seeder
         foreach ($roomTypes as $data) {
             // Create or update the room type
             $roomType = RoomType::updateOrCreate(
-                ['slug' => Str::slug($data['type']['name'])],
+                ['name' => $data['type']['name']], // Use 'name' to check for existing records
                 array_merge($data['type'], ['slug' => Str::slug($data['type']['name'])])
             );
 
