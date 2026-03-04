@@ -27,7 +27,7 @@
                     </div>
                 @endif
 
-                <form action="{{ route('website.admin.room-types.store') }}" method="POST" enctype="multipart/form-data">
+                <form id="roomTypeForm" action="{{ route('website.admin.room-types.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
                     <div class="row">
@@ -140,14 +140,19 @@
                             {{-- Main Image --}}
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Main Image <span class="text-danger">*</span></label>
-                                <input type="file" name="image" class="form-control" accept="image/*" required>
+                                <div id="mainImagePreview" class="mb-2 d-none">
+                                    <img src="" class="img-thumbnail" style="max-height: 150px;">
+                                    <span class="badge bg-success ms-2">Selected</span>
+                                </div>
+                                <input type="file" name="image" id="mainImageInput" class="form-control" accept="image/*" required>
                                 <small class="text-muted">Max 20MB. Will be compressed automatically.</small>
                             </div>
 
                             {{-- Gallery --}}
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Gallery Images</label>
-                                <input type="file" name="gallery_images[]" class="form-control" accept="image/*" multiple>
+                                <div id="newGalleryPreview" class="d-flex flex-wrap gap-2 mb-2"></div>
+                                <input type="file" name="gallery_images[]" id="galleryImagesInput" class="form-control" accept="image/*" multiple>
                                 <small class="text-muted">Select multiple images for the gallery.</small>
                             </div>
                         </div>
@@ -181,9 +186,23 @@
 
                     <hr class="my-4">
 
-                    <div class="d-flex justify-content-end gap-2">
+                    {{-- Upload Progress --}}
+                    <div id="uploadProgress" class="mb-4 d-none">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-cloud-upload-alt text-primary me-2"></i>
+                            <span class="fw-bold">Uploading...</span>
+                            <span id="uploadPercentage" class="ms-auto fw-bold text-primary">0%</span>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                 role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small id="uploadStatus" class="text-muted">Preparing upload...</small>
+                    </div>
+
+                    <div id="submitButtons" class="d-flex justify-content-end gap-2">
                         <a href="{{ route('website.admin.room-types.index') }}" class="btn btn-outline-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" id="submitBtn" class="btn btn-primary">
                             <i class="fas fa-save me-1"></i> Create Room Type
                         </button>
                     </div>
@@ -193,9 +212,147 @@
     </div>
 @endsection
 
-@push('scripts')
+@section('page-scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Form and upload progress elements
+    const form = document.getElementById('roomTypeForm');
+    const mainImageInput = document.getElementById('mainImageInput');
+    const galleryImagesInput = document.getElementById('galleryImagesInput');
+    const mainImagePreview = document.getElementById('mainImagePreview');
+    const newGalleryPreview = document.getElementById('newGalleryPreview');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const uploadProgressBar = document.getElementById('uploadProgressBar');
+    const uploadPercentage = document.getElementById('uploadPercentage');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Main image preview
+    mainImageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                mainImagePreview.querySelector('img').src = e.target.result;
+                mainImagePreview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            mainImagePreview.classList.add('d-none');
+        }
+    });
+
+    // Gallery images preview
+    galleryImagesInput.addEventListener('change', function(e) {
+        newGalleryPreview.innerHTML = '';
+        const files = e.target.files;
+        
+        Array.from(files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'position-relative';
+                div.innerHTML = `
+                    <img src="${e.target.result}" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
+                `;
+                newGalleryPreview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    // Form submission with XHR for progress tracking
+    form.addEventListener('submit', function(e) {
+        // Check if there are files to upload
+        const hasMainImage = mainImageInput.files.length > 0;
+        const hasGalleryImages = galleryImagesInput.files.length > 0;
+        
+        if (!hasMainImage && !hasGalleryImages) {
+            // No files, use normal form submission
+            return true;
+        }
+
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const xhr = new XMLHttpRequest();
+
+        // Show progress UI
+        uploadProgress.classList.remove('d-none');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Uploading...';
+
+        // Calculate total file size for status
+        let totalSize = 0;
+        if (hasMainImage) totalSize += mainImageInput.files[0].size;
+        if (hasGalleryImages) {
+            Array.from(galleryImagesInput.files).forEach(f => totalSize += f.size);
+        }
+        const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+
+        // Track upload progress
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                const loadedMB = (e.loaded / (1024 * 1024)).toFixed(2);
+                
+                uploadProgressBar.style.width = percent + '%';
+                uploadProgressBar.setAttribute('aria-valuenow', percent);
+                uploadPercentage.textContent = percent + '%';
+                uploadStatus.textContent = `Uploaded ${loadedMB}MB of ${totalSizeMB}MB`;
+
+                if (percent >= 100) {
+                    uploadStatus.textContent = 'Processing images, please wait...';
+                    uploadProgressBar.classList.remove('progress-bar-animated');
+                    uploadProgressBar.classList.add('bg-success');
+                }
+            }
+        });
+
+        // Handle completion
+        xhr.addEventListener('load', function() {
+            if (xhr.status >= 200 && xhr.status < 400) {
+                uploadProgressBar.classList.add('bg-success');
+                uploadPercentage.textContent = '100%';
+                uploadStatus.innerHTML = '<i class="fas fa-check text-success"></i> Upload complete! Redirecting...';
+                
+                // Redirect to room types index
+                setTimeout(() => {
+                    window.location.href = '{{ route("website.admin.room-types.index") }}';
+                }, 500);
+            } else {
+                // Error handling
+                uploadProgressBar.classList.remove('bg-primary', 'bg-success');
+                uploadProgressBar.classList.add('bg-danger');
+                uploadStatus.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> Upload failed. Please try again.';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Create Room Type';
+            }
+        });
+
+        // Handle network errors
+        xhr.addEventListener('error', function() {
+            uploadProgressBar.classList.remove('bg-primary');
+            uploadProgressBar.classList.add('bg-danger');
+            uploadStatus.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> Network error. Please check your connection.';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Create Room Type';
+        });
+
+        // Handle abort
+        xhr.addEventListener('abort', function() {
+            uploadProgress.classList.add('d-none');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Create Room Type';
+        });
+
+        // Send request
+        xhr.open('POST', form.action);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send(formData);
+    });
+
+    // Room units logic
     let unitIndex = 1;
     const container = document.getElementById('units-container');
     const addBtn = document.getElementById('add-unit-btn');
@@ -237,4 +394,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-@endpush
+@endsection
