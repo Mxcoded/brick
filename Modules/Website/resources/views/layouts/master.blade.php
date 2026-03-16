@@ -435,6 +435,46 @@
         </div>
     </footer>
 
+    <!-- Newsletter Popup Modal -->
+    <div class="modal fade" id="newsletterPopup" tabindex="-1" aria-labelledby="newsletterPopupLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg overflow-hidden">
+                <div class="position-relative">
+                    {{-- Background Image/Gradient --}}
+                    <div style="background: linear-gradient(135deg, var(--bs-primary) 0%, #f7e141 100%); padding: 2rem;" class="text-white text-center">
+                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <i class="fas fa-envelope-open-text fa-3x mb-3 opacity-75"></i>
+                        <h4 class="fw-bold mb-1">Stay Updated!</h4>
+                        <p class="mb-0 opacity-75">Get exclusive offers & travel tips</p>
+                    </div>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted text-center mb-4">Subscribe to our newsletter and be the first to know about special deals, new amenities, and exciting events at Brickspoint.</p>
+                    <form id="newsletterPopupForm">
+                        <div class="mb-3">
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-muted"></i></span>
+                                <input type="email" id="newsletterPopupEmail" class="form-control border-start-0 bg-light" placeholder="Enter your email" required>
+                            </div>
+                        </div>
+                        <button type="submit" id="newsletterPopupBtn" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-paper-plane me-2"></i>Subscribe Now
+                        </button>
+                        <div id="newsletterPopupFeedback" class="mt-3 text-center" style="display: none;"></div>
+                    </form>
+                    <p class="text-muted small text-center mt-3 mb-0">
+                        <i class="fas fa-lock me-1"></i>We respect your privacy. Unsubscribe anytime.
+                    </p>
+                </div>
+                <div class="modal-footer border-0 bg-light py-2 justify-content-center">
+                    <button type="button" class="btn btn-link text-muted small" id="dontShowAgain">
+                        Don't show this again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous">
@@ -448,60 +488,126 @@
     {{-- Newsletter Subscription Script --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Footer newsletter form
             const form = document.getElementById('newsletterForm');
             const emailInput = document.getElementById('newsletterEmail');
             const submitBtn = document.getElementById('newsletterBtn');
             const feedback = document.getElementById('newsletterFeedback');
 
-            if (form) {
-                form.addEventListener('submit', async function(e) {
-                    e.preventDefault();
+            // Shared newsletter submit handler
+            async function handleNewsletterSubmit(email, feedbackEl, btnEl, inputEl) {
+                btnEl.disabled = true;
+                const originalBtnHtml = btnEl.innerHTML;
+                btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-                    const email = emailInput.value.trim();
-                    if (!email) return;
+                try {
+                    const response = await fetch('{{ route("website.newsletter.subscribe") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ email: email })
+                    });
 
-                    // Disable button and show loading
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    const data = await response.json();
 
-                    try {
-                        const response = await fetch('{{ route("website.newsletter.subscribe") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                            },
-                            body: JSON.stringify({ email: email })
-                        });
-
-                        const data = await response.json();
-
-                        // Show feedback
-                        feedback.style.display = 'block';
-                        if (data.success) {
-                            feedback.className = 'mt-2 small text-success';
-                            feedback.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + data.message;
-                            emailInput.value = '';
-                        } else {
-                            feedback.className = 'mt-2 small text-warning';
-                            feedback.innerHTML = '<i class="fas fa-info-circle me-1"></i>' + data.message;
+                    feedbackEl.style.display = 'block';
+                    if (data.success) {
+                        feedbackEl.className = 'mt-2 small text-success';
+                        feedbackEl.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + data.message;
+                        inputEl.value = '';
+                        
+                        // Mark as subscribed in localStorage
+                        localStorage.setItem('newsletter_subscribed', 'true');
+                        
+                        // Close popup after success (if it's the popup form)
+                        if (btnEl.id === 'newsletterPopupBtn') {
+                            setTimeout(() => {
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
+                                if (modal) modal.hide();
+                            }, 2000);
                         }
+                    } else {
+                        feedbackEl.className = 'mt-2 small text-warning';
+                        feedbackEl.innerHTML = '<i class="fas fa-info-circle me-1"></i>' + data.message;
+                    }
 
-                        // Hide feedback after 5 seconds
-                        setTimeout(() => {
-                            feedback.style.display = 'none';
-                        }, 5000);
+                    setTimeout(() => {
+                        feedbackEl.style.display = 'none';
+                    }, 5000);
 
-                    } catch (error) {
-                        feedback.style.display = 'block';
-                        feedback.className = 'mt-2 small text-danger';
-                        feedback.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
-                    } finally {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                } catch (error) {
+                    feedbackEl.style.display = 'block';
+                    feedbackEl.className = 'mt-2 small text-danger';
+                    feedbackEl.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
+                } finally {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = originalBtnHtml;
+                }
+            }
+
+            // Footer form handler
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const email = emailInput.value.trim();
+                    if (email) {
+                        handleNewsletterSubmit(email, feedback, submitBtn, emailInput);
                     }
                 });
+            }
+
+            // Popup form handler
+            const popupForm = document.getElementById('newsletterPopupForm');
+            const popupEmailInput = document.getElementById('newsletterPopupEmail');
+            const popupSubmitBtn = document.getElementById('newsletterPopupBtn');
+            const popupFeedback = document.getElementById('newsletterPopupFeedback');
+
+            if (popupForm) {
+                popupForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const email = popupEmailInput.value.trim();
+                    if (email) {
+                        handleNewsletterSubmit(email, popupFeedback, popupSubmitBtn, popupEmailInput);
+                    }
+                });
+            }
+
+            // "Don't show again" button
+            const dontShowBtn = document.getElementById('dontShowAgain');
+            if (dontShowBtn) {
+                dontShowBtn.addEventListener('click', function() {
+                    localStorage.setItem('newsletter_popup_dismissed', 'true');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
+                    if (modal) modal.hide();
+                });
+            }
+
+            // Show popup on page load (with delay)
+            const newsletterPopup = document.getElementById('newsletterPopup');
+            if (newsletterPopup) {
+                const isDismissed = localStorage.getItem('newsletter_popup_dismissed') === 'true';
+                const isSubscribed = localStorage.getItem('newsletter_subscribed') === 'true';
+                const lastShown = localStorage.getItem('newsletter_popup_last_shown');
+                const now = Date.now();
+                const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+                // Show popup if:
+                // 1. User hasn't dismissed it permanently
+                // 2. User hasn't already subscribed
+                // 3. Popup hasn't been shown in the last 24 hours
+                const shouldShow = !isDismissed && !isSubscribed && (!lastShown || (now - parseInt(lastShown)) > oneDay);
+
+                if (shouldShow) {
+                    // Show popup after 3 seconds delay
+                    setTimeout(() => {
+                        const modal = new bootstrap.Modal(newsletterPopup);
+                        modal.show();
+                        localStorage.setItem('newsletter_popup_last_shown', now.toString());
+                    }, 3000);
+                }
             }
         });
     </script>
