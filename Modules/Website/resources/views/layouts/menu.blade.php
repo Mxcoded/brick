@@ -53,6 +53,16 @@
         @endif
     </a>
 
+    <a href="{{ route('website.admin.newsletter.index') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.newsletter.*') ? 'active' : '' }}">
+        <i class="fas fa-newspaper me-2"></i> Newsletter
+        @if (\Modules\Website\Models\NewsletterSubscriber::where('is_active', true)->count() > 0)
+            <span class="badge bg-success rounded-pill float-end">
+                {{ \Modules\Website\Models\NewsletterSubscriber::where('is_active', true)->count() }}
+            </span>
+        @endif
+    </a>
+
     <a href="{{ route('website.admin.settings.index') }}"
         class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.settings.*') ? 'active' : '' }}">
         <i class="fas fa-cog me-2"></i> CMS Settings
