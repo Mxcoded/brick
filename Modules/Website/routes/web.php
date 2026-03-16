@@ -15,6 +15,7 @@ use Modules\Website\Http\Controllers\Admin\DiningController;
 use Modules\Website\Http\Controllers\Admin\AmenityController;
 use Modules\Website\Http\Controllers\Admin\SettingController;
 use Modules\Website\Http\Controllers\Admin\ContactMessageController;
+use Modules\Website\Http\Controllers\Admin\NewsletterController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +58,7 @@ Route::middleware(['web'])->group(function () {
         Route::post('/contact/send', 'sendMessage')->name('website.contact.send');
         Route::post('/check-email', 'checkEmail')->name('website.checkEmail');
         Route::post('/booking/resend', 'resendConfirmation')->name('website.booking.resend');
+        Route::post('/newsletter/subscribe', 'subscribeNewsletter')->name('website.newsletter.subscribe');
 
         // Booking Cart API
         Route::get('/api/available-units', 'getAvailableUnits')->name('website.api.available-units');
@@ -142,6 +144,12 @@ Route::middleware(['web'])->group(function () {
             // Contact Messages (Read Only / Reply)
             Route::resource('contact-messages', ContactMessageController::class)
                 ->only(['index', 'show', 'destroy', 'update']);
+
+            // Newsletter Subscribers Management
+            Route::get('newsletter', [NewsletterController::class, 'index'])->name('newsletter.index');
+            Route::get('newsletter/export', [NewsletterController::class, 'export'])->name('newsletter.export');
+            Route::delete('newsletter/{subscriber}', [NewsletterController::class, 'destroy'])->name('newsletter.destroy');
+            Route::post('newsletter/{subscriber}/toggle', [NewsletterController::class, 'toggleStatus'])->name('newsletter.toggle');
 
             // Manual specific routes if Resources don't cover everything
             Route::post('/rooms/image/upload', [AdminRoomController::class, 'uploadImage'])->name('rooms.image.upload');

@@ -26,6 +26,7 @@ use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Website\Emails\BookingConfirmation; // ✅ Import Booking Mail
 use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Contact Mail
 use Modules\Website\Services\BookingCartService;
+use Modules\Website\Models\NewsletterSubscriber;
 
 class WebsiteController extends Controller
 {
@@ -575,11 +576,35 @@ class WebsiteController extends Controller
 
     public function sendMessage(Request $request)
     {
+        // Honeypot spam check - if this field is filled, it's a bot
+        if ($request->filled('website_url')) {
+            // Silently reject spam but show success to not alert bots
+            return redirect()->route('website.contact')->with('success', 'Your message has been sent!');
+        }
+
+        // Rate limiting check - prevent spam submissions
+        $ip = $request->ip();
+        $cacheKey = 'contact_form_' . $ip;
+        $submissions = cache($cacheKey, 0);
+        
+        if ($submissions >= 3) {
+            return redirect()->route('website.contact')
+                ->with('error', 'Too many submissions. Please try again later.');
+        }
+
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email',
-            'message' => 'required|string|max:1000',
+            'name' => 'required|string|max:255|regex:/^[\pL\s\-\']+$/u',
+            'email' => 'required|email:rfc,dns|max:255',
+            'message' => 'required|string|min:10|max:2000',
+        ], [
+            'name.regex' => 'Please enter a valid name.',
+            'email.email' => 'Please enter a valid email address.',
+            'message.min' => 'Your message must be at least 10 characters.',
         ]);
+
+        // Sanitize message content
+        $validated['message'] = strip_tags($validated['message']);
+        $validated['name'] = strip_tags($validated['name']);
 
         ContactMessage::create([
             'name' => $validated['name'],
@@ -588,13 +613,13 @@ class WebsiteController extends Controller
             'status' => 'unread',
         ]);
 
-        // ✅ SEND CONTACT EMAIL TO ADMIN
-        try {
-            // Replace with your actual admin email or fetch from settings
-            $adminEmail = config('mail.from.address', 'info@brickspoint.com');
+        // Increment rate limit counter (expires in 1 hour)
+        cache([$cacheKey => $submissions + 1], now()->addHour());
 
-            Mail::to($adminEmail)
-                ->send(new ContactMessageReceived($validated));
+        // Send contact email to admin
+        try {
+            $adminEmail = config('mail.from.address', 'info@brickspoint.com');
+            Mail::to($adminEmail)->send(new ContactMessageReceived($validated));
         } catch (\Exception $e) {
             Log::error("Contact Email Failed: " . $e->getMessage());
         }
@@ -1135,6 +1160,54 @@ class WebsiteController extends Controller
         return response()->json([
             'success' => true,
             'cart' => $cartService->getCartSummary(),
+        ]);
+    }
+
+    /**
+     * Newsletter: Subscribe email
+     */
+    public function subscribeNewsletter(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email:rfc,dns|max:255',
+        ], [
+            'email.email' => 'Please enter a valid email address.',
+        ]);
+
+        // Check if already subscribed
+        $existing = NewsletterSubscriber::where('email', $validated['email'])->first();
+
+        if ($existing) {
+            if ($existing->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This email is already subscribed to our newsletter.',
+                ], 200);
+            }
+
+            // Reactivate subscription
+            $existing->update([
+                'is_active' => true,
+                'subscribed_at' => now(),
+                'unsubscribed_at' => null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Welcome back! Your subscription has been reactivated.',
+            ]);
+        }
+
+        // Create new subscriber
+        NewsletterSubscriber::create([
+            'email' => $validated['email'],
+            'is_active' => true,
+            'subscribed_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Thank you for subscribing to our newsletter!',
         ]);
     }
 }

@@ -407,13 +407,15 @@
                 <div class="col-lg-3 col-md-4">
                     <h4 class="h5 mb-4">Newsletter</h4>
                     <p class="text-muted-footer">Subscribe for special offers and updates</p>
-                    <form class="mb-3">
+                    <form id="newsletterForm" class="mb-3">
                         <div class="input-group">
-                            <input type="email" class="form-control bg-secondary border-0"
-                                placeholder="Your Email">
-                            <button class="btn btn-primary" type="submit"><i
-                                    class="fas fa-paper-plane"></i></button>
+                            <input type="email" id="newsletterEmail" class="form-control bg-secondary border-0 text-white"
+                                placeholder="Your Email" required>
+                            <button class="btn btn-primary" type="submit" id="newsletterBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
                         </div>
+                        <div id="newsletterFeedback" class="mt-2" style="display: none;"></div>
                     </form>
                 </div>
             </div>
@@ -442,6 +444,67 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     @stack('scripts')
+
+    {{-- Newsletter Subscription Script --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('newsletterForm');
+            const emailInput = document.getElementById('newsletterEmail');
+            const submitBtn = document.getElementById('newsletterBtn');
+            const feedback = document.getElementById('newsletterFeedback');
+
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const email = emailInput.value.trim();
+                    if (!email) return;
+
+                    // Disable button and show loading
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+                    try {
+                        const response = await fetch('{{ route("website.newsletter.subscribe") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({ email: email })
+                        });
+
+                        const data = await response.json();
+
+                        // Show feedback
+                        feedback.style.display = 'block';
+                        if (data.success) {
+                            feedback.className = 'mt-2 small text-success';
+                            feedback.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + data.message;
+                            emailInput.value = '';
+                        } else {
+                            feedback.className = 'mt-2 small text-warning';
+                            feedback.innerHTML = '<i class="fas fa-info-circle me-1"></i>' + data.message;
+                        }
+
+                        // Hide feedback after 5 seconds
+                        setTimeout(() => {
+                            feedback.style.display = 'none';
+                        }, 5000);
+
+                    } catch (error) {
+                        feedback.style.display = 'block';
+                        feedback.className = 'mt-2 small text-danger';
+                        feedback.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

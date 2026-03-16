@@ -869,9 +869,22 @@ class BanquetController extends Controller
      */
     private function getReportData($startDate, $endDate)
     {
+        // $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
+        //     ->whereIn('status', ['Completed', 'Cancelled', 'Confirmed'])
+        //     ->whereBetween('preparation_date', [$startDate, $endDate])
+        //     ->get();
+        $start = \Carbon\Carbon::parse($startDate)->startOfDay();
+        $end = \Carbon\Carbon::parse($endDate)->endOfDay();
+
         $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
             ->whereIn('status', ['Completed', 'Cancelled', 'Confirmed'])
-            ->whereBetween('preparation_date', [$startDate, $endDate])
+            ->whereHas('eventDays', function ($query) use ($start, $end) {
+                // This ensures we only pick orders where the VERY FIRST day 
+                // of the event falls within our report range.
+                $query->select('event_date')
+                    ->whereBetween('event_date', [$start, $end])
+                    ->whereRaw('event_date = (select min(event_date) from banquet_order_days where banquet_order_days.banquet_order_id = banquet_orders.id)');
+            })
             ->get();
 
         $reportData = [];

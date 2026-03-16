@@ -31,7 +31,7 @@
                                 <a href="{{ route('website.rooms.index') }}" class="btn btn-primary btn-lg px-5 py-3">
                                     <i class="fas fa-bed me-2"></i>Explore Rooms
                                 </a>
-                            <a href="{{ route('website.book') }}" class="btn btn-outline-light btn-lg px-5 py-3">
+                                <a href="{{ route('website.book') }}" class="btn btn-outline-light btn-lg px-5 py-3">
                                     <i class="fas fa-calendar-check me-2"></i>Book Direct
                                 </a>
                             </div>
@@ -94,8 +94,7 @@
                             <!-- Quick Booking Form for second slide -->
                             <div class="quick-booking-form bg-white p-4 rounded shadow mx-auto mt-4"
                                 style="max-width: 900px;">
-                                <form action="{{ route('website.book') }}" method="GET"
-                                    class="row g-3 align-items-end">
+                                <form action="{{ route('website.book') }}" method="GET" class="row g-3 align-items-end">
                                     <div class="col-md-3">
                                         <label for="check_in_2" class="form-label">Check-In</label>
                                         <input type="date" class="form-control" id="check_in_2" name="check_in"
@@ -166,7 +165,8 @@
                                     ₦{{ number_format($roomType->price, 2) }} <small>/ night</small>
                                 </div>
                                 <span class="position-absolute bottom-0 start-0 m-2 badge bg-info">
-                                    <i class="fas fa-door-open me-1"></i>{{ $roomType->units_count }} {{ Str::plural('Room', $roomType->units_count) }}
+                                    <i class="fas fa-door-open me-1"></i>{{ $roomType->units_count }}
+                                    {{ Str::plural('Room', $roomType->units_count) }}
                                 </span>
                                 <div class="room-overlay d-flex align-items-center justify-content-center">
                                     <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
@@ -179,7 +179,8 @@
                                 <div class="room-features d-flex flex-wrap gap-2 mb-3">
                                     @foreach ($roomType->amenities->take(3) as $amenity)
                                         <span class="badge bg-light text-dark border">
-                                            <i class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i>
+                                            <i
+                                                class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i>
                                             {{ $amenity->name }}
                                         </span>
                                     @endforeach
@@ -259,8 +260,10 @@
                 </div>
                 <div class="col-lg-6">
                     <div class="ratio ratio-16x9 rounded overflow-hidden shadow-lg">
-                        <img src="{{ asset('images/hotel-feature.jpg') }}" alt="Hotel Feature"
-                            class="img-fluid w-100 h-100 object-fit-cover">
+                        <img src="{{ !empty($settings['hotel_feature_image'])
+                            ? asset($settings['hotel_feature_image'])
+                            : asset('images/default-hotel.jpg') }}"
+                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover">
                     </div>
                 </div>
             </div>

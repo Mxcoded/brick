@@ -5,8 +5,16 @@
 @section('page-content')
 <div class="container-fluid py-4">
     
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 text-gray-800">Inbox</h1>
+        <h1 class="h3 text-gray-800"><i class="fas fa-inbox me-2 text-primary"></i>Inbox</h1>
+        <span class="badge bg-primary">{{ $messages->total() }} messages</span>
     </div>
 
     <div class="card border-0 shadow-sm mb-4">
@@ -42,28 +50,45 @@
                 </thead>
                 <tbody>
                     @forelse($messages as $msg)
-                    <tr class="{{ $msg->is_read ? '' : 'fw-bold bg-light' }}">
+                    <tr class="{{ $msg->status === 'unread' ? 'fw-bold bg-light' : '' }}">
                         <td class="ps-4">
+                            @if($msg->status === 'unread')
+                                <span class="badge bg-primary me-1">New</span>
+                            @endif
                             {{ $msg->name }} <br>
                             <small class="text-muted fw-normal">{{ $msg->email }}</small>
                         </td>
                         <td>
-                            {{ Str::limit($msg->subject, 30) }} 
-                            <span class="text-muted fw-normal mx-2">-</span> 
-                            <small class="text-muted fw-normal">{{ Str::limit($msg->message, 40) }}</small>
+                            @if($msg->subject)
+                                {{ Str::limit($msg->subject, 30) }} 
+                                <span class="text-muted fw-normal mx-2">-</span> 
+                            @endif
+                            <small class="text-muted fw-normal">{{ Str::limit($msg->message, 50) }}</small>
                         </td>
                         <td class="text-muted small">
                             {{ $msg->created_at->diffForHumans() }}
                         </td>
                         <td class="text-end pe-4">
-                            <a href="{{ route('website.admin.contact-messages.show', $msg->id) }}" class="btn btn-sm btn-outline-primary">
-                                View
-                            </a>
+                            <div class="btn-group" role="group">
+                                <a href="{{ route('website.admin.contact-messages.show', $msg->id) }}" class="btn btn-sm btn-outline-primary" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <form action="{{ route('website.admin.contact-messages.destroy', $msg->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this message?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="4" class="text-center py-5 text-muted">No messages found.</td>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                            No messages found.
+                        </td>
                     </tr>
                     @endforelse
                 </tbody>
