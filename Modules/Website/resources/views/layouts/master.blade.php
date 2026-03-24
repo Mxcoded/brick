@@ -301,8 +301,9 @@
                                 href="{{ route('website.home') }}">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('website.rooms.*', 'website.booking') ? 'active' : '' }}"
-                                href="{{ route('website.rooms.index') }}">Rooms & Suites</a>
+                            {{-- <a class="nav-link {{ request()->routeIs('website.rooms.*', 'website.booking') ? 'active' : '' }}"
+                                href="{{ route('website.rooms.index') }}">Rooms & Suites</a> --}}
+                                <a class="nav-link" href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}">Rooms & Suites</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.dining') ? 'active' : '' }}"
@@ -333,10 +334,11 @@
                     </ul>
                     @guest
                         <div class="d-flex align-items-center">
-                            <a href="{{ route('website.book') }}"
+                            <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
                                 class="btn btn-primary px-4 py-2 rounded fw-bold shadow-sm btn-book-mobile">
                                 <i class="fas fa-calendar-check me-2"></i>Book Now
                             </a>
+                            {{-- route('website.book') --}}
                         </div>
                     @else
                         <div class="d-flex align-items-center">
@@ -380,8 +382,10 @@
                     <ul class="list-unstyled">
                         <li class="mb-2"><a href="{{ route('website.home') }}"
                                 class="text-muted-footer text-decoration-none">Home</a></li>
-                        <li class="mb-2"><a href="{{ route('website.rooms.index') }}"
-                                class="text-muted-footer text-decoration-none">Rooms</a></li>
+                        <li class="mb-2"><a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
+                                class="text-muted-footer text-decoration-none">Rooms</a> </li>
+                                {{-- <a href="{{ route('website.rooms.index') }}"
+                                class="text-muted-footer text-decoration-none">Rooms</a> --}}
                         <li class="mb-2"><a href="{{ route('website.amenities') }}"
                                 class="text-muted-footer text-decoration-none">Amenities</a></li>
                         <li class="mb-2"><a href="{{ route('website.about') }}"

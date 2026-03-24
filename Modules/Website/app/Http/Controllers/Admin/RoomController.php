@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Modules\Website\Models\Room;
+use Modules\Website\Models\RoomType;
+use Modules\Website\Models\RoomUnit;
 use Modules\Website\Models\RoomImage;
 use Modules\Website\Models\Amenity;
 use Modules\Website\Models\Booking;
+use Modules\Website\Services\RoomCalendarService;
 use Modules\Frontdeskcrm\Models\Registration;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -16,10 +19,12 @@ use Illuminate\Support\Str;
 class RoomController extends Controller
 {
     protected ImageService $imageService;
+    protected RoomCalendarService $calendarService;
 
-    public function __construct(ImageService $imageService)
+    public function __construct(ImageService $imageService, RoomCalendarService $calendarService)
     {
         $this->imageService = $imageService;
+        $this->calendarService = $calendarService;
     }
     public function index()
     {
@@ -223,220 +228,29 @@ class RoomController extends Controller
         return view('website::admin.rooms.calendar', compact('rooms', 'date', 'daysInMonth', 'startOfMonth'));
     }
     /**
-     * ✅ API 1: Live Room Rack Data (Merged & Prioritized)
+     * API: Live Room Rack Data (uses RoomCalendarService)
      */
     public function getRoomStatus()
     {
-        // 1. Get all rooms
-        $rooms = Room::select('id', 'name', 'capacity', 'status')->get();
-        $today = now()->format('Y-m-d');
-
-        // 2. Fetch Active FRONTDESK Registrations (Priority 1)
-        // We grab entries that are physically in-house
-        $activeRegistrations = collect();
-        if (class_exists(Registration::class)) {
-            $activeRegistrations = Registration::whereIn('stay_status', ['checked_in', 'draft_by_guest'])
-                ->get();
-        }
-
-        // 3. Fetch Active WEBSITE Bookings (Priority 2)
-        $activeBookings = Booking::where('status', '!=', 'cancelled')
-            ->whereDate('check_in_date', '<=', $today)
-            ->whereDate('check_out_date', '>', $today)
-            ->get()
-            ->keyBy('room_id');
-
-        // 4. Map Status
-        $data = $rooms->map(function ($room) use ($activeRegistrations, $activeBookings) {
-
-            // A. Maintenance Check
-            if ($room->status === 'maintenance') {
-                return $this->formatStatus($room, 'maintenance', 'secondary', 'Maintenance');
-            }
-
-            // B. Frontdesk Priority Check (The "Think Deep" Logic)
-            // 1. Try strict ID match
-            $registration = $activeRegistrations->firstWhere('room_id', $room->id);
-
-            // 2. Fallback: If room_id is missing, match name string (Legacy Support)
-            if (!$registration) {
-                $registration = $activeRegistrations->firstWhere('room_allocation', $room->name);
-            }
-
-            if ($registration) {
-                return $this->formatStatus(
-                    $room,
-                    'occupied',
-                    'danger', // Red = Physically Occupied
-                    $registration->full_name,
-                    $registration->check_out
-                );
-            }
-
-            // C. Website Booking Check
-            $booking = $activeBookings->get($room->id);
-            if ($booking) {
-                $isCheckingOut = $booking->check_out_date === now()->format('Y-m-d');
-                return $this->formatStatus(
-                    $room,
-                    'occupied',
-                    $isCheckingOut ? 'warning' : 'primary', // Blue/Orange
-                    $booking->guest_name,
-                    $booking->check_out_date
-                );
-            }
-
-            // D. Available
-            return $this->formatStatus($room, 'available', 'success', 'Vacant');
-        });
-
-        return response()->json($data);
-    }
-
-    private function formatStatus($room, $status, $color, $guest, $checkout = null)
-    {
-        return [
-            'id' => $room->id,
-            'name' => $room->name,
-            'status' => $status,
-            'color' => $color,
-            'guest' => $guest,
-            'checkout' => $checkout ? \Carbon\Carbon::parse($checkout)->format('M d') : null,
-        ];
+        return response()->json($this->calendarService->getRoomStatusData());
     }
 
     /**
-     * ✅ API: Calendar Data (Merged & Color Coded for Uniformity)
+     * API: Calendar/Density Chart Data (uses RoomCalendarService)
      */
     public function getCalendarData(Request $request)
     {
         $start = $request->input('start') ? \Carbon\Carbon::parse($request->input('start')) : now()->startOfMonth();
         $end = $request->input('end') ? \Carbon\Carbon::parse($request->input('end')) : now()->endOfMonth();
 
-        $rooms = Room::all();
-
-        // Get Website Bookings
-        $bookings = Booking::where('status', '!=', 'cancelled')
-            ->where(function ($q) use ($start, $end) {
-                $q->whereBetween('check_in_date', [$start, $end])
-                    ->orWhereBetween('check_out_date', [$start, $end]);
-            })->get();
-
-        // Get Frontdesk Registrations
-        $registrations = collect();
-        if (class_exists(Registration::class)) {
-            $registrations = Registration::where('stay_status', '!=', 'cancelled')
-                ->where(function ($q) use ($start, $end) {
-                    $q->whereBetween('check_in', [$start, $end])
-                        ->orWhereBetween('check_out', [$start, $end]);
-                })->get();
-        }
-
-        $roomData = $rooms->map(function ($room) use ($bookings, $registrations, $start, $end) {
-            $events = [];
-
-            // 1. Maintenance Status -> MAGENTA (#FF00FF)
-            if ($room->status === 'maintenance') {
-                $events[] = [
-                    'id' => 'maint-' . $room->id,
-                    'title' => 'Maintenance',
-                    'start' => $start->toDateString(),
-                    'end' => $end->toDateString(),
-                    'color' => '#FF00FF',
-                    'status' => 'maintenance'
-                ];
-            }
-
-            // 2. Frontdesk Events (Prioritized for physically in-house guests)
-            foreach ($registrations as $reg) {
-                if ($reg->room_id == $room->id || $reg->room_allocation == $room->name) {
-
-                    // Match Frontdesk CRM Schedule Legend colors and wording
-                    $color = '#6c757d'; // Default Grey
-                    $statusLabel = 'Stay';
-
-                    switch ($reg->stay_status) {
-                        case 'checked_in':
-                            $color = '#32CD32'; // Light Green
-                            $statusLabel = 'In-House';
-                            break;
-                        case 'checked_out':
-                            $color = '#006400'; // Dark Green
-                            $statusLabel = 'Checked Out';
-                            break;
-                        case 'reserved':
-                            $color = '#0DCAF0'; // Cyan
-                            $statusLabel = 'Reserved';
-                            break;
-                        case 'maintenance':
-                            $color = '#FF00FF'; // Magenta
-                            $statusLabel = 'Maintenance';
-                            break;
-                        case 'draft_by_guest':
-                            $color = '#ffc107'; // Yellow
-                            $statusLabel = 'Pending Check-in';
-                            break;
-                    }
-
-                    $events[] = [
-                        'id' => 'reg-' . $reg->id,
-                        'title' => "{$reg->full_name} ({$statusLabel})",
-                        'start' => $reg->check_in instanceof \Carbon\Carbon ? $reg->check_in->format('Y-m-d') : substr($reg->check_in, 0, 10),
-                        'end' => $reg->check_out instanceof \Carbon\Carbon ? $reg->check_out->format('Y-m-d') : substr($reg->check_out, 0, 10),
-                        'color' => $color,
-                        'status' => $reg->stay_status,
-                    ];
-                }
-            }
-
-            // 3. Website Events -> PRIMARY BLUE (#0d6efd)
-            foreach ($bookings as $booking) {
-                // Only add web booking if room isn't already marked as checked-in via Frontdesk
-                if ($booking->room_id == $room->id) {
-                    $events[] = [
-                        'id'          => 'bk-' . $booking->id,
-                        'title'       => "{$booking->guest_name} (Online Booking)",
-                        'start'       => $booking->check_in_date instanceof \Carbon\Carbon
-                            ? $booking->check_in_date->format('Y-m-d')
-                            : substr($booking->check_in_date, 0, 10),
-                        'end'         => $booking->check_out_date instanceof \Carbon\Carbon
-                            ? $booking->check_out_date->format('Y-m-d')
-                            : substr($booking->check_out_date, 0, 10),
-                        'color'       => '#0d6efd', // Standard Blue for Web Bookings
-                        'status'      => 'online_booking',
-                        'details_url' => route('website.admin.bookings.edit', $booking->id),
-                    ];
-                }
-            }
-
-            return [
-                'id' => $room->id,
-                'name' => $room->name,
-                'capacity' => $room->capacity,
-                'events' => $events
-            ];
-        });
-
-        return response()->json([
-            'rooms' => $roomData,
-            'days' => $this->generateDateHeaders($start, $end)
-        ]);
+        return response()->json($this->calendarService->getCalendarData($start, $end));
     }
 
-    private function generateDateHeaders($start, $end)
+    /**
+     * API: Get occupancy statistics for dashboard
+     */
+    public function getOccupancyStats()
     {
-        $dates = [];
-        $current = $start->copy();
-        while ($current->lte($end)) {
-            $dates[] = [
-                'date' => $current->format('Y-m-d'),
-                'day' => $current->format('d'),
-                'weekday' => $current->format('D'),
-                'is_weekend' => $current->isWeekend(),
-                'is_today' => $current->isToday(),
-            ];
-            $current->addDay();
-        }
-        return $dates;
+        return response()->json($this->calendarService->getOccupancyStats());
     }
 }

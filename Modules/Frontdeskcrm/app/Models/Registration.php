@@ -16,6 +16,11 @@ class Registration extends Model
     protected $fillable = [
         'guest_id',
         'booking_id', // ✅ Verified: It's here
+        'original_check_in_date',   // Immutable: original booking check-in
+        'original_check_out_date',  // Immutable: original booking check-out
+        'booking_group_id',         // Links registrations from same group (GRP reference)
+        'dates_adjusted',           // Track if dates were modified from original
+        'billing_policy',           // The policy used (strict/flexible)
         'guest_type_id',
         'booking_source_id',
         'parent_registration_id',
@@ -55,14 +60,19 @@ class Registration extends Model
         'checked_out_by_agent_id', // ✅ Verified
         'review_rating',
         'review_comment',
-        'front_desk_agent'
+        'front_desk_agent',
+        'checked_in_at'
     ];
 
     protected $casts = [
         'check_in' => 'date',
         'check_out' => 'date',
+        'original_check_in_date' => 'date',
+        'original_check_out_date' => 'date',
+        'dates_adjusted' => 'boolean',
         'registration_date' => 'date',
         'actual_checkout_at' => 'datetime',
+        'checked_in_at' => 'datetime',
         'birthdate' => 'date',
         'bed_breakfast' => 'boolean',
         'is_group_lead' => 'boolean',
@@ -157,5 +167,56 @@ class Registration extends Model
         $onlineTotal = $this->booking ? $this->booking->amount_paid : 0;
 
         return $localTotal + $onlineTotal;
+    }
+
+    /**
+     * Get all registrations in the same booking group.
+     */
+    public function groupRegistrations(): HasMany
+    {
+        return $this->hasMany(Registration::class, 'booking_group_id', 'booking_group_id');
+    }
+
+    /**
+     * Check if this registration is part of a group booking.
+     */
+    public function isGroupBooking(): bool
+    {
+        return !empty($this->booking_group_id);
+    }
+
+    /**
+     * Check if dates have been modified from the original booking.
+     */
+    public function hasDateAdjustments(): bool
+    {
+        return $this->dates_adjusted ?? false;
+    }
+
+    /**
+     * Get original dates display for read-only UI.
+     */
+    public function getOriginalDatesAttribute(): ?string
+    {
+        if ($this->original_check_in_date && $this->original_check_out_date) {
+            return $this->original_check_in_date->format('M d, Y') . ' - ' . $this->original_check_out_date->format('M d, Y');
+        }
+        return null;
+    }
+
+    /**
+     * Scope to find registrations by group ID.
+     */
+    public function scopeInGroup($query, string $groupId)
+    {
+        return $query->where('booking_group_id', $groupId);
+    }
+
+    /**
+     * Scope to find registrations from web bookings (has booking_id).
+     */
+    public function scopeFromWebBooking($query)
+    {
+        return $query->whereNotNull('booking_id');
     }
 }

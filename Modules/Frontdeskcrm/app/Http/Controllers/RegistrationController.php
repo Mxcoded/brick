@@ -10,6 +10,8 @@ use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\BookingSource;
 use Modules\Frontdeskcrm\Models\GuestType;
 use Modules\Website\Models\Room;
+use Modules\Website\Models\RoomType;
+use Modules\Website\Models\RoomUnit;
 use Modules\Website\Models\Booking;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -105,17 +107,37 @@ class RegistrationController extends Controller
         // STRICT REF CHECK: Must start with BK and be exactly 8 characters
         $isRef = preg_match('/^BK[A-Z0-9]{6}$/', $query);
 
+        // GROUP REF CHECK: Must start with GRP (e.g., GRP-67890ABC)
+        $isGroupRef = preg_match('/^GRP-[A-Z0-9]{8}$/', $query);
+
         // ---------------------------------------------------------
         // ERROR HANDLING: Unrecognized Input
         // ---------------------------------------------------------
-        if (!$isEmail && !$isPhone && !$isRef) {
+        if (!$isEmail && !$isPhone && !$isRef && !$isGroupRef) {
             return redirect()->route('frontdesk.registrations.create')
-                ->with('error', 'We didn’t recognize that format. Please enter a valid Email, Phone, or an 8-character Booking Ref starting with "BK".')
+                ->with('error', 'We didn\'t recognize that format. Please enter a valid Email, Phone, Booking Ref (BK...), or Group Ref (GRP-...).')
                 ->withInput();
         }
 
         // ---------------------------------------------------------
-        // TARGETED LOOKUP: Booking Reference
+        // TARGETED LOOKUP: Group Booking Reference (GRP-...)
+        // ---------------------------------------------------------
+        if ($isGroupRef) {
+            $bookings = Booking::where('booking_group_id', $query)
+                ->with('guest', 'roomType', 'roomUnit')
+                ->get();
+
+            if ($bookings->isNotEmpty()) {
+                return $this->processFoundGroupBooking($bookings, $query);
+            }
+
+            return redirect()->route('frontdesk.registrations.create')
+                ->with('error', 'No bookings found with this group reference.')
+                ->withInput();
+        }
+
+        // ---------------------------------------------------------
+        // TARGETED LOOKUP: Single Booking Reference (BK...)
         // ---------------------------------------------------------
         if ($isRef) {
             $booking = Booking::where('booking_reference', $query)->with('guest','room')->first();
@@ -266,6 +288,103 @@ class RegistrationController extends Controller
             ->with('success', "Welcome back, {$guest->full_name}!");
     }
 
+    /**
+     * Helper to process Group Booking (multiple rooms under one GRP reference)
+     * Stores group data in session for agent review during finalization.
+     */
+    private function processFoundGroupBooking($bookings, string $groupId)
+    {
+        $primaryBooking = $bookings->first();
+        $totalRooms = $bookings->count();
+        $guest = $primaryBooking->guest;
+
+        // Check if any booking in group is already registered
+        $existingRegistrations = Registration::whereIn('booking_id', $bookings->pluck('id'))
+            ->whereIn('stay_status', ['checked_in', 'checked_out', 'reserved'])
+            ->count();
+
+        if ($existingRegistrations > 0) {
+            return redirect()->route('frontdesk.registrations.create')
+                ->with('error', "Some rooms in this group booking have already been processed. Please see the front desk.")
+                ->withInput();
+        }
+
+        // Check for expired bookings
+        $today = now()->startOfDay();
+        $checkOutDate = Carbon::parse($primaryBooking->check_out_date)->startOfDay();
+        $checkInDate = Carbon::parse($primaryBooking->check_in_date)->startOfDay();
+
+        if ($today->gt($checkOutDate)) {
+            return redirect()->route('frontdesk.registrations.create')
+                ->with('error', 'This group booking has expired (Departure was scheduled for ' . $checkOutDate->format('M d, Y') . '). Please see the front desk.')
+                ->withInput();
+        }
+
+        if ($today->gt($checkInDate)) {
+            session()->flash('info', 'Welcome! We noticed your scheduled arrival was ' . $checkInDate->format('M d') . '. We have held your reservation.');
+        }
+
+        $title = ($guest && $guest->gender == 'Male') ? 'Mr. ' : 'Ms. ';
+        $totalGuests = $bookings->sum(function ($b) { return $b->adults + $b->children; });
+        $totalNights = $primaryBooking->check_in_date->diffInDays($primaryBooking->check_out_date);
+
+        // Build room summary for the group
+        $roomsSummary = $bookings->map(function ($booking) {
+            return [
+                'booking_id' => $booking->id,
+                'booking_reference' => $booking->booking_reference,
+                'room_type' => $booking->roomType->name ?? 'N/A',
+                'room_type_id' => $booking->room_type_id,
+                'room_unit_id' => $booking->room_unit_id,
+                'adults' => $booking->adults,
+                'children' => $booking->children,
+                'total_amount' => $booking->total_amount,
+                'payment_status' => $booking->payment_status,
+            ];
+        })->toArray();
+
+        session([
+            'returning_guest' => [
+                'id' => $primaryBooking->guest_profile_id,
+                'name' => $primaryBooking->guest_name,
+                'masked_email' => preg_replace('/(?<=.).(?=.*@)/', '*', $primaryBooking->guest_email),
+                'masked_phone' => '******' . substr($primaryBooking->guest_phone, -4),
+            ],
+            'guest_data' => [
+                // Personal Info from primary booking guest
+                'title' => $title,
+                'full_name' => $primaryBooking->guest_name,
+                'email' => $primaryBooking->guest_email,
+                'contact_number' => $primaryBooking->guest_phone,
+                'birthday' => $guest && $guest->birthday ? Carbon::parse($guest->birthday)->format('Y-m-d') : null,
+                'gender' => $guest->gender ?? null,
+                'nationality' => $guest->nationality ?? null,
+                'home_address' => $guest->home_address ?? null,
+                'occupation' => $guest->occupation ?? null,
+                'company_name' => $guest->company_name ?? null,
+                // Emergency Contact
+                'emergency_name' => $guest->emergency_name ?? null,
+                'emergency_contact' => $guest->emergency_contact ?? null,
+                // Stay Details (shared across group)
+                'check_in' => $primaryBooking->check_in_date->format('Y-m-d'),
+                'check_out' => $primaryBooking->check_out_date->format('Y-m-d'),
+                'no_of_nights' => $totalNights,
+                'no_of_guests' => $totalGuests,
+                'is_group_lead' => '1', // Always group lead for multi-room
+                // Group-specific data
+                'total_rooms' => $totalRooms,
+                'total_amount' => $bookings->sum('total_amount'),
+            ],
+            // Store group info for finalization
+            'linked_booking_group_id' => $groupId,
+            'linked_group_bookings' => $roomsSummary,
+            // Also store primary booking for backward compatibility
+            'linked_booking_id' => $primaryBooking->id,
+        ]);
+
+        return redirect()->route('frontdesk.registrations.create')
+            ->with('success', "Group Booking Found! Welcome, {$primaryBooking->guest_name}. ({$totalRooms} rooms)");
+    }
 
     /**
      * Store the guest's submitted draft registration.
@@ -369,6 +488,7 @@ class RegistrationController extends Controller
             // Get booking data from session if available (for online bookings)
             $bookingData = session('guest_data', []);
             $linkedBookingId = session('linked_booking_id');
+            $linkedBookingGroupId = session('linked_booking_group_id');
             
             // Calculate nights
             $checkIn = Carbon::parse($validated['check_in']);
@@ -379,13 +499,21 @@ class RegistrationController extends Controller
             $roomId = null;
             $roomAllocation = null;
             $roomRate = $bookingData['room_rate'] ?? null;
+            $roomTypeId = null;
+            $roomUnitId = null;
             
             if ($linkedBookingId) {
-                $linkedBooking = Booking::with('room')->find($linkedBookingId);
-                if ($linkedBooking && $linkedBooking->room) {
-                    $roomId = $linkedBooking->room_id;
-                    $roomAllocation = $linkedBooking->room->name;
-                    $roomRate = $roomRate ?? $linkedBooking->room->price;
+                $linkedBooking = Booking::with(['room', 'roomType', 'roomUnit'])->find($linkedBookingId);
+                if ($linkedBooking) {
+                    // Legacy room support
+                    if ($linkedBooking->room) {
+                        $roomId = $linkedBooking->room_id;
+                        $roomAllocation = $linkedBooking->room->name;
+                        $roomRate = $roomRate ?? $linkedBooking->room->price;
+                    }
+                    // New room type/unit support
+                    $roomTypeId = $linkedBooking->room_type_id;
+                    $roomUnitId = $linkedBooking->room_unit_id;
                 }
             }
 
@@ -393,6 +521,12 @@ class RegistrationController extends Controller
                 'guest_id' => $guest->id,
                 // Booking Link
                 'booking_id' => $linkedBookingId,
+                // Original dates (immutable for audit - only set if from web booking)
+                'original_check_in_date' => $linkedBookingId ? $validated['check_in'] : null,
+                'original_check_out_date' => $linkedBookingId ? $validated['check_out'] : null,
+                // Group booking support
+                'booking_group_id' => $linkedBookingGroupId,
+                'dates_adjusted' => false,
                 'stay_status' => 'draft_by_guest',
                 
                 // Guest Snapshot
@@ -417,6 +551,8 @@ class RegistrationController extends Controller
                 
                 // Room & Billing (from online booking if available)
                 'room_id' => $roomId,
+                'room_type_id' => $roomTypeId,
+                'room_unit_id' => $roomUnitId,
                 'room_allocation' => $roomAllocation,
                 'room_rate' => $roomRate,
                 'total_amount' => $bookingData['total_amount'] ?? ($roomRate ? $roomRate * $noOfNights : null),
@@ -484,7 +620,7 @@ class RegistrationController extends Controller
             }
 
             // CLEAR THE SESSION AFTER SAVING
-            session()->forget(['returning_guest', 'guest_data', 'linked_booking_id']);
+            session()->forget(['returning_guest', 'guest_data', 'linked_booking_id', 'linked_booking_group_id', 'linked_group_bookings']);
             // 7. SEND NOTIFICATION EMAIL
             $this->sendNotification($registration);
             return redirect()->route('frontdesk.registrations.thank-you')
@@ -702,15 +838,43 @@ class RegistrationController extends Controller
      */
     public function showFinalizeForm(Registration $registration)
     {
-        // ✅ ALLOW BOTH 'draft_by_guest' AND 'reserved' statuses to be finalized.
+        // Allow both 'draft_by_guest' AND 'reserved' statuses to be finalized.
         if (!in_array($registration->stay_status, ['draft_by_guest', 'reserved'])) {
             return redirect()->route('frontdesk.registrations.show', $registration)
                 ->with('error', 'This registration has already been finalized.');
         }
 
+        // Load relationships for comprehensive display
+        $registration->load(['booking.roomType', 'guest']);
+
         $groupMembers = Registration::where('parent_registration_id', $registration->id)->get();
         $bookingSources = BookingSource::where('is_active', true)->get();
         $guestTypes = GuestType::where('is_active', true)->get();
+        
+        // Load room types with their available units for the registration dates
+        $roomTypes = RoomType::active()
+            ->with(['units' => function ($q) {
+                $q->whereIn('status', ['available', 'occupied'])
+                    ->orderBy('room_number');
+            }])
+            ->ordered()
+            ->get();
+        
+        // Get available room units for the registration dates
+        $availableUnits = RoomUnit::whereIn('status', ['available', 'occupied'])
+            ->whereDoesntHave('registrations', function ($q) use ($registration) {
+                $q->whereIn('stay_status', ['checked_in', 'reserved'])
+                    ->where('id', '!=', $registration->id)
+                    ->where(function ($inner) use ($registration) {
+                        $inner->where('check_in', '<', $registration->check_out)
+                            ->where('check_out', '>', $registration->check_in);
+                    });
+            })
+            ->with('roomType')
+            ->orderBy('room_number')
+            ->get();
+        
+        // Legacy rooms fallback (if any exist)
         $rooms = Room::orderBy('name')->get();
 
         return view('frontdeskcrm::registrations.finalize', compact(
@@ -718,162 +882,338 @@ class RegistrationController extends Controller
             'groupMembers',
             'bookingSources',
             'guestTypes',
+            'roomTypes',
+            'availableUnits',
             'rooms'
         ));
     }
     /**
      * Process the agent's finalization.
-     * UPDATED: Validates using Room ID (ERP Logic).
+     * Handles: Walk-ins, Web Bookings, Group Bookings, Early/Late arrivals
      */
     public function finalize(FinalizeRegistrationRequest $request, Registration $registration)
     {
-        $validated = $request->validated();
-        $billingType = $request->input('billing_type', 'consolidate');
-        $today = now()->startOfDay();
-        $checkInDate = \Carbon\Carbon::parse($registration->check_in)->startOfDay();
-        $checkOutDate = \Carbon\Carbon::parse($registration->check_out)->startOfDay();
-
-        // =========================================================
-        // 0. DATE LOGIC SANITY CHECKS (The Fix)
-        // =========================================================
-
-        // A) PREVENT "ZOMBIE" CHECK-INS (Date has passed)
-        if ($today->gte($checkOutDate)) {
-            return back()->with('error', 'Cannot check in: The departure date (' . $checkOutDate->format('M d') . ') has already passed. Please mark as No-Show or create a new Walk-in.');
-        }
-
-        // B) HANDLE EARLY ARRIVALS (Shift Start Date to Today)
-        // If guest arrives TODAY (Jan 20) but booking was TOMORROW (Jan 21),
-        // we must check availability for the NEW gap (Today) and charge for the extra night.
-        $datesAdjustedMessage = null;
-        $billingPolicyMessage = null;
-
-        if ($today->lt($checkInDate)) {
-            // Update the object in memory only (for availability check)
-            // We will save it permanently in the update() block below.
-            $registration->check_in = $today;
-
-            // Recalculate Nights (Add the extra days)
-            $newNights = $today->diffInDays($checkOutDate);
-            $registration->no_of_nights = $newNights; // Update memory
-
-            $datesAdjustedMessage = "Note: Check-in date adjusted to Today (" . $today->format('M d') . "). Extra nights added.";
-        }
-
-        // C) HANDLE LATE ARRIVALS WITH BILLING POLICY
-        // Get billing policy from form (for online bookings with date discrepancies)
-        $billingPolicy = $request->input('billing_policy', 'strict');
-        $amountPaidOnline = (float) $request->input('amount_paid_online', 0);
-        $originalCheckIn = $request->input('original_check_in') ? Carbon::parse($request->input('original_check_in')) : null;
+        Log::info('Finalize method called', ['registration_id' => $registration->id]);
         
-        // Calculate billing check-in based on policy
-        $billingCheckIn = $checkInDate; // Default to registration's check-in
-        
-        if ($today->gt($checkInDate) && $billingPolicy === 'flexible') {
-            // Flexible policy: Bill from actual arrival (today)
-            $billingCheckIn = $today;
-            $registration->check_in = $today; // Update actual check-in to today
-            $billingPolicyMessage = "Flexible billing applied: Charged from actual arrival.";
-        } elseif ($today->gt($checkInDate) && $billingPolicy === 'strict' && $originalCheckIn) {
-            // Strict policy: Bill from original booking date
-            $billingCheckIn = $originalCheckIn;
-            // Keep registration check_in as original for billing purposes
-            $registration->check_in = $originalCheckIn;
-            $billingPolicyMessage = "Strict billing applied: Charged from original booking date.";
-        }
+        try {
+            return DB::transaction(function () use ($request, $registration) {
+                $validated = $request->validated();
+                Log::info('Validation passed', ['validated' => $validated]);
+            $billingType = $request->input('billing_type', 'consolidate');
+            $today = now()->startOfDay();
+            $checkInDate = Carbon::parse($registration->check_in)->startOfDay();
+            $checkOutDate = Carbon::parse($registration->check_out)->startOfDay();
 
-        // Recalculate nights based on billing policy
-        $nights = $billingCheckIn->diffInDays($checkOutDate);
-        if ($nights < 1) $nights = 1;
-        $registration->no_of_nights = $nights;
+            // =========================================================
+            // 0. DATE LOGIC SANITY CHECKS
+            // =========================================================
 
-        // =========================================================
-        // 1. ERP AVAILABILITY CHECK (Using Adjusted Dates)
-        // =========================================================
+            // A) PREVENT "ZOMBIE" CHECK-INS (Date has passed)
+            if ($today->gte($checkOutDate)) {
+                return back()->with('error', 'Cannot check in: The departure date (' . $checkOutDate->format('M d') . ') has already passed. Please mark as No-Show or create a new Walk-in.');
+            }
 
-        $checkAvailability = function ($roomId, $checkIn, $checkOut, $ignoreRegId = null) {
-            if (!$roomId) return false;
-            return Registration::where('room_id', $roomId)
-                ->where('stay_status', 'checked_in')
-                ->where('id', '!=', $ignoreRegId)
-                ->where(function ($query) use ($checkIn, $checkOut) {
-                    $query->whereBetween('check_in', [$checkIn, $checkOut])
-                        ->orWhereBetween('check_out', [$checkIn, $checkOut])
-                        ->orWhere(function ($q) use ($checkIn, $checkOut) {
-                            $q->where('check_in', '<=', $checkIn)
-                                ->where('check_out', '>=', $checkOut);
-                        });
-                })->exists();
-        };
+            $datesAdjustedMessage = null;
+            $billingPolicyMessage = null;
+            $effectiveCheckIn = $checkInDate;
 
-        // ... (Your Availability Logic A & B remains the same) ...
-        // ... But it now uses the UPDATED $registration->check_in date! ...
+            // B) HANDLE EARLY ARRIVALS (Guest arrives before booked date)
+            if ($today->lt($checkInDate)) {
+                $effectiveCheckIn = $today;
+                $datesAdjustedMessage = "Check-in adjusted to today (" . $today->format('M d') . ").";
+            }
 
-        // A) Check Lead Room
-        $leadRoomId = $request->input('room_id');
-        if ($leadRoomId && $checkAvailability($leadRoomId, $registration->check_in, $registration->check_out, $registration->id)) {
-            $roomName = Room::find($leadRoomId)?->name ?? 'Selected Room';
-            return back()->withInput()->withErrors([
-                'room_id' => "$roomName is occupied (Date Logic: Checked availability starting " . $registration->check_in->format('M d') . ")."
+            // C) HANDLE LATE ARRIVALS WITH BILLING POLICY
+            $billingPolicy = $request->input('billing_policy', 'strict');
+            $originalCheckIn = $request->input('original_check_in') ? Carbon::parse($request->input('original_check_in')) : null;
+
+            if ($today->gt($checkInDate)) {
+                if ($billingPolicy === 'flexible') {
+                    $effectiveCheckIn = $today;
+                    $billingPolicyMessage = "Flexible billing: Charged from actual arrival.";
+                } elseif ($billingPolicy === 'strict' && $originalCheckIn) {
+                    $effectiveCheckIn = $originalCheckIn;
+                    $billingPolicyMessage = "Strict billing: Charged from original booking date.";
+                } else {
+                    $effectiveCheckIn = $checkInDate;
+                }
+            }
+
+            // Calculate nights
+            $nights = $effectiveCheckIn->diffInDays($checkOutDate);
+            if ($nights < 1) $nights = 1;
+
+            // =========================================================
+            // 1. AVAILABILITY CHECK HELPER
+            // =========================================================
+            $checkAvailability = function ($roomUnitId, $checkIn, $checkOut, $ignoreRegId = null) {
+                if (!$roomUnitId) return false;
+                return Registration::where('room_unit_id', $roomUnitId)
+                    ->whereIn('stay_status', ['checked_in', 'reserved'])
+                    ->where('id', '!=', $ignoreRegId)
+                    ->where(function ($query) use ($checkIn, $checkOut) {
+                        $query->where('check_in', '<', $checkOut)
+                            ->where('check_out', '>', $checkIn);
+                    })->exists();
+            };
+
+            // =========================================================
+            // 2. VALIDATE LEAD ROOM
+            // =========================================================
+            $leadRoomUnitId = $request->input('room_unit_id');
+            $leadRoomTypeId = $request->input('room_type_id');
+            $leadRoomAllocation = $request->input('room_allocation');
+
+            if (!$leadRoomUnitId) {
+                return back()->withInput()->withErrors(['room_unit_id' => 'Please select a room for the guest.']);
+            }
+
+            if ($checkAvailability($leadRoomUnitId, $effectiveCheckIn, $checkOutDate, $registration->id)) {
+                $roomUnit = RoomUnit::find($leadRoomUnitId);
+                $roomName = $roomUnit ? "Room {$roomUnit->room_number}" : 'Selected Room';
+                return back()->withInput()->withErrors(['room_unit_id' => "$roomName is occupied for the selected dates."]);
+            }
+
+            // Get room allocation name if not provided
+            if (!$leadRoomAllocation && $leadRoomUnitId) {
+                $roomUnit = RoomUnit::with('roomType')->find($leadRoomUnitId);
+                if ($roomUnit) {
+                    $leadRoomAllocation = $roomUnit->room_number . ' (' . ($roomUnit->roomType->name ?? 'Unknown') . ')';
+                    $leadRoomTypeId = $leadRoomTypeId ?? $roomUnit->room_type_id;
+                }
+            }
+
+            // =========================================================
+            // 3. PROCESS GROUP MEMBERS (if any)
+            // =========================================================
+            $membersTotalBill = 0;
+            $groupMembersData = $request->input('group_members', []);
+
+            if ($registration->is_group_lead && !empty($groupMembersData)) {
+                foreach ($groupMembersData as $memberId => $memberData) {
+                    $member = Registration::find($memberId);
+                    if (!$member || $member->parent_registration_id !== $registration->id) {
+                        continue; // Skip invalid members
+                    }
+
+                    $memberStatus = $memberData['status'] ?? 'checked_in';
+
+                    if ($memberStatus === 'no_show') {
+                        // Mark as no-show
+                        $member->update(['stay_status' => 'no_show']);
+                        continue;
+                    }
+
+                    // Validate member room
+                    $memberRoomUnitId = $memberData['room_unit_id'] ?? null;
+                    $memberRoomTypeId = $memberData['room_type_id'] ?? null;
+                    $memberRoomAllocation = $memberData['room_allocation'] ?? null;
+                    $memberRate = is_numeric(str_replace(',', '', $memberData['room_rate'] ?? 0)) 
+                        ? (float) str_replace(',', '', $memberData['room_rate']) 
+                        : 0;
+
+                    if (!$memberRoomUnitId) {
+                        return back()->withInput()->withErrors([
+                            "group_members.{$memberId}.room_unit_id" => "Please select a room for {$member->full_name}."
+                        ]);
+                    }
+
+                    if ($checkAvailability($memberRoomUnitId, $effectiveCheckIn, $checkOutDate, $member->id)) {
+                        $roomUnit = RoomUnit::find($memberRoomUnitId);
+                        $roomName = $roomUnit ? "Room {$roomUnit->room_number}" : 'Selected Room';
+                        return back()->withInput()->withErrors([
+                            "group_members.{$memberId}.room_unit_id" => "$roomName is occupied for {$member->full_name}."
+                        ]);
+                    }
+
+                    // Get room allocation name if not provided
+                    if (!$memberRoomAllocation && $memberRoomUnitId) {
+                        $roomUnit = RoomUnit::with('roomType')->find($memberRoomUnitId);
+                        if ($roomUnit) {
+                            $memberRoomAllocation = $roomUnit->room_number . ' (' . ($roomUnit->roomType->name ?? 'Unknown') . ')';
+                            $memberRoomTypeId = $memberRoomTypeId ?? $roomUnit->room_type_id;
+                        }
+                    }
+
+                    // Calculate member bill
+                    $memberBill = $memberRate * $nights;
+                    $membersTotalBill += $memberBill;
+
+                    // Update member registration
+                    $member->update([
+                        'room_unit_id' => $memberRoomUnitId,
+                        'room_type_id' => $memberRoomTypeId,
+                        'room_allocation' => $memberRoomAllocation,
+                        'room_rate' => $memberRate,
+                        'bed_breakfast' => !empty($memberData['bed_breakfast']),
+                        'check_in' => $effectiveCheckIn,
+                        'check_out' => $checkOutDate,
+                        'no_of_nights' => $nights,
+                        'total_amount' => $billingType === 'individual' ? $memberBill : 0,
+                        'stay_status' => 'checked_in',
+                    ]);
+                }
+            }
+
+            // =========================================================
+            // 4. CALCULATE LEAD BILLING
+            // =========================================================
+            $leadRate = is_numeric(str_replace(',', '', $validated['room_rate'])) 
+                ? (float) str_replace(',', '', $validated['room_rate']) 
+                : 0;
+            $leadPersonalBill = $leadRate * $nights;
+            $finalLeadTotal = $leadPersonalBill;
+
+            if ($billingType === 'consolidate') {
+                $finalLeadTotal += $membersTotalBill;
+            }
+
+            // =========================================================
+            // 5. UPDATE LEAD REGISTRATION
+            // =========================================================
+            $registration->update([
+                // Room assignment
+                'room_unit_id' => $leadRoomUnitId,
+                'room_type_id' => $leadRoomTypeId,
+                'room_allocation' => $leadRoomAllocation,
+                // Billing
+                'room_rate' => $leadRate,
+                'bed_breakfast' => $request->boolean('bed_breakfast'),
+                'guest_type_id' => $validated['guest_type_id'],
+                'booking_source_id' => $validated['booking_source_id'],
+                'payment_method' => $validated['payment_method'],
+                'billing_type' => $billingType,
+                'billing_policy' => $billingPolicy,
+                'stay_status' => 'checked_in',
+                // Dates
+                'check_in' => $effectiveCheckIn,
+                'no_of_nights' => $nights,
+                'dates_adjusted' => $datesAdjustedMessage !== null || $billingPolicyMessage !== null,
+                // Totals
+                'total_amount' => $finalLeadTotal,
+                'finalized_by_agent_id' => Auth::id(),
+                'checked_in_at' => now(),
             ]);
+
+            // =========================================================
+            // 6. SYNC & NOTIFY
+            // =========================================================
+            $this->syncBookingStatus($registration);
+
+            $successMsg = 'Check-in finalized successfully!';
+            if ($datesAdjustedMessage) {
+                $successMsg .= " " . $datesAdjustedMessage;
+            }
+            if ($billingPolicyMessage) {
+                $successMsg .= " " . $billingPolicyMessage;
+            }
+            if ($membersTotalBill > 0 && $billingType === 'consolidate') {
+                $successMsg .= " Group total: ₦" . number_format($finalLeadTotal);
+            }
+
+            $this->sendNotification($registration);
+
+            Log::info('Finalize completed successfully', ['registration_id' => $registration->id]);
+            
+            return redirect()->route('frontdesk.registrations.show', $registration)
+                ->with('success', $successMsg);
+            });
+        } catch (\Exception $e) {
+            Log::error('Finalize method error', [
+                'registration_id' => $registration->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->withInput()->with('error', 'An error occurred during check-in: ' . $e->getMessage());
         }
-
-        // ... (Member Checks remain the same) ...
-
-        // =========================================================
-        // 2. PROCESSING & SAVING
-        // =========================================================
-
-        // ... (Your Member Processing remains the same) ...
-
-        // --- Process Group Lead ---
-        $leadRoomName = null;
-        if ($request->filled('room_id')) {
-            $leadRoomName = Room::find($request->input('room_id'))?->name;
-        }
-
-        $leadRate = $validated['room_rate'];
-        $leadPersonalBill = $leadRate * $nights; // Uses updated nights
-        $finalLeadTotal = $leadPersonalBill;
-
-        if ($billingType === 'consolidate') {
-            $finalLeadTotal += $membersTotalBill ?? 0; // Ensure variable exists
-        }
-
-        $registration->update([
-            'room_id' => $request->input('room_id'),
-            'room_allocation' => $leadRoomName,
-            'room_rate' => $leadRate,
-            'bed_breakfast' => $request->boolean('bed_breakfast'),
-            'guest_type_id' => $validated['guest_type_id'],
-            'booking_source_id' => $validated['booking_source_id'],
-            'payment_method' => $validated['payment_method'],
-            'billing_type' => $billingType,
-            'stay_status' => 'checked_in',
-
-            // ✅ SAVE THE ADJUSTED DATES
-            'check_in' => $registration->check_in,
-            'no_of_nights' => $nights,
-
-            'total_amount' => $finalLeadTotal,
-            'finalized_by_agent_id' => Auth::id(),
-            'checked_in_at' => now(), // Exact timestamp
-        ]);
-
-        // ... (Parent Bill Sync remains the same) ...
-
-        $successMsg = 'Check-in finalized successfully!';
-        if ($datesAdjustedMessage) {
-            $successMsg .= " " . $datesAdjustedMessage;
-        }
-        if ($billingPolicyMessage) {
-            $successMsg .= " " . $billingPolicyMessage;
-        }
-        $this->sendNotification($registration);
-        return redirect()->route('frontdesk.registrations.show', $registration)
-            ->with('success', $successMsg);
     }
-    // --- NEW "NO-SHOW" FIX (The Gap) ---
+
+    // ===================================================================
+    // NO-SHOW MANAGEMENT
+    // ===================================================================
+
+    /**
+     * Mark a registration as No-Show.
+     * Handles both single registrations and group bookings.
+     * 
+     * Scenarios:
+     * - Draft/Reserved that never showed up
+     * - Group lead marking entire group as no-show
+     * - Group lead marking individual member as no-show (via finalize form)
+     */
+    public function markNoShow(Request $request, Registration $registration)
+    {
+        // 1. Validate registration can be marked as no-show
+        $allowedStatuses = ['draft_by_guest', 'reserved'];
+        if (!in_array($registration->stay_status, $allowedStatuses)) {
+            return back()->with('error', 'Only pending or reserved registrations can be marked as No-Show. Current status: ' . ucfirst(str_replace('_', ' ', $registration->stay_status)));
+        }
+
+        // 2. Check if checkout date has passed (actual no-show scenario)
+        $today = now()->startOfDay();
+        $checkInDate = Carbon::parse($registration->check_in)->startOfDay();
+        
+        // Allow marking as no-show if:
+        // - Today is past check-in date (they didn't show up)
+        // - OR manually triggered by agent for valid reasons
+        $isLateNoShow = $today->gt($checkInDate);
+        
+        return DB::transaction(function () use ($registration, $isLateNoShow, $today) {
+            $guestName = $registration->full_name;
+            $isGroupLead = $registration->is_group_lead;
+            
+            // 3. Update registration status
+            $registration->update([
+                'stay_status' => 'no_show',
+                'checked_in_at' => null,
+                'finalized_by_agent_id' => Auth::id(),
+            ]);
+
+            // 4. Handle group members if this is a group lead
+            $membersMarked = 0;
+            if ($isGroupLead) {
+                $membersMarked = Registration::where('parent_registration_id', $registration->id)
+                    ->whereIn('stay_status', ['draft_by_guest', 'reserved'])
+                    ->update([
+                        'stay_status' => 'no_show',
+                        'checked_in_at' => null,
+                    ]);
+            }
+
+            // 5. Sync booking status back to Website module
+            $this->syncBookingStatus($registration);
+
+            // 6. Log the action
+            Log::info('Registration marked as No-Show', [
+                'registration_id' => $registration->id,
+                'guest_name' => $guestName,
+                'is_group_lead' => $isGroupLead,
+                'members_affected' => $membersMarked,
+                'marked_by' => Auth::id(),
+                'is_late_no_show' => $isLateNoShow,
+            ]);
+
+            // 7. Build success message
+            $message = "{$guestName} has been marked as No-Show.";
+            if ($membersMarked > 0) {
+                $message .= " {$membersMarked} group member(s) were also marked as No-Show.";
+            }
+            if ($isLateNoShow) {
+                $message .= " (Late arrival - check-in date was " . Carbon::parse($registration->check_in)->format('M d, Y') . ")";
+            }
+
+            // 8. Send notification email (if configured)
+            try {
+                $this->sendNotification($registration);
+            } catch (\Exception $e) {
+                Log::warning('Failed to send no-show notification', ['error' => $e->getMessage()]);
+            }
+
+            return redirect()->route('frontdesk.registrations.index')
+                ->with('success', $message);
+        });
+    }
 
     /**
      * Re-opens a 'no_show' or 'checked_out' registration to be finalized again.
@@ -1084,6 +1424,9 @@ class RegistrationController extends Controller
         } elseif ($now->startOfDay()->gt($registration->check_out->startOfDay())) {
             $message .= " Stay extended and bill updated for overstay.";
         }
+
+        // Sync booking status back to Website module
+        $this->syncBookingStatus($registration);
 
         // Redirect logic
         if ($registration->parent_registration_id) {
@@ -1392,6 +1735,82 @@ class RegistrationController extends Controller
                 Log::error("Failed to send registration email: " . $e->getMessage());
             }
         }
+    }
+
+    /**
+     * Sync Registration status back to Website Booking.
+     * This ensures real-time data integrity between CRM and Website modules.
+     * 
+     * Status mapping:
+     * - 'checked_in' -> Booking status: 'checked_in'
+     * - 'checked_out' -> Booking status: 'completed'
+     * - 'no_show' -> Booking status: 'no_show'
+     */
+    private function syncBookingStatus(Registration $registration): void
+    {
+        if (!$registration->booking_id) {
+            return; // No web booking linked, nothing to sync
+        }
+
+        $booking = $registration->booking;
+        if (!$booking) {
+            return;
+        }
+
+        $statusMap = [
+            'checked_in' => 'checked_in',
+            'checked_out' => 'completed',
+            'no_show' => 'no_show',
+            'reserved' => 'confirmed',
+        ];
+
+        $newBookingStatus = $statusMap[$registration->stay_status] ?? null;
+
+        if ($newBookingStatus && $booking->status !== $newBookingStatus) {
+            $booking->update(['status' => $newBookingStatus]);
+            
+            Log::info("Booking status synced", [
+                'booking_id' => $booking->id,
+                'booking_reference' => $booking->booking_reference,
+                'registration_id' => $registration->id,
+                'new_status' => $newBookingStatus,
+            ]);
+        }
+
+        // If this is a group booking, sync all related bookings
+        if ($registration->booking_group_id) {
+            $this->syncGroupBookingStatus($registration);
+        }
+    }
+
+    /**
+     * Sync status for all bookings in a group when the group lead changes.
+     */
+    private function syncGroupBookingStatus(Registration $registration): void
+    {
+        if (!$registration->booking_group_id || !$registration->is_group_lead) {
+            return;
+        }
+
+        $statusMap = [
+            'checked_in' => 'checked_in',
+            'checked_out' => 'completed',
+            'no_show' => 'no_show',
+        ];
+
+        $newStatus = $statusMap[$registration->stay_status] ?? null;
+        if (!$newStatus) {
+            return;
+        }
+
+        // Update all bookings in the group
+        Booking::where('booking_group_id', $registration->booking_group_id)
+            ->update(['status' => $newStatus]);
+
+        Log::info("Group booking status synced", [
+            'booking_group_id' => $registration->booking_group_id,
+            'new_status' => $newStatus,
+        ]);
     }
     /**
      * Store a new payment for a registration.
