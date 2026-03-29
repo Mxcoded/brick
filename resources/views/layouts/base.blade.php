@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>Staff Module - {{ config('app.name', 'Staff Management') }}</title>
+    <title>Staff Module - {{ config('app.name', 'BRICKSPOINT ERP') }}</title>
 <link rel="icon" href=" {{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" type="image/x-icon">
     <!-- Fonts -->
     <link href="https://fonts.cdnfonts.com/css/proxima-nova" rel="stylesheet">

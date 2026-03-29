@@ -7,6 +7,7 @@ use Illuminate\Support\Collection;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
+use Modules\Website\Models\RoomInventoryBlock;
 use Modules\Website\Models\Booking;
 use Modules\Frontdeskcrm\Models\Registration;
 
@@ -469,5 +470,342 @@ class RoomCalendarService
             'available' => $available,
             'occupancy_rate' => $occupancyRate,
         ];
+    }
+
+    // ==========================================
+    // INVENTORY CALENDAR METHODS (Expedia-Style)
+    // ==========================================
+
+    /**
+     * Availability threshold constants for color coding.
+     */
+    const AVAILABILITY_THRESHOLDS = [
+        'full' => 0,           // 0% = Fully booked (Red)
+        'limited' => 30,       // <30% = Limited (Yellow)
+        'available' => 100,    // >30% = Available (Green)
+    ];
+
+    /**
+     * Get inventory data by room type for the calendar grid.
+     * Returns availability per room type per date.
+     */
+    public function getInventoryByRoomType(Carbon $start, Carbon $end): array
+    {
+        $roomTypes = RoomType::with('units')->active()->ordered()->get();
+        $bookings = $this->getBookings($start, $end);
+        $registrations = $this->getRegistrations($start, $end);
+        $inventoryBlocks = RoomInventoryBlock::overlapping($start, $end)->get();
+
+        $inventory = [];
+
+        foreach ($roomTypes as $roomType) {
+            $totalUnits = $roomType->units->count();
+            $inventory[$roomType->id] = [
+                'id' => $roomType->id,
+                'name' => $roomType->name,
+                'total_units' => $totalUnits,
+                'price' => $roomType->price,
+                'dates' => [],
+            ];
+
+            // Generate data for each date
+            $current = $start->copy();
+            while ($current->lte($end)) {
+                $dateStr = $current->format('Y-m-d');
+                $dateData = $this->calculateDateInventory(
+                    $roomType,
+                    $current,
+                    $bookings,
+                    $registrations,
+                    $inventoryBlocks
+                );
+                $inventory[$roomType->id]['dates'][$dateStr] = $dateData;
+                $current->addDay();
+            }
+        }
+
+        return $inventory;
+    }
+
+    /**
+     * Calculate inventory for a specific room type on a specific date.
+     */
+    protected function calculateDateInventory(
+        RoomType $roomType,
+        Carbon $date,
+        Collection $bookings,
+        Collection $registrations,
+        Collection $inventoryBlocks
+    ): array {
+        $totalUnits = $roomType->units->count();
+        $dateStr = $date->format('Y-m-d');
+
+        // Count booked units from registrations
+        $bookedFromRegistrations = $registrations->filter(function ($reg) use ($roomType, $date) {
+            if ($reg->room_type_id != $roomType->id) return false;
+            $checkIn = Carbon::parse($reg->check_in);
+            $checkOut = Carbon::parse($reg->check_out);
+            return $date->gte($checkIn) && $date->lt($checkOut);
+        })->count();
+
+        // Count booked units from website bookings (excluding those with registrations)
+        $bookedFromBookings = $bookings->filter(function ($booking) use ($roomType, $date, $registrations) {
+            if ($booking->room_type_id != $roomType->id) return false;
+            // Skip if already has a registration
+            if ($registrations->where('booking_id', $booking->id)->isNotEmpty()) return false;
+            $checkIn = Carbon::parse($booking->check_in_date);
+            $checkOut = Carbon::parse($booking->check_out_date);
+            return $date->gte($checkIn) && $date->lt($checkOut);
+        })->count();
+
+        // Get inventory blocks for this date and room type
+        $blocks = $inventoryBlocks->filter(function ($block) use ($roomType, $date) {
+            return $block->room_type_id == $roomType->id && $block->coversDate($date);
+        });
+
+        $blockedCount = $blocks->sum('blocked_count');
+        $stopSell = $blocks->where('stop_sell', true)->isNotEmpty();
+        $closedToArrival = $blocks->where('closed_to_arrival', true)->isNotEmpty();
+        $closedToDeparture = $blocks->where('closed_to_departure', true)->isNotEmpty();
+        $minStay = $blocks->whereNotNull('min_stay')->max('min_stay');
+        $maxStay = $blocks->whereNotNull('max_stay')->min('max_stay');
+
+        $totalBooked = $bookedFromRegistrations + $bookedFromBookings;
+        $totalBlocked = min($blockedCount, $totalUnits - $totalBooked); // Can't block more than available
+        $available = max(0, $totalUnits - $totalBooked - $totalBlocked);
+
+        // Calculate availability percentage and status
+        $availabilityPercent = $totalUnits > 0 ? round(($available / $totalUnits) * 100) : 0;
+        $status = $this->getAvailabilityStatus($availabilityPercent, $stopSell);
+
+        return [
+            'date' => $dateStr,
+            'total' => $totalUnits,
+            'booked' => $totalBooked,
+            'blocked' => $totalBlocked,
+            'available' => $available,
+            'percent' => $availabilityPercent,
+            'status' => $status,
+            'color' => $this->getAvailabilityColor($status),
+            'stop_sell' => $stopSell,
+            'closed_to_arrival' => $closedToArrival,
+            'closed_to_departure' => $closedToDeparture,
+            'min_stay' => $minStay,
+            'max_stay' => $maxStay,
+            'restrictions' => $this->formatRestrictions($minStay, $maxStay, $closedToArrival, $closedToDeparture),
+        ];
+    }
+
+    /**
+     * Get availability status based on percentage.
+     */
+    protected function getAvailabilityStatus(int $percent, bool $stopSell): string
+    {
+        if ($stopSell) return 'stop_sell';
+        if ($percent <= self::AVAILABILITY_THRESHOLDS['full']) return 'full';
+        if ($percent <= self::AVAILABILITY_THRESHOLDS['limited']) return 'limited';
+        return 'available';
+    }
+
+    /**
+     * Get color for availability status.
+     */
+    protected function getAvailabilityColor(string $status): string
+    {
+        return match ($status) {
+            'available' => '#28a745', // Green
+            'limited' => '#ffc107',   // Yellow
+            'full' => '#dc3545',      // Red
+            'stop_sell' => '#6c757d', // Gray
+            default => '#6c757d',
+        };
+    }
+
+    /**
+     * Format restrictions for display.
+     */
+    protected function formatRestrictions($minStay, $maxStay, $closedToArrival, $closedToDeparture): array
+    {
+        $restrictions = [];
+        if ($minStay) $restrictions[] = "Min {$minStay} nights";
+        if ($maxStay) $restrictions[] = "Max {$maxStay} nights";
+        if ($closedToArrival) $restrictions[] = 'CTA';
+        if ($closedToDeparture) $restrictions[] = 'CTD';
+        return $restrictions;
+    }
+
+    /**
+     * Get full inventory matrix for calendar API.
+     * Returns complete grid data with room types and dates.
+     */
+    public function getInventoryMatrix(Carbon $start, Carbon $end): array
+    {
+        $inventory = $this->getInventoryByRoomType($start, $end);
+        $dates = $this->generateDateHeaders($start, $end);
+
+        // Calculate daily totals
+        $dailyTotals = [];
+        foreach ($dates as $day) {
+            $dateStr = $day['date'];
+            $totalAvailable = 0;
+            $totalRooms = 0;
+            $totalBooked = 0;
+
+            foreach ($inventory as $roomType) {
+                if (isset($roomType['dates'][$dateStr])) {
+                    $dateData = $roomType['dates'][$dateStr];
+                    $totalAvailable += $dateData['available'];
+                    $totalRooms += $dateData['total'];
+                    $totalBooked += $dateData['booked'];
+                }
+            }
+
+            $dailyTotals[$dateStr] = [
+                'total' => $totalRooms,
+                'available' => $totalAvailable,
+                'booked' => $totalBooked,
+                'percent' => $totalRooms > 0 ? round(($totalAvailable / $totalRooms) * 100) : 0,
+            ];
+        }
+
+        return [
+            'room_types' => array_values($inventory),
+            'dates' => $dates,
+            'daily_totals' => $dailyTotals,
+            'summary' => $this->calculateInventorySummary($inventory, $start, $end),
+        ];
+    }
+
+    /**
+     * Calculate summary statistics for the inventory period.
+     */
+    protected function calculateInventorySummary(array $inventory, Carbon $start, Carbon $end): array
+    {
+        $totalRoomNights = 0;
+        $bookedRoomNights = 0;
+        $blockedRoomNights = 0;
+        $availableRoomNights = 0;
+
+        foreach ($inventory as $roomType) {
+            foreach ($roomType['dates'] as $dateData) {
+                $totalRoomNights += $dateData['total'];
+                $bookedRoomNights += $dateData['booked'];
+                $blockedRoomNights += $dateData['blocked'];
+                $availableRoomNights += $dateData['available'];
+            }
+        }
+
+        return [
+            'period' => $start->format('M d') . ' - ' . $end->format('M d, Y'),
+            'total_room_nights' => $totalRoomNights,
+            'booked_room_nights' => $bookedRoomNights,
+            'blocked_room_nights' => $blockedRoomNights,
+            'available_room_nights' => $availableRoomNights,
+            'occupancy_rate' => $totalRoomNights > 0 
+                ? round(($bookedRoomNights / $totalRoomNights) * 100, 1) 
+                : 0,
+        ];
+    }
+
+    /**
+     * Block rooms for a date range.
+     */
+    public function blockRooms(
+        int $roomTypeId,
+        Carbon $startDate,
+        Carbon $endDate,
+        int $blockedCount,
+        string $blockType = 'manual',
+        ?string $notes = null,
+        ?int $userId = null
+    ): RoomInventoryBlock {
+        return RoomInventoryBlock::create([
+            'room_type_id' => $roomTypeId,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'blocked_count' => $blockedCount,
+            'block_type' => $blockType,
+            'notes' => $notes,
+            'created_by' => $userId ?? auth()->id(),
+        ]);
+    }
+
+    /**
+     * Remove/delete an inventory block.
+     */
+    public function removeBlock(int $blockId): bool
+    {
+        $block = RoomInventoryBlock::find($blockId);
+        return $block ? $block->delete() : false;
+    }
+
+    /**
+     * Apply restrictions to a room type for a date range.
+     */
+    public function applyRestrictions(
+        int $roomTypeId,
+        Carbon $startDate,
+        Carbon $endDate,
+        array $restrictions,
+        ?int $userId = null
+    ): RoomInventoryBlock {
+        return RoomInventoryBlock::create([
+            'room_type_id' => $roomTypeId,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'blocked_count' => $restrictions['blocked_count'] ?? 0,
+            'block_type' => $restrictions['block_type'] ?? 'manual',
+            'min_stay' => $restrictions['min_stay'] ?? null,
+            'max_stay' => $restrictions['max_stay'] ?? null,
+            'stop_sell' => $restrictions['stop_sell'] ?? false,
+            'closed_to_arrival' => $restrictions['closed_to_arrival'] ?? false,
+            'closed_to_departure' => $restrictions['closed_to_departure'] ?? false,
+            'notes' => $restrictions['notes'] ?? null,
+            'created_by' => $userId ?? auth()->id(),
+        ]);
+    }
+
+    /**
+     * Bulk update inventory for multiple room types and dates.
+     */
+    public function bulkUpdateInventory(array $updates, ?int $userId = null): array
+    {
+        $results = [];
+
+        foreach ($updates as $update) {
+            $roomTypeId = $update['room_type_id'];
+            $startDate = Carbon::parse($update['start_date']);
+            $endDate = Carbon::parse($update['end_date']);
+
+            // Remove existing blocks for this range if replacing
+            if ($update['replace_existing'] ?? false) {
+                RoomInventoryBlock::forRoomType($roomTypeId)
+                    ->overlapping($startDate, $endDate)
+                    ->delete();
+            }
+
+            $block = $this->applyRestrictions(
+                $roomTypeId,
+                $startDate,
+                $endDate,
+                $update,
+                $userId
+            );
+
+            $results[] = $block;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get active blocks for a room type.
+     */
+    public function getActiveBlocks(int $roomTypeId): Collection
+    {
+        return RoomInventoryBlock::forRoomType($roomTypeId)
+            ->active()
+            ->orderBy('start_date')
+            ->get();
     }
 }

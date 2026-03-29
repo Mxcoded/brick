@@ -17,8 +17,18 @@
         <i class="fas fa-bed me-2"></i> Room Types
     </a>
 
+    <a href="{{ route('website.admin.inventory.index') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.inventory.*') ? 'active' : '' }}">
+        <i class="fas fa-calendar-alt me-2"></i> Inventory Calendar
+    </a>
+
+    <a href="{{ route('website.admin.rooms.calendar') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.rooms.calendar') ? 'active' : '' }}">
+        <i class="fas fa-th me-2"></i> Room Schedule
+    </a>
+
     <a href="{{ route('website.admin.rooms.index') }}"
-        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.rooms.*') ? 'active' : '' }}">
+        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.rooms.index', 'website.admin.rooms.create', 'website.admin.rooms.edit', 'website.admin.rooms.show') ? 'active' : '' }}">
         <i class="fas fa-door-open me-2"></i> Rooms (Legacy)
     </a>
 

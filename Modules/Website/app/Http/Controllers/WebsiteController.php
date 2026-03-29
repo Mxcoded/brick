@@ -26,6 +26,7 @@ use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Website\Emails\BookingConfirmation; // ✅ Import Booking Mail
 use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Contact Mail
 use Modules\Website\Services\BookingCartService;
+use Modules\Website\Services\RoomAvailabilityService;
 use Modules\Website\Models\NewsletterSubscriber;
 
 class WebsiteController extends Controller
@@ -196,6 +197,7 @@ class WebsiteController extends Controller
 
     /**
      * API: Get available units for a room type and dates.
+     * Uses unified RoomAvailabilityService for comprehensive checking.
      */
     public function getAvailableUnits(Request $request)
     {
@@ -205,14 +207,27 @@ class WebsiteController extends Controller
             'check_out_date' => 'required|date|after:check_in_date',
         ]);
 
-        $roomType = RoomType::with('units')->findOrFail($validated['room_type_id']);
-        $availableUnits = $roomType->getAvailableUnitsForDates(
+        $availabilityService = app(RoomAvailabilityService::class);
+        $result = $availabilityService->checkRoomTypeAvailability(
+            $validated['room_type_id'],
             $validated['check_in_date'],
             $validated['check_out_date']
         );
 
+        // If not available due to restrictions, return error with reason
+        if (!$result['available']) {
+            return response()->json([
+                'available' => false,
+                'count' => 0,
+                'units' => [],
+                'message' => $result['message'],
+                'reason' => $result['reason'] ?? 'unavailable',
+            ]);
+        }
+
         return response()->json([
-            'units' => $availableUnits->map(function ($unit) {
+            'available' => true,
+            'units' => $result['units']->map(function ($unit) {
                 return [
                     'id' => $unit->id,
                     'room_number' => $unit->room_number,
@@ -220,7 +235,8 @@ class WebsiteController extends Controller
                     'status' => $unit->status,
                 ];
             }),
-            'count' => $availableUnits->count(),
+            'count' => $result['available_count'],
+            'message' => $result['message'],
         ]);
     }
 
@@ -265,28 +281,38 @@ class WebsiteController extends Controller
 
         $validated = $request->validate($rules);
 
-        // 2. Validate Cart Availability (if using cart)
+        // 2. Validate Availability using unified RoomAvailabilityService
+        $availabilityService = app(RoomAvailabilityService::class);
+
         if ($useCart) {
-            $unavailable = $cartService->validateAvailability();
-            if (!empty($unavailable)) {
-                $message = 'Some rooms are no longer available: ';
-                $message .= implode(', ', array_map(fn($u) => $u['name'] . ' - ' . $u['message'], $unavailable));
-                return back()->with('error', $message)->withInput();
+            // Cart-based: Check each room type in cart
+            foreach ($cart['items'] as $item) {
+                $result = $availabilityService->checkRoomTypeAvailability(
+                    $item['room_type_id'],
+                    $cart['check_in'],
+                    $cart['check_out'],
+                    $item['quantity']
+                );
+
+                if (!$result['available']) {
+                    return back()->with('error', $item['room_type_name'] . ': ' . $result['message'])->withInput();
+                }
             }
         } else {
-            // Legacy: Check single room availability
-            $roomType = RoomType::with('units')->findOrFail($validated['room_type_id']);
-            $availableUnits = $roomType->getAvailableUnitsForDates(
+            // Legacy: Check single room availability with comprehensive checks
+            $result = $availabilityService->checkRoomTypeAvailability(
+                $validated['room_type_id'],
                 $validated['check_in_date'],
                 $validated['check_out_date']
             );
 
-            if ($availableUnits->isEmpty()) {
-                return back()->with('error', 'Sorry, no rooms of this type are available for these dates.')->withInput();
+            if (!$result['available']) {
+                return back()->with('error', $result['message'])->withInput();
             }
 
+            // If specific unit selected, verify it's in the available list
             $selectedUnitId = $request->filled('room_unit_id') ? $validated['room_unit_id'] : null;
-            if ($selectedUnitId && !$availableUnits->contains('id', $selectedUnitId)) {
+            if ($selectedUnitId && !$result['units']->contains('id', $selectedUnitId)) {
                 return back()->with('error', 'The selected room is no longer available. Please choose another.')->withInput();
             }
         }
@@ -665,7 +691,10 @@ class WebsiteController extends Controller
     }
     /**
      * Smart Availability Check
-     * Checks Website Bookings AND Frontdesk Registrations at RoomType level.
+     * Uses unified RoomAvailabilityService for comprehensive checking:
+     * - Website Bookings, Frontdesk Registrations
+     * - Inventory Blocks (Stop Sell, Maintenance)
+     * - Stay Restrictions (Min/Max Stay, CTA, CTD)
      */
     public function checkAvailability(Request $request)
     {
@@ -675,19 +704,21 @@ class WebsiteController extends Controller
             'check_out_date' => 'required|date|after:check_in_date',
         ]);
 
-        $checkIn = Carbon::parse($validated['check_in_date']);
-        $checkOut = Carbon::parse($validated['check_out_date']);
-
-        // Get the room type with units
+        $availabilityService = app(RoomAvailabilityService::class);
         $roomType = RoomType::with('units')->findOrFail($validated['room_type_id']);
-        
-        // Check availability at room type level
-        $availableUnits = $roomType->getAvailableUnitsForDates($checkIn, $checkOut);
-        $availableCount = $availableUnits->count();
         $totalUnits = $roomType->units->count();
 
-        // Scenario A: At least one unit available
-        if ($availableCount > 0) {
+        // Check availability using unified service
+        $result = $availabilityService->checkRoomTypeAvailability(
+            $validated['room_type_id'],
+            $validated['check_in_date'],
+            $validated['check_out_date']
+        );
+
+        // Available - proceed to booking
+        if ($result['available']) {
+            $availableCount = $result['available_count'];
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'available' => true,
@@ -707,47 +738,47 @@ class WebsiteController extends Controller
             ])->with('success', 'Room type available! Please complete your booking.');
         }
 
-        // Scenario B: All units occupied - find next available date
-        $message = "All {$totalUnits} rooms of this type are booked for your selected dates.";
+        // Not available - return detailed message
+        $message = $result['message'];
+        $suggestion = null;
 
-        // Find the earliest checkout date for booked units
-        $earliestAvailable = null;
-        foreach ($roomType->units as $unit) {
-            // Check bookings
-            $latestBooking = Booking::where('room_unit_id', $unit->id)
-                ->orWhere(function($q) use ($unit, $checkIn, $checkOut) {
-                    $q->where('room_type_id', $unit->room_type_id)
-                      ->whereNull('room_unit_id')
-                      ->where('check_in_date', '<', $checkOut)
-                      ->where('check_out_date', '>', $checkIn);
-                })
-                ->where('status', '!=', 'cancelled')
-                ->where('check_in_date', '<', $checkOut)
-                ->where('check_out_date', '>', $checkIn)
-                ->orderBy('check_out_date')
-                ->first();
+        // Only suggest alternative dates if the reason is insufficient inventory
+        if (($result['reason'] ?? null) === 'insufficient_inventory') {
+            // Find next available date
+            $checkIn = Carbon::parse($validated['check_in_date']);
+            $checkOut = Carbon::parse($validated['check_out_date']);
+            $earliestAvailable = null;
 
-            if ($latestBooking) {
-                $unitFreeDate = Carbon::parse($latestBooking->check_out_date);
-                if (!$earliestAvailable || $unitFreeDate->lt($earliestAvailable)) {
-                    $earliestAvailable = $unitFreeDate;
+            foreach ($roomType->units as $unit) {
+                $latestBooking = Booking::where('room_unit_id', $unit->id)
+                    ->whereNotIn('status', ['cancelled', 'no_show'])
+                    ->where('check_in_date', '<', $checkOut)
+                    ->where('check_out_date', '>', $checkIn)
+                    ->orderBy('check_out_date')
+                    ->first();
+
+                if ($latestBooking) {
+                    $unitFreeDate = Carbon::parse($latestBooking->check_out_date);
+                    if (!$earliestAvailable || $unitFreeDate->lt($earliestAvailable)) {
+                        $earliestAvailable = $unitFreeDate;
+                    }
                 }
             }
-        }
 
-        $suggestion = null;
-        if ($earliestAvailable) {
-            $message .= " Next available from " . $earliestAvailable->format('M j, Y') . ".";
-            $suggestion = [
-                'check_in' => $earliestAvailable->format('Y-m-d'),
-                'check_out' => $earliestAvailable->copy()->addDay()->format('Y-m-d')
-            ];
+            if ($earliestAvailable) {
+                $message .= " Next available from " . $earliestAvailable->format('M j, Y') . ".";
+                $suggestion = [
+                    'check_in' => $earliestAvailable->format('Y-m-d'),
+                    'check_out' => $earliestAvailable->copy()->addDay()->format('Y-m-d')
+                ];
+            }
         }
 
         if ($request->wantsJson()) {
             return response()->json([
                 'available' => false,
                 'message' => $message,
+                'reason' => $result['reason'] ?? 'unavailable',
                 'suggestion' => $suggestion
             ]);
         }
@@ -1007,10 +1038,12 @@ class WebsiteController extends Controller
 
     /**
      * Step 1: Room Selection Page
+     * Uses unified RoomAvailabilityService for comprehensive availability checking.
      */
     public function bookStep1(Request $request)
     {
         $cartService = new BookingCartService();
+        $availabilityService = app(RoomAvailabilityService::class);
         
         // Get dates from request or cart
         $cartDates = $cartService->getDates();
@@ -1022,20 +1055,27 @@ class WebsiteController extends Controller
         // If a specific room_type_id is passed (from room-details availability check), auto-add to cart
         if ($request->filled('room_type_id')) {
             $roomType = RoomType::find($request->room_type_id);
-            if ($roomType && $roomType->getAvailabilityCountForDates($checkIn, $checkOut) > 0) {
-                // Auto-add 1 room of this type to the cart
-                $cartService->add($roomType->id, 1, $checkIn, $checkOut);
+            if ($roomType) {
+                $availability = $availabilityService->checkRoomTypeAvailability($roomType->id, $checkIn, $checkOut);
+                if ($availability['available']) {
+                    // Auto-add 1 room of this type to the cart
+                    $cartService->add($roomType->id, 1, $checkIn, $checkOut);
+                }
             }
         }
 
-        // Get all active room types with availability for these dates
+        // Get all active room types with comprehensive availability info
         $roomTypes = RoomType::where('is_active', true)
             ->with(['amenities', 'units'])
             ->withCount('units')
             ->ordered()
             ->get()
-            ->map(function ($roomType) use ($checkIn, $checkOut) {
-                $roomType->available_count = $roomType->getAvailabilityCountForDates($checkIn, $checkOut);
+            ->map(function ($roomType) use ($checkIn, $checkOut, $availabilityService) {
+                $availability = $availabilityService->checkRoomTypeAvailability($roomType->id, $checkIn, $checkOut);
+                $roomType->available_count = $availability['available_count'] ?? 0;
+                $roomType->is_available = $availability['available'];
+                $roomType->availability_message = $availability['message'] ?? null;
+                $roomType->availability_reason = $availability['reason'] ?? null;
                 return $roomType;
             });
 
@@ -1046,6 +1086,7 @@ class WebsiteController extends Controller
 
     /**
      * API: Get room availability for dates
+     * Uses unified RoomAvailabilityService for comprehensive checking.
      */
     public function getRoomAvailability(Request $request)
     {
@@ -1054,12 +1095,20 @@ class WebsiteController extends Controller
             'check_out' => 'required|date|after:check_in',
         ]);
 
+        $availabilityService = app(RoomAvailabilityService::class);
+
         $roomTypes = RoomType::where('is_active', true)
             ->with('amenities')
             ->withCount('units')
             ->ordered()
             ->get()
-            ->map(function ($roomType) use ($validated) {
+            ->map(function ($roomType) use ($validated, $availabilityService) {
+                $availability = $availabilityService->checkRoomTypeAvailability(
+                    $roomType->id,
+                    $validated['check_in'],
+                    $validated['check_out']
+                );
+
                 return [
                     'id' => $roomType->id,
                     'name' => $roomType->name,
@@ -1070,10 +1119,10 @@ class WebsiteController extends Controller
                     'bed_type' => $roomType->bed_type,
                     'description' => $roomType->description,
                     'total_units' => $roomType->units_count,
-                    'available_count' => $roomType->getAvailabilityCountForDates(
-                        $validated['check_in'],
-                        $validated['check_out']
-                    ),
+                    'available_count' => $availability['available_count'] ?? 0,
+                    'is_available' => $availability['available'],
+                    'availability_message' => $availability['message'] ?? null,
+                    'availability_reason' => $availability['reason'] ?? null,
                     'amenities' => $roomType->amenities->map(fn($a) => [
                         'name' => $a->name,
                         'icon' => $a->icon,

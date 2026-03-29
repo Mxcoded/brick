@@ -135,60 +135,28 @@ class RoomType extends Model
 
     /**
      * Get units available for specific dates.
-     * Checks both website bookings and frontdesk registrations.
-     * Also accounts for bookings at room_type level that haven't been assigned a unit yet.
+     * Uses the unified RoomAvailabilityService for comprehensive checking:
+     * - Website Bookings
+     * - Frontdesk Registrations  
+     * - Inventory Blocks (Stop Sell, Maintenance, Manual)
+     * - Room Unit Status
+     * - Stay Restrictions
      */
-    public function getAvailableUnitsForDates($checkIn, $checkOut)
+    public function getAvailableUnitsForDates($checkIn, $checkOut, $ignoreBookingId = null)
     {
-        $checkIn = \Carbon\Carbon::parse($checkIn);
-        $checkOut = \Carbon\Carbon::parse($checkOut);
-
-        // 1. Count bookings at room TYPE level (no unit assigned yet)
-        $unassignedBookingsCount = Booking::where('room_type_id', $this->id)
-            ->whereNull('room_unit_id')
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($q) use ($checkIn, $checkOut) {
-                $q->where('check_in_date', '<', $checkOut)
-                    ->where('check_out_date', '>', $checkIn);
-            })
-            ->count();
-
-        // 2. Get units that are not blocked/maintenance and don't have assigned conflicting bookings
-        $availableUnits = $this->units()
-            ->where('status', '!=', 'maintenance')
-            ->where('status', '!=', 'blocked')
-            ->whereDoesntHave('bookings', function ($q) use ($checkIn, $checkOut) {
-                $q->where('status', '!=', 'cancelled')
-                    ->where(function ($sub) use ($checkIn, $checkOut) {
-                        $sub->where('check_in_date', '<', $checkOut)
-                            ->where('check_out_date', '>', $checkIn);
-                    });
-            })
-            ->when(class_exists(Registration::class), function ($q) use ($checkIn, $checkOut) {
-                $q->whereDoesntHave('registrations', function ($sub) use ($checkIn, $checkOut) {
-                    $sub->whereIn('stay_status', ['checked_in', 'draft_by_guest', 'reserved'])
-                        ->where(function ($inner) use ($checkIn, $checkOut) {
-                            $inner->where('check_in', '<', $checkOut)
-                                ->where('check_out', '>', $checkIn);
-                        });
-                });
-            })
-            ->get();
-
-        // 3. Subtract unassigned bookings from available units
-        // (These bookings will need units, so we reserve capacity for them)
-        $actuallyAvailable = max(0, $availableUnits->count() - $unassignedBookingsCount);
-
-        // Return a subset of available units (to maintain collection return type)
-        return $availableUnits->take($actuallyAvailable);
+        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        return $service->getAvailableUnits($this->id, $checkIn, $checkOut, $ignoreBookingId);
     }
 
     /**
      * Check if this room type has any available units for given dates.
+     * Returns false if stop sell, CTA, or other restrictions apply.
      */
     public function hasAvailabilityForDates($checkIn, $checkOut)
     {
-        return $this->getAvailableUnitsForDates($checkIn, $checkOut)->count() > 0;
+        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        $result = $service->checkRoomTypeAvailability($this->id, $checkIn, $checkOut);
+        return $result['available'];
     }
 
     /**
@@ -205,5 +173,14 @@ class RoomType extends Model
     public function getFirstAvailableUnitForDates($checkIn, $checkOut)
     {
         return $this->getAvailableUnitsForDates($checkIn, $checkOut)->first();
+    }
+
+    /**
+     * Get detailed availability info including restrictions.
+     */
+    public function getAvailabilityInfo($checkIn, $checkOut)
+    {
+        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        return $service->checkRoomTypeAvailability($this->id, $checkIn, $checkOut);
     }
 }

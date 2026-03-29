@@ -124,49 +124,17 @@ class RoomUnit extends Model
 
     /**
      * Check if this unit is available for specific dates.
+     * Uses unified RoomAvailabilityService for comprehensive checking including:
+     * - Unit status (maintenance, blocked)
+     * - Website bookings
+     * - Frontdesk registrations
+     * - Inventory blocks (stop sell, CTA, CTD)
+     * - Min/max stay restrictions
      */
     public function isAvailableForDates($checkIn, $checkOut, $ignoreBookingId = null)
     {
-        $checkIn = Carbon::parse($checkIn);
-        $checkOut = Carbon::parse($checkOut);
-
-        // 1. Check unit status
-        if (in_array($this->status, ['maintenance', 'blocked'])) {
-            return false;
-        }
-
-        // 2. Check website bookings
-        $hasBookingConflict = $this->bookings()
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($q) use ($checkIn, $checkOut) {
-                $q->where('check_in_date', '<', $checkOut)
-                    ->where('check_out_date', '>', $checkIn);
-            })
-            ->when($ignoreBookingId, function ($q) use ($ignoreBookingId) {
-                $q->where('id', '!=', $ignoreBookingId);
-            })
-            ->exists();
-
-        if ($hasBookingConflict) {
-            return false;
-        }
-
-        // 3. Check frontdesk registrations
-        if (class_exists(Registration::class)) {
-            $hasRegistrationConflict = Registration::where('room_unit_id', $this->id)
-                ->whereIn('stay_status', ['checked_in', 'draft_by_guest', 'reserved'])
-                ->where(function ($q) use ($checkIn, $checkOut) {
-                    $q->where('check_in', '<', $checkOut)
-                        ->where('check_out', '>', $checkIn);
-                })
-                ->exists();
-
-            if ($hasRegistrationConflict) {
-                return false;
-            }
-        }
-
-        return true;
+        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        return $service->isUnitAvailable($this->id, $checkIn, $checkOut, $ignoreBookingId);
     }
 
     /**
@@ -185,5 +153,14 @@ class RoomUnit extends Model
     {
         $occupant = $this->currentOccupant;
         return $occupant ? $occupant->full_name : null;
+    }
+
+    /**
+     * Get current status info for this unit.
+     */
+    public function getCurrentStatusInfo()
+    {
+        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        return $service->getUnitCurrentStatus($this->id);
     }
 }

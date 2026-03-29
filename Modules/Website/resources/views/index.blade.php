@@ -1,6 +1,6 @@
 @extends('website::layouts.master')
 
-@section('title', 'Welcome to Our Luxury Hotel')
+@section('title', 'Welcome to Brickspoint Boutique Aparthotel')
 
 @section('content')
     <!-- Hero Section with Video Background -->
@@ -28,29 +28,29 @@
                                 exquisite accommodations in the heart of Abuja</p>
                             <div
                                 class="d-flex justify-content-center gap-3 animate__animated animate__fadeInUp animate__delay-2s mb-5">
-                                {{-- <a href="{{ route('website.rooms.index') }}" class="btn btn-primary btn-lg px-5 py-3">
-                                    <i class="fas fa-bed me-2"></i>Explore Rooms
-                                </a> --}}
-                                <a href={{url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1')}} class="btn btn-primary btn-lg px-5 py-3">
+                                <a href="{{ route('website.rooms.index') }}" class="btn btn-primary btn-lg px-5 py-3">
                                     <i class="fas fa-bed me-2"></i>Explore Rooms
                                 </a>
-                                {{-- <a href="{{ route('website.book') }}" class="btn btn-outline-light btn-lg px-5 py-3">
-                                    <i class="fas fa-calendar-check me-2"></i>Book Direct
+                                {{-- <a href={{url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1')}} class="btn btn-primary btn-lg px-5 py-3">
+                                    <i class="fas fa-bed me-2"></i>Explore Rooms
                                 </a> --}}
-                                <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-outline-light btn-lg px-5 py-3">
+                                <a href="{{ route('website.book') }}" class="btn btn-outline-light btn-lg px-5 py-3">
                                     <i class="fas fa-calendar-check me-2"></i>Book Direct
                                 </a>
+                                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-outline-light btn-lg px-5 py-3">
+                                    <i class="fas fa-calendar-check me-2"></i>Book Direct
+                                </a> --}}
                             </div>
 
                             <!-- Quick Booking Form - Moved below CTA buttons -->
                             <div class="quick-booking-form bg-white p-4 rounded shadow mx-auto mt-4"
                                 style="max-width: 900px;">
-                                {{-- <form action="{{ route('website.rooms.index') }}" method="GET"
-                                    class="shadow-lg p-4 bg-white rounded rounded-3 position-relative z-index-1 mt-n5 mx-auto"
-                                    style="max-width: 1000px;"> --}}
-                                    <form action="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" method="GET"
+                                <form action="{{ route('website.rooms.index') }}" method="GET"
                                     class="shadow-lg p-4 bg-white rounded rounded-3 position-relative z-index-1 mt-n5 mx-auto"
                                     style="max-width: 1000px;">
+                                    {{-- <form action="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" method="GET"
+                                    class="shadow-lg p-4 bg-white rounded rounded-3 position-relative z-index-1 mt-n5 mx-auto"
+                                    style="max-width: 1000px;"> --}}
                                     <div class="row g-3 align-items-end">
                                         <div class="col-md-3">
                                             <label class="form-label fw-bold text-uppercase small text-muted">Check
@@ -103,8 +103,8 @@
                             <!-- Quick Booking Form for second slide -->
                             <div class="quick-booking-form bg-white p-4 rounded shadow mx-auto mt-4"
                                 style="max-width: 900px;">
-                                {{-- <form action="{{ route('website.book') }}" method="GET" class="row g-3 align-items-end"> --}}
-                                    <form action="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" method="GET" class="row g-3 align-items-end">
+                                <form action="{{ route('website.book') }}" method="GET" class="row g-3 align-items-end">
+                                    {{-- <form action="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" method="GET" class="row g-3 align-items-end"> --}}
                                     <div class="col-md-3">
                                         <label for="check_in_2" class="form-label">Check-In</label>
                                         <input type="date" class="form-control" id="check_in_2" name="check_in"
@@ -203,13 +203,13 @@
                                 </div>
                             </div>
                             <div class="card-footer bg-white border-0">
-                                {{-- <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
+                                <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
                                     class="btn btn-primary w-100">
                                     <i class="fas fa-arrow-right me-2"></i>Select Room
-                                </a> --}}
-                                <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-primary w-100">
-                                    <i class="fas fa-arrow-right me-2"></i>Select Room
                                 </a>
+                                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-primary w-100">
+                                    <i class="fas fa-arrow-right me-2"></i>Select Room
+                                </a> --}}
 
                             </div>
                         </div>
@@ -218,10 +218,10 @@
             </div>
 
             <div class="text-center mt-5">
-                {{-- <a href="{{ route('website.rooms.index') }}" class="btn btn-outline-primary btn-lg px-5">View All
-                    Rooms</a> --}}
-                <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-outline-primary btn-lg px-5">View All
+                <a href="{{ route('website.rooms.index') }}" class="btn btn-outline-primary btn-lg px-5">View All
                     Rooms</a>
+                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-outline-primary btn-lg px-5">View All
+                    Rooms</a> --}}
             </div>
         </div>
     </section>
@@ -413,12 +413,12 @@
             <p class="lead mb-5 mx-auto" style="max-width: 700px;">Book your stay today and discover the perfect blend of
                 luxury, comfort, and exceptional service.</p>
             <div class="d-flex justify-content-center gap-3 flex-wrap">
-                {{-- <a href="{{ route('website.rooms.index') }}" class="btn btn-light btn-lg px-5">
-                    <i class="fas fa-bed me-2"></i>Browse Rooms
-                </a> --}}
-                <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-light btn-lg px-5">
+                <a href="{{ route('website.rooms.index') }}" class="btn btn-light btn-lg px-5">
                     <i class="fas fa-bed me-2"></i>Browse Rooms
                 </a>
+                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-light btn-lg px-5">
+                    <i class="fas fa-bed me-2"></i>Browse Rooms
+                </a> --}}
                 <a href="{{ route('website.contact') }}" class="btn btn-outline-light btn-lg px-5">
                     <i class="fas fa-envelope me-2"></i>Contact Us
                 </a>

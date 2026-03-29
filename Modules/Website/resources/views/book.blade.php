@@ -116,10 +116,22 @@
 
                                             {{-- Availability Badge --}}
                                             <div class="mb-3">
-                                                @if ($roomType->available_count > 0)
+                                                @if ($roomType->is_available ?? ($roomType->available_count > 0))
                                                     <span class="badge bg-success-subtle text-success border border-success px-3 py-2">
                                                         <i class="fas fa-check-circle me-1"></i>
                                                         {{ $roomType->available_count }} {{ Str::plural('Room', $roomType->available_count) }} Available
+                                                    </span>
+                                                @elseif (($roomType->availability_reason ?? null) === 'stop_sell')
+                                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary px-3 py-2">
+                                                        <i class="fas fa-ban me-1"></i> Not Available for Sale
+                                                    </span>
+                                                @elseif (($roomType->availability_reason ?? null) === 'closed_to_arrival')
+                                                    <span class="badge bg-warning-subtle text-warning border border-warning px-3 py-2">
+                                                        <i class="fas fa-sign-in-alt me-1"></i> No Check-in on This Date
+                                                    </span>
+                                                @elseif (($roomType->availability_reason ?? null) === 'min_stay')
+                                                    <span class="badge bg-warning-subtle text-warning border border-warning px-3 py-2">
+                                                        <i class="fas fa-clock me-1"></i> {{ $roomType->availability_message ?? 'Minimum Stay Required' }}
                                                     </span>
                                                 @else
                                                     <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-2">
@@ -146,31 +158,37 @@
                                             </div>
 
                                             {{-- Room Selection Controls --}}
+                                            @php $canBook = $roomType->is_available ?? ($roomType->available_count > 0); @endphp
                                             <div class="d-flex justify-content-between align-items-center pt-3 border-top">
                                                 <div class="d-flex align-items-center gap-2">
                                                     <label class="small fw-bold text-muted mb-0">Number of Rooms:</label>
                                                     <select class="form-select form-select-sm room-quantity-select" 
                                                             data-room-id="{{ $roomType->id }}"
                                                             style="width: 80px;"
-                                                            {{ $roomType->available_count == 0 ? 'disabled' : '' }}>
-                                                        @for ($i = 1; $i <= min($roomType->available_count, 10); $i++)
+                                                            {{ !$canBook ? 'disabled' : '' }}>
+                                                        @for ($i = 1; $i <= min($roomType->available_count ?: 0, 10); $i++)
                                                             <option value="{{ $i }}">{{ $i }}</option>
                                                         @endfor
-                                                        @if($roomType->available_count == 0)
+                                                        @if(!$canBook)
                                                             <option value="0">0</option>
                                                         @endif
                                                     </select>
                                                 </div>
-                                                <button type="button" 
-                                                        class="btn btn-primary select-room-btn"
-                                                        data-room-id="{{ $roomType->id }}"
-                                                        data-room-name="{{ $roomType->name }}"
-                                                        data-room-price="{{ $roomType->price }}"
-                                                        data-room-capacity="{{ $roomType->capacity }}"
-                                                        data-room-image="{{ $roomType->image_url }}"
-                                                        {{ $roomType->available_count == 0 ? 'disabled' : '' }}>
-                                                    <i class="fas fa-plus me-1"></i> Select Room
-                                                </button>
+                                                @if($canBook)
+                                                    <button type="button" 
+                                                            class="btn btn-primary select-room-btn"
+                                                            data-room-id="{{ $roomType->id }}"
+                                                            data-room-name="{{ $roomType->name }}"
+                                                            data-room-price="{{ $roomType->price }}"
+                                                            data-room-capacity="{{ $roomType->capacity }}"
+                                                            data-room-image="{{ $roomType->image_url }}">
+                                                        <i class="fas fa-plus me-1"></i> Select Room
+                                                    </button>
+                                                @else
+                                                    <button type="button" class="btn btn-secondary" disabled>
+                                                        <i class="fas fa-ban me-1"></i> Unavailable
+                                                    </button>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>

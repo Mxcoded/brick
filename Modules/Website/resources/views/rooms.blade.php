@@ -63,17 +63,24 @@
                 <div class="row g-4">
                     @foreach ($roomTypes as $roomType)
                         @php
-                            // Calculate real-time availability
-                            // If dates provided, use those. Otherwise, show availability for today.
+                            // Calculate real-time availability using unified service
+                            $availabilityService = app(\Modules\Website\Services\RoomAvailabilityService::class);
                             $today = \Carbon\Carbon::today();
                             $tomorrow = $today->copy()->addDay();
                             
-                            if (!empty($checkIn) && !empty($checkOut)) {
-                                $availableUnits = $roomType->getAvailableUnitsForDates($checkIn, $checkOut)->count();
-                            } else {
-                                // Default: Show today's availability
-                                $availableUnits = $roomType->getAvailabilityCountForDates($today, $tomorrow);
-                            }
+                            $checkInDate = !empty($checkIn) ? $checkIn : $today->format('Y-m-d');
+                            $checkOutDate = !empty($checkOut) ? $checkOut : $tomorrow->format('Y-m-d');
+                            
+                            $availability = $availabilityService->checkRoomTypeAvailability(
+                                $roomType->id,
+                                $checkInDate,
+                                $checkOutDate
+                            );
+                            
+                            $availableUnits = $availability['available_count'] ?? 0;
+                            $isAvailable = $availability['available'];
+                            $availabilityReason = $availability['reason'] ?? null;
+                            $availabilityMessage = $availability['message'] ?? null;
                             $totalUnits = $roomType->units_count;
                         @endphp
                         <div class="col-lg-6">
@@ -90,10 +97,22 @@
                                         </div>
                                         {{-- Availability Badge --}}
                                         <div class="position-absolute bottom-0 start-0 m-2">
-                                            @if ($availableUnits > 0)
+                                            @if ($isAvailable)
                                                 <span class="badge bg-success py-2 px-3">
                                                     <i class="fas fa-check-circle me-1"></i>
                                                     {{ $availableUnits }}/{{ $totalUnits }} Available
+                                                </span>
+                                            @elseif ($availabilityReason === 'stop_sell')
+                                                <span class="badge bg-secondary py-2 px-3">
+                                                    <i class="fas fa-ban me-1"></i> Not for Sale
+                                                </span>
+                                            @elseif ($availabilityReason === 'closed_to_arrival')
+                                                <span class="badge bg-warning py-2 px-3 text-dark">
+                                                    <i class="fas fa-sign-in-alt me-1"></i> No Check-in
+                                                </span>
+                                            @elseif ($availabilityReason === 'min_stay')
+                                                <span class="badge bg-warning py-2 px-3 text-dark">
+                                                    <i class="fas fa-clock me-1"></i> Min Stay Required
                                                 </span>
                                             @else
                                                 <span class="badge bg-danger py-2 px-3">
@@ -133,13 +152,14 @@
                                                     class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-eye me-1"></i> View Details
                                                 </a>
-                                                @if ($availableUnits > 0)
+                                                @if ($isAvailable)
                                                     <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
                                                         class="btn btn-primary btn-sm">
                                                         <i class="fas fa-arrow-right me-1"></i> Select Room
                                                     </a>
                                                 @else
-                                                    <span class="btn btn-secondary btn-sm disabled">
+                                                    <span class="btn btn-secondary btn-sm disabled" 
+                                                          title="{{ $availabilityMessage }}">
                                                         <i class="fas fa-ban me-1"></i> Unavailable
                                                     </span>
                                                 @endif

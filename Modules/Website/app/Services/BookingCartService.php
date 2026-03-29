@@ -260,6 +260,7 @@ class BookingCartService
 
     /**
      * Validate all cart items are still available.
+     * Uses unified RoomAvailabilityService for comprehensive checking.
      * Returns array of unavailable items or empty if all OK.
      */
     public function validateAvailability(): array
@@ -270,6 +271,8 @@ class BookingCartService
         if (empty($cart['items']) || empty($cart['check_in'])) {
             return $unavailable;
         }
+
+        $availabilityService = app(RoomAvailabilityService::class);
 
         foreach ($cart['items'] as $roomTypeId => $item) {
             $roomType = RoomType::find($roomTypeId);
@@ -285,17 +288,22 @@ class BookingCartService
                 continue;
             }
 
-            $availableCount = $roomType->getAvailabilityCountForDates($cart['check_in'], $cart['check_out']);
+            // Use unified service for comprehensive availability check
+            $result = $availabilityService->checkRoomTypeAvailability(
+                $roomTypeId,
+                $cart['check_in'],
+                $cart['check_out'],
+                $item['quantity']
+            );
 
-            if ($item['quantity'] > $availableCount) {
+            if (!$result['available']) {
                 $unavailable[] = [
                     'room_type_id' => $roomTypeId,
                     'name' => $item['room_type_name'],
                     'requested' => $item['quantity'],
-                    'available' => $availableCount,
-                    'message' => $availableCount > 0 
-                        ? "Only {$availableCount} available (you requested {$item['quantity']})."
-                        : 'No longer available for these dates.',
+                    'available' => $result['available_count'] ?? 0,
+                    'message' => $result['message'],
+                    'reason' => $result['reason'] ?? 'unavailable',
                 ];
             }
         }

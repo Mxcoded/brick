@@ -15,7 +15,7 @@
 
     <!-- Favicon -->
     <link rel="icon" href=" {{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" type="image/x-icon">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/brickspoint_logo.png') }}">
 
     <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -301,9 +301,9 @@
                                 href="{{ route('website.home') }}">Home</a>
                         </li>
                         <li class="nav-item">
-                            {{-- <a class="nav-link {{ request()->routeIs('website.rooms.*', 'website.booking') ? 'active' : '' }}"
-                                href="{{ route('website.rooms.index') }}">Rooms & Suites</a> --}}
-                                <a class="nav-link" href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}">Rooms & Suites</a>
+                            <a class="nav-link {{ request()->routeIs('website.rooms.*', 'website.booking') ? 'active' : '' }}"
+                                href="{{ route('website.rooms.index') }}">Rooms & Suites</a>
+                                {{-- <a class="nav-link" href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}">Rooms & Suites</a> --}}
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.dining') ? 'active' : '' }}"
@@ -334,11 +334,11 @@
                     </ul>
                     @guest
                         <div class="d-flex align-items-center">
-                            <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
+                            <a href="{{ route('website.book') }}"
                                 class="btn btn-primary px-4 py-2 rounded fw-bold shadow-sm btn-book-mobile">
                                 <i class="fas fa-calendar-check me-2"></i>Book Now
                             </a>
-                            {{-- route('website.book') --}}
+                            {{-- url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }} --}}
                         </div>
                     @else
                         <div class="d-flex align-items-center">
@@ -382,9 +382,9 @@
                     <ul class="list-unstyled">
                         <li class="mb-2"><a href="{{ route('website.home') }}"
                                 class="text-muted-footer text-decoration-none">Home</a></li>
-                        <li class="mb-2"><a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
-                                class="text-muted-footer text-decoration-none">Rooms</a> </li>
-                                {{-- <a href="{{ route('website.rooms.index') }}"
+                        <li class="mb-2"> <a href="{{ route('website.rooms.index') }}"
+                                class="text-muted-footer text-decoration-none">Rooms</a></li>
+                                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
                                 class="text-muted-footer text-decoration-none">Rooms</a> --}}
                         <li class="mb-2"><a href="{{ route('website.amenities') }}"
                                 class="text-muted-footer text-decoration-none">Amenities</a></li>

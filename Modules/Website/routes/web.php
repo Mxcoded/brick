@@ -16,6 +16,7 @@ use Modules\Website\Http\Controllers\Admin\AmenityController;
 use Modules\Website\Http\Controllers\Admin\SettingController;
 use Modules\Website\Http\Controllers\Admin\ContactMessageController;
 use Modules\Website\Http\Controllers\Admin\NewsletterController;
+use Modules\Website\Http\Controllers\Admin\InventoryCalendarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -141,6 +142,21 @@ Route::middleware(['web'])->group(function () {
             Route::get('/api/room-status', [AdminRoomController::class, 'getRoomStatus'])->name('api.room.status');
             Route::get('/calendar', [AdminRoomController::class, 'calendar'])->name('rooms.calendar');
             Route::get('/api/calendar-data', [AdminRoomController::class, 'getCalendarData'])->name('api.calendar.data');
+
+            // =========================================================================
+            // INVENTORY CALENDAR (Expedia-Style)
+            // =========================================================================
+            Route::prefix('inventory')->name('inventory.')->group(function () {
+                Route::get('/', [InventoryCalendarController::class, 'index'])->name('index');
+                Route::get('/api/data', [InventoryCalendarController::class, 'getInventoryData'])->name('api.data');
+                Route::get('/api/blocks', [InventoryCalendarController::class, 'getBlocks'])->name('api.blocks');
+                Route::post('/block', [InventoryCalendarController::class, 'applyBlock'])->name('block');
+                Route::delete('/block', [InventoryCalendarController::class, 'removeBlock'])->name('block.remove');
+                Route::post('/restrict', [InventoryCalendarController::class, 'applyRestriction'])->name('restrict');
+                Route::post('/bulk', [InventoryCalendarController::class, 'bulkUpdate'])->name('bulk');
+                Route::post('/open', [InventoryCalendarController::class, 'openRooms'])->name('open');
+                Route::post('/stop-sell', [InventoryCalendarController::class, 'stopSell'])->name('stop-sell');
+            });
             // Contact Messages (Read Only / Reply)
             Route::resource('contact-messages', ContactMessageController::class)
                 ->only(['index', 'show', 'destroy', 'update']);
