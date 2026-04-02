@@ -160,6 +160,16 @@ Route::middleware(['web'])->group(function () {
             // Contact Messages (Read Only / Reply)
             Route::resource('contact-messages', ContactMessageController::class)
                 ->only(['index', 'show', 'destroy', 'update']);
+            
+            // Contact Message Conversation Routes
+            Route::get('contact-messages/{contact_message}/reply', [ContactMessageController::class, 'reply'])
+                ->name('contact-messages.reply');
+            Route::post('contact-messages/{contact_message}/reply', [ContactMessageController::class, 'sendReply'])
+                ->name('contact-messages.send-reply');
+            Route::post('contact-messages/{contact_message}/archive', [ContactMessageController::class, 'archive'])
+                ->name('contact-messages.archive');
+            Route::post('contact-messages/{contact_message}/restore', [ContactMessageController::class, 'restore'])
+                ->name('contact-messages.restore');
 
             // Newsletter Subscribers Management
             Route::get('newsletter', [NewsletterController::class, 'index'])->name('newsletter.index');
