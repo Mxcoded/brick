@@ -959,11 +959,19 @@ class WebsiteController extends Controller
 
     /**
      * Helper to send email (Keep code DRY)
+     * Sends confirmation to guest and a copy to reservations team.
      */
     private function sendConfirmationEmail(Booking $booking)
     {
         try {
+            // Send to guest
             Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
+            
+            // Send copy to reservations team if configured
+            $reservationsEmail = config('mail.reservations_email');
+            if ($reservationsEmail) {
+                Mail::to($reservationsEmail)->send(new BookingConfirmation($booking, true)); // true = staff copy
+            }
         } catch (\Exception $e) {
             Log::error("Email Failed: " . $e->getMessage());
         }

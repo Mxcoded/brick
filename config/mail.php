@@ -109,8 +109,20 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'no-reply@brickspoint.com'),
+        'name' => env('MAIL_FROM_NAME', 'Brickspoint'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reservations Email
+    |--------------------------------------------------------------------------
+    |
+    | This email address will receive a copy of all booking confirmations.
+    | Leave empty to disable sending copies to reservations team.
+    |
+    */
+
+    'reservations_email' => env('MAIL_RESERVATIONS_EMAIL'),
 
 ];
