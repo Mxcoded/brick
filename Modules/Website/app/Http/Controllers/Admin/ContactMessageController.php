@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\ContactMessageReply;
 use Modules\Website\Emails\ContactReply;
@@ -122,11 +123,22 @@ class ContactMessageController extends Controller
 
         // Send email to guest
         try {
+            // Log mail configuration for debugging
+            Log::info('Attempting to send contact reply email:', [
+                'mailer' => config('mail.default'),
+                'host' => config('mail.mailers.smtp.host'),
+                'port' => config('mail.mailers.smtp.port'),
+                'username' => config('mail.mailers.smtp.username') ? 'SET' : 'NOT SET',
+                'encryption' => config('mail.mailers.smtp.encryption') ?? config('mail.mailers.smtp.scheme'),
+                'from_address' => config('mail.from.address'),
+                'to_email' => $contactMessage->email,
+            ]);
+
             Mail::to($contactMessage->email)->send(
                 new ContactReply($contactMessage, $reply, Auth::user()->name)
             );
 
-            Log::info('Contact reply sent:', [
+            Log::info('Contact reply sent successfully:', [
                 'contact_message_id' => $contactMessage->id,
                 'reply_id' => $reply->id,
                 'sent_to' => $contactMessage->email,
@@ -135,15 +147,68 @@ class ContactMessageController extends Controller
             return redirect()
                 ->route('website.admin.contact-messages.show', $contactMessage)
                 ->with('success', 'Reply sent successfully to ' . $contactMessage->email);
-        } catch (\Exception $e) {
-            Log::error('Failed to send contact reply:', [
-                'error' => $e->getMessage(),
+        } catch (\Swift_TransportException $e) {
+            // SMTP connection/authentication errors
+            Log::error('SMTP Transport Error - Failed to send contact reply:', [
+                'error_type' => 'Swift_TransportException',
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
                 'contact_message_id' => $contactMessage->id,
+                'to_email' => $contactMessage->email,
+                'mail_config' => [
+                    'mailer' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                    'port' => config('mail.mailers.smtp.port'),
+                    'username' => config('mail.mailers.smtp.username'),
+                    'encryption' => config('mail.mailers.smtp.encryption') ?? config('mail.mailers.smtp.scheme'),
+                ],
             ]);
 
             return redirect()
                 ->route('website.admin.contact-messages.show', $contactMessage)
-                ->with('warning', 'Reply saved but email could not be sent. Please check email configuration.');
+                ->with('warning', 'Reply saved but email failed: SMTP connection error. Check server logs for details. Error: ' . Str::limit($e->getMessage(), 100));
+        } catch (\Symfony\Component\Mailer\Exception\TransportException $e) {
+            // Symfony Mailer transport errors (Laravel 9+)
+            Log::error('Symfony Transport Error - Failed to send contact reply:', [
+                'error_type' => 'Symfony\TransportException',
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'contact_message_id' => $contactMessage->id,
+                'to_email' => $contactMessage->email,
+                'debug' => $e->getDebug() ?? null,
+                'mail_config' => [
+                    'mailer' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                    'port' => config('mail.mailers.smtp.port'),
+                    'username' => config('mail.mailers.smtp.username'),
+                    'encryption' => config('mail.mailers.smtp.encryption') ?? config('mail.mailers.smtp.scheme'),
+                ],
+            ]);
+
+            return redirect()
+                ->route('website.admin.contact-messages.show', $contactMessage)
+                ->with('warning', 'Reply saved but email failed: ' . Str::limit($e->getMessage(), 150));
+        } catch (\Exception $e) {
+            // Generic catch-all
+            Log::error('General Error - Failed to send contact reply:', [
+                'error_type' => get_class($e),
+                'error_message' => $e->getMessage(),
+                'error_code' => $e->getCode(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'contact_message_id' => $contactMessage->id,
+                'to_email' => $contactMessage->email,
+                'mail_config' => [
+                    'mailer' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                    'port' => config('mail.mailers.smtp.port'),
+                ],
+            ]);
+
+            return redirect()
+                ->route('website.admin.contact-messages.show', $contactMessage)
+                ->with('warning', 'Reply saved but email could not be sent. Error: ' . Str::limit($e->getMessage(), 150));
         }
     }
 
