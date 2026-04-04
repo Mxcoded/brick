@@ -262,10 +262,63 @@ class BookingController extends Controller
     }
 
     /**
-     * Move Booking to a Different Room
+     * Assign a specific room unit to the booking.
      */
+    public function assignRoom(Request $request, $id)
+    {
+        $booking = Booking::with(['roomType'])->findOrFail($id);
+
+        // Handle unassign request
+        if ($request->has('unassign') && $request->unassign == '1') {
+            $oldRoom = $booking->roomUnit?->room_number;
+            $booking->update(['room_unit_id' => null]);
+            
+            Log::info('Room unassigned from booking:', [
+                'booking_id' => $booking->id,
+                'booking_reference' => $booking->booking_reference,
+                'previous_room' => $oldRoom,
+            ]);
+
+            return back()->with('success', 'Room has been unassigned. The booking is now marked as "Room TBA".');
+        }
+
+        $request->validate([
+            'room_unit_id' => 'required|exists:room_units,id'
+        ]);
+
+        // Verify the room unit belongs to the booked room type
+        $roomUnit = \Modules\Website\Models\RoomUnit::findOrFail($request->room_unit_id);
+        
+        if ($booking->room_type_id && $roomUnit->room_type_id != $booking->room_type_id) {
+            return back()->with('error', 'Selected room does not belong to the booked room type.');
+        }
+
+        // Check availability for the dates (excluding current booking)
+        $isAvailable = $roomUnit->isAvailableForDates(
+            $booking->check_in_date->format('Y-m-d'),
+            $booking->check_out_date->format('Y-m-d'),
+            $booking->id
+        );
+
+        if (!$isAvailable) {
+            return back()->with('error', 'Selected room is not available for the booking dates.');
+        }
+
+        $oldRoom = $booking->roomUnit?->room_number;
+        $booking->update(['room_unit_id' => $request->room_unit_id]);
+
+        Log::info('Room assigned to booking:', [
+            'booking_id' => $booking->id,
+            'booking_reference' => $booking->booking_reference,
+            'previous_room' => $oldRoom,
+            'new_room' => $roomUnit->room_number,
+        ]);
+
+        return back()->with('success', 'Room ' . $roomUnit->room_number . ' has been assigned to this booking.');
+    }
+
     /**
-     * Move a booking to a different room.
+     * Move Booking to a Different Room (Legacy - kept for backward compatibility)
      */
     public function moveRoom(Request $request, $id)
     {

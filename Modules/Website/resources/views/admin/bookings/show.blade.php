@@ -443,36 +443,118 @@
                                 </button>
                             </form>
                             <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
-                                data-bs-target="#moveRoomModal">
-                                <i class="fas fa-exchange-alt"></i> Move Room
+                                data-bs-target="#assignRoomModal">
+                                <i class="fas fa-door-open"></i> 
+                                {{ $booking->roomUnit ? 'Change Room' : 'Assign Room' }}
                             </button>
 
-                            <div class="modal fade" id="moveRoomModal" tabindex="-1">
+                            {{-- Assign/Change Room Modal --}}
+                            <div class="modal fade" id="assignRoomModal" tabindex="-1">
                                 <div class="modal-dialog">
-                                    <form action="{{ route('website.admin.bookings.move', $booking->id) }}"
+                                    <form action="{{ route('website.admin.bookings.assign-room', $booking->id) }}"
                                         method="POST" class="modal-content">
                                         @csrf
                                         <div class="modal-header">
-                                            <h5 class="modal-title">Move Reservation</h5>
+                                            <h5 class="modal-title">
+                                                <i class="fas fa-door-open me-2"></i>
+                                                {{ $booking->roomUnit ? 'Change Room Assignment' : 'Assign Room' }}
+                                            </h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
                                         <div class="modal-body">
-                                            <p>Current Room: <strong>{{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Not Assigned' }}</strong></p>
-                                            <div class="form-group">
-                                                <label>Select New Room Type</label>
-                                                <select name="new_room_id" class="form-select" required>
-                                                    @foreach (\Modules\Website\Models\RoomType::where('is_active', true)->get() as $roomType)
-                                                        <option value="{{ $roomType->id }}" {{ ($booking->room_type_id ?? $booking->room_id) == $roomType->id ? 'selected' : '' }}>{{ $roomType->name }}</option>
-                                                    @endforeach
-                                                </select>
+                                            {{-- Current Assignment Info --}}
+                                            <div class="alert alert-light border mb-3">
+                                                <div class="row small">
+                                                    <div class="col-6">
+                                                        <strong>Room Type:</strong><br>
+                                                        {{ optional($booking->roomType)->name ?? 'N/A' }}
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <strong>Current Room:</strong><br>
+                                                        @if($booking->roomUnit)
+                                                            <span class="text-primary">{{ $booking->roomUnit->room_number }}</span>
+                                                        @else
+                                                            <span class="text-warning">Not Assigned</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                <hr class="my-2">
+                                                <div class="row small">
+                                                    <div class="col-6">
+                                                        <strong>Check-in:</strong> {{ $booking->check_in_date->format('M d, Y') }}
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <strong>Check-out:</strong> {{ $booking->check_out_date->format('M d, Y') }}
+                                                    </div>
+                                                </div>
                                             </div>
+
+                                            {{-- Room Selection --}}
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Select Room Unit <span class="text-danger">*</span></label>
+                                                <select name="room_unit_id" id="roomUnitSelect" class="form-select" required>
+                                                    <option value="">-- Select a Room --</option>
+                                                    @php
+                                                        $roomType = $booking->roomType;
+                                                        $availableUnits = collect();
+                                                        if ($roomType) {
+                                                            // Get all units for this room type
+                                                            $availableUnits = $roomType->units()
+                                                                ->where('status', 'available')
+                                                                ->orderBy('room_number')
+                                                                ->get();
+                                                        }
+                                                    @endphp
+                                                    @forelse($availableUnits as $unit)
+                                                        @php
+                                                            // Check if unit is available for the booking dates
+                                                            $isAvailable = $unit->isAvailableForDates(
+                                                                $booking->check_in_date->format('Y-m-d'),
+                                                                $booking->check_out_date->format('Y-m-d'),
+                                                                $booking->id
+                                                            );
+                                                            $isCurrentUnit = $booking->room_unit_id == $unit->id;
+                                                        @endphp
+                                                        <option value="{{ $unit->id }}" 
+                                                            {{ $isCurrentUnit ? 'selected' : '' }}
+                                                            {{ !$isAvailable && !$isCurrentUnit ? 'disabled' : '' }}
+                                                            class="{{ !$isAvailable && !$isCurrentUnit ? 'text-muted' : '' }}">
+                                                            Room {{ $unit->room_number }} 
+                                                            ({{ $unit->floor ? 'Floor ' . $unit->floor : 'Ground' }})
+                                                            @if($isCurrentUnit)
+                                                                - Current
+                                                            @elseif(!$isAvailable)
+                                                                - Occupied
+                                                            @else
+                                                                - Available
+                                                            @endif
+                                                        </option>
+                                                    @empty
+                                                        <option value="" disabled>No rooms available for this type</option>
+                                                    @endforelse
+                                                </select>
+                                                <small class="text-muted">Only showing rooms available for the booking dates</small>
+                                            </div>
+
+                                            {{-- Option to unassign --}}
+                                            @if($booking->roomUnit)
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="unassign" id="unassignRoom" value="1">
+                                                <label class="form-check-label text-danger" for="unassignRoom">
+                                                    <i class="fas fa-times-circle me-1"></i> Unassign current room (leave as TBA)
+                                                </label>
+                                            </div>
+                                            @endif
                                         </div>
-                                                                        <div class="modal-footer">
-                                                                            <button type="submit" class="btn btn-primary">Save Change</button>
-                                                                        </div>
-                                                                    </form>
-                                                                </div>
-                                                            </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save me-1"></i> Save Assignment
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                             <a href="{{ route('website.admin.bookings.edit', $booking->id) }}"
                                 class="btn btn-outline-primary mt-2">
                                 <i class="fas fa-edit me-2"></i> Edit Details
