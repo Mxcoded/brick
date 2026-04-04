@@ -122,7 +122,7 @@ class BookingController extends Controller
      */
     public function show($id)
     {
-        $booking = Booking::with(['roomType', 'roomUnit', 'room', 'user'])->findOrFail($id);
+        $booking = Booking::with(['roomType', 'roomUnit', 'room', 'user', 'guest'])->findOrFail($id);
         return view('website::admin.bookings.show', compact('booking'));
     }
 
