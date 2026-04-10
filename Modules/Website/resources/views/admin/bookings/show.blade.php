@@ -630,6 +630,11 @@
                             {{ $booking->roomUnit ? 'Change Room' : 'Assign Room' }}
                         </button>
 
+                        {{-- Change Room Type --}}
+                        <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#changeRoomTypeModal">
+                            <i class="fas fa-exchange-alt me-2"></i> Change Room Type
+                        </button>
+
                         {{-- Resend Confirmation --}}
                         <form action="{{ route('website.admin.bookings.resend', $booking->id) }}" method="POST"
                             onsubmit="return confirm('Resend confirmation email to {{ $booking->guest_email }}?');">
@@ -781,4 +786,250 @@
         </form>
     </div>
 </div>
+
+{{-- Change Room Type Modal --}}
+<div class="modal fade" id="changeRoomTypeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form action="{{ route('website.admin.bookings.change-room-type', $booking->id) }}" method="POST" class="modal-content" id="changeRoomTypeForm">
+            @csrf
+            <div class="modal-header" style="background: var(--bp-neutral);">
+                <h5 class="modal-title text-bp-charcoal">
+                    <i class="fas fa-exchange-alt me-2 text-bp-gold"></i>
+                    Change Room Type
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {{-- Current Booking Summary --}}
+                <div class="date-box mb-4">
+                    <div class="row small">
+                        <div class="col-4">
+                            <span class="info-label">Current Room Type</span>
+                            <div class="info-value">{{ optional($booking->roomType)->name ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-4">
+                            <span class="info-label">Current Price/Night</span>
+                            <div class="info-value">₦{{ number_format(optional($booking->roomType)->price ?? 0, 2) }}</div>
+                        </div>
+                        <div class="col-4">
+                            <span class="info-label">Total Amount</span>
+                            <div class="info-value text-bp-gold">₦{{ number_format($booking->total_amount, 2) }}</div>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <div class="row small">
+                        <div class="col-6">
+                            <span class="info-label">Check-in</span>
+                            <div class="info-value">{{ $booking->check_in_date->format('M d, Y') }}</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="info-label">Check-out</span>
+                            <div class="info-value">{{ $booking->check_out_date->format('M d, Y') }} ({{ $booking->check_in_date->diffInDays($booking->check_out_date) }} nights)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    {{-- Room Type Selection --}}
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-bp-charcoal">New Room Type <span class="text-danger">*</span></label>
+                            <select name="room_type_id" id="newRoomTypeSelect" class="form-select" required>
+                                <option value="">-- Select Room Type --</option>
+                                @php
+                                    $allRoomTypes = \Modules\Website\Models\RoomType::active()->ordered()->get();
+                                    $nights = $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1;
+                                @endphp
+                                @foreach($allRoomTypes as $type)
+                                    @php
+                                        $availableCount = $type->getAvailabilityCountForDates(
+                                            $booking->check_in_date->format('Y-m-d'),
+                                            $booking->check_out_date->format('Y-m-d')
+                                        );
+                                        $isCurrent = $booking->room_type_id == $type->id;
+                                    @endphp
+                                    <option value="{{ $type->id }}" 
+                                        data-price="{{ $type->price }}"
+                                        data-units="{{ $availableCount }}"
+                                        {{ $isCurrent ? 'selected' : '' }}>
+                                        {{ $type->name }} - ₦{{ number_format($type->price, 2) }}/night
+                                        @if($isCurrent)
+                                            (Current)
+                                        @elseif($availableCount > 0)
+                                            ({{ $availableCount }} available)
+                                        @else
+                                            (No availability)
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Price Recalculation Option --}}
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="recalculate_price" id="recalculatePrice" value="1" checked>
+                                <label class="form-check-label" for="recalculatePrice">
+                                    <strong>Recalculate price</strong>
+                                    <small class="text-muted d-block">Update total amount based on new room type price</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        {{-- Price Preview --}}
+                        <div class="alert alert-bp-info" id="pricePreview">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-calculator me-2"></i>New Total:</span>
+                                <strong class="fs-5" id="newPriceDisplay">₦{{ number_format($booking->total_amount, 2) }}</strong>
+                            </div>
+                            <small class="text-muted" id="priceBreakdown">{{ $nights }} nights × ₦{{ number_format(optional($booking->roomType)->price ?? 0, 2) }}</small>
+                        </div>
+                    </div>
+
+                    {{-- Room Unit Selection --}}
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-bp-charcoal">Assign Room Unit <small class="text-muted">(Optional)</small></label>
+                            <select name="room_unit_id" id="newRoomUnitSelect" class="form-select">
+                                <option value="">-- Leave as TBA --</option>
+                                {{-- Will be populated dynamically --}}
+                            </select>
+                            <small class="text-muted">Select a specific room or leave as TBA</small>
+                        </div>
+
+                        <div id="roomUnitsList" class="border rounded p-3" style="max-height: 200px; overflow-y: auto; background: #fafafa;">
+                            <p class="text-muted text-center mb-0 small"><i class="fas fa-info-circle me-1"></i>Select a room type to see available units</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-bp-gold">
+                    <i class="fas fa-save me-1"></i> Change Room Type
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roomTypeSelect = document.getElementById('newRoomTypeSelect');
+    const roomUnitSelect = document.getElementById('newRoomUnitSelect');
+    const roomUnitsList = document.getElementById('roomUnitsList');
+    const recalculateCheckbox = document.getElementById('recalculatePrice');
+    const pricePreview = document.getElementById('pricePreview');
+    const newPriceDisplay = document.getElementById('newPriceDisplay');
+    const priceBreakdown = document.getElementById('priceBreakdown');
+    const nights = {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }};
+    const currentTotal = {{ $booking->total_amount }};
+    const checkIn = '{{ $booking->check_in_date->format('Y-m-d') }}';
+    const checkOut = '{{ $booking->check_out_date->format('Y-m-d') }}';
+    const bookingId = {{ $booking->id }};
+
+    // Room units data by room type
+    const roomUnitsData = @json($allRoomTypes->mapWithKeys(function($type) use ($booking) {
+        $units = $type->units()
+            ->where('status', 'available')
+            ->orderBy('room_number')
+            ->get()
+            ->map(function($unit) use ($booking) {
+                $isAvailable = $unit->isAvailableForDates(
+                    $booking->check_in_date->format('Y-m-d'),
+                    $booking->check_out_date->format('Y-m-d'),
+                    $booking->id
+                );
+                return [
+                    'id' => $unit->id,
+                    'room_number' => $unit->room_number,
+                    'floor' => $unit->floor,
+                    'is_available' => $isAvailable,
+                ];
+            });
+        return [$type->id => $units];
+    }));
+
+    function updateRoomUnits(roomTypeId) {
+        roomUnitSelect.innerHTML = '<option value="">-- Leave as TBA --</option>';
+        roomUnitsList.innerHTML = '';
+
+        if (!roomTypeId || !roomUnitsData[roomTypeId]) {
+            roomUnitsList.innerHTML = '<p class="text-muted text-center mb-0 small"><i class="fas fa-info-circle me-1"></i>Select a room type to see available units</p>';
+            return;
+        }
+
+        const units = roomUnitsData[roomTypeId];
+        if (units.length === 0) {
+            roomUnitsList.innerHTML = '<p class="text-warning text-center mb-0 small"><i class="fas fa-exclamation-triangle me-1"></i>No room units configured for this type</p>';
+            return;
+        }
+
+        let availableCount = 0;
+        let html = '<div class="small">';
+        
+        units.forEach(unit => {
+            const statusClass = unit.is_available ? 'text-success' : 'text-danger';
+            const statusIcon = unit.is_available ? 'fa-check-circle' : 'fa-times-circle';
+            const statusText = unit.is_available ? 'Available' : 'Occupied';
+            
+            if (unit.is_available) {
+                availableCount++;
+                roomUnitSelect.innerHTML += `<option value="${unit.id}">Room ${unit.room_number} (Floor ${unit.floor || 'G'})</option>`;
+            }
+
+            html += `<div class="d-flex justify-content-between py-1 border-bottom">
+                <span>Room ${unit.room_number} <small class="text-muted">(Floor ${unit.floor || 'G'})</small></span>
+                <span class="${statusClass}"><i class="fas ${statusIcon} me-1"></i>${statusText}</span>
+            </div>`;
+        });
+
+        html += '</div>';
+        html = `<p class="mb-2 fw-bold"><small>${availableCount} of ${units.length} available</small></p>` + html;
+        roomUnitsList.innerHTML = html;
+    }
+
+    function updatePricePreview() {
+        const selectedOption = roomTypeSelect.options[roomTypeSelect.selectedIndex];
+        const newPrice = parseFloat(selectedOption.dataset.price) || 0;
+        const shouldRecalculate = recalculateCheckbox.checked;
+
+        if (shouldRecalculate) {
+            const newTotal = newPrice * nights;
+            newPriceDisplay.textContent = '₦' + newTotal.toLocaleString('en-NG', {minimumFractionDigits: 2});
+            priceBreakdown.textContent = `${nights} nights × ₦${newPrice.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+            
+            if (newTotal > currentTotal) {
+                pricePreview.classList.remove('alert-bp-info');
+                pricePreview.classList.add('alert-warning');
+            } else if (newTotal < currentTotal) {
+                pricePreview.classList.remove('alert-bp-info', 'alert-warning');
+                pricePreview.classList.add('alert-success');
+            } else {
+                pricePreview.classList.remove('alert-warning', 'alert-success');
+                pricePreview.classList.add('alert-bp-info');
+            }
+        } else {
+            newPriceDisplay.textContent = '₦' + currentTotal.toLocaleString('en-NG', {minimumFractionDigits: 2});
+            priceBreakdown.textContent = 'Price will remain unchanged';
+            pricePreview.classList.remove('alert-warning', 'alert-success');
+            pricePreview.classList.add('alert-bp-info');
+        }
+    }
+
+    roomTypeSelect.addEventListener('change', function() {
+        updateRoomUnits(this.value);
+        updatePricePreview();
+    });
+
+    recalculateCheckbox.addEventListener('change', updatePricePreview);
+
+    // Initialize with current room type
+    if (roomTypeSelect.value) {
+        updateRoomUnits(roomTypeSelect.value);
+    }
+});
+</script>
+@endpush
 @endsection

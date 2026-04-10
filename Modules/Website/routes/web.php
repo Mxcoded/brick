@@ -208,6 +208,7 @@ Route::middleware(['web'])->group(function () {
             Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'cancel'])->name('bookings.cancel');
             Route::post('/bookings/{id}/resend', [AdminBookingController::class, 'resendConfirmation'])->name('bookings.resend');
             Route::post('/bookings/{id}/assign-room', [AdminBookingController::class, 'assignRoom'])->name('bookings.assign-room');
+            Route::post('/bookings/{id}/change-room-type', [AdminBookingController::class, 'changeRoomType'])->name('bookings.change-room-type');
             Route::post('/bookings/{id}/move', [AdminBookingController::class, 'moveRoom'])->name('bookings.move');
         });
 });

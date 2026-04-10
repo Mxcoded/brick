@@ -344,4 +344,81 @@ class BookingController extends Controller
 
         return back()->with('success', 'Booking moved successfully.');
     }
+
+    /**
+     * Change the room type for a booking (with price recalculation).
+     */
+    public function changeRoomType(Request $request, $id)
+    {
+        $booking = Booking::with(['roomType', 'roomUnit'])->findOrFail($id);
+
+        $request->validate([
+            'room_type_id' => 'required|exists:room_types,id',
+            'room_unit_id' => 'nullable|exists:room_units,id',
+            'recalculate_price' => 'nullable|boolean',
+        ]);
+
+        $newRoomType = \Modules\Website\Models\RoomType::findOrFail($request->room_type_id);
+        $oldRoomType = $booking->roomType;
+        $oldRoomUnit = $booking->roomUnit;
+
+        // If a room unit is selected, verify it belongs to the selected room type
+        $newRoomUnitId = null;
+        if ($request->filled('room_unit_id')) {
+            $roomUnit = \Modules\Website\Models\RoomUnit::findOrFail($request->room_unit_id);
+            
+            if ($roomUnit->room_type_id != $request->room_type_id) {
+                return back()->with('error', 'Selected room does not belong to the selected room type.');
+            }
+
+            // Check availability
+            $isAvailable = $roomUnit->isAvailableForDates(
+                $booking->check_in_date->format('Y-m-d'),
+                $booking->check_out_date->format('Y-m-d'),
+                $booking->id
+            );
+
+            if (!$isAvailable) {
+                return back()->with('error', 'Selected room is not available for the booking dates.');
+            }
+
+            $newRoomUnitId = $roomUnit->id;
+        }
+
+        // Calculate new price if requested
+        $newTotalAmount = $booking->total_amount;
+        if ($request->boolean('recalculate_price') && $newRoomType->price != ($oldRoomType->price ?? 0)) {
+            $nights = $booking->check_in_date->diffInDays($booking->check_out_date);
+            $nights = $nights < 1 ? 1 : $nights;
+            $newTotalAmount = $newRoomType->price * $nights;
+        }
+
+        // Update the booking
+        $booking->update([
+            'room_type_id' => $request->room_type_id,
+            'room_unit_id' => $newRoomUnitId,
+            'total_amount' => $newTotalAmount,
+        ]);
+
+        Log::info('Booking room type changed:', [
+            'booking_id' => $booking->id,
+            'booking_reference' => $booking->booking_reference,
+            'previous_room_type' => $oldRoomType?->name,
+            'new_room_type' => $newRoomType->name,
+            'previous_room_unit' => $oldRoomUnit?->room_number,
+            'new_room_unit' => $newRoomUnitId ? $roomUnit->room_number : 'TBA',
+            'previous_amount' => $booking->getOriginal('total_amount'),
+            'new_amount' => $newTotalAmount,
+        ]);
+
+        $message = 'Room type changed to ' . $newRoomType->name;
+        if ($newRoomUnitId) {
+            $message .= ' (Room ' . $roomUnit->room_number . ')';
+        }
+        if ($newTotalAmount != $booking->getOriginal('total_amount')) {
+            $message .= '. Price updated to ₦' . number_format($newTotalAmount, 2);
+        }
+
+        return back()->with('success', $message . '.');
+    }
 }
