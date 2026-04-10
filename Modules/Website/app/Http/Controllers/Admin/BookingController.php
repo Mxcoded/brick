@@ -185,18 +185,39 @@ class BookingController extends Controller
      */
     public function confirm($id)
     {
-        $booking = Booking::findOrFail($id);
+        $booking = Booking::with(['roomType', 'roomUnit'])->findOrFail($id);
 
-        // Optional: Re-verify availability before confirming
-        $isAvailable = Booking::isAvailable(
-            $booking->room_id,
-            $booking->check_in_date,
-            $booking->check_out_date,
-            $id
-        );
+        // Check availability based on booking type (new room type system vs legacy)
+        $isAvailable = true;
+        
+        if ($booking->room_type_id) {
+            // New room type system - check if assigned room unit is still available
+            if ($booking->roomUnit) {
+                $isAvailable = $booking->roomUnit->isAvailableForDates(
+                    $booking->check_in_date->format('Y-m-d'),
+                    $booking->check_out_date->format('Y-m-d'),
+                    $booking->id // Exclude current booking from check
+                );
+            } else {
+                // No room unit assigned yet - check if room type has any availability
+                $availableUnits = $booking->roomType?->getAvailabilityCountForDates(
+                    $booking->check_in_date->format('Y-m-d'),
+                    $booking->check_out_date->format('Y-m-d')
+                );
+                $isAvailable = $availableUnits > 0;
+            }
+        } elseif ($booking->room_id) {
+            // Legacy system - use old availability check
+            $isAvailable = Booking::isAvailable(
+                $booking->room_id,
+                $booking->check_in_date,
+                $booking->check_out_date,
+                $id
+            );
+        }
 
         if (!$isAvailable) {
-            return back()->with('error', 'Cannot confirm: This room is now occupied or double-booked.');
+            return back()->with('error', 'Cannot confirm: The room/room type is no longer available for these dates.');
         }
 
         // 1. Update Status & Mark as PAID
