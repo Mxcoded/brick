@@ -75,6 +75,10 @@ Route::middleware(['web'])->group(function () {
         Route::post('/my-booking/find', 'findBooking')->name('website.booking.find');
     });
 
+    // Public Newsletter Routes (No Auth Required)
+    Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])
+        ->name('website.newsletter.unsubscribe');
+
     // =========================================================================
     // 2. GUEST DASHBOARD (Authenticated Users)
     // =========================================================================
@@ -171,11 +175,30 @@ Route::middleware(['web'])->group(function () {
             Route::post('contact-messages/{contact_message}/restore', [ContactMessageController::class, 'restore'])
                 ->name('contact-messages.restore');
 
+            // =========================================================================
+            // NEWSLETTER MANAGEMENT
+            // =========================================================================
+            
+            // Newsletter Campaigns
+            Route::prefix('newsletter/campaigns')->name('newsletter.campaigns.')->group(function () {
+                Route::get('/', [NewsletterController::class, 'index'])->name('index');
+                Route::get('/create', [NewsletterController::class, 'create'])->name('create');
+                Route::post('/', [NewsletterController::class, 'store'])->name('store');
+                Route::get('/{campaign}', [NewsletterController::class, 'show'])->name('show');
+                Route::get('/{campaign}/edit', [NewsletterController::class, 'edit'])->name('edit');
+                Route::put('/{campaign}', [NewsletterController::class, 'update'])->name('update');
+                Route::delete('/{campaign}', [NewsletterController::class, 'destroy'])->name('destroy');
+                Route::get('/{campaign}/preview', [NewsletterController::class, 'preview'])->name('preview');
+                Route::post('/{campaign}/send', [NewsletterController::class, 'send'])->name('send');
+                Route::post('/{campaign}/duplicate', [NewsletterController::class, 'duplicate'])->name('duplicate');
+                Route::post('/{campaign}/test', [NewsletterController::class, 'sendTest'])->name('test');
+            });
+            
             // Newsletter Subscribers Management
-            Route::get('newsletter', [NewsletterController::class, 'index'])->name('newsletter.index');
-            Route::get('newsletter/export', [NewsletterController::class, 'export'])->name('newsletter.export');
-            Route::delete('newsletter/{subscriber}', [NewsletterController::class, 'destroy'])->name('newsletter.destroy');
-            Route::post('newsletter/{subscriber}/toggle', [NewsletterController::class, 'toggleStatus'])->name('newsletter.toggle');
+            Route::get('newsletter/subscribers', [NewsletterController::class, 'subscribersIndex'])->name('newsletter.subscribers');
+            Route::get('newsletter/subscribers/export', [NewsletterController::class, 'exportSubscribers'])->name('newsletter.subscribers.export');
+            Route::delete('newsletter/subscribers/{subscriber}', [NewsletterController::class, 'destroySubscriber'])->name('newsletter.subscribers.destroy');
+            Route::post('newsletter/subscribers/{subscriber}/toggle', [NewsletterController::class, 'toggleSubscriberStatus'])->name('newsletter.subscribers.toggle');
 
             // Manual specific routes if Resources don't cover everything
             Route::post('/rooms/image/upload', [AdminRoomController::class, 'uploadImage'])->name('rooms.image.upload');

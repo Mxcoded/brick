@@ -63,15 +63,33 @@
         @endif
     </a>
 
-    <a href="{{ route('website.admin.newsletter.index') }}"
-        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.newsletter.*') ? 'active' : '' }}">
-        <i class="fas fa-newspaper me-2"></i> Newsletter
-        @if (\Modules\Website\Models\NewsletterSubscriber::where('is_active', true)->count() > 0)
-            <span class="badge bg-success rounded-pill float-end">
-                {{ \Modules\Website\Models\NewsletterSubscriber::where('is_active', true)->count() }}
-            </span>
-        @endif
+    {{-- Newsletter Section --}}
+    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {{ request()->routeIs('website.admin.newsletter.*') ? 'active' : '' }}"
+        data-bs-toggle="collapse" href="#newsletterSubmenu" role="button"
+        aria-expanded="{{ request()->routeIs('website.admin.newsletter.*') ? 'true' : 'false' }}">
+        <span><i class="fas fa-newspaper me-2"></i> Newsletter</span>
+        <i class="fas fa-chevron-down small"></i>
     </a>
+    <div class="collapse {{ request()->routeIs('website.admin.newsletter.*') ? 'show' : '' }}" id="newsletterSubmenu">
+        <a href="{{ route('website.admin.newsletter.campaigns.index') }}"
+            class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.newsletter.campaigns.*') ? 'active' : '' }}"
+            style="padding-left: 3rem !important; font-size: 0.85rem;">
+            <i class="fas fa-paper-plane me-2"></i> Campaigns
+            @php $draftCount = \Modules\Website\Models\Newsletter::where('status', 'draft')->count(); @endphp
+            @if ($draftCount > 0)
+                <span class="badge bg-secondary rounded-pill float-end">{{ $draftCount }}</span>
+            @endif
+        </a>
+        <a href="{{ route('website.admin.newsletter.subscribers') }}"
+            class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.newsletter.subscribers*') ? 'active' : '' }}"
+            style="padding-left: 3rem !important; font-size: 0.85rem;">
+            <i class="fas fa-users me-2"></i> Subscribers
+            @php $activeSubscribers = \Modules\Website\Models\NewsletterSubscriber::where('is_active', true)->count(); @endphp
+            @if ($activeSubscribers > 0)
+                <span class="badge bg-success rounded-pill float-end">{{ $activeSubscribers }}</span>
+            @endif
+        </a>
+    </div>
 
     <a href="{{ route('website.admin.settings.index') }}"
         class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.settings.*') ? 'active' : '' }}">

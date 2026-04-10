@@ -14,7 +14,7 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 text-gray-800"><i class="fas fa-envelope-open-text me-2 text-primary"></i>Newsletter Subscribers</h1>
-        <a href="{{ route('website.admin.newsletter.export') }}" class="btn btn-success">
+        <a href="{{ route('website.admin.newsletter.subscribers.export') }}" class="btn btn-success">
             <i class="fas fa-file-csv me-1"></i> Export CSV
         </a>
     </div>
@@ -65,7 +65,7 @@
     {{-- Filters --}}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-3">
-            <form action="{{ route('website.admin.newsletter.index') }}" method="GET" class="row g-3">
+            <form action="{{ route('website.admin.newsletter.subscribers') }}" method="GET" class="row g-3">
                 <div class="col-md-6">
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
@@ -117,14 +117,14 @@
                         </td>
                         <td class="text-end pe-4">
                             <div class="btn-group" role="group">
-                                <form action="{{ route('website.admin.newsletter.toggle', $sub->id) }}" method="POST" class="d-inline">
+                                <form action="{{ route('website.admin.newsletter.subscribers.toggle', $sub->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-sm {{ $sub->is_active ? 'btn-outline-warning' : 'btn-outline-success' }}" 
                                             title="{{ $sub->is_active ? 'Deactivate' : 'Reactivate' }}">
                                         <i class="fas {{ $sub->is_active ? 'fa-user-slash' : 'fa-user-check' }}"></i>
                                     </button>
                                 </form>
-                                <form action="{{ route('website.admin.newsletter.destroy', $sub->id) }}" method="POST" class="d-inline" 
+                                <form action="{{ route('website.admin.newsletter.subscribers.destroy', $sub->id) }}" method="POST" class="d-inline" 
                                       onsubmit="return confirm('Are you sure you want to permanently delete this subscriber?');">
                                     @csrf
                                     @method('DELETE')
