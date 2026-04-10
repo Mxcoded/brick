@@ -913,24 +913,9 @@
     </div>
 </div>
 
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const roomTypeSelect = document.getElementById('newRoomTypeSelect');
-    const roomUnitSelect = document.getElementById('newRoomUnitSelect');
-    const roomUnitsList = document.getElementById('roomUnitsList');
-    const recalculateCheckbox = document.getElementById('recalculatePrice');
-    const pricePreview = document.getElementById('pricePreview');
-    const newPriceDisplay = document.getElementById('newPriceDisplay');
-    const priceBreakdown = document.getElementById('priceBreakdown');
-    const nights = {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }};
-    const currentTotal = {{ $booking->total_amount }};
-    const checkIn = '{{ $booking->check_in_date->format('Y-m-d') }}';
-    const checkOut = '{{ $booking->check_out_date->format('Y-m-d') }}';
-    const bookingId = {{ $booking->id }};
-
-    // Room units data by room type
-    const roomUnitsData = @json($allRoomTypes->mapWithKeys(function($type) use ($booking) {
+@php
+    // Prepare room units data for JavaScript
+    $roomUnitsDataArray = $allRoomTypes->mapWithKeys(function($type) use ($booking) {
         $units = $type->units()
             ->where('status', 'available')
             ->orderBy('room_number')
@@ -949,7 +934,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 ];
             });
         return [$type->id => $units];
-    }));
+    })->toArray();
+@endphp
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roomTypeSelect = document.getElementById('newRoomTypeSelect');
+    const roomUnitSelect = document.getElementById('newRoomUnitSelect');
+    const roomUnitsList = document.getElementById('roomUnitsList');
+    const recalculateCheckbox = document.getElementById('recalculatePrice');
+    const pricePreview = document.getElementById('pricePreview');
+    const newPriceDisplay = document.getElementById('newPriceDisplay');
+    const priceBreakdown = document.getElementById('priceBreakdown');
+    const nights = {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }};
+    const currentTotal = {{ $booking->total_amount }};
+    const checkIn = '{{ $booking->check_in_date->format('Y-m-d') }}';
+    const checkOut = '{{ $booking->check_out_date->format('Y-m-d') }}';
+    const bookingId = {{ $booking->id }};
+
+    // Room units data by room type
+    const roomUnitsData = @json($roomUnitsDataArray);
 
     function updateRoomUnits(roomTypeId) {
         roomUnitSelect.innerHTML = '<option value="">-- Leave as TBA --</option>';
