@@ -4,6 +4,7 @@
     <li class="breadcrumb-item"><a href="{{ route('banquet.orders.show', $order->order_id) }}">Order #{{ $order->order_id }}</a></li>
     <li class="breadcrumb-item active" aria-current="page">Add Event Day</li>
 @endsection
+<<<<<<< HEAD
 
 @section('page-content')
 <div class="container-fluid px-4 banquet-theme">
@@ -34,6 +35,11 @@
         </div>
     @endif
 
+=======
+
+@section('page-content')
+<div class="container-fluid px-4 banquet-theme">
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="fw-bold display-5 text-charcoal">
             <i class="fas fa-calendar-plus me-2 text-gold"></i>Add Event Day

@@ -154,7 +154,13 @@ class WebsiteController extends Controller
 
         return view('website::room-details', compact('room', 'relatedRooms'));
     }
+<<<<<<< HEAD
     
+=======
+    /**
+     * Display the booking form.
+     */
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
     /**
      * Show the Booking Form (GET)
      */
@@ -449,7 +455,10 @@ class WebsiteController extends Controller
 
         $checkIn = Carbon::parse($validated['check_in_date']);
         $checkOut = Carbon::parse($validated['check_out_date']);
+<<<<<<< HEAD
        
+=======
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
 
         // 1. Find Conflicts in WEBSITE BOOKINGS
         $bookingConflicts = Booking::where('room_id', $validated['room_id'])
@@ -505,7 +514,11 @@ class WebsiteController extends Controller
         $message = "This room is currently booked until " . $occupiedUntil->format('l, F j') . ".";
 
         if ($occupiedUntil->lt($checkOut)) {
+<<<<<<< HEAD
             $message .= " However, it is available from " . $occupiedUntil->format('M j') . " to " . $occupiedUntil->copy()->addDay()->format('M j') . ". Would you like to adjust your dates?";
+=======
+            $message .= " However, it is available from " . $occupiedUntil->format('M j') . " to " . $checkOut->format('M j') . ". Would you like to adjust your dates?";
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
         } else {
             $message .= " Please select different dates.";
         }
@@ -516,7 +529,11 @@ class WebsiteController extends Controller
                 'message' => $message,
                 'suggestion' => [
                     'check_in' => $occupiedUntil->format('Y-m-d'),
+<<<<<<< HEAD
                     'check_out' => $occupiedUntil->copy()->addDay()->format('Y-m-d')
+=======
+                    'check_out' => $checkOut->format('Y-m-d')
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
                 ]
             ]);
         }

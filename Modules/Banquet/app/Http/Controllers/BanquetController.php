@@ -405,6 +405,88 @@ class BanquetController extends Controller
     {
         $request->validate([
             'event_date' => 'required|date',
+            'guest_count' => 'required|integer|min:1',
+            'event_status' => 'required|in:Pending,Confirmed,Cancelled',
+            'event_type' => 'required|string',
+            'banquet_venue_id' => 'required|exists:banquet_venues,id', // Validate ID
+            'banquet_setup_style_id' => 'required|exists:banquet_setup_styles,id', // Validate ID
+            'start_time' => 'required',
+            'end_time' => 'required',
+            'event_description' => 'nullable|string',
+        ]);
+
+        $startTime = date('H:i', strtotime($request->start_time));
+        $endTime = date('H:i', strtotime($request->end_time));
+
+        // 2. Perform Conflict Check using ID
+        $conflict = $this->checkAvailability(
+            $request->event_date,
+            $request->banquet_venue_id,
+            $startTime,
+            $endTime
+        );
+
+        if ($conflict) {
+            return back()->withInput()->with('error', "Venue Conflict! Order #{$conflict->banquetOrder->order_id} has this venue booked from {$conflict->start_time} to {$conflict->end_time}.");
+        }
+
+        try {
+            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+
+            // Retrieve Objects to populate legacy string columns
+            $venue = BanquetVenue::find($request->banquet_venue_id);
+            $style = BanquetSetupStyle::find($request->banquet_setup_style_id);
+
+            $day = $order->eventDays()->create([
+                'event_date' => $request->event_date,
+                'event_description' => $request->event_description,
+                'guest_count' => $request->guest_count,
+                'event_status' => $request->event_status,
+                'event_type' => $request->event_type,
+
+                // Save ID References
+                'banquet_venue_id' => $venue->id,
+                'banquet_setup_style_id' => $style->id,
+
+                // Save Strings (Backward Compatibility)
+                'room' => $venue->name,
+                'setup_style' => $style->name,
+
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'duration_minutes' => $this->calculateDuration($startTime, $endTime),
+            ]);
+
+            return redirect()->route('banquet.orders.add-menu-item', [$order->order_id, $day->id])
+                ->with('success', 'Event day added successfully.');
+        } catch (\Exception $e) {
+            Log::error('Add Day failed: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to add day: ' . $e->getMessage());
+        }
+    }
+    /**
+     * Show the form for editing an existing event day.
+     */
+    public function editDay($order_id, $day_id)
+    {
+        $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+        $day = BanquetOrderDay::findOrFail($day_id);
+        $eventStatuses = ['Pending', 'Confirmed', 'Cancelled'];
+        $eventTypes = ['Wedding', 'Conference', 'Meeting', 'Banquet', 'Other'];
+
+        // REFACTORED: Fetch from Database
+        $venues = BanquetVenue::where('is_active', true)->get();
+        $setupStyles = BanquetSetupStyle::all();
+
+        return view('banquet::edit-day', compact('order', 'day', 'eventStatuses', 'eventTypes', 'setupStyles', 'venues'));
+    }
+    /**
+     * Update an existing event day with Conflict Checking.
+     */
+    public function updateDay(Request $request, $order_id, $day_id)
+    {
+        $request->validate([
+            'event_date' => 'required|date',
             'event_description' => 'nullable|string',
             'guest_count' => 'required|integer|min:1',
             'event_status' => 'required|in:Pending,Confirmed,Cancelled',
