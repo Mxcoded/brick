@@ -4,7 +4,7 @@
 
 @section('page-content')
     <div class="container-fluid py-4">
-       @php
+        @php
             // ### ROBUST CALCULATIONS ###
             $isGroupLead = $registration->is_group_lead;
             $status = $registration->stay_status;
@@ -12,11 +12,15 @@
             // 1. Setup Dates (Strip time components for accurate day math)
             $today = \Carbon\Carbon::now()->startOfDay();
             $checkIn = $registration->check_in ? $registration->check_in->copy()->startOfDay() : $today;
-            $checkOut = $registration->check_out ? $registration->check_out->copy()->startOfDay() : $today->copy()->addDay();
+            $checkOut = $registration->check_out
+                ? $registration->check_out->copy()->startOfDay()
+                : $today->copy()->addDay();
 
             // 2. Calculate Total Stay Duration
             $totalNights = $checkIn->diffInDays($checkOut);
-            if ($totalNights < 1) $totalNights = 1; // Minimum 1 night
+            if ($totalNights < 1) {
+                $totalNights = 1;
+            } // Minimum 1 night
 
             // 3. Calculate Days Passed
             if ($today->lt($checkIn)) {
@@ -25,47 +29,55 @@
                 $daysPassed = $totalNights; // Finished
             } else {
                 $daysPassed = $checkIn->diffInDays($today); // Current day count (0-indexed)
-                if ($daysPassed == 0) $daysPassed = 1; // UI Fix: It's technically "Day 1", not "Day 0"
-            }
+                if ($daysPassed == 0) {
+                    $daysPassed = 1;
+                } // UI Fix: It's technically "Day 1", not "Day 0"
+}
 
-            // 4. Calculate Percentage
-            $progress = 0;
-            if ($status === 'checked_in') {
-                $progress = round(($daysPassed / $totalNights) * 100);
-                // Visual Fix: Ensure bar is visible even on Day 1
-                if ($progress < 5) $progress = 5; 
-                if ($progress > 100) $progress = 100;
-            } elseif ($status === 'checked_out') {
-                $progress = 100;
-            }
+// 4. Calculate Percentage
+$progress = 0;
+if ($status === 'checked_in') {
+    $progress = round(($daysPassed / $totalNights) * 100);
+    // Visual Fix: Ensure bar is visible even on Day 1
+    if ($progress < 5) {
+        $progress = 5;
+    }
+    if ($progress > 100) {
+        $progress = 100;
+    }
+} elseif ($status === 'checked_out') {
+    $progress = 100;
+}
 
-            // 5. Days Remaining
-            $daysRemaining = $totalNights - $daysPassed;
-            if ($daysRemaining < 0) $daysRemaining = 0;
+// 5. Days Remaining
+$daysRemaining = $totalNights - $daysPassed;
+if ($daysRemaining < 0) {
+    $daysRemaining = 0;
+}
 
-            // --- Status Badges ---
-            $statusBadgeClass = 'bg-secondary';
-            $statusText = ucfirst(str_replace('_', ' ', $status));
+// --- Status Badges ---
+$statusBadgeClass = 'bg-secondary';
+$statusText = ucfirst(str_replace('_', ' ', $status));
 
-            if ($status === 'checked_in') {
-                if ($checkOut->isSameDay($today)) {
-                    $statusBadgeClass = 'bg-warning text-dark';
-                    $statusText = 'Departing Today';
-                } elseif ($checkOut->lt($today)) {
-                    $statusBadgeClass = 'bg-danger';
-                    $statusText = 'Overstayed';
-                } else {
-                    $statusBadgeClass = 'bg-info';
-                    $statusText = 'Checked In';
-                }
-            } elseif ($status === 'checked_out') {
-                $statusBadgeClass = 'bg-success';
-            }
+if ($status === 'checked_in') {
+    if ($checkOut->isSameDay($today)) {
+        $statusBadgeClass = 'bg-warning text-dark';
+        $statusText = 'Departing Today';
+    } elseif ($checkOut->lt($today)) {
+        $statusBadgeClass = 'bg-danger';
+        $statusText = 'Overstayed';
+    } else {
+        $statusBadgeClass = 'bg-info';
+        $statusText = 'Checked In';
+    }
+} elseif ($status === 'checked_out') {
+    $statusBadgeClass = 'bg-success';
+}
 
-            // --- Confirmations ---
-            $checkoutConfirmMsg = $isGroupLead
-                ? 'Are you sure you want to check out the GROUP LEAD? This usually implies the whole group is leaving.'
-                : 'Are you sure you want to check out ' . e($registration->full_name) . '?';
+// --- Confirmations ---
+$checkoutConfirmMsg = $isGroupLead
+    ? 'Are you sure you want to check out the GROUP LEAD? This usually implies the whole group is leaving.'
+    : 'Are you sure you want to check out ' . e($registration->full_name) . '?';
         @endphp
 
         {{-- Header Section --}}
@@ -86,7 +98,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('frontdesk.registrations.index') }}" class="btn btn-outline-dark">
                     <i class="fas fa-arrow-left me-1"></i> Back to List
@@ -96,7 +108,52 @@
                 </a>
             </div>
         </div>
-
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+        @if($registration->stay_status == 'pending_approval')
+    <div class="card border-primary shadow-lg mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0 fw-bold"><i class="fas fa-user-clock me-2"></i>Finalize Guest Check-in</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-3">This guest has self-registered via mobile. Please verify ID and assign a room to complete check-in.</p>
+            
+            <form action="{{ route('frontdesk.registrations.update', $registration->id) }}" method="POST">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="stay_status" value="checked_in">
+                
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Assign Room</label>
+                        <select name="room_id" class="form-select form-select-lg" required>
+                            <option value="">Select available room...</option>
+                            @foreach(\Modules\Website\Models\Room::where('status', 'available')->get() as $room)
+                                <option value="{{ $room->id }}">{{ $room->name }} - ₦{{ number_format($room->price) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Nights</label>
+                        <input type="number" name="no_of_nights" class="form-control form-control-lg" value="1">
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">
+                            <i class="fas fa-check"></i> Complete Check-in
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+@endif
         <div class="row">
             {{-- Left Column - Main Details --}}
             <div class="col-lg-8 mb-4">
@@ -107,11 +164,12 @@
                             <div class="rounded-circle bg-light p-2 me-3">
                                 <i class="fas {{ $isGroupLead ? 'fa-user-tie' : 'fa-user' }} text-gold"></i>
                             </div>
-                            <h5 class="mb-0 text-dark fw-bold">{{ $isGroupLead ? 'Lead Guest Summary' : 'Guest Booking Summary' }}</h5>
+                            <h5 class="mb-0 text-dark fw-bold">
+                                {{ $isGroupLead ? 'Lead Guest Summary' : 'Guest Booking Summary' }}</h5>
                         </div>
                         <span class="badge fs-6 px-3 py-2 {{ $statusBadgeClass }}">{{ $statusText }}</span>
                     </div>
-                    
+
                     <div class="card-body">
                         <div class="row g-4">
                             <div class="col-md-6">
@@ -122,11 +180,11 @@
                                     <div>
                                         <p class="text-muted small mb-0">Room Allocation</p>
                                         <p class="mb-0 fw-bold text-dark">
-                                            {{ $registration->room ? $registration->room->name : ($registration->room_allocation ?? 'Not Assigned') }}
+                                            {{ $registration->room ? $registration->room->name : $registration->room_allocation ?? 'Not Assigned' }}
                                         </p>
                                     </div>
                                 </div>
-                                
+
                                 <div class="d-flex align-items-center">
                                     <div class="rounded-circle bg-light p-2 me-3">
                                         <i class="fas fa-calendar-alt text-gold"></i>
@@ -135,12 +193,13 @@
                                         <p class="text-muted small mb-0">Stay Duration</p>
                                         <p class="mb-0 fw-bold text-dark">
                                             {{ $checkIn->format('M d') }} - {{ $checkOut->format('M d, Y') }}
-                                            <span class="text-gold">({{ $totalNights }} {{ Str::plural('Night', $totalNights) }})</span>
+                                            <span class="text-gold">({{ $totalNights }}
+                                                {{ Str::plural('Night', $totalNights) }})</span>
                                         </p>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <div class="d-flex align-items-center mb-3">
                                     <div class="rounded-circle bg-light p-2 me-3">
@@ -154,16 +213,73 @@
                                         </p>
                                     </div>
                                 </div>
-                                
+
                                 <div class="d-flex align-items-center">
                                     <div class="rounded-circle bg-light p-2 me-3">
                                         <i class="fas fa-wallet text-gold"></i>
                                     </div>
                                     <div>
                                         <p class="text-muted small mb-0">Total Bill</p>
-                                        <p class="mb-0 fw-bold fs-4 text-dark">&#8358;{{ number_format($registration->total_amount, 2) }}</p>
+                                        <p class="mb-0 fw-bold fs-4 text-dark">
+                                            &#8358;{{ number_format($registration->total_amount, 2) }}</p>
                                     </div>
+
                                 </div>
+                            </div>
+                        </div>
+                        {{-- ✅ NEW: Payment History Table --}}
+                        <div class="mt-4 p-3 bg-light rounded-3">
+                            <h6 class="fw-bold text-dark mb-3"><i class="fas fa-receipt me-2"></i>Payment History</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-borderless small mb-0">
+                                    <thead class="text-muted border-bottom">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Method</th>
+                                            <th>Reference</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {{-- 1. Online Booking Payment (if exists) --}}
+                                        @if($registration->booking && $registration->booking->amount_paid > 0)
+                                            <tr>
+                                                <td>{{ $registration->booking->created_at->format('M d') }}</td>
+                                                <td>Online</td>
+                                                <td>{{ $registration->booking->booking_reference }}</td>
+                                                <td class="text-end text-success">+ ₦{{ number_format($registration->booking->amount_paid, 2) }}</td>
+                                            </tr>
+                                        @endif
+
+                                        {{-- 2. Staff Recorded Payments --}}
+                                        @forelse($registration->payments as $payment)
+                                            <tr>
+                                                <td>{{ $payment->payment_date->format('M d') }}</td>
+                                                <td>{{ ucfirst($payment->payment_method) }}</td>
+                                                <td>{{ $payment->reference ?? '-' }}</td>
+                                                <td class="text-end text-success">+ ₦{{ number_format($payment->amount, 2) }}</td>
+                                            </tr>
+                                        @empty
+                                            @if(!$registration->booking || $registration->booking->amount_paid <= 0)
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted fst-italic py-2">No payments recorded yet.</td>
+                                            </tr>
+                                            @endif
+                                        @endforelse
+                                        
+                                        {{-- 3. Totals --}}
+                                        <tr class="border-top border-dark">
+                                            <td colspan="3" class="fw-bold text-dark pt-2">Total Paid</td>
+                                            <td class="text-end fw-bold text-success pt-2">₦{{ number_format($registration->total_paid, 2) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="3" class="fw-bold text-danger">Balance Due</td>
+                                            <td class="text-end fw-bold text-danger">
+                                                ₦{{ number_format($registration->total_amount - $registration->total_paid, 2) }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 
@@ -175,12 +291,12 @@
                                     <span class="fw-bold text-dark">{{ $progress }}%</span>
                                 </div>
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar" role="progressbar" 
-                                         style="width: {{ $progress }}%; background: linear-gradient(90deg, #C8A165 0%, #b08c54 100%);" 
-                                         aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <div class="progress-bar" role="progressbar"
+                                        style="width: {{ $progress }}%; background: linear-gradient(90deg, #C8A165 0%, #b08c54 100%);"
+                                        aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100"></div>
                                 </div>
                             </div>
-                            
+
                             {{-- Action Buttons --}}
                             <hr class="my-4">
                             <div class="d-flex flex-wrap gap-2">
@@ -188,11 +304,15 @@
                                     data-bs-target="#adjustStayModal-{{ $registration->id }}">
                                     <i class="fas fa-calendar-plus me-1"></i> Extend Stay
                                 </button>
+                                <button type="button" class="btn btn-success text-white" data-bs-toggle="modal"
+                                    data-bs-target="#paymentModal">
+                                    <i class="fas fa-money-bill-wave me-1"></i> Record a Payment
+                                </button>
                                 <form action="{{ route('frontdesk.registrations.checkout', $registration) }}"
                                     method="POST" class="d-inline"
                                     onsubmit="return confirm('{{ $checkoutConfirmMsg }}');">
                                     @csrf
-                                    <button type="submit" class="btn btn-success">
+                                    <button type="submit" class="btn btn-danger">
                                         <i class="fas fa-sign-out-alt me-1"></i> Check Out
                                     </button>
                                 </form>
@@ -215,13 +335,14 @@
                                 </div>
                             </div>
                             {{-- NEW: Add Member Button --}}
-                            @if($registration->stay_status === 'checked_in')
-                                <button type="button" class="btn btn-sm btn-gold" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                            @if ($registration->stay_status === 'checked_in')
+                                <button type="button" class="btn btn-sm btn-gold" data-bs-toggle="modal"
+                                    data-bs-target="#addMemberModal">
                                     <i class="fas fa-user-plus me-1"></i> Add Member
                                 </button>
                             @endif
                         </div>
-                        
+
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
@@ -242,11 +363,12 @@
                                                         <div class="rounded-circle bg-light p-1 me-2">
                                                             <i class="fas fa-user fa-sm text-gold"></i>
                                                         </div>
-                                                        <span class="fw-semibold text-dark">{{ $member->full_name }}</span>
+                                                        <span
+                                                            class="fw-semibold text-dark">{{ $member->full_name }}</span>
                                                     </div>
                                                 </td>
                                                 <td class="align-middle">
-                                                    {{ $member->room ? $member->room->name : ($member->room_allocation ?? 'N/A') }}
+                                                    {{ $member->room ? $member->room->name : $member->room_allocation ?? 'N/A' }}
                                                 </td>
                                                 <td class="align-middle">
                                                     {{ $member->room_rate ? '₦' . number_format($member->room_rate, 2) : 'N/A' }}
@@ -264,26 +386,30 @@
                                                 </td>
                                                 <td class="align-middle text-end pe-4">
                                                     @if ($member->stay_status == 'checked_in')
-                                                        <form action="{{ route('frontdesk.registrations.checkout', $member) }}"
+                                                        <form
+                                                            action="{{ route('frontdesk.registrations.checkout', $member) }}"
                                                             method="POST" class="d-inline"
                                                             onsubmit="return confirm('Check out this guest?');">
                                                             @csrf
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Check Out">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                                title="Check Out">
                                                                 <i class="fas fa-sign-out-alt"></i>
                                                             </button>
                                                         </form>
                                                     @elseif($member->stay_status == 'draft_by_guest')
                                                         {{-- NEW: Finalize Late Arrival --}}
-                                                        <a href="{{ route('frontdesk.registrations.finalize.form', $member) }}" 
-                                                           class="btn btn-sm btn-warning" title="Finalize">
+                                                        <a href="{{ route('frontdesk.registrations.finalize.form', $member) }}"
+                                                            class="btn btn-sm btn-warning" title="Finalize">
                                                             <i class="fas fa-check-double"></i>
                                                         </a>
                                                     @elseif($member->stay_status == 'no_show' || $member->stay_status == 'checked_out')
-                                                        <form action="{{ route('frontdesk.registrations.reopen', $member) }}"
+                                                        <form
+                                                            action="{{ route('frontdesk.registrations.reopen', $member) }}"
                                                             method="POST" class="d-inline"
                                                             onsubmit="return confirm('Re-open this guest?');">
                                                             @csrf
-                                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Re-open">
+                                                            <button type="submit" class="btn btn-sm btn-outline-warning"
+                                                                title="Re-open">
                                                                 <i class="fas fa-redo"></i>
                                                             </button>
                                                         </form>
@@ -310,7 +436,8 @@
                 {{-- Group Financial Summary --}}
                 @if ($isGroupLead)
                     <div class="card border-0 shadow-sm rounded-3 mb-4">
-                        <div class="card-header border-0 py-3" style="background: linear-gradient(135deg, #333333 0%, #444444 100%);">
+                        <div class="card-header border-0 py-3"
+                            style="background: linear-gradient(135deg, #333333 0%, #444444 100%);">
                             <div class="d-flex align-items-center">
                                 <div class="rounded-circle bg-white bg-opacity-25 p-2 me-3">
                                     <i class="fas fa-calculator text-white"></i>
@@ -318,20 +445,26 @@
                                 <h5 class="mb-0 text-white fw-bold">Group Financial Summary</h5>
                             </div>
                         </div>
-                        
+
                         <div class="card-body">
                             <div class="list-group list-group-flush">
-                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3">
+                                <div
+                                    class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3">
                                     <div><span class="text-muted small">Lead's Personal Bill</span></div>
-                                    <span class="fw-bold text-dark">₦{{ number_format($groupFinancialSummary['lead_personal_bill'], 2) }}</span>
+                                    <span
+                                        class="fw-bold text-dark">₦{{ number_format($groupFinancialSummary['lead_personal_bill'], 2) }}</span>
                                 </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3">
+                                <div
+                                    class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3">
                                     <div><span class="text-muted small">Active Members' Bill</span></div>
-                                    <span class="fw-bold text-dark">₦{{ number_format($groupFinancialSummary['members_bill'], 2) }}</span>
+                                    <span
+                                        class="fw-bold text-dark">₦{{ number_format($groupFinancialSummary['members_bill'], 2) }}</span>
                                 </div>
-                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3 bg-light rounded-2 mt-2">
+                                <div
+                                    class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3 bg-light rounded-2 mt-2">
                                     <div><span class="fw-bold text-dark">Total Outstanding</span></div>
-                                    <span class="fw-bold fs-5 text-dark">₦{{ number_format($groupFinancialSummary['total_outstanding'], 2) }}</span>
+                                    <span
+                                        class="fw-bold fs-5 text-dark">₦{{ number_format($groupFinancialSummary['total_outstanding'], 2) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -348,9 +481,10 @@
                             <h5 class="mb-0 text-dark fw-bold">Guest Profile</h5>
                         </div>
                     </div>
-                    
+
                     <div class="card-body">
-                        <h6 class="card-title mb-3 text-dark">{{ $registration->guest->full_name ?? $registration->full_name }}</h6>
+                        <h6 class="card-title mb-3 text-dark">
+                            {{ $registration->guest->full_name ?? $registration->full_name }}</h6>
                         <ul class="list-unstyled mb-0">
                             <li class="mb-3 d-flex">
                                 <i class="fas fa-envelope text-muted mt-1 me-3"></i>
@@ -366,10 +500,12 @@
                             </li>
                             <li class="d-flex align-items-center">
                                 <i class="fas fa-history text-muted me-3"></i>
-                                <span class="badge {{ ($registration->guest->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }}">
+                                <span
+                                    class="badge {{ ($registration->guest->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }}">
                                     {{ ($registration->guest->visit_count ?? 1) > 1 ? 'Returning Guest' : 'New Guest' }}
                                 </span>
-                                <small class="text-muted ms-2">(Visits: {{ $registration->guest->visit_count ?? 1 }})</small>
+                                <small class="text-muted ms-2">(Visits:
+                                    {{ $registration->guest->visit_count ?? 1 }})</small>
                             </li>
                         </ul>
                     </div>
@@ -378,10 +514,10 @@
         </div>
 
         {{-- MODALS --}}
-        
+
         {{-- 1. Adjust Stay Modal (Lead) --}}
         @include('frontdeskcrm::registrations.partials._adjust_stay_modal', ['guest' => $registration])
-        
+
         {{-- 2. Adjust Stay Modal (Members) --}}
         @if ($isGroupLead && $groupMembers->count() > 0)
             @foreach ($groupMembers as $member)
@@ -390,39 +526,92 @@
         @endif
 
         {{-- 3. Add Member Modal (NEW) --}}
-        @if($isGroupLead)
-        <div class="modal fade" id="addMemberModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Add New Group Member</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        @if ($isGroupLead)
+            <div class="modal fade" id="addMemberModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add New Group Member</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <form action="{{ route('frontdesk.registrations.add-member', $registration) }}" method="POST">
+                            @csrf
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="full_name" class="form-control" required
+                                        placeholder="Guest Name">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Contact Number (Optional)</label>
+                                    <input type="text" name="contact_number" class="form-control"
+                                        placeholder="+234...">
+                                </div>
+                                <div class="alert alert-info small">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    You will be redirected to finalize this guest's room and rate immediately.
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-gold">Create & Finalize</button>
+                            </div>
+                        </form>
                     </div>
-                    <form action="{{ route('frontdesk.registrations.add-member', $registration) }}" method="POST">
-                        @csrf
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" name="full_name" class="form-control" required placeholder="Guest Name">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Contact Number (Optional)</label>
-                                <input type="text" name="contact_number" class="form-control" placeholder="+234...">
-                            </div>
-                            <div class="alert alert-info small">
-                                <i class="fas fa-info-circle me-1"></i> 
-                                You will be redirected to finalize this guest's room and rate immediately.
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-gold">Create & Finalize</button>
-                        </div>
-                    </form>
                 </div>
             </div>
-        </div>
         @endif
 
+        <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-cash-register me-2"></i>Record New Payment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('frontdesk.registrations.payment.store', $registration) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Amount Received (₦) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" name="amount" class="form-control form-control-lg fw-bold text-success" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Payment Method</label>
+                            <select name="payment_method" class="form-select" required>
+                                <option value="Cash">Cash</option>
+                                <option value="POS">POS / Card</option>
+                                <option value="Transfer">Bank Transfer</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="Complimentary">Complimentary / Waived</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="payment_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Reference / Receipt No. (Optional)</label>
+                        <input type="text" name="reference" class="form-control" placeholder="e.g. POS-123456">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Deposit for room and bar"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success fw-bold">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
     </div>
 @endsection

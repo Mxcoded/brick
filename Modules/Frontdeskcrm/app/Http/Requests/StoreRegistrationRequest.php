@@ -18,19 +18,24 @@ class StoreRegistrationRequest extends FormRequest
 
     public function rules(): array
     {
+        // 1. Check if this is an Agent Walk-in (Internal)
+        $isAgentWalkin = $this->routeIs('frontdesk.registrations.storeWalkin');
+
         $isGuestDraft = $this->boolean('is_guest_draft', false);
 
         // 1. BASE RULES (Required for everyone)
         $rules = [
+            'full_name' => 'required|string|max:255',
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
-            'no_of_guests' => 'required|integer|min:1|max:10',
+            'no_of_guests' => 'required|integer|min:1|max:22',
+            // ✅ CONDITIONAL: Only require specific fields if NOT an agent walk-in
             'is_group_lead' => 'boolean',
-            'agreed_to_policies' => 'required|accepted',
+            'agreed_to_policies' => $isAgentWalkin ? 'nullable' : 'required|accepted',
             'opt_in_data_save' => 'boolean',
 
-            // Signature is always required for a fresh agreement
-            'guest_signature' => [
+            // ✅ CONDITIONAL: Signature is optional for Agents (Guest can sign later via Kiosk)
+            'guest_signature' => $isAgentWalkin ? 'nullable' : [
                 'required',
                 'string',
                 'regex:/^data:image\/(png|jpeg|jpg);base64,[A-Za-z0-9+\/=]+$/i'
@@ -85,7 +90,6 @@ class StoreRegistrationRequest extends FormRequest
                 'nullable',
                 'email',
                 'max:255',
-                $isGuestDraft ? '' : 'unique:guests,email',
                 new ValidEmail // <-- RESTORED
             ];
 

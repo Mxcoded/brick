@@ -8,15 +8,33 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <style>
+       :root {
+            --color-white: #FFFFFF;
+            --color-gold: #C8A165;
+            --color-dark-gray: #333333;
+            --color-soft-neutral: #F5F5F0;
+            --font-primary: 'Proxima Nova', Arial, Helvetica, sans-serif;
+        }
+
+        @font-face {
+            font-family: 'Proxima Nova';
+            src: url("{{ asset('fonts/Proxima Nova Regular.ttf') }}") format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
         body {
-            background-color: #f8f9fa;
+            background-color: var(--color-soft-neutral);
+            font-family: var(--font-primary);
+            color: var(--color-dark-gray);
         }
         .navbar-brand {
             font-weight: bold;
+            color: var(--color-dark-gray) !important;
         }
         .sidebar {
             min-height: 100vh;
-            background-color: #343a40;
+            background-color: var(--color-dark-gray);
             padding-top: 20px;
         }
         .sidebar a {

@@ -16,7 +16,7 @@ class Dining extends Model
     protected $fillable = [
         'name',
         'description',
-        'image',
+        'image_url',
         'opening_hours',
         'cuisine_type',
         'dress_code',

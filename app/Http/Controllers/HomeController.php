@@ -34,6 +34,6 @@ class HomeController extends Controller
         }
 
         // 3. Guest (Default)
-        return redirect()->route('website.guest.dashboard');
+        return redirect()->route('guest.dashboard');
     }
 }

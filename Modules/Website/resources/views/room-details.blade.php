@@ -5,16 +5,14 @@
 @section('content')
     <section class="room-details-section py-5 py-lg-7">
         <div class="container">
-            <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('website.home') }}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('website.rooms') }}">Rooms & Suites</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('website.rooms.index') }}">Rooms & Suites</a></li>
                     <li class="breadcrumb-item active" aria-current="page">{{ $room->name }}</li>
                 </ol>
             </nav>
 
-            <!-- Room Header -->
             <div class="row mb-5">
                 <div class="col-12">
                     <h1 class="display-4 fw-bold mb-3">{{ $room->name }}</h1>
@@ -22,354 +20,298 @@
                 </div>
             </div>
 
-            <!-- Image Gallery -->
             <div class="row mb-5">
                 <div class="col-lg-8">
-                    @if ($room->video)
-                        <div class="mb-4">
-                            <video class="w-100 rounded shadow-lg" controls>
-                                <source src="{{ Storage::url($room->video) }}" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                        </div>
-                    @endif
-                    <div id="roomGallery" class="carousel slide" data-bs-ride="carousel">
-                        <div class="carousel-inner">
-                            @php
-                                $images = $room->images ?? collect();
-                                $mainImage = $room->image
-                                    ? Storage::url($room->image)
-                                    : asset('images/default-room.jpg');
-                            @endphp
-
-                            @if ($images->isNotEmpty())
-                                @foreach ($images as $index => $image)
-                                    <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                                        <a href="{{ Storage::url($image->path) }}" data-fancybox="gallery"
-                                            data-caption="{{ $image->caption ?? $room->name }}">
-                                            <img src="{{ Storage::url($image->path) }}"
-                                                class="d-block w-100 rounded shadow-lg"
-                                                alt="{{ $image->caption ?? $room->name }}"
-                                                style="max-height: 500px; object-fit: cover;" loading="lazy">
-                                        </a>
-                                        @if ($image->caption)
-                                            <div class="carousel-caption d-none d-md-block">
-                                                <p class="bg-dark bg-opacity-50 p-2 rounded">{{ $image->caption }}</p>
-                                            </div>
-                                        @endif
-                                    </div>
-                                @endforeach
+                    {{-- 1. Video Section (Kept as is) --}}
+                    @if ($room->video_url)
+                        <div class="mb-4 ratio ratio-16x9 rounded shadow-lg overflow-hidden">
+                            @if (Str::contains($room->video_url, 'youtube') || Str::contains($room->video_url, 'youtu.be'))
+                                <iframe src="{{ str_replace('watch?v=', 'embed/', $room->video_url) }}"
+                                    allowfullscreen></iframe>
                             @else
-                                <div class="carousel-item active">
-                                    <a href="{{ $mainImage }}" data-fancybox="gallery"
-                                        data-caption="{{ $room->name }}">
-                                        <img src="{{ $mainImage }}" class="d-block w-100 rounded shadow-lg"
-                                            alt="{{ $room->name }}" style="max-height: 500px; object-fit: cover;"
-                                            loading="lazy">
-                                    </a>
-                                </div>
+                                <video controls>
+                                    <source src="{{ $room->video_url }}" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
                             @endif
                         </div>
-                        @if ($images->count() > 1)
-                            <button class="carousel-control-prev" type="button" data-bs-target="#roomGallery"
+                    @endif
+
+                    {{-- 2. Gallery Carousel (Replaces Static Image) --}}
+                    @if ($room->images && $room->images->count() > 0)
+                        <div id="roomGalleryCarousel" class="carousel slide mb-5 shadow-lg rounded overflow-hidden"
+                            data-bs-ride="carousel">
+
+                            {{-- Indicators (Optional dots at bottom) --}}
+                            <div class="carousel-indicators">
+                                @foreach ($room->images as $key => $image)
+                                    <button type="button" data-bs-target="#roomGalleryCarousel"
+                                        data-bs-slide-to="{{ $key }}" class="{{ $key == 0 ? 'active' : '' }}"
+                                        aria-current="{{ $key == 0 ? 'true' : 'false' }}"
+                                        aria-label="Slide {{ $key + 1 }}"></button>
+                                @endforeach
+                            </div>
+
+                            {{-- Slides --}}
+                            <div class="carousel-inner">
+                                @foreach ($room->images as $key => $image)
+                                    <div class="carousel-item {{ $key == 0 ? 'active' : '' }}">
+                                        <img src="{{ $image->image_url }}" class="d-block w-100"
+                                            alt="{{ $room->name }} Gallery Image {{ $key + 1 }}"
+                                            style="height: 500px; object-fit: cover;">
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            {{-- Controls (Prev/Next Buttons) --}}
+                            <button class="carousel-control-prev" type="button" data-bs-target="#roomGalleryCarousel"
                                 data-bs-slide="prev">
                                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Previous</span>
                             </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#roomGallery"
+                            <button class="carousel-control-next" type="button" data-bs-target="#roomGalleryCarousel"
                                 data-bs-slide="next">
                                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Next</span>
                             </button>
-                        @endif
-                    </div>
-                    <!-- Thumbnails -->
-                    @if ($images->count() > 1)
-                        <div class="thumbnail-gallery d-flex gap-3 overflow-auto mt-3">
-                            @foreach ($images as $index => $image)
-                                <div class="thumbnail rounded shadow-sm" data-bs-target="#roomGallery"
-                                    data-bs-slide-to="{{ $index }}"
-                                    style="width: 150px; height: 100px; cursor: pointer; flex-shrink: 0;">
-                                    <img src="{{ Storage::url($image->path) }}" class="w-100 h-100 object-fit-cover"
-                                        alt="{{ $image->caption ?? 'Thumbnail ' . ($index + 1) }}" loading="lazy">
-                                </div>
-                            @endforeach
                         </div>
+                    @else
+                        {{-- Fallback: Show Main Image if no gallery exists --}}
+                        @if ($room->image_url)
+                            <img src="{{ $room->image_url }}" class="img-fluid rounded shadow-lg mb-5 w-100"
+                                alt="{{ $room->name }}" style="max-height: 500px; object-fit: cover;">
+                        @endif
                     @endif
+
+                    {{-- Amenities Section (Likely below this) --}}
+                    <h3 class="mb-4">Room Amenities</h3>
+                    <div class="row g-3">
+                        @foreach ($room->amenities as $amenity)
+                            <div class="col-6 col-md-4">
+                                <div class="d-flex align-items-center p-3 border rounded bg-light">
+                                    <i class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-3 fs-4"></i>
+                                    <span class="fw-medium">{{ $amenity->name }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
 
                 <div class="col-lg-4">
-                    <div class="card shadow-sm sticky-top" style="top: 20px;">
+                    <div class="card shadow border-0 sticky-top" style="top: 100px; z-index: 10;">
                         <div class="card-body p-4">
-                            <h3 class="h4 fw-bold mb-3">Room Overview</h3>
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="fas fa-naira-sign text-primary me-2"></i>
-                                    {{ number_format($room->price_per_night) }} / night</li>
-                                <li class="mb-2"><i class="fas fa-ruler-combined text-primary me-2"></i>
-                                    {{ $room->size ?? 'N/A' }} sq.ft</li>
-                                <li class="mb-2"><i class="fas fa-user-friends text-primary me-2"></i> Up to
-                                    {{ $room->capacity ?? 'N/A' }} Guests</li>
-                            </ul>
-                            <a href="{{ route('website.booking.form', ['room_id' => $room->id]) }}"
-                                class="btn btn-primary w-100 mt-3">Book Now</a>
-                            <a href="#availability-checker" class="btn btn-outline-primary w-100 mt-2">Check
-                                Availability</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            <div class="mb-4">
+                                <span class="h2 fw-bold text-primary">₦{{ number_format($room->price, 2) }}</span>
+                                <span class="text-muted">/ night</span>
+                            </div>
 
-            <!-- Amenities -->
-            <div class="row mb-5">
-                <div class="col-12">
-                    <h2 class="h3 fw-bold mb-4">Room Amenities</h2>
-                    @if ($room->amenities->isEmpty())
-                        <p class="text-muted">No amenities listed for this room yet.</p>
-                    @else
-                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                            @foreach ($room->amenities as $amenity)
-                                <div class="col">
-                                    <div class="amenity-item d-flex align-items-center p-3 bg-light rounded">
-                                        <i class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-3"></i>
-                                        <span>{{ $amenity->name }}</span>
+                            <form id="checkAvailabilityForm" action="{{ route('website.room.checkAvailability') }}"
+                                method="POST">
+                                @csrf
+                                <input type="hidden" name="room_id" value="{{ $room->id }}">
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold text-uppercase text-muted">Check In</label>
+                                        <input type="date" name="check_in_date" id="check_in_date" class="form-control"
+                                            required min="{{ date('Y-m-d') }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold text-uppercase text-muted">Check Out</label>
+                                        <input type="date" name="check_out_date" id="check_out_date" class="form-control"
+                                            required min="{{ date('Y-m-d', strtotime('+1 day')) }}">
                                     </div>
                                 </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-            </div>
 
-            <!-- Availability Checker -->
-            <div class="row mb-5" id="availability-checker">
-                <div class="col-12">
-                    <h2 class="h3 fw-bold mb-4">Check Availability</h2>
-                    <div class="card shadow-sm">
-                        <div class="card-body p-4">
-                            <form id="availabilityForm" class="row g-3">
-                                <input type="hidden" name="room_id" value="{{ $room->id }}">
-                                <div class="col-md-4">
-                                    <label for="check_in" class="form-label">Check-In</label>
-                                    <input type="date" class="form-control" id="check_in" name="check_in"
-                                        min="{{ date('Y-m-d') }}" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label for="check_out" class="form-label">Check-Out</label>
-                                    <input type="date" class="form-control" id="check_out" name="check_out"
-                                        min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
-                                </div>
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <button type="button" id="checkAvailabilityBtn" class="btn btn-primary w-100">Check
-                                        Availability</button>
+                                <button type="submit" id="checkBtn" class="btn btn-primary w-100 py-3 fw-bold">
+                                    <span class="btn-text">Check Availability</span>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status"
+                                        aria-hidden="true"></span>
+                                </button>
+
+                                <div id="availabilityResult" class="mt-3 text-center small fw-bold p-2 rounded d-none">
                                 </div>
                             </form>
-                            <div id="availabilityResult" class="mt-3"></div>
+                        </div>
+                        <div class="card-footer bg-light p-3 text-center">
+                            <small class="text-muted"><i class="fas fa-lock me-1"></i> Best Price Guaranteed</small>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Related Rooms -->
-            @if ($relatedRooms && $relatedRooms->isNotEmpty())
-                <div class="row">
-                    <div class="col-12">
-                        <h2 class="h3 fw-bold mb-4">Explore Similar Rooms</h2>
-                        <div class="row g-4">
-                            @foreach ($relatedRooms as $relatedRoom)
-                                <div class="col-md-4">
-                                    <div class="card border-0 shadow-sm h-100">
-                                        <img src="{{ $relatedRoom->image ? Storage::url($relatedRoom->image) : asset('images/default-room.jpg') }}"
-                                            class="card-img-top" alt="{{ $relatedRoom->name }}"
-                                            style="height: 200px; object-fit: cover;" loading="lazy">
-                                        <div class="card-body">
-                                            <h4 class="h5">{{ $relatedRoom->name }}</h4>
-                                            <p class="text-muted">{{ Str::limit($relatedRoom->description, 50) }}</p>
-                                            <p class="fw-bold text-primary mb-0">
-                                                {{ number_format($relatedRoom->price_per_night) }} / night</p>
-                                        </div>
-                                        <div class="card-footer bg-white border-0">
-                                            <a href="{{ route('website.room.details', $relatedRoom->id) }}"
-                                                class="btn btn-outline-primary w-100">View Details</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="d-flex flex-wrap gap-3 mb-5 text-muted">
+                        <div class="d-flex align-items-center bg-light px-3 py-2 rounded">
+                            <i class="fas fa-user-friends me-2"></i> {{ $room->capacity }} Guests
+                        </div>
+                        <div class="d-flex align-items-center bg-light px-3 py-2 rounded">
+                            <i class="fas fa-ruler-combined me-2"></i> {{ $room->size ?? 'N/A' }}
+                        </div>
+                        <div class="d-flex align-items-center bg-light px-3 py-2 rounded">
+                            <i class="fas fa-bed me-2"></i> {{ $room->bed_type ?? 'King Bed' }}
                         </div>
                     </div>
+
+                    <h3 class="h4 fw-bold mb-3">Description</h3>
+                    <div class="mb-5">
+                        {!! nl2br(e($room->description)) !!}
+                    </div>
+
+                </div>
+            </div>
+
+            @if (isset($relatedRooms) && $relatedRooms->isNotEmpty())
+                <hr class="my-5">
+                <h3 class="fw-bold mb-4">You May Also Like</h3>
+                <div class="row g-4">
+                    @foreach ($relatedRooms as $related)
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm h-100">
+                                @if ($related->image_url)
+                                    <img src="{{ $related->image_url }}" class="card-img-top"
+                                        alt="{{ $related->name }}" style="height: 200px; object-fit: cover;">
+                                @endif
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ $related->name }}</h5>
+                                    <p class="card-text text-primary fw-bold">₦{{ number_format($related->price, 2) }}</p>
+                                    <a href="{{ route('website.rooms.show', $related->slug ?? $related->id) }}"
+                                        class="btn btn-outline-primary btn-sm stretched-link">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             @endif
+
         </div>
     </section>
 @endsection
 
-@push('styles')
-    <style>
-        .room-details-section {
-            background-color: #f8f9fa;
-        }
-
-        .carousel-item {
-            transition: transform 0.6s ease;
-        }
-
-        .thumbnail {
-            transition: opacity 0.3s ease;
-        }
-
-        .thumbnail:hover {
-            opacity: 0.8;
-        }
-
-        .amenity-item {
-            transition: all 0.3s ease;
-        }
-
-        .amenity-item:hover {
-            background-color: #e9ecef;
-            transform: translateY(-3px);
-        }
-
-        .thumbnail-gallery::-webkit-scrollbar {
-            height: 5px;
-        }
-
-        .thumbnail-gallery::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        .thumbnail-gallery::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-        }
-
-        .thumbnail-gallery::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-    </style>
-@endpush
-
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css">
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Fancybox only if elements exist
-            if (document.querySelector('[data-fancybox="gallery"]')) {
-                Fancybox.bind('[data-fancybox="gallery"]', {
-                    loop: true,
-                    buttons: ["zoom", "share", "slideShow", "fullScreen", "download", "thumbs", "close"],
-                    animationEffect: "zoom-in-out",
-                    transitionEffect: "circular"
-                });
-            }
+            const form = document.getElementById('checkAvailabilityForm');
 
-            // Dynamic check-out date adjustment
-            const checkIn = document.getElementById('check_in');
-            const checkOut = document.getElementById('check_out');
-            if (checkIn && checkOut) {
-                checkIn.addEventListener('change', function() {
-                    if (this.value) {
-                        const nextDay = new Date(this.value);
-                        nextDay.setDate(nextDay.getDate() + 1);
-                        const nextDayStr = nextDay.toISOString().split('T')[0];
-                        checkOut.min = nextDayStr;
-                        if (!checkOut.value || new Date(checkOut.value) <= new Date(nextDayStr)) {
-                            checkOut.value = nextDayStr;
+            if (!form) return;
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const btn = document.getElementById('checkBtn');
+                const btnText = btn.querySelector('.btn-text');
+                const spinner = btn.querySelector('.spinner-border');
+                const resultDiv = document.getElementById('availabilityResult');
+
+                // 1. UI Reset
+                btn.disabled = true;
+                btnText.textContent = 'Checking...';
+                spinner.classList.remove('d-none');
+
+                // Hide result properly using classList
+                resultDiv.classList.add('d-none');
+                resultDiv.className = 'mt-3 text-center small fw-bold p-2 rounded d-none';
+
+                // 2. Prepare Data
+                const formData = new FormData(form);
+                const jsonData = Object.fromEntries(formData.entries());
+
+                // 3. Send Request
+                fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(jsonData)
+                    })
+                    .then(async response => {
+                        // Check content type to prevent JSON parse error on 500 HTML response
+                        const contentType = response.headers.get("content-type");
+                        if (!contentType || !contentType.includes("application/json")) {
+                            throw new Error("Server returned an invalid response.");
                         }
-                    }
-                });
-            }
 
-            // Availability checker
-            const checkAvailabilityBtn = document.getElementById('checkAvailabilityBtn');
-            const availabilityResult = document.getElementById('availabilityResult');
-            const form = document.getElementById('availabilityForm');
+                        const data = await response.json();
 
-            if (checkAvailabilityBtn && availabilityResult && form) {
-                checkAvailabilityBtn.addEventListener('click', function() {
-                    const formData = new FormData(form);
-                    const checkInDate = formData.get('check_in');
-                    const checkOutDate = formData.get('check_out');
-                    const roomId = formData.get('room_id');
+                        // Handle 422 Validation Errors
+                        if (response.status === 422) {
+                            const firstError = data.errors ? Object.values(data.errors).flat()[0] :
+                                'Invalid dates selected.';
+                            throw new Error(firstError);
+                        }
 
-                    // Validate inputs
-                    if (!roomId || !checkInDate || !checkOutDate) {
-                        availabilityResult.innerHTML = `
-                            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                                Please ensure all fields (room ID, check-in, and check-out dates) are filled.
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>`;
-                        return;
-                    }
+                        if (!response.ok) {
+                            throw new Error(data.message || 'Something went wrong.');
+                        }
 
-                    // Loading state
-                    checkAvailabilityBtn.disabled = true;
-                    checkAvailabilityBtn.innerHTML =
-                        `
-                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Checking...`;
+                        return data;
+                    })
+                    .then(data => {
+                        // Show result div
+                        resultDiv.classList.remove('d-none');
 
-                    // Correctly construct the URL with the room ID
-                    const url = "{{ route('website.room.checkAvailability', $room->id) }}" +
-                        `?check_in=${encodeURIComponent(checkInDate)}&check_out=${encodeURIComponent(checkOutDate)}`;
+                        if (data.available) {
+                            // SUCCESS: Room is free
+                            resultDiv.classList.remove('bg-danger', 'text-danger', 'bg-warning',
+                                'text-warning');
+                            resultDiv.classList.add('bg-success', 'bg-opacity-10', 'text-success');
+                            resultDiv.innerHTML =
+                                `<i class=\"fas fa-check-circle me-1\"></i> ${data.message} Redirecting...`;
 
-                    fetch(url, {
-                            method: 'GET',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json'
+                            // Redirect to booking page
+                            setTimeout(() => {
+                                window.location.href = data.redirect_url;
+                            }, 1000);
+                        } else {
+                            // FAIL: Room is occupied (Show smart suggestion)
+                           // ✅ FIX: Removed 'bg-opacity-10' and 'text-danger'
+                            // ✅ NEW: Added 'text-white' so it reads clearly on the red background
+                            resultDiv.classList.remove('bg-success', 'text-success', 'bg-warning', 'text-warning', 'bg-opacity-10');
+                            resultDiv.classList.add('bg-danger', 'text-white');
+                            resultDiv.innerHTML =
+                                `<i class=\"fas fa-times-circle me-1\"></i> ${data.message}`;
+
+                            // If suggestion exists, append a "Use Dates" button
+                            if (data.suggestion) {
+                                const suggestBtn = document.createElement('button');
+                                suggestBtn.type = 'button';
+                                // ✅ UI POLISH: Changed button to 'btn-light' so it stands out against the red background
+                                suggestBtn.className = 'btn btn-sm btn-light text-danger fw-bold mt-2 d-block mx-auto';
+                                suggestBtn.innerHTML = 'Use Available Dates';
+
+                                suggestBtn.onclick = function() {
+                                    document.getElementById('check_in_date').value = data.suggestion.check_in;
+                                    document.getElementById('check_out_date').value = data.suggestion.check_out;
+                                    form.requestSubmit();
+                                };
+                                resultDiv.appendChild(suggestBtn);
                             }
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                return response.text().then(text => {
-                                    throw new Error(
-                                        `Server responded with status ${response.status}: ${text}`
-                                        );
-                                });
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (typeof data.available === 'boolean' && data.message) {
-                                if (data.available) {
-                                    availabilityResult.innerHTML = `
-                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                        ${data.message}
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                        <div class="mt-3">
-                                            <a href="{{ route('website.booking.form', ['room_id' => $room->id]) }}?check_in=${encodeURIComponent(checkInDate)}&check_out=${encodeURIComponent(checkOutDate)}"
-                                               class="btn btn-success">
-                                                Proceed to Book
-                                            </a>
-                                        </div>
-                                    </div>`;
-                                } else {
-                                    availabilityResult.innerHTML = `
-                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                        ${data.message}
-                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                    </div>`;
-                                }
-                            } else {
-                                throw new Error('Invalid response format from server');
-                            }
-                        })
-                        .catch(error => {
-                            availabilityResult.innerHTML = `
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                Failed to check availability: ${error.message}. Please try again or contact support.
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>`;
-                            console.error('Availability Check Error:', error);
-                        })
-                        .finally(() => {
-                            checkAvailabilityBtn.disabled = false;
-                            checkAvailabilityBtn.innerHTML = 'Check Availability';
-                        });
-                });
-            }
+
+                            // Reset button state
+                            btn.disabled = false;
+                            btnText.textContent = 'Check Availability';
+                            spinner.classList.add('d-none');
+                        }
+                    })
+                    .catch(error => {
+                        // ERROR HANDLER
+                        console.error("Availability Check Error:", error);
+
+                        resultDiv.classList.remove('d-none');
+                        resultDiv.classList.remove('bg-success', 'text-success', 'bg-danger',
+                            'text-danger');
+                        resultDiv.classList.add('bg-warning', 'bg-opacity-10', 'text-dark');
+                        resultDiv.innerHTML =
+                            `<i class=\"fas fa-exclamation-triangle me-1\"></i> ${error.message}`;
+
+                        btn.disabled = false;
+                        btnText.textContent = 'Check Availability';
+                        spinner.classList.add('d-none');
+                    });
+            });
         });
     </script>
 @endpush

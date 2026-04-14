@@ -5,16 +5,22 @@ namespace Modules\Frontdeskcrm\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\User;
 
 class Guest extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'title',
         'full_name',
         'nationality',
+        'zip_code',       // ✅ Added
+        'identification_type',   // ✅ Added
+        'identification_number',
         'contact_number',
         'birthday',
         'email',
@@ -22,6 +28,8 @@ class Guest extends Model
         'occupation',
         'company_name',
         'home_address',
+        'city',           // ✅ Added
+        'state',
         'emergency_name',
         'emergency_relationship',
         'emergency_contact',
@@ -38,6 +46,11 @@ class Guest extends Model
     ];
 
     // Relationships
+    // ✅ Link to Website User
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);

@@ -13,15 +13,11 @@ class RoomImage extends Model
     /**
      * The attributes that are mass assignable.
      */
-    protected $fillable = ['room_id', 'path', 'type', 'order', 'caption'];
+    protected $fillable = ['room_id', 'image_url', 'path'];
 
     public function room()
     {
         return $this->belongsTo(Room::class);
     }
 
-    // protected static function newFactory(): RoomImageFactory
-    // {
-    //     // return RoomImageFactory::new();
-    // }
 }

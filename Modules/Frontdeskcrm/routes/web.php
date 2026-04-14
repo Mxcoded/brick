@@ -46,50 +46,89 @@ Route::prefix('frontdesk')
     ->middleware(['web', 'auth', 'can:access_frontdesk_dashboard']) // Updated
     ->name('frontdesk.')
     ->group(function () {
+        // Route to show the "Confirm Check-in" screen for an online booking
+        Route::get('/bookings/{ref}/checkin', [RegistrationController::class, 'checkinFromBooking'])
+            ->name('bookings.checkin');
+        // Route to process the conversion
+        Route::post('/bookings/{ref}/process', [RegistrationController::class, 'processBookingCheckin'])
+            ->name('bookings.process');
+    //records a payment made against a registration.
+    Route::post('/registrations/{registration}/payment', [RegistrationController::class, 'storePayment'])
+        ->name('registrations.payment.store');
+        // --- REGISTRATION MANAGEMENT ---
+        Route::prefix('registrations')->name('registrations.')->group(function () {
 
-    // --- REGISTRATION MANAGEMENT ---
-    Route::prefix('registrations')->name('registrations.')->group(function () {
+            // Agent's main dashboard showing all registrations.
+            Route::get('/', [RegistrationController::class, 'index'])->name('dashboard');
+            Route::get('registrations', [RegistrationController::class, 'index'])->name('index');
+            // --- NEW "WALK-IN" ROUTE (Feature) ---
+            Route::get('/lookup-guest', [RegistrationController::class, 'lookupGuest'])->name('lookup');
+            Route::get('/create-walkin', [RegistrationController::class, 'createWalkin'])->name('createWalkin');
+            Route::post('/store-walkin', [RegistrationController::class, 'storeWalkin'])->name('storeWalkin');
 
-        // Agent's main dashboard showing all registrations.
-        Route::get('/', [RegistrationController::class, 'index'])->name('dashboard');
-        Route::get('registrations', [RegistrationController::class, 'index'])->name('index');
-        // --- NEW "WALK-IN" ROUTE (Feature) ---
-        Route::get('/lookup-guest', [RegistrationController::class, 'lookupGuest'])->name('lookup');
-        Route::get('/create-walkin', [RegistrationController::class, 'createWalkin'])->name('createWalkin');
-        Route::post('/store-walkin', [RegistrationController::class, 'storeWalkin'])->name('storeWalkin');
-        
-        // Shows the form for an agent to finalize a guest's draft.
-        Route::get('/{registration}/finalize', [RegistrationController::class, 'showFinalizeForm'])->name('finalize.form');
 
-        // Processes the agent's submission of the finalization form.
-        Route::post('/{registration}/finalize', [RegistrationController::class, 'finalize'])->name('finalize');
 
-        // Displays the details of a single, completed registration.
-        Route::get('/{registration}', [RegistrationController::class, 'show'])->name('show');
+            // Shows the form for an agent to finalize a guest's draft.
+            Route::get('/{registration}/finalize', [RegistrationController::class, 'showFinalizeForm'])->name('finalize.form');
 
-        // Adjusts the stay details (e.g., extending checkout date) for a registration.
-        Route::put('/{registration}/adjust-stay', [RegistrationController::class, 'adjustStay'])->name('adjust-stay');
+            // Processes the agent's submission of the finalization form.
+            Route::post('/{registration}/finalize', [RegistrationController::class, 'finalize'])->name('finalize');
 
-        // Retrieves active group members for a group registration.
-        Route::get('/{registration}/active-members', [RegistrationController::class, 'getActiveMembers'])->name('active-members');
-        // Add a new member to an existing group
-        Route::post('/{registration}/add-member', [RegistrationController::class, 'addMember'])->name('add-member');
-        // Generates a printable PDF of a registration.
-        Route::get('/{registration}/print', [RegistrationController::class, 'print'])->name('print');
-        // ** ADD THIS NEW ROUTE FOR CHECKOUT **
-        Route::post('/{registration}/checkout', [RegistrationController::class, 'checkout'])->name('checkout');
-        // --- NEW "NO-SHOW" FIX ROUTE (Gap) ---
-        Route::post('/{registration}/reopen', [RegistrationController::class, 'reopen'])->name('reopen');
+            // Displays the details of a single, completed registration.
+            Route::get('/{registration}', [RegistrationController::class, 'show'])->name('show');
 
-        // --- NEW "DELETE DRAFT" ROUTE (Feature) ---
-        Route::delete('/{registration}', [RegistrationController::class, 'destroy'])->name('destroy');
+            // Adjusts the stay details (e.g., extending checkout date) for a registration.
+            Route::put('/{registration}/adjust-stay', [RegistrationController::class, 'adjustStay'])->name('adjust-stay');
+      
+
+            // Retrieves active group members for a group registration.
+            Route::get('/{registration}/active-members', [RegistrationController::class, 'getActiveMembers'])->name('active-members');
+            // Add a new member to an existing group
+            Route::post('/{registration}/add-member', [RegistrationController::class, 'addMember'])->name('add-member');
+            // Generates a printable PDF of a registration.
+            Route::get('/{registration}/print', [RegistrationController::class, 'print'])->name('print');
+            // ** ADD THIS NEW ROUTE FOR CHECKOUT **
+            Route::post('/{registration}/checkout', [RegistrationController::class, 'checkout'])->name('checkout');
+            // --- NEW "NO-SHOW" FIX ROUTE (Gap) ---
+            Route::post('/{registration}/reopen', [RegistrationController::class, 'reopen'])->name('reopen');
+
+            // --- NEW "DELETE DRAFT" ROUTE (Feature) ---
+            Route::delete('/{registration}', [RegistrationController::class, 'destroy'])->name('destroy');
+        });
+
+        // --- MASTER DATA MANAGEMENT ---
+
+        // Routes for managing Booking Sources (e.g., Walk-in, Booking.com).
+        Route::resource('booking-sources', BookingSourceController::class)->except(['show']);
+
+        // Routes for managing Guest Types (e.g., Corporate, VIP).
+        Route::resource('guest-types', GuestTypeController::class)->except(['show']);
+
+        Route::prefix('rooms')->name('rooms.')->group(function () {
+            // 1. The Visual Room Rack (Box View)
+            Route::get('/rack', [RegistrationController::class, 'roomRack'])->name('rack');
+
+            // 2. The Calendar View (Timeline)
+            Route::get('/schedule', [RegistrationController::class, 'schedule'])->name('schedule');
+        });
     });
 
-    // --- MASTER DATA MANAGEMENT ---
 
-    // Routes for managing Booking Sources (e.g., Walk-in, Booking.com).
-    Route::resource('booking-sources', BookingSourceController::class)->except(['show']);
+// =====================================================================
+// 3. FAST TRACK CHECK-IN ROUTES (SIMPLE FLOW FOR GUESTS) 
+// =====================================================================
+Route::prefix('fast-track')->name('frontdesk.fasttrack.')->group(function () {
+    // The Landing Page (Scan QR lands here)
+    Route::get('/', [RegistrationController::class, 'fastTrackIndex'])->name('index');
 
-    // Routes for managing Guest Types (e.g., Corporate, VIP).
-    Route::resource('guest-types', GuestTypeController::class)->except(['show']);
+    // Lookup (Find Booking)
+    Route::post('/lookup', [RegistrationController::class, 'fastTrackLookup'])->name('lookup');
+
+    // Submit Data (Save Profile + Signature)
+    Route::post('/submit', [RegistrationController::class, 'fastTrackStore'])->name('store');
+
+    // Success Page
+    Route::get('/done', function () {
+        return view('frontdeskcrm::fasttrack.done');
+    })->name('done');
 });

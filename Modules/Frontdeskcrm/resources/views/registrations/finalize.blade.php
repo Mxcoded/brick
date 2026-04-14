@@ -7,8 +7,8 @@
         <div class="row justify-content-center">
             <div class="col-xl-10">
                 <div class="card border-0 shadow-lg rounded-3">
-                    <div class="card-header border-0 rounded-top-3 py-3" 
-                         style="background: linear-gradient(135deg, #C8A165 0%, #b08c54 100%);">
+                    <div class="card-header border-0 rounded-top-3 py-3"
+                        style="background: linear-gradient(135deg, #C8A165 0%, #b08c54 100%);">
                         <div class="d-flex align-items-center">
                             <div class="bg-white rounded-circle p-2 me-3">
                                 <i class="fas fa-check-double fa-lg text-gold"></i>
@@ -19,15 +19,16 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="card-body p-4 p-md-5">
-                        <form action="{{ route('frontdesk.registrations.finalize', $registration) }}" method="POST" 
-                              novalidate id="finalize-form">
+                        <form action="{{ route('frontdesk.registrations.finalize', $registration) }}" method="POST"
+                            novalidate id="finalize-form">
                             @csrf
-                            
+
                             {{-- Error Notification --}}
                             @if ($errors->any())
-                                <div class="alert alert-danger border-0 bg-danger bg-opacity-10 border-start border-3 border-danger rounded-2 mb-4" role="alert">
+                                <div class="alert alert-danger border-0 bg-danger bg-opacity-10 border-start border-3 border-danger rounded-2 mb-4"
+                                    role="alert">
                                     <div class="d-flex align-items-center mb-2">
                                         <i class="fas fa-exclamation-circle me-2"></i>
                                         <strong class="fw-bold">There were errors with your submission:</strong>
@@ -50,7 +51,7 @@
                                         <h5 class="mb-0 text-dark fw-bold">Guest Submitted Information (Review)</h5>
                                     </div>
                                 </div>
-                                
+
                                 <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-8">
@@ -65,34 +66,38 @@
                                                     </p>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <label class="form-label text-muted small mb-1">Contact Information</label>
+                                                    <label class="form-label text-muted small mb-1">Contact
+                                                        Information</label>
                                                     <p class="fw-bold text-dark mb-0">
-                                                        <i class="fas fa-phone text-muted me-1"></i> {{ $registration->contact_number }}
+                                                        <i class="fas fa-phone text-muted me-1"></i>
+                                                        {{ $registration->contact_number }}
                                                     </p>
                                                     <p class="fw-bold text-dark mb-0">
-                                                        <i class="fas fa-envelope text-muted me-1"></i> {{ $registration->email }}
+                                                        <i class="fas fa-envelope text-muted me-1"></i>
+                                                        {{ $registration->email }}
                                                     </p>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label text-muted small mb-1">Gender</label>
-                                                    <p class="fw-bold text-dark mb-0">{{ strtoupper($registration->gender) }}</p>
+                                                    <p class="fw-bold text-dark mb-0">
+                                                        {{ strtoupper($registration->gender) }}</p>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label text-muted small mb-1">Stay Duration</label>
                                                     <p class="fw-bold text-dark mb-0">
-                                                        {{ $registration->check_in->format('M d, Y') }} to {{ $registration->check_out->format('M d, Y') }}
+                                                        {{ $registration->check_in->format('M d, Y') }} to
+                                                        {{ $registration->check_out->format('M d, Y') }}
                                                     </p>
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="col-md-4 text-center">
                                             <label class="form-label text-muted small mb-2">Guest Signature</label>
                                             @if ($registration->guest_signature)
                                                 <img src="{{ Storage::url($registration->guest_signature) }}"
-                                                     alt="Guest Signature" 
-                                                     class="img-fluid border rounded bg-white p-2"
-                                                     style="max-height: 100px;">
+                                                    alt="Guest Signature" class="img-fluid border rounded bg-white p-2"
+                                                    style="max-height: 100px;">
                                             @else
                                                 <div class="border rounded p-4 bg-light">
                                                     <i class="fas fa-signature fa-2x text-muted mb-2"></i>
@@ -121,7 +126,7 @@
                                             Group Lead's Booking
                                         </h6>
                                     </div>
-                                    
+
                                     <div class="card-body">
                                         <div class="row g-3">
                                             <div class="col-md-6">
@@ -129,23 +134,23 @@
                                                     Assign Room <span class="text-danger">*</span>
                                                 </label>
                                                 {{-- HIDDEN: Stores text name for backward compatibility --}}
-                                                <input type="hidden" name="room_allocation" id="lead_room_text" 
-                                                       value="{{ old('room_allocation', $registration->room_allocation) }}">
-                                                
+                                                <input type="hidden" name="room_allocation" id="lead_room_text"
+                                                    value="{{ old('room_allocation', $registration->room_allocation) }}">
+
                                                 <div class="input-group">
                                                     <span class="input-group-text bg-light border-end-0">
                                                         <i class="fas fa-door-closed text-muted"></i>
                                                     </span>
                                                     {{-- UPDATED: Select Dropdown with Persist Logic --}}
-                                                    <select class="form-select @error('room_id') is-invalid @enderror" 
-                                                            name="room_id" id="room_id" onchange="updateLeadRoomDetails(this)">
+                                                    <select class="form-select @error('room_id') is-invalid @enderror"
+                                                        name="room_id" id="room_id"
+                                                        onchange="updateLeadRoomDetails(this)">
                                                         <option value="">Select a Room...</option>
-                                                        @foreach($rooms as $room)
-                                                            <option value="{{ $room->id }}" 
+                                                        @foreach ($rooms as $room)
+                                                            <option value="{{ $room->id }}"
                                                                 data-name="{{ $room->name }}"
-                                                                data-price="{{ $room->price_per_night }}" 
-                                                                data-capacity="{{ $room->capacity }}"
-                                                                {{-- FIX: Check Old Input -> Then Check DB Value --}}
+                                                                data-price="{{ $room->price }}"
+                                                                data-capacity="{{ $room->capacity }}" {{-- FIX: Check Old Input -> Then Check DB Value --}}
                                                                 @selected(old('room_id', $registration->room_id) == $room->id)>
                                                                 {{ $room->name }} (Cap: {{ $room->capacity }})
                                                             </option>
@@ -156,7 +161,7 @@
                                                     @enderror
                                                 </div>
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="room_rate" class="form-label fw-semibold text-dark">
                                                     Room Rate (per night) <span class="text-danger">*</span>
@@ -165,24 +170,24 @@
                                                     <span class="input-group-text bg-light border-end-0">
                                                         <i class="fas fa-money-bill-wave text-muted"></i>
                                                     </span>
-                                                    <input type="text" class="form-control @error('room_rate') is-invalid @enderror"
-                                                           name="room_rate" id="room_rate" 
-                                                           {{-- FIX: Check Old Input -> Then Check DB Value (Formatted) --}}
-                                                           value="{{ old('room_rate', $registration->room_rate ? number_format($registration->room_rate) : '') }}"
-                                                           placeholder="e.g. 50,000">
+                                                    <input type="text"
+                                                        class="form-control @error('room_rate') is-invalid @enderror"
+                                                        name="room_rate" id="room_rate" {{-- FIX: Check Old Input -> Then Check DB Value (Formatted) --}}
+                                                        value="{{ old('room_rate', $registration->room_rate ? number_format($registration->room_rate) : '') }}"
+                                                        placeholder="e.g. 50,000">
                                                     @error('room_rate')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
                                                 </div>
                                             </div>
-                                            
+
                                             <div class="col-12">
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" name="bed_breakfast"
-                                                           value="1" id="bed_breakfast" 
-                                                           {{-- FIX: Check Old Input -> Then Check DB Value --}}
-                                                           @checked(old('bed_breakfast', $registration->bed_breakfast))>
-                                                    <label class="form-check-label fw-semibold text-dark" for="bed_breakfast">
+                                                        value="1" id="bed_breakfast" {{-- FIX: Check Old Input -> Then Check DB Value --}}
+                                                        @checked(old('bed_breakfast', $registration->bed_breakfast))>
+                                                    <label class="form-check-label fw-semibold text-dark"
+                                                        for="bed_breakfast">
                                                         <i class="fas fa-coffee text-gold me-1"></i>
                                                         Include Bed & Breakfast
                                                     </label>
@@ -201,7 +206,7 @@
                                                 Group Member Bookings ({{ $groupMembers->count() }} members)
                                             </h6>
                                         </div>
-                                        
+
                                         <div class="card-body p-0">
                                             <div class="table-responsive">
                                                 <table class="table table-hover mb-0">
@@ -222,25 +227,27 @@
                                                                         <div class="rounded-circle bg-light p-1 me-2">
                                                                             <i class="fas fa-user fa-sm text-gold"></i>
                                                                         </div>
-                                                                        <span class="fw-semibold text-dark">{{ $member->full_name }}</span>
+                                                                        <span
+                                                                            class="fw-semibold text-dark">{{ $member->full_name }}</span>
                                                                     </div>
                                                                 </td>
                                                                 <td>
                                                                     {{-- UPDATED: Member Room Select --}}
-                                                                    <input type="hidden" 
-                                                                           name="group_members[{{ $member->id }}][room_allocation]" 
-                                                                           id="member_room_text_{{ $member->id }}"
-                                                                           {{-- FIX: Persistence --}}
-                                                                           value="{{ old('group_members.' . $member->id . '.room_allocation', $member->room_allocation) }}">
+                                                                    <input type="hidden"
+                                                                        name="group_members[{{ $member->id }}][room_allocation]"
+                                                                        id="member_room_text_{{ $member->id }}"
+                                                                        {{-- FIX: Persistence --}}
+                                                                        value="{{ old('group_members.' . $member->id . '.room_allocation', $member->room_allocation) }}">
 
-                                                                    <select class="form-select form-select-sm @error('group_members.' . $member->id . '.room_id') is-invalid @enderror"
-                                                                            name="group_members[{{ $member->id }}][room_id]"
-                                                                            onchange="updateMemberRoomDetails(this, {{ $member->id }})">
+                                                                    <select
+                                                                        class="form-select form-select-sm @error('group_members.' . $member->id . '.room_id') is-invalid @enderror"
+                                                                        name="group_members[{{ $member->id }}][room_id]"
+                                                                        onchange="updateMemberRoomDetails(this, {{ $member->id }})">
                                                                         <option value="">Select...</option>
-                                                                        @foreach($rooms as $room)
+                                                                        @foreach ($rooms as $room)
                                                                             <option value="{{ $room->id }}"
                                                                                 data-name="{{ $room->name }}"
-                                                                                data-price="{{ $room->price_per_night }}"
+                                                                                data-price="{{ $room->price }}"
                                                                                 {{-- FIX: Check Old Input -> Then Check Member DB Value --}}
                                                                                 @selected(old('group_members.' . $member->id . '.room_id', $member->room_id) == $room->id)>
                                                                                 {{ $room->name }}
@@ -248,48 +255,60 @@
                                                                         @endforeach
                                                                     </select>
                                                                     @error('group_members.' . $member->id . '.room_id')
-                                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                                        <div class="invalid-feedback">{{ $message }}
+                                                                        </div>
                                                                     @enderror
                                                                 </td>
                                                                 <td>
                                                                     <div class="input-group input-group-sm">
-                                                                        <span class="input-group-text bg-light border-end-0">₦</span>
-                                                                        {{-- ADDED ID for targeting --}}
-                                                                        <input type="number" step="0.01"
-                                                                               class="form-control @error('group_members.' . $member->id . '.room_rate') is-invalid @enderror"
-                                                                               name="group_members[{{ $member->id }}][room_rate]"
-                                                                               id="member_rate_{{ $member->id }}"
-                                                                               placeholder="Rate"
-                                                                               {{-- FIX: Check Old Input -> Then Check Member DB Value --}}
-                                                                               value="{{ old('group_members.' . $member->id . '.room_rate', $member->room_rate) }}">
-                                                                        @error('group_members.' . $member->id . '.room_rate')
-                                                                            <div class="invalid-feedback">{{ $message }}</div>
-                                                                        @enderror
+                                                                        <span
+                                                                            class="input-group-text bg-light border-end-0">₦</span>
+                                                                        {{-- UX FIX: Changed type="number" to "text" to support commas --}}
+                                                                        <input type="text"
+                                                                            class="form-control member-rate-input @error('group_members.' . $member->id . '.room_rate') is-invalid @enderror"
+                                                                            name="group_members[{{ $member->id }}][room_rate]"
+                                                                            id="member_rate_{{ $member->id }}"
+                                                                            placeholder="Rate"
+                                                                            value="{{ old('group_members.' . $member->id . '.room_rate', $member->room_rate ? number_format($member->room_rate) : '') }}">
                                                                     </div>
+                                                                    @error('group_members.' . $member->id . '.room_rate')
+                                                                        <div class="invalid-feedback d-block">
+                                                                            {{ $message }}</div>
+                                                                    @enderror
                                                                 </td>
                                                                 <td class="text-center">
                                                                     <div class="form-check d-inline-block">
                                                                         <input class="form-check-input" type="checkbox"
-                                                                               name="group_members[{{ $member->id }}][bed_breakfast]"
-                                                                               value="1" 
-                                                                               {{-- FIX: Check Old Input -> Then Check Member DB Value --}}
-                                                                               @checked(old('group_members.' . $member->id . '.bed_breakfast', $member->bed_breakfast))>
+                                                                            name="group_members[{{ $member->id }}][bed_breakfast]"
+                                                                            value="1" {{-- FIX: Check Old Input -> Then Check Member DB Value --}}
+                                                                            @checked(old('group_members.' . $member->id . '.bed_breakfast', $member->bed_breakfast))>
                                                                     </div>
                                                                 </td>
                                                                 <td class="pe-4">
-                                                                    <select class="form-select form-select-sm @error('group_members.' . $member->id . '.status') is-invalid @enderror"
-                                                                            name="group_members[{{ $member->id }}][status]">
+                                                                    <select
+                                                                        class="form-select form-select-sm @error('group_members.' . $member->id . '.status') is-invalid @enderror"
+                                                                        name="group_members[{{ $member->id }}][status]">
                                                                         {{-- FIX: Default to existing status or 'checked_in' --}}
-                                                                        @php 
-                                                                            $mStatus = old('group_members.' . $member->id . '.status', $member->stay_status);
+                                                                        @php
+                                                                            $mStatus = old(
+                                                                                'group_members.' .
+                                                                                    $member->id .
+                                                                                    '.status',
+                                                                                $member->stay_status,
+                                                                            );
                                                                             // Map 'draft_by_guest' to 'checked_in' for the dropdown initial state
-                                                                            if($mStatus === 'draft_by_guest') $mStatus = 'checked_in';
+                                                                            if ($mStatus === 'draft_by_guest') {
+                                                                                $mStatus = 'checked_in';
+                                                                            }
                                                                         @endphp
-                                                                        <option value="checked_in" @selected($mStatus == 'checked_in')>Check-in</option>
-                                                                        <option value="no_show" @selected($mStatus == 'no_show')>No-Show</option>
+                                                                        <option value="checked_in"
+                                                                            @selected($mStatus == 'checked_in')>Check-in</option>
+                                                                        <option value="no_show"
+                                                                            @selected($mStatus == 'no_show')>No-Show</option>
                                                                     </select>
                                                                     @error('group_members.' . $member->id . '.status')
-                                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                                        <div class="invalid-feedback">{{ $message }}
+                                                                        </div>
                                                                     @enderror
                                                                 </td>
                                                             </tr>
@@ -309,7 +328,7 @@
                                             Overall Booking Details
                                         </h6>
                                     </div>
-                                    
+
                                     <div class="card-body">
                                         <div class="row g-3">
                                             @if ($registration->is_group_lead)
@@ -318,7 +337,7 @@
                                                         Billing Method <span class="text-danger">*</span>
                                                     </label>
                                                     <select name="billing_type"
-                                                            class="form-select @error('billing_type') is-invalid @enderror">
+                                                        class="form-select @error('billing_type') is-invalid @enderror">
                                                         <option value="consolidate" @selected(old('billing_type', $registration->billing_type) == 'consolidate')>
                                                             Consolidate on Group Lead
                                                         </option>
@@ -331,16 +350,15 @@
                                                     @enderror
                                                 </div>
                                             @endif
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="guest_type_id" class="form-label fw-semibold text-dark">
                                                     Guest Type <span class="text-danger">*</span>
                                                 </label>
                                                 <select name="guest_type_id"
-                                                        class="form-select @error('guest_type_id') is-invalid @enderror">
+                                                    class="form-select @error('guest_type_id') is-invalid @enderror">
                                                     @foreach ($guestTypes as $type)
-                                                        <option value="{{ $type->id }}" 
-                                                            {{-- FIX: Check Old Input -> Then Check DB Value --}}
+                                                        <option value="{{ $type->id }}" {{-- FIX: Check Old Input -> Then Check DB Value --}}
                                                             @selected(old('guest_type_id', $registration->guest_type_id) == $type->id)>
                                                             {{ $type->name }}
                                                         </option>
@@ -350,16 +368,15 @@
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="booking_source_id" class="form-label fw-semibold text-dark">
                                                     Booking Source <span class="text-danger">*</span>
                                                 </label>
                                                 <select name="booking_source_id"
-                                                        class="form-select @error('booking_source_id') is-invalid @enderror">
+                                                    class="form-select @error('booking_source_id') is-invalid @enderror">
                                                     @foreach ($bookingSources as $source)
-                                                        <option value="{{ $source->id }}" 
-                                                            {{-- FIX: Check Old Input -> Then Check DB Value --}}
+                                                        <option value="{{ $source->id }}" {{-- FIX: Check Old Input -> Then Check DB Value --}}
                                                             @selected(old('booking_source_id', $registration->booking_source_id) == $source->id)>
                                                             {{ $source->name }}
                                                         </option>
@@ -369,19 +386,22 @@
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="payment_method" class="form-label fw-semibold text-dark">
                                                     Payment Method <span class="text-danger">*</span>
                                                 </label>
                                                 <select name="payment_method"
-                                                        class="form-select @error('payment_method') is-invalid @enderror">
+                                                    class="form-select @error('payment_method') is-invalid @enderror">
                                                     {{-- FIX: Check Old Input -> Then Check DB Value for every option --}}
                                                     <option value="pos" @selected(old('payment_method', $registration->payment_method) == 'pos')>POS</option>
                                                     <option value="cash" @selected(old('payment_method', $registration->payment_method) == 'cash')>Cash</option>
-                                                    <option value="transfer" @selected(old('payment_method', $registration->payment_method) == 'transfer')>Transfer</option>
-                                                    <option value="credit_balance" @selected(old('payment_method', $registration->payment_method) == 'credit_balance')>Credit Balance</option>
-                                                    <option value="credit" @selected(old('payment_method', $registration->payment_method) == 'credit')>Credit from other branches</option>
+                                                    <option value="transfer" @selected(old('payment_method', $registration->payment_method) == 'transfer')>Transfer
+                                                    </option>
+                                                    <option value="credit_balance" @selected(old('payment_method', $registration->payment_method) == 'credit_balance')>Credit
+                                                        Balance</option>
+                                                    <option value="credit" @selected(old('payment_method', $registration->payment_method) == 'credit')>Credit from other
+                                                        branches</option>
                                                 </select>
                                                 @error('payment_method')
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -394,7 +414,8 @@
 
                             {{-- Submit Button --}}
                             <div class="d-grid gap-2 d-md-flex justify-content-md-end pt-4 border-top">
-                                <a href="{{ route('frontdesk.registrations.index') }}" class="btn btn-outline-dark me-2 px-4">
+                                <a href="{{ route('frontdesk.registrations.index') }}"
+                                    class="btn btn-outline-dark me-2 px-4">
                                     <i class="fas fa-times me-2"></i> Cancel
                                 </a>
                                 <button type="submit" class="btn btn-gold px-4">
@@ -413,77 +434,66 @@
     </div>
 
     {{-- Script for Comma Formatting & Auto-Fill --}}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const roomRateInput = document.getElementById('room_rate');
-            const form = document.getElementById('finalize-form');
-
-            // --- 1. COMMA FORMATTING LOGIC ---
-            if (roomRateInput) {
-                // Function to format number (10000 -> 10,000)
-                function formatNumber(val) {
-                    let cleanVal = val.replace(/,/g, '');
-                    if (!cleanVal || isNaN(cleanVal)) return val;
-                    return Number(cleanVal).toLocaleString();
-                }
-
-                // Format on Input (While typing)
-                roomRateInput.addEventListener('input', function(e) {
-                    let rawValue = e.target.value.replace(/,/g, '');
-                    if (!isNaN(rawValue) && rawValue !== '') {
-                        e.target.value = Number(rawValue).toLocaleString();
-                    }
-                });
-
-                // Strip Commas on Submit
-                if (form) {
-                    form.addEventListener('submit', function() {
-                        roomRateInput.value = roomRateInput.value.replace(/,/g, '');
-                    });
-                }
+   <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('finalize-form');
+        
+        // --- 1. GLOBAL CURRENCY FORMATTER (Handles Lead & Members) ---
+        function formatCurrencyInput(input) {
+            // Strip non-numeric except dot
+            let value = input.value.replace(/[^0-9.]/g, '');
+            if (value !== '') {
+                // Split decimals to protect pennies
+                let parts = value.split('.');
+                parts[0] = Number(parts[0]).toLocaleString(); 
+                input.value = parts.join('.');
             }
+        }
+
+        // Attach to Lead Rate
+        const leadRate = document.getElementById('room_rate');
+        if(leadRate) {
+            leadRate.addEventListener('input', function() { formatCurrencyInput(this); });
+        }
+
+        // Attach to Member Rates
+        document.querySelectorAll('.member-rate-input').forEach(input => {
+            input.addEventListener('input', function() { formatCurrencyInput(this); });
         });
 
-        // --- 2. AUTO-FILL LOGIC (Global Scope) ---
+        // --- 2. STRIP COMMAS ON SUBMIT (CRITICAL) ---
+        if (form) {
+            form.addEventListener('submit', function() {
+                // Strip Lead
+                if(leadRate) leadRate.value = leadRate.value.replace(/,/g, '');
+                
+                // Strip Members
+                document.querySelectorAll('.member-rate-input').forEach(input => {
+                    input.value = input.value.replace(/,/g, '');
+                });
+            });
+        }
+    });
+
+    // --- 3. AUTO-FILL LOGIC ---
+    function updateLeadRoomDetails(select) {
+        const option = select.options[select.selectedIndex];
+        const price = option.getAttribute('data-price');
         
-        // Update Lead Room
-        function updateLeadRoomDetails(select) {
-            const option = select.options[select.selectedIndex];
-            const price = option.getAttribute('data-price');
-            const name = option.getAttribute('data-name');
-
-            // Auto-fill Rate
-            const rateInput = document.getElementById('room_rate');
-            if (price && rateInput) {
-                rateInput.value = parseFloat(price).toLocaleString();
-            }
-
-            // Auto-fill Hidden Text Name (for DB 'room_allocation')
-            const textInput = document.getElementById('lead_room_text');
-            if (name && textInput) {
-                textInput.value = name;
-            }
+        const rateInput = document.getElementById('room_rate');
+        if (price && rateInput) {
+            rateInput.value = parseFloat(price).toLocaleString();
         }
+    }
 
-        // Update Member Room (Row specific)
-        function updateMemberRoomDetails(select, memberId) {
-            const option = select.options[select.selectedIndex];
-            const price = option.getAttribute('data-price');
-            const name = option.getAttribute('data-name');
+    function updateMemberRoomDetails(select, memberId) {
+        const option = select.options[select.selectedIndex];
+        const price = option.getAttribute('data-price');
 
-            // Auto-fill Member Rate
-            const rateInput = document.getElementById('member_rate_' + memberId);
-            if (price && rateInput) {
-                // Member rate inputs are type="number", so no commas here initially
-                // If you changed type to "text" for commas, use .toLocaleString()
-                rateInput.value = price; 
-            }
-
-            // Auto-fill Hidden Text Name
-            const textInput = document.getElementById('member_room_text_' + memberId);
-            if (name && textInput) {
-                textInput.value = name;
-            }
+        const rateInput = document.getElementById('member_rate_' + memberId);
+        if (price && rateInput) {
+            rateInput.value = parseFloat(price).toLocaleString();
         }
-    </script>
+    }
+</script>
 @endsection

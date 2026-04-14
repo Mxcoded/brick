@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description');
-            $table->string('image');
+            $table->string('image_url')->nullable();
             $table->string('opening_hours');
             $table->string('cuisine_type')->nullable();
             $table->string('dress_code')->nullable();

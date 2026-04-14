@@ -31,7 +31,8 @@
                             . All rights reserved.
                     </div>
                     </p>
-                    <p class="mb-0 text-muted" style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;">™ Developed with ❤️ by IT Team </p>
+                    <p class="mb-0 text-muted" style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;">™
+                        Developed with ❤️ by IT Team </p>
                 </div>
             </footer>
         </div>
@@ -47,6 +48,23 @@
                     event.preventDefault();
                     document.body.querySelector('#wrapper').classList.toggle('toggled');
                 });
+            }
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            const typeSelect = document.getElementById('type');
+            if (typeSelect) {
+                const valueField = document.getElementById('value-field');
+                const imageField = document.getElementById('image-field');
+                const videoField = document.getElementById('video-field');
+
+                function toggleFields() {
+                    valueField.style.display = typeSelect.value === 'string' || typeSelect.value === 'json' ?
+                        'block' : 'none';
+                    imageField.style.display = typeSelect.value === 'image' ? 'block' : 'none';
+                    videoField.style.display = typeSelect.value === 'video' ? 'block' : 'none';
+                }
+                typeSelect.addEventListener('change', toggleFields);
+                toggleFields();
             }
         });
     </script>

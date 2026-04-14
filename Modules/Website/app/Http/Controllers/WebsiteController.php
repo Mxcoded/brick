@@ -7,228 +7,356 @@ use Modules\Website\Models\Room;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Models\Dining;
 use Modules\Website\Models\Booking;
+use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Models\ContactMessage;
 use Illuminate\Support\Facades\Auth;
+// use Modules\Website\Models\GuestProfile;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Modules\Website\Models\Settings;
 use Modules\Website\Models\Amenity;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Modules\Website\Http\Requests\StoreBookingRequest;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail; // ✅ Import Mail Facade
+use Modules\Frontdeskcrm\Models\Guest;
+use Modules\Website\Emails\BookingConfirmation; // ✅ Import Booking Mail
+use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Contact Mail
 
 class WebsiteController extends Controller
 {
     public function index()
     {
-        $settings = $this->getSettings();
-        $featuredRooms = Room::where('featured', true)->take(3)->get();
-        $diningOptions = Dining::where('is_featured', true)->take(3)->get();
-        $testimonials = Testimonial::where('approved', true)->latest()->take(3)->get();
-        return view('website::index', compact('settings', 'featuredRooms', 'diningOptions', 'testimonials'));
+        // 1. Settings can remain an array (accessed by key)
+        $settings = \Modules\Website\Models\Settings::pluck('value', 'key')->toArray();
+
+        // 2. FIX: Ensure these return Collections (REMOVE ->toArray())
+        // The view calls ->take(3) on these, so they MUST be Collections.
+        $featuredRooms = Room::where('is_featured', true)
+            ->where('status', 'available')
+            ->latest()
+            ->get(); // Returns Collection
+
+        $testimonials = Testimonial::where('approved', true)
+            ->latest()
+            ->get(); // Returns Collection
+
+        $dining = Dining::all(); // Returns Collection
+
+        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining'));
     }
 
+    /**
+     * Display the rooms page with filtering.
+     */
     public function rooms(Request $request)
     {
-        $query = Room::query();
+        // 1. Base Query
+        $query = Room::where('status', 'available');
 
-        // Filters
-        if ($request->has('min_price')) {
-            $query->where('price_per_night', '>=', $request->input('min_price'));
-        }
-        if ($request->has('max_price')) {
-            $query->where('price_per_night', '<=', $request->input('max_price'));
-        }
-        if ($request->has('guests')) {
-            $query->where('capacity', '>=', $request->input('guests'));
-        }
-        if ($request->has('sort')) {
-            $sort = $request->input('sort');
-            if ($sort === 'price_asc') {
-                $query->orderBy('price_per_night', 'asc');
-            } elseif ($sort === 'price_desc') {
-                $query->orderBy('price_per_night', 'desc');
+        // ... (Search, Price, and Guest filters remain the same) ...
+
+        // 2. Search (Name/Description)
+        $query->when($request->filled('search'), function ($q) use ($request) {
+            $q->where(function ($sub) use ($request) {
+                $sub->where('name', 'like', '%' . $request->search . '%')
+                    ->orWhere('description', 'like', '%' . $request->search . '%');
+            });
+        });
+
+        // 3. Filter by Min Price
+        $query->when($request->filled('min_price'), function ($q) use ($request) {
+            $q->where('price', '>=', $request->min_price);
+        });
+
+        // 4. Filter by Max Price
+        $query->when($request->filled('max_price'), function ($q) use ($request) {
+            $q->where('price', '<=', $request->max_price);
+        });
+
+        // 5. Filter by Guests
+        $query->when($request->filled('guests'), function ($q) use ($request) {
+            $q->where('capacity', '>=', $request->guests);
+        });
+
+        // =========================================================
+        // 6. AVAILABILITY CHECK (THE FIX)
+        // =========================================================
+        if ($request->filled(['check_in', 'check_out'])) {
+            $checkIn = Carbon::parse($request->check_in);
+            $checkOut = Carbon::parse($request->check_out);
+
+            // A. Exclude Rooms with Conflicting WEBSITE Bookings
+            $query->whereDoesntHave('bookings', function ($q) use ($checkIn, $checkOut) {
+                $q->where('status', '!=', 'cancelled')
+                    ->where(function ($sub) use ($checkIn, $checkOut) {
+                        $sub->where('check_in_date', '<', $checkOut)
+                            ->where('check_out_date', '>', $checkIn);
+                    });
+            });
+
+            // B. Exclude Rooms with Conflicting FRONTDESK Registrations
+            // We must check 'registrations' relationship for Walk-ins/Reserved
+            if (class_exists(Registration::class)) {
+                $query->whereDoesntHave('registrations', function ($q) use ($checkIn, $checkOut) {
+                    $q->whereIn('stay_status', ['checked_in', 'draft_by_guest', 'reserved'])
+                        ->where(function ($sub) use ($checkIn, $checkOut) {
+                            $sub->where('check_in', '<', $checkOut)
+                                ->where('check_out', '>', $checkIn);
+                        });
+                });
             }
         }
 
-        $rooms = $query->get();
+        // ... (Sorting and Pagination remain the same) ...
+
+        // 7. Sorting
+        if ($request->filled('sort')) {
+            switch ($request->sort) {
+                case 'price_asc':
+                    $query->orderBy('price', 'asc');
+                    break;
+                case 'price_desc':
+                    $query->orderBy('price', 'desc');
+                    break;
+                default:
+                    $query->latest();
+                    break;
+            }
+        } else {
+            $query->latest();
+        }
+
+        // 8. Pagination
+        $rooms = $query->paginate(9)->withQueryString();
+
         return view('website::rooms', compact('rooms'));
     }
-    public function roomDetails(Room $room)
+    /**
+     * Show details for a specific room.
+     */
+    public function roomDetails($slug)
     {
-        $room->load('amenities', 'images');
-        $relatedRooms = Room::where('id', '!=', $room->id)->take(3)->get();
+        // 1. Fetch the main room by Slug or ID
+        $room = is_numeric($slug)
+            ? Room::findOrFail($slug)
+            : Room::where('slug', $slug)->firstOrFail();
+
+        // 2. FIX: Fetch Related Rooms
+        // Logic: Get other available rooms, exclude current one, take 3 random ones
+        $relatedRooms = Room::where('id', '!=', $room->id)
+            ->where('status', 'available')
+            ->inRandomOrder() // Or ->latest()
+            ->take(3)
+            ->get();
+
         return view('website::room-details', compact('room', 'relatedRooms'));
     }
-    public function bookingForm(Request $request)
+<<<<<<< HEAD
+    
+=======
+    /**
+     * Display the booking form.
+     */
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
+    /**
+     * Show the Booking Form (GET)
+     */
+    public function booking(Request $request)
     {
-        $checkIn = $request->input('check_in', date('Y-m-d'));
-        $checkOut = $request->input('check_out', date('Y-m-d', strtotime('+1 day')));
+        // 1. Get ALL available rooms for the dropdown list (Restored your logic)
+        $rooms = Room::where('status', 'available')->get();
 
-        $rooms = Room::whereDoesntHave('bookings', function ($query) use ($checkIn, $checkOut) {
-            $query->where(function ($q) use ($checkIn, $checkOut) {
-                $q->whereBetween('check_in', [$checkIn, $checkOut])
-                    ->orWhereBetween('check_out', [$checkIn, $checkOut])
-                    ->orWhere(function ($q) use ($checkIn, $checkOut) {
-                        $q->where('check_in', '<=', $checkIn)
-                            ->where('check_out', '>=', $checkOut);
-                    });
-            })->where('status', 'confirmed');
-        })->get();
+        // 2. Determine the "Selected Room" (if any)
+        // We check 'old' (validation error), then 'request' (URL), then null.
+        $roomId = old('room_id', $request->room_id);
 
-        return view('website::booking', compact('rooms', 'checkIn', 'checkOut'));
+        $selectedRoom = null;
+        if ($roomId) {
+            $selectedRoom = Room::find($roomId);
+        }
+
+        // Pass both the list ($rooms) and the specific selection ($selectedRoom)
+        return view('website::booking', compact('rooms', 'selectedRoom'));
     }
 
-    public function submitBooking(Request $request)
+    public function checkEmail(Request $request)
     {
-        Log::debug('submitBooking started', ['request' => $request->all()]);
+        $request->validate(['email' => 'required|email']);
+
+        // Check if email exists in the Users table
+        $exists = \App\Models\User::where('email', $request->email)->exists();
+
+        return response()->json(['exists' => $exists]);
+    }
+    /**
+     * Handle Booking Submission (POST)
+     */
+
+    public function storeBooking(Request $request)
+    {
+        // 1. Validation (Updated with new fields)
+        $rules = [
+            'room_id' => 'required|exists:rooms,id',
+            'check_in_date' => 'required|date|after_or_equal:today',
+            'check_out_date' => 'required|date|after:check_in_date',
+            'guest_name' => 'required|string|max:255',
+            'guest_email' => 'required|email|max:255',
+            'guest_phone' => 'required|string|max:20',
+            'guest_gender' => 'required|in:male,female,other', // ✅ New
+            'guest_address' => 'required|string|max:500',      // ✅ New
+            'guest_nationality' => 'required|string|max:100',  // ✅ New
+            'guest_dob' => 'nullable|date',                    // ✅ New
+            'guest_id_type' => 'required|string|max:50',
+            'guest_id_number' => 'required|string|max:50',
+            'adults' => 'required|integer|min:1',
+            'children' => 'nullable|integer|min:0',
+            'payment_method' => 'required|in:paystack,pay_on_arrival',
+        ];
+
+        if (!Auth::check() && $request->has('create_account')) {
+            $rules['password'] = 'required|string|min:8';
+            $rules['guest_email'] = 'required|email|unique:users,email'; // Only unique for USERS, not guests
+        }
+
+        $validated = $request->validate($rules);
+
+        // 2. Check Availability
+        $isAvailable = Booking::isAvailable(
+            $validated['room_id'],
+            $validated['check_in_date'],
+            $validated['check_out_date']
+        );
+
+        if (!$isAvailable) {
+            return back()->with('error', 'Sorry, this room is no longer available for these dates.')->withInput();
+        }
 
         try {
-            $validated = $request->validate([
-                'room_id' => 'required|exists:rooms,id',
-                'check_in' => 'required|date|after_or_equal:today',
-                'check_out' => 'required|date|after:check_in',
-                'guest_name' => 'required|string|max:255|regex:/^[A-Za-z ]+$/',
-                'guest_email' => 'required|email|max:255',
-                'guest_phone' => 'required|string|max:20|regex:/^[0-9]{10,15}$/',
-                'guests' => 'required|integer|min:1|max:10',
-                'guest_company' => 'nullable|string|max:255',
-                'guest_address' => 'nullable|string',
-                'guest_nationality' => 'nullable|string|max:100',
-                'guest_id_type' => 'nullable|string|max:50|in:passport,driver_license,national_id',
-                'guest_id_number' => 'nullable|string|max:100',
-                'number_of_children' => 'required|integer|min:0|max:10',
-                'special_requests' => 'nullable|string',
-                'payment_method' => 'nullable|in:credit_card,bank_transfer,cash',
-            ]);
+            $booking = DB::transaction(function () use ($validated, $request) {
 
-            Log::debug('Validation passed', ['validated' => $validated]);
+                // ====================================================
+                // 3. SMART GUEST HANDLING
+                // ====================================================
+                $userId = Auth::id(); // Null if not logged in
 
-            $checkIn = Carbon::parse($validated['check_in']);
-            $checkOut = Carbon::parse($validated['check_out']);
-            if ($checkOut->lessThanOrEqualTo($checkIn)) {
-                Log::warning('Invalid dates in submitBooking', [
-                    'check_in' => $validated['check_in'],
-                    'check_out' => $validated['check_out'],
+                // A. Handle "Create Account" Request
+                if (!$userId && $request->has('create_account')) {
+                    $newUser = User::create([
+                        'name' => $validated['guest_name'],
+                        'email' => $validated['guest_email'],
+                        'password' => Hash::make($request->password),
+                    ]);
+                    $userId = $newUser->id;
+                    Auth::login($newUser); // Auto-login
+                }
+
+                // B. Find or Create the Guest Profile
+                // We check by Email OR Phone to find returning guests
+                $guest = Guest::where('email', $validated['guest_email'])
+                    ->orWhere('contact_number', $validated['guest_phone'])
+                    ->first();
+
+                if ($guest) {
+                    // Update existing guest with latest info (Address, etc.)
+                    $guest->update([
+                        'full_name' => $validated['guest_name'],
+                        'gender' => $validated['guest_gender'],
+                        'home_address' => $validated['guest_address'], // Maps to 'home_address' in DB
+                        'nationality' => $validated['guest_nationality'],
+                        'birthday' => $validated['guest_dob'],
+                        'identification_type' => $validated['guest_id_type'],
+                        'identification_number' => $validated['guest_id_number'],
+                        'user_id' => $userId ?? $guest->user_id, // Link user account if created
+                    ]);
+                } else {
+                    // Create New Guest Profile
+                    $guest = Guest::create([
+                        'user_id' => $userId,
+                        'full_name' => $validated['guest_name'],
+                        'email' => $validated['guest_email'],
+                        'contact_number' => $validated['guest_phone'],
+                        'gender' => $validated['guest_gender'],
+                        'home_address' => $validated['guest_address'],
+                        'nationality' => $validated['guest_nationality'],
+                        'birthday' => $validated['guest_dob'],
+                        'identification_type' => $validated['guest_id_type'],
+                        'identification_number' => $validated['guest_id_number'], // for verification
+                    ]);
+                }
+
+                // ====================================================
+                // 4. Create Booking (Linked to Guest)
+                // ====================================================
+
+                // Generate Unique Reference
+                do {
+                    $reference = 'BK' . date('y') . strtoupper(Str::random(4));
+                } while (Booking::where('booking_reference', $reference)->exists());
+
+                $room = Room::findOrFail($validated['room_id']);
+                $days = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']) ?: 1;
+                $totalAmount = $room->price * $days;
+
+                return Booking::create([
+                    'booking_reference' => $reference,
+                    'user_id' => $userId,
+                    'guest_profile_id' => $guest->id, // ✅ Critical: Links to CRM Guest
+                    'room_id' => $room->id,
+                    'guest_name' => $validated['guest_name'],
+                    'guest_email' => $validated['guest_email'],
+                    'guest_phone' => $validated['guest_phone'],
+                    'check_in_date' => $validated['check_in_date'],
+                    'check_out_date' => $validated['check_out_date'],
+                    'adults' => $validated['adults'],
+                    'children' => $validated['children'] ?? 0,
+                    'total_amount' => $totalAmount,
+                    'payment_status' => 'pending',
+                    'status' => 'pending',
+                    'payment_method' => $validated['payment_method'],
+                    'special_requests' => $validated['special_requests'] ?? null,
                 ]);
-                return back()->withErrors(['check_out' => 'Check-out date must be after check-in date.']);
-            }
-            $validated['check_in'] = $checkIn->format('Y-m-d');
-            $validated['check_out'] = $checkOut->format('Y-m-d');
+            });
 
-            Log::debug('Date parsing complete', ['check_in' => $validated['check_in'], 'check_out' => $validated['check_out']]);
-
-            $validated['number_of_guests'] = $validated['guests'];
-            unset($validated['guests']);
-
-            $existingBooking = Booking::where('room_id', $validated['room_id'])
-                ->where('status', '!=', 'cancelled')
-                ->where(function ($query) use ($checkIn, $checkOut) {
-                    $query->whereBetween('check_in', [$checkIn, $checkOut])
-                        ->orWhereBetween('check_out', [$checkIn, $checkOut])
-                        ->orWhereRaw('? BETWEEN check_in AND check_out', [$checkIn])
-                        ->orWhereRaw('? BETWEEN check_in AND check_out', [$checkOut]);
-                })
-                ->first();
-
-            if ($existingBooking) {
-                Log::warning('Duplicate booking attempt (frontend)', [
-                    'room_id' => $validated['room_id'],
-                    'check_in' => $validated['check_in'],
-                    'check_out' => $validated['check_out'],
-                    'existing_booking_id' => $existingBooking->id,
-                ]);
-                return back()->withErrors(['check_in' => 'This room is already booked for the selected dates.']);
+            // 5. Payment or Confirmation
+            if ($validated['payment_method'] === 'paystack') {
+                return $this->initializePaystack($booking);
             }
 
-            Log::debug('No duplicate bookings found');
+            $this->sendConfirmationEmail($booking);
+            session()->put('just_booked_ref', $booking->booking_reference);
 
-            if (Auth::check()) {
-                $validated['user_id'] = Auth::id();
-                $validated['created_by'] = Auth::id();
-                $validated['updated_by'] = Auth::id();
-            } else {
-                $validated['confirmation_token'] = Str::random(40);
-                $validated['created_by'] = null;
-                $validated['updated_by'] = null;
-            }
-
-            Log::debug('Auth and token set', ['user_id' => $validated['user_id'] ?? null, 'confirmation_token' => $validated['confirmation_token'] ?? null]);
-
-            $room = Room::find($validated['room_id']);
-            if (!$room) {
-                Log::error('Room not found', ['room_id' => $validated['room_id']]);
-                return back()->withErrors(['room_id' => 'Selected room does not exist.']);
-            }
-
-            $days = $checkIn->diffInDays($checkOut); // Reverse order to ensure positive
-            $days = max(1, $days); // Ensure at least 1 night
-            Log::debug('Nights calculated', ['days' => $days, 'check_in' => $validated['check_in'], 'check_out' => $validated['check_out']]);
-            $validated['total_price'] = $room->price_per_night * $days;
-            $validated['status'] = 'pending';
-            $validated['payment_status'] = 'pending';
-            $validated['source'] = 'website';
-
-            Log::debug('Price and status set', ['total_price' => $validated['total_price'], 'days' => $days]);
-
-            $year = date('Y');
-            $yearPrefix = substr($year, -3);
-            $prefix = "BK{$yearPrefix}";
-            $lastBooking = Booking::where('booking_ref_number', 'like', "{$prefix}%")
-                ->orderBy('booking_ref_number', 'desc')
-                ->first();
-            $nextNumber = $lastBooking ? (int) substr($lastBooking->booking_ref_number, -4) + 1 : 1;
-            if ($nextNumber > 9999) {
-                Log::error('Maximum bookings for this year reached', ['year' => $year]);
-                throw new \Exception('Maximum bookings for this year reached.');
-            }
-            $validated['booking_ref_number'] = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-
-            Log::debug('Booking reference generated', ['booking_ref_number' => $validated['booking_ref_number']]);
-
-            $booking = Booking::create($validated);
-
-            Log::info('Frontend booking created', $booking->toArray());
-
-            if (!Auth::check()) {
-                $request->session()->put('booking_email', $validated['guest_email']);
-            }
-
-            return redirect()->route('website.booking.confirmation', [
-                'booking' => $booking->id,
-                'token' => $booking->confirmation_token ?? '',
-            ])->with('success', 'Booking created successfully.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed in submitBooking', [
-                'errors' => $e->errors(),
-                'request' => $request->all(),
-            ]);
-            return back()->withErrors($e->errors())->withInput();
+            return redirect()->route('website.booking.confirmation', $booking->booking_reference)
+                ->with('success', 'Booking Reserved! Please pay upon arrival.');
         } catch (\Exception $e) {
-            Log::error('Error in submitBooking', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request' => $request->all(),
-            ]);
-            return back()->withErrors(['general' => 'An error occurred while creating the booking. Please try again.'])->withInput();
+            Log::error($e);
+            return back()->with('error', 'Error: ' . $e->getMessage())->withInput();
         }
     }
 
-    public function bookingConfirmation(Request $request, Booking $booking)
+    public function confirmation($ref)
     {
-        // For logged-in users, check user_id
-        if (Auth::check()) {
-            if ($booking->user_id === Auth::id()) {
-                return view('website::booking-confirmation', compact('booking'));
-            }
-            return redirect()->route('website.home')->with('error', 'Unauthorized access to booking.');
+        $booking = Booking::with('room')->where('booking_reference', $ref)->firstOrFail();
+
+        // Security Check
+        $canView = false;
+
+        if (session('just_booked_ref') === $ref) {
+            $canView = true;
+        } elseif (Auth::check() && $booking->user_id === Auth::id()) {
+            $canView = true;
         }
 
-        // For non-logged-in users, verify token
-        if ($booking->confirmation_token && $request->query('token') === $booking->confirmation_token) {
-            return view('website::booking-confirmation', compact('booking'));
+        if (!$canView) {
+            abort(403, 'Access denied. Please login to view your booking.');
+            return redirect()->route('website.home')->with('error', 'You are not authorized to view this booking.');
         }
 
-        return redirect()->route('website.home')->with('error', 'Unauthorized access to booking.');
+        return view('website::booking-confirmation', compact('booking'));
     }
+
     public function amenities()
     {
         $amenities = Amenity::all();
@@ -248,7 +376,7 @@ class WebsiteController extends Controller
         return view('website::contact', compact('settings'));
     }
 
-    public function submitContact(Request $request)
+    public function sendMessage(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -263,8 +391,16 @@ class WebsiteController extends Controller
             'status' => 'unread',
         ]);
 
-        // Optional: Send email notification (uncomment if mail is set up)
-        // Mail::to('admin@luxuryhotelabuja.com')->send(new ContactMessageReceived($validated));
+        // ✅ SEND CONTACT EMAIL TO ADMIN
+        try {
+            // Replace with your actual admin email or fetch from settings
+            $adminEmail = config('mail.from.address', 'info@brickspoint.com');
+
+            Mail::to($adminEmail)
+                ->send(new ContactMessageReceived($validated));
+        } catch (\Exception $e) {
+            Log::error("Contact Email Failed: " . $e->getMessage());
+        }
 
         return redirect()->route('website.contact')->with('success', 'Your message has been sent!');
     }
@@ -292,40 +428,117 @@ class WebsiteController extends Controller
         ];
         return view('website::blog', compact('posts'));
     }
-    public function checkAvailability(Request $request, Room $room)
+    /**
+     * Display the Dining & Menu page.
+     */
+    public function dining()
     {
-        try {
-            $validated = $request->validate([
-                'check_in' => 'required|date|after_or_equal:today',
-                'check_out' => 'required|date|after:check_in',
-            ]);
+        // 1. Fetch Global Settings (Logo, Phone, etc.)
+        $settings = Settings::pluck('value', 'key')->toArray();
 
-            $checkIn = $validated['check_in'];
-            $checkOut = $validated['check_out'];
+        // 2. Fetch Dining Options
+        $diningOptions = Dining::all();
 
-            $overlappingBookings = $room->bookings()
+        return view('website::dining', compact('settings', 'diningOptions'));
+    }
+    /**
+     * Smart Availability Check
+     * Checks Website Bookings AND Frontdesk Registrations.
+     */
+    public function checkAvailability(Request $request)
+    {
+        $validated = $request->validate([
+            'room_id' => 'required|exists:rooms,id',
+            'check_in_date' => 'required|date|after_or_equal:today',
+            'check_out_date' => 'required|date|after:check_in_date',
+        ]);
+
+        $checkIn = Carbon::parse($validated['check_in_date']);
+        $checkOut = Carbon::parse($validated['check_out_date']);
+<<<<<<< HEAD
+       
+=======
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
+
+        // 1. Find Conflicts in WEBSITE BOOKINGS
+        $bookingConflicts = Booking::where('room_id', $validated['room_id'])
+            ->where('status', '!=', 'cancelled')
+            ->where(function ($query) use ($checkIn, $checkOut) {
+                $query->where('check_in_date', '<', $checkOut)
+                    ->where('check_out_date', '>', $checkIn);
+            })
+            ->get();
+
+        // 2. Find Conflicts in FRONTDESK REGISTRATIONS (THE FIX)
+        $registrationConflicts = collect();
+        if (class_exists(Registration::class)) {
+            $registrationConflicts = Registration::where('room_id', $validated['room_id'])
+                // ✅ FIX: Include 'reserved' so the website knows it's taken
+                ->whereIn('stay_status', ['checked_in', 'draft_by_guest', 'reserved'])
                 ->where(function ($query) use ($checkIn, $checkOut) {
-                    $query->whereBetween('check_in', [$checkIn, $checkOut])
-                        ->orWhereBetween('check_out', [$checkIn, $checkOut])
-                        ->orWhere(function ($query) use ($checkIn, $checkOut) {
-                            $query->where('check_in', '<=', $checkIn)
-                                ->where('check_out', '>=', $checkOut);
-                        });
+                    $query->where('check_in', '<', $checkOut)
+                        ->where('check_out', '>', $checkIn);
                 })
-                ->exists();
+                ->get();
+        }
 
-            return response()->json([
-                'available' => !$overlappingBookings,
-                'message' => $overlappingBookings
-                    ? 'This room is not available for the selected dates.'
-                    : 'This room is available for the selected dates.'
-            ], 200, ['Content-Type' => 'application/json']);
-        } catch (\Exception $e) {
+        // 3. Scenario A: Room is fully available (No conflicts in either system)
+        if ($bookingConflicts->isEmpty() && $registrationConflicts->isEmpty()) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'available' => true,
+                    'message' => 'Room is available!',
+                    'redirect_url' => route('website.booking', $validated)
+                ]);
+            }
+            return redirect()->route('website.booking', $validated)
+                ->with('success', 'Room is available! Please complete your booking.');
+        }
+
+        // 4. Scenario B: Room is Occupied - Find the latest end date
+        // We need to find out WHEN it becomes free.
+        $latestBookingDate = $bookingConflicts->max('check_out_date');
+        $latestRegDate = $registrationConflicts->max('check_out'); // 'check_out' column in registrations
+
+        // Compare dates safely
+        $occupiedUntil = null;
+        if ($latestBookingDate && $latestRegDate) {
+            $occupiedUntil = $latestBookingDate > $latestRegDate ? Carbon::parse($latestBookingDate) : Carbon::parse($latestRegDate);
+        } elseif ($latestBookingDate) {
+            $occupiedUntil = Carbon::parse($latestBookingDate);
+        } else {
+            $occupiedUntil = Carbon::parse($latestRegDate);
+        }
+
+        // Construct Message
+        $message = "This room is currently booked until " . $occupiedUntil->format('l, F j') . ".";
+
+        if ($occupiedUntil->lt($checkOut)) {
+<<<<<<< HEAD
+            $message .= " However, it is available from " . $occupiedUntil->format('M j') . " to " . $occupiedUntil->copy()->addDay()->format('M j') . ". Would you like to adjust your dates?";
+=======
+            $message .= " However, it is available from " . $occupiedUntil->format('M j') . " to " . $checkOut->format('M j') . ". Would you like to adjust your dates?";
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
+        } else {
+            $message .= " Please select different dates.";
+        }
+
+        if ($request->wantsJson()) {
             return response()->json([
                 'available' => false,
-                'message' => 'An error occurred: ' . $e->getMessage()
-            ], 500, ['Content-Type' => 'application/json']);
+                'message' => $message,
+                'suggestion' => [
+                    'check_in' => $occupiedUntil->format('Y-m-d'),
+<<<<<<< HEAD
+                    'check_out' => $occupiedUntil->copy()->addDay()->format('Y-m-d')
+=======
+                    'check_out' => $checkOut->format('Y-m-d')
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
+                ]
+            ]);
         }
+
+        return back()->withInput()->withErrors(['check_in_date' => $message]);
     }
 
     /**
@@ -334,5 +547,186 @@ class WebsiteController extends Controller
     protected function getSettings()
     {
         return Settings::pluck('value', 'key')->toArray();
+    }
+   
+    /**
+     * Resend Booking Confirmation Email
+     * Allows guests to resend to the same email OR fix a typo.
+     */
+    public function resendConfirmation(Request $request)
+    {
+        $validated = $request->validate([
+            'booking_reference' => 'required|string|exists:bookings,booking_reference',
+            'email' => 'nullable|email|max:255', // Optional: Only if they want to change it
+        ]);
+
+        $booking = Booking::where('booking_reference', $validated['booking_reference'])->firstOrFail();
+
+        // 🛑 Security Check: Ensure the user is authorized to modify this booking
+        // 1. Is it the session from the booking they JUST made?
+        // 2. OR is the logged-in user the owner?
+        $isAuthorized = session('just_booked_ref') === $booking->booking_reference
+            || (Auth::check() && $booking->user_id === Auth::id());
+
+        if (!$isAuthorized) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // 🔄 Update Email if provided (Fixing a typo)
+        if ($request->filled('email') && $request->email !== $booking->guest_email) {
+            $booking->update(['guest_email' => $request->email]);
+
+            // If the user has a profile linked, we might want to update that too? 
+            // For now, let's just update the booking contact info.
+        }
+
+        // 📧 Resend Email
+        try {
+            Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
+            return back()->with('success', 'Confirmation email sent to ' . $booking->guest_email);
+        } catch (\Exception $e) {
+            Log::error("Resend Email Failed: " . $e->getMessage());
+            return back()->with('error', 'Could not send email. Please contact support.');
+        }
+    }
+    /**
+     * ✅ Initialize Paystack Transaction
+     */
+    private function initializePaystack(Booking $booking)
+    {
+        $url = "https://api.paystack.co/transaction/initialize";
+        $secretKey = config('services.paystack.secret');
+        if (!$secretKey) {
+            return back()->with('error', 'Payment configuration missing.');
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withOptions([
+                'verify' => false, // ⚠️ DISABLES SSL CHECK (For Localhost/Dev Only)
+            ])->withHeaders([
+                'Authorization' => 'Bearer ' . $secretKey,
+                'Content-Type' => 'application/json',
+            ])->post($url, [
+                'email' => $booking->guest_email,
+                'amount' => $booking->total_amount * 100, // Amount in Kobo
+                'reference' => $booking->booking_reference, // Use our Ref as Paystack Ref
+                'callback_url' => route('website.payment.callback'),
+                'metadata' => [
+                    'booking_id' => $booking->id,
+                    'custom_fields' => [
+                        ['display_name' => "Guest Name", 'variable_name' => "guest_name", 'value' => $booking->guest_name],
+                        ['display_name' => "Booking Ref", 'variable_name' => "booking_ref", 'value' => $booking->booking_reference]
+                    ]
+                ]
+            ]);
+
+            $result = $response->json();
+
+            if ($result['status']) {
+                // Redirect user to Paystack Payment Page
+                return redirect($result['data']['authorization_url']);
+            } else {
+                return back()->with('error', 'Payment initialization failed: ' . ($result['message'] ?? 'Unknown error'));
+            }
+        } catch (\Exception $e) {
+            Log::error("Paystack Init Error: " . $e->getMessage());
+            return back()->with('error', 'Could not connect to payment gateway.');
+        }
+    }
+
+    /**
+     * ✅ Verify Paystack Transaction (Callback)
+     */
+    public function verifyPayment(Request $request)
+    {
+        $reference = $request->query('reference'); // Paystack returns this
+        $secretKey = config('services.paystack.secret');
+
+        if (!$reference) {
+            return redirect()->route('website.home')->with('error', 'No payment reference provided.');
+        }
+
+        try {
+            // Verify with Paystack API
+            $response = \Illuminate\Support\Facades\Http::withOptions([
+                'verify' => false, // ⚠️ DISABLES SSL CHECK (For Localhost/Dev Only)
+            ])->withHeaders([
+                'Authorization' => 'Bearer ' . $secretKey,
+            ])->get("https://api.paystack.co/transaction/verify/" . $reference);
+
+            $result = $response->json();
+
+            if ($result['status'] && $result['data']['status'] === 'success') {
+                // Payment Successful
+                $booking = Booking::where('booking_reference', $reference)->first();
+
+                if ($booking) {
+                    $booking->update([
+                        'payment_status' => 'paid',
+                        'amount_paid' => $booking->total_amount,
+                        'status' => 'confirmed', // Auto-confirm since paid
+                    ]);
+
+                    // Send Email & Set Session
+                    $this->sendConfirmationEmail($booking);
+                    session()->put('just_booked_ref', $booking->booking_reference);
+
+                    return redirect()->route('website.booking.confirmation', $booking->booking_reference)
+                        ->with('success', 'Payment successful! Your booking is confirmed.');
+                }
+            }
+
+            return redirect()->route('website.booking')->with('error', 'Payment verification failed. Please try again.');
+        } catch (\Exception $e) {
+            Log::error("Paystack Verify Error: " . $e->getMessage());
+            return redirect()->route('website.booking')->with('error', 'Payment verification error.');
+        }
+    }
+
+    /**
+     * Helper to send email (Keep code DRY)
+     */
+    private function sendConfirmationEmail(Booking $booking)
+    {
+        try {
+            Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
+        } catch (\Exception $e) {
+            Log::error("Email Failed: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Show the "Find My Booking" form
+     */
+    public function bookingLogin()
+    {
+        return view('website::booking-login');
+    }
+
+    /**
+     * Authenticate Guest via Reference & Email
+     */
+    public function findBooking(Request $request)
+    {
+        $request->validate([
+            'booking_reference' => 'required|string',
+            'email' => 'required|email',
+        ]);
+
+        // Find booking matching BOTH ref and email
+        $booking = Booking::where('booking_reference', $request->booking_reference)
+            ->where('guest_email', $request->email)
+            ->first();
+
+        if (!$booking) {
+            return back()->with('error', 'No booking found with these details. Please check your reference code.');
+        }
+
+        // ✅ SECURITY: Grant temporary access via session
+        // This allows them to pass the check in the confirmation() method
+        session()->put('just_booked_ref', $booking->booking_reference);
+
+        return redirect()->route('website.booking.confirmation', $booking->booking_reference)
+            ->with('success', 'Booking found!');
     }
 }

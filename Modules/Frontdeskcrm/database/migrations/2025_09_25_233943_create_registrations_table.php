@@ -6,82 +6,97 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('registrations', function (Blueprint $table) {
             $table->id();
 
-            // Guest Details (link to guest profile)
+            // --- RELATIONSHIPS ---
             $table->foreignId('guest_id')->nullable()->constrained('guests')->onDelete('set null');
+
+            // ✅ BOOKING ID (Merged from 2026_01_21 migration)
+            // Must be nullable for Walk-ins.
+            $table->foreignId('booking_id')->nullable()->constrained('bookings')->onDelete('set null');
+
             $table->foreignId('guest_type_id')->nullable()->constrained('guest_types')->onDelete('set null');
             $table->foreignId('booking_source_id')->nullable()->constrained('booking_sources')->onDelete('set null');
             $table->foreignId('finalized_by_agent_id')->nullable()->constrained('users')->onDelete('set null');
+
+            // --- GUEST SNAPSHOT ---
             $table->string('title')->nullable();
             $table->string('full_name');
             $table->string('nationality')->nullable();
             $table->date('birthday')->nullable();
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
             $table->string('contact_number');
-            
-
-            $table->string('email')->nullable(); // Unique constraint should be on guests table
+            $table->string('email')->nullable();
             $table->string('occupation')->nullable();
             $table->string('company_name')->nullable();
             $table->text('home_address')->nullable();
 
-            // Booking Information
-            $table->string('room_allocation')->nullable();
+            // --- STAY DETAILS ---
+            // ✅ ROOM ID (Merged from 2025_12_02 migration)
+            $table->foreignId('room_id')->nullable()->constrained('rooms')->nullOnDelete();
+
+            $table->string('room_allocation')->nullable(); // Snapshot name
             $table->decimal('room_rate', 10, 2)->nullable();
             $table->boolean('bed_breakfast')->default(false);
+
             $table->date('check_in')->nullable();
-            $table->tinyInteger('no_of_guests')->default(1);
             $table->date('check_out')->nullable();
+            // Removed duplicate 'checkout_date' column
+
+            $table->tinyInteger('no_of_guests')->default(1);
             $table->tinyInteger('no_of_nights')->nullable();
             $table->string('payment_method')->nullable()->default('cash');
 
-            // Group Bookings
+            // ✅ BILLING TYPE (Merged from 2025_10_20 migration)
+            $table->string('billing_type')->default('consolidate');
+
+            // --- GROUP LOGIC ---
             $table->foreignId('parent_registration_id')->nullable()->constrained('registrations')->onDelete('cascade');
             $table->boolean('is_group_lead')->default(false);
 
-            // Emergency Contact
+            // --- EMERGENCY CONTACT ---
             $table->string('emergency_name')->nullable();
             $table->string('emergency_relationship')->nullable();
             $table->string('emergency_contact')->nullable();
 
-            // Status & Lifecycle
+            // --- STATUS & LIFECYCLE ---
             $table->enum('stay_status', [
-                'draft_by_guest', // **FIX**: New default
+                'draft_by_guest',
+                'reserved',      // ✅ Added for Future Bookings
                 'checked_in',
                 'checked_out',
                 'no_show',
                 'cancelled'
-            ])->default('draft_by_guest'); // **CRITICAL FIX**
-            $table->decimal('total_amount', 10, 2)->nullable(); // Calc: rate * nights + fees
-            $table->date('checkout_date')->nullable();
-            $table->integer('review_rating')->nullable()->unsigned(); // 1-5
+            ])->default('draft_by_guest');
+
+            $table->decimal('total_amount', 10, 2)->nullable();
+
+            // ✅ CHECKOUT AUDIT (Merged from 2025_12_02 migration)
+            $table->timestamp('actual_checkout_at')->nullable();
+            $table->foreignId('checked_out_by_agent_id')->nullable()->constrained('users')->onDelete('set null');
+
+            // --- REVIEWS ---
+            $table->integer('review_rating')->nullable()->unsigned();
             $table->text('review_comment')->nullable();
 
-            // Agreement & Signatures
+            // --- AGREEMENTS ---
             $table->boolean('agreed_to_policies')->default(false);
-            $table->string('guest_signature')->nullable();
+            $table->text('guest_signature')->nullable(); // ✅ Changed to TEXT
             $table->timestamp('registration_date')->useCurrent();
-            $table->string('front_desk_agent')->nullable();  // Nullable for guest drafts
+            $table->string('front_desk_agent')->nullable();
 
             $table->timestamps();
 
-            // Indexes
-            $table->index(['guest_id', 'guest_type_id', 'booking_source_id', 'parent_registration_id'], 'reg_guest_type_booking_group_idx');
-            $table->index(['check_in', 'check_out', 'stay_status', 'checkout_date'], 'reg_checkin_checkout_status_idx');
-            $table->index(['full_name', 'contact_number'], 'reg_name_contact_idx');
+            // Indexes for Performance
+            $table->index(['guest_id', 'stay_status']);
+            $table->index(['check_in', 'check_out']);
+            $table->index('booking_id');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('registrations');

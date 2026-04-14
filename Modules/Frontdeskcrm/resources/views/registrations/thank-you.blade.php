@@ -13,7 +13,13 @@
                     <p class="lead">Your check-in information has been submitted successfully.</p>
                     <p>Please proceed to the front desk to finalize your check-in and receive your room key.</p>
                     <hr>
-                    <a href="{{ route('frontdesk.registrations.create') }}" class="btn btn-outline-primary mt-3">Start a New Check-in</a>
+                    @auth
+                    <a href="{{ route('home') }}" class="btn btn-gold mt-3 "><span class="fas fa-dashboard"></span> Go to My Dashboard</a>
+
+                @endauth
+                @guest
+                        <a href="{{ route('frontdesk.registrations.create') }}" class="btn btn-outline-primary mt-3">Start a New Check-in</a>
+                    @endguest
                 </div>
             </div>
         </div>

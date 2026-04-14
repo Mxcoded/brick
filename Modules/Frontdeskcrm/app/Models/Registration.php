@@ -15,6 +15,7 @@ class Registration extends Model
 
     protected $fillable = [
         'guest_id',
+        'booking_id', // ✅ Verified: It's here
         'guest_type_id',
         'booking_source_id',
         'parent_registration_id',
@@ -26,16 +27,15 @@ class Registration extends Model
         'contact_number',
         'email',
         'nationality',
-        'billing_type',
+        'billing_type', // ✅ Verified
         'home_address',
         'occupation',
         'company_name',
         'emergency_name',
         'emergency_contact',
         'emergency_relationship',
-        'room_type',
         'room_allocation',
-        'room_id',
+        'room_id', // ✅ Verified
         'room_rate',
         'bed_breakfast',
         'check_in',
@@ -49,15 +49,18 @@ class Registration extends Model
         'agreed_to_policies',
         'guest_signature',
         'registration_date',
-        'actual_checkout_at',       // <--- ADD THIS
-        'checked_out_by_agent_id',  // <--- ADD THIS
+        'actual_checkout_at', // ✅ Verified
+        'checked_out_by_agent_id', // ✅ Verified
+        'review_rating',
+        'review_comment',
+        'front_desk_agent'
     ];
 
     protected $casts = [
         'check_in' => 'date',
         'check_out' => 'date',
         'registration_date' => 'date',
-        'actual_checkout_at' => 'datetime', // <--- ADD THIS
+        'actual_checkout_at' => 'datetime',
         'birthdate' => 'date',
         'bed_breakfast' => 'boolean',
         'is_group_lead' => 'boolean',
@@ -67,13 +70,10 @@ class Registration extends Model
     {
         parent::boot();
 
-        // This event listener will now only calculate nights and total amount.
         static::saving(function ($registration) {
             if ($registration->check_in && $registration->check_out) {
                 $registration->no_of_nights = $registration->check_in->diffInDays($registration->check_out);
             }
-
-    
         });
     }
 
@@ -102,13 +102,38 @@ class Registration extends Model
     {
         return $this->hasMany(Registration::class, 'parent_registration_id');
     }
-    
+
     public function checkedOutBy(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class, 'checked_out_by_agent_id');
     }
+
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function booking()
+    {
+        return $this->belongsTo(\Modules\Website\Models\Booking::class);
+    }
+    /**
+     * Get the payment history for this registration.
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(RegistrationPayment::class)->latest('payment_date');
+    }
+
+    /**
+     * Helper to get total paid amount from the new table
+     */
+    public function getTotalPaidAttribute()
+    {
+        // Sum from local payments + any online booking payment
+        $localTotal = $this->payments()->sum('amount');
+        $onlineTotal = $this->booking ? $this->booking->amount_paid : 0;
+
+        return $localTotal + $onlineTotal;
     }
 }
