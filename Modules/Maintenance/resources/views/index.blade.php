@@ -86,7 +86,8 @@
                                                 'new' => ['color' => 'primary', 'icon' => 'clock'],
                                                 'in_progress' => ['color' => 'warning', 'icon' => 'tools'],
                                                 'completed' => ['color' => 'success', 'icon' => 'check-circle'],
-                                            ][$log->status];
+                                                'cancelled' => ['color' => 'danger', 'icon' => 'times-circle'],
+                                            ][$log->status] ?? ['color' => 'secondary', 'icon' => 'question-circle'];
                                         @endphp
                                         <span
                                             class="badge rounded-pill bg-{{ $statusConfig['color'] }}-100 text-{{ $statusConfig['color'] }}">
