@@ -36,7 +36,7 @@
                                 placeholder="Search logs...">
                         </div>
                     </div>
-                    <div class="col-md-8 d-flex justify-content-end">
+                    <div class="col-md-8 d-flex justify-content-end gap-2">
                         <div class="btn-group" role="group">
                             <button type="button" class="btn btn-light filter-btn active" data-status="all">All</button>
                             <button type="button" class="btn btn-light filter-btn" data-status="New">New</button>
@@ -44,6 +44,9 @@
                             <button type="button" class="btn btn-light filter-btn" data-status="Completed">Completed</button>
                             <button type="button" class="btn btn-light filter-btn" data-status="Cancelled">Cancelled</button>
                         </div>
+                        <button type="button" class="btn btn-outline-secondary" id="printBtn" title="Print">
+                            <i class="fas fa-print me-1"></i> Print
+                        </button>
                     </div>
                 </div>
             </div>
@@ -169,6 +172,24 @@
         .dataTables_wrapper .dataTables_paginate .pagination .page-link:focus {
             box-shadow: 0 0 0 0.25rem rgba(197, 165, 114, 0.25);
         }
+        /* Print styles */
+        @media print {
+            .btn, .btn-group, .card-header, .toast-alert, .dataTables_paginate, .dataTables_info {
+                display: none !important;
+            }
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .table {
+                font-size: 12px;
+            }
+            h1 {
+                font-size: 18px;
+                -webkit-text-fill-color: #333 !important;
+                background: none !important;
+            }
+        }
     </style>
 
     <script>
@@ -176,6 +197,7 @@
             const table = $('#maintenanceTable').DataTable({
                 dom: 'rt<"bottom"ip><"clear">', // Removed 'f' to hide default search
                 order: [[3, 'asc']], // Sort by Status column (New first alphabetically)
+                pageLength: 20, // Show 20 items per page
                 language: {
                     search: '',
                     searchPlaceholder: "Search logs..."
@@ -226,6 +248,11 @@
             setTimeout(function() {
                 $('.toast-alert').fadeOut('slow');
             }, 3000);
+
+            // Print button
+            $('#printBtn').click(function() {
+                window.print();
+            });
         });
 
         function confirmAction(type) {
