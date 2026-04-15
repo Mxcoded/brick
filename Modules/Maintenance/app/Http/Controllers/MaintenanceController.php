@@ -10,7 +10,7 @@ class MaintenanceController extends Controller
 {
     public function index()
     {
-        $logs = MaintenanceLog::all();
+        $logs = MaintenanceLog::latest('created_at')->get();
         return view('maintenance::index', compact('logs'));
     }
 
