@@ -7,7 +7,7 @@
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="fw-bold text-gradient">🏗️ Maintenance Tracker</h1>
-            <a href="{{ route('maintenance.create') }}" class="btn btn-primary rounded-pill shadow-sm">
+            <a href="{{ route('maintenance.create') }}" class="btn btn-golden rounded-pill shadow-sm">
                 <i class="fas fa-plus-circle me-2"></i> New Log
             </a>
             @auth
@@ -147,10 +147,34 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
 
+    <style>
+        /* Hide DataTables default search - we use custom search */
+        .dataTables_filter {
+            display: none !important;
+        }
+        /* Luxury Gold Pagination for Bootstrap 5 DataTables */
+        .dataTables_wrapper .dataTables_paginate .pagination .page-item.active .page-link {
+            background-color: #C5A572 !important;
+            border-color: #C5A572 !important;
+            color: #fff !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .pagination .page-link {
+            color: #C5A572;
+        }
+        .dataTables_wrapper .dataTables_paginate .pagination .page-link:hover {
+            background-color: #F5EFE6 !important;
+            border-color: #C5A572 !important;
+            color: #C5A572 !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .pagination .page-link:focus {
+            box-shadow: 0 0 0 0.25rem rgba(197, 165, 114, 0.25);
+        }
+    </style>
+
     <script>
         $(document).ready(function() {
             const table = $('#maintenanceTable').DataTable({
-                dom: '<"top"f>rt<"bottom"ip><"clear">',
+                dom: 'rt<"bottom"ip><"clear">', // Removed 'f' to hide default search
                 order: [[3, 'asc']], // Sort by Status column (New first alphabetically)
                 language: {
                     search: '',
@@ -166,10 +190,7 @@
                         targets: 3,
                         type: 'status-priority'
                     }
-                ],
-                initComplete: function() {
-                    $('.dataTables_filter input').addClass('form-control');
-                }
+                ]
             });
 
             // Custom sorting for status priority
