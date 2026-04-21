@@ -141,6 +141,8 @@ Route::middleware(['web'])->group(function () {
                 ->name('room-types.units.bulk');
             Route::put('room-units/{unit}', [RoomTypeController::class, 'updateUnit'])
                 ->name('room-units.update');
+            Route::post('room-units/{unit}/move', [RoomTypeController::class, 'moveUnit'])
+                ->name('room-units.move');
             Route::delete('room-units/{unit}', [RoomTypeController::class, 'destroyUnit'])
                 ->name('room-units.destroy');
             Route::get('/api/room-status', [AdminRoomController::class, 'getRoomStatus'])->name('api.room.status');

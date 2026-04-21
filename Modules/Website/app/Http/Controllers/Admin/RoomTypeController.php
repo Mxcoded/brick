@@ -258,20 +258,47 @@ class RoomTypeController extends Controller
      */
     public function storeUnit(Request $request, $roomTypeId)
     {
-        $roomType = RoomType::findOrFail($roomTypeId);
+        try {
+            $roomType = RoomType::findOrFail($roomTypeId);
 
-        $validated = $request->validate([
-            'room_number' => 'required|string|max:50|unique:room_units,room_number',
-            'floor' => 'nullable|string|max:50',
-            'notes' => 'nullable|string|max:500',
-        ]);
+            $validated = $request->validate([
+                'room_number' => [
+                    'required',
+                    'string',
+                    'max:50',
+                    \Illuminate\Validation\Rule::unique('room_units', 'room_number')->whereNull('deleted_at'),
+                ],
+                'floor' => 'nullable|string|max:50',
+                'notes' => 'nullable|string|max:500',
+            ], [
+                'room_number.required' => 'Room number is required.',
+                'room_number.unique' => 'This room number already exists. Please use a different one.',
+            ]);
 
-        $validated['room_type_id'] = $roomType->id;
-        $validated['status'] = 'available';
+            $validated['room_type_id'] = $roomType->id;
+            $validated['status'] = 'available';
 
-        RoomUnit::create($validated);
+            $unit = RoomUnit::create($validated);
 
-        return back()->with('success', 'Room unit added successfully.');
+            \Log::info('Room unit created', [
+                'unit_id' => $unit->id,
+                'room_number' => $unit->room_number,
+                'room_type' => $roomType->name,
+                'created_by' => auth()->id(),
+            ]);
+
+            return back()->with('success', "Room unit '{$unit->room_number}' added successfully.");
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exception to let Laravel handle it
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Failed to create room unit', [
+                'room_type_id' => $roomTypeId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return back()->with('error', 'Failed to create room unit: ' . $e->getMessage())->withInput();
+        }
     }
 
     /**
@@ -348,5 +375,69 @@ class RoomTypeController extends Controller
         }
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Move a unit to a different room type.
+     * This updates the inventory calendar automatically since availability is calculated dynamically.
+     */
+    public function moveUnit(Request $request, $unitId)
+    {
+        $unit = RoomUnit::with('roomType')->findOrFail($unitId);
+        $oldRoomType = $unit->roomType;
+
+        $validated = $request->validate([
+            'new_room_type_id' => 'required|exists:room_types,id|different:current_room_type_id',
+        ], [
+            'new_room_type_id.different' => 'Please select a different room type.',
+        ]);
+
+        $newRoomType = RoomType::findOrFail($validated['new_room_type_id']);
+
+        // Check if unit has active bookings
+        $activeBookingsCount = $unit->bookings()
+            ->whereNotIn('status', ['cancelled', 'no_show', 'checked_out'])
+            ->where('check_out_date', '>=', now())
+            ->count();
+
+        if ($activeBookingsCount > 0) {
+            return back()->with('error', 
+                "Cannot move unit '{$unit->room_number}': It has {$activeBookingsCount} active booking(s). " .
+                "Please reassign or complete those bookings first."
+            );
+        }
+
+        // Check if unit has active registrations (Frontdesk)
+        if (class_exists(\Modules\Frontdeskcrm\Models\Registration::class)) {
+            $activeRegistrationsCount = $unit->registrations()
+                ->whereIn('stay_status', ['checked_in', 'reserved', 'draft_by_guest'])
+                ->where('check_out', '>=', now())
+                ->count();
+
+            if ($activeRegistrationsCount > 0) {
+                return back()->with('error', 
+                    "Cannot move unit '{$unit->room_number}': It has {$activeRegistrationsCount} active registration(s). " .
+                    "Please complete check-out first."
+                );
+            }
+        }
+
+        // Move the unit
+        $unit->room_type_id = $newRoomType->id;
+        $unit->save();
+
+        // Log the change for audit purposes
+        \Log::info('Room unit moved between types', [
+            'unit_id' => $unit->id,
+            'room_number' => $unit->room_number,
+            'from_room_type' => $oldRoomType->name,
+            'to_room_type' => $newRoomType->name,
+            'moved_by' => auth()->id(),
+        ]);
+
+        return back()->with('success', 
+            "Unit '{$unit->room_number}' moved from '{$oldRoomType->name}' to '{$newRoomType->name}'. " .
+            "Inventory calendar has been updated automatically."
+        );
     }
 }

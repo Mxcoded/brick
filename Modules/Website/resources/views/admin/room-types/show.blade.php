@@ -2,6 +2,14 @@
 
 @section('title', $roomType->name)
 
+@php
+    // Get all room types for the move dropdown (excluding current)
+    $allRoomTypes = \Modules\Website\Models\RoomType::where('id', '!=', $roomType->id)
+        ->active()
+        ->ordered()
+        ->get();
+@endphp
+
 @section('page-content')
     <div class="container-fluid py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -26,6 +34,25 @@
         @if(session('error'))
             <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
                 <i class="fas fa-exclamation-circle me-1"></i> {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if(session('warning'))
+            <div class="alert alert-warning alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                <i class="fas fa-exclamation-triangle me-1"></i> {{ session('warning') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                <i class="fas fa-exclamation-circle me-1"></i> <strong>Please fix the following errors:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         @endif
@@ -112,19 +139,29 @@
                                             </td>
                                             <td class="small text-muted">{{ Str::limit($unit->notes, 30) ?? '-' }}</td>
                                             <td class="text-end pe-4">
-                                                <button type="button" class="btn btn-sm btn-outline-primary" 
-                                                        data-bs-toggle="modal" data-bs-target="#editUnitModal{{ $unit->id }}">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <form action="{{ route('website.admin.room-units.destroy', $unit->id) }}" 
-                                                      method="POST" class="d-inline"
-                                                      onsubmit="return confirm('Delete this unit?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-trash"></i>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button type="button" class="btn btn-outline-primary" 
+                                                            data-bs-toggle="modal" data-bs-target="#editUnitModal{{ $unit->id }}"
+                                                            title="Edit Unit">
+                                                        <i class="fas fa-edit"></i>
                                                     </button>
-                                                </form>
+                                                    @if($allRoomTypes->count() > 0)
+                                                    <button type="button" class="btn btn-outline-warning" 
+                                                            data-bs-toggle="modal" data-bs-target="#moveUnitModal{{ $unit->id }}"
+                                                            title="Move to Different Room Type">
+                                                        <i class="fas fa-exchange-alt"></i>
+                                                    </button>
+                                                    @endif
+                                                    <form action="{{ route('website.admin.room-units.destroy', $unit->id) }}" 
+                                                          method="POST" class="d-inline"
+                                                          onsubmit="return confirm('Delete this unit?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-outline-danger" title="Delete Unit">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             </td>
                                         </tr>
 
@@ -172,6 +209,52 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {{-- Move Unit Modal --}}
+                                        <div class="modal fade" id="moveUnitModal{{ $unit->id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <form action="{{ route('website.admin.room-units.move', $unit->id) }}" method="POST">
+                                                        @csrf
+                                                        <input type="hidden" name="current_room_type_id" value="{{ $roomType->id }}">
+                                                        <div class="modal-header bg-warning-subtle">
+                                                            <h5 class="modal-title">
+                                                                <i class="fas fa-exchange-alt me-2"></i>Move Unit: {{ $unit->room_number }}
+                                                            </h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="alert alert-info mb-3">
+                                                                <i class="fas fa-info-circle me-1"></i>
+                                                                Moving this unit will update the inventory calendar automatically.
+                                                                Units with active bookings or check-ins cannot be moved.
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Current Room Type</label>
+                                                                <input type="text" class="form-control" value="{{ $roomType->name }}" disabled>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Move To Room Type <span class="text-danger">*</span></label>
+                                                                <select name="new_room_type_id" class="form-select" required>
+                                                                    <option value="">-- Select Room Type --</option>
+                                                                    @foreach($allRoomTypes as $rt)
+                                                                        <option value="{{ $rt->id }}">
+                                                                            {{ $rt->name }} ({{ $rt->units_count ?? $rt->units->count() }} units)
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-warning">
+                                                                <i class="fas fa-exchange-alt me-1"></i> Move Unit
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     @empty
                                         <tr>
                                             <td colspan="5" class="text-center py-4 text-muted">
@@ -200,17 +283,38 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
+                        @if($errors->any())
+                            <div class="alert alert-danger py-2">
+                                <ul class="mb-0 small">
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                         <div class="mb-3">
                             <label class="form-label">Room Number <span class="text-danger">*</span></label>
-                            <input type="text" name="room_number" class="form-control" placeholder="e.g., 101, Suite A" required>
+                            <input type="text" name="room_number" class="form-control @error('room_number') is-invalid @enderror" 
+                                   placeholder="e.g., 101, Suite A" value="{{ old('room_number') }}" required>
+                            @error('room_number')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Floor</label>
-                            <input type="text" name="floor" class="form-control" placeholder="e.g., 1st Floor, Ground">
+                            <input type="text" name="floor" class="form-control @error('floor') is-invalid @enderror" 
+                                   placeholder="e.g., 1st Floor, Ground" value="{{ old('floor') }}">
+                            @error('floor')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Notes</label>
-                            <textarea name="notes" class="form-control" rows="2" placeholder="Internal notes about this unit..."></textarea>
+                            <textarea name="notes" class="form-control @error('notes') is-invalid @enderror" 
+                                      rows="2" placeholder="Internal notes about this unit...">{{ old('notes') }}</textarea>
+                            @error('notes')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -221,4 +325,16 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('page-scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-open modal if there are validation errors
+        @if($errors->any())
+            var addUnitModal = new bootstrap.Modal(document.getElementById('addUnitModal'));
+            addUnitModal.show();
+        @endif
+    });
+</script>
 @endsection
