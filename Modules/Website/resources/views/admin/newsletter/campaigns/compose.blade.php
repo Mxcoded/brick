@@ -64,8 +64,56 @@
         margin-right: 12px;
     }
     
-    .tox-tinymce {
-        border-radius: 8px !important;
+    /* Quill Editor Styles */
+    .ql-container {
+        font-family: 'Proxima Nova', Arial, sans-serif;
+        font-size: 14px;
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+        min-height: 400px;
+    }
+    
+    .ql-toolbar {
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        background: #f8f9fa;
+        border-color: #dee2e6;
+    }
+    
+    .ql-container {
+        border-color: #dee2e6;
+    }
+    
+    .ql-editor {
+        min-height: 350px;
+        line-height: 1.6;
+        color: #333333;
+    }
+    
+    .ql-editor a {
+        color: var(--bp-gold);
+    }
+    
+    .ql-editor h1, .ql-editor h2, .ql-editor h3 {
+        color: var(--bp-charcoal);
+    }
+    
+    .ql-snow .ql-picker.ql-header {
+        width: 110px;
+    }
+    
+    .ql-toolbar.ql-snow .ql-formats {
+        margin-right: 10px;
+    }
+    
+    /* Quill focus state */
+    .ql-container.ql-snow:focus-within {
+        border-color: var(--bp-gold);
+        box-shadow: 0 0 0 0.2rem rgba(200, 161, 101, 0.25);
+    }
+    
+    .ql-toolbar.ql-snow + .ql-container.ql-snow:focus-within {
+        border-top-color: #dee2e6;
     }
     
     .form-label {
@@ -167,15 +215,13 @@
                             @enderror
                         </div>
 
-                        {{-- Content Editor --}}
+                        {{-- Content Editor (Quill) --}}
                         <div class="mb-3">
-                            <label for="content" class="form-label">Email Content <span class="text-danger">*</span></label>
-                            <textarea class="form-control @error('content') is-invalid @enderror" 
-                                      id="content" 
-                                      name="content" 
-                                      rows="20">{{ old('content', $newsletter->content ?? '') }}</textarea>
+                            <label class="form-label">Email Content <span class="text-danger">*</span></label>
+                            <div id="quill-editor">{!! old('content', $newsletter->content ?? '') !!}</div>
+                            <input type="hidden" name="content" id="content">
                             @error('content')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="text-danger small mt-1">{{ $message }}</div>
                             @enderror
                         </div>
                     </div>
@@ -302,43 +348,39 @@
     </form>
 </div>
 
-{{-- TinyMCE CDN --}}
-<script src="https://cdn.tiny.cloud/1/1f6zi61nyc7yshki2cdwti1pzec9vlcdz2xi78xu6fpfmo8u/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+{{-- Quill Editor CDN --}}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize TinyMCE
-    tinymce.init({
-        selector: '#content',
-        height: 500,
-        plugins: [
-            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-            'insertdatetime', 'media', 'table', 'help', 'wordcount'
-        ],
-        toolbar: 'undo redo | blocks | ' +
-            'bold italic forecolor backcolor | alignleft aligncenter ' +
-            'alignright alignjust | bullist numlist outdent indent | ' +
-            'link image | removeformat | help',
-        content_style: `
-            body { 
-                font-family: 'Proxima Nova', Arial, sans-serif; 
-                font-size: 14px; 
-                line-height: 1.6;
-                color: #333333;
-            }
-            a { color: #C8A165; }
-            h1, h2, h3 { color: #333333; }
-        `,
-        branding: false,
-        promotion: false,
-        menubar: true,
-        statusbar: true,
-        setup: function(editor) {
-            editor.on('change', function() {
-                tinymce.triggerSave();
-            });
+    // Initialize Quill Editor
+    const quill = new Quill('#quill-editor', {
+        theme: 'snow',
+        placeholder: 'Write your newsletter content here...',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                [{ 'font': [] }],
+                [{ 'size': ['small', false, 'large', 'huge'] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'align': [] }],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                [{ 'indent': '-1' }, { 'indent': '+1' }],
+                ['blockquote', 'code-block'],
+                ['link', 'image', 'video'],
+                ['clean']
+            ]
         }
     });
+    
+    // Sync Quill content to hidden input on text change
+    quill.on('text-change', function() {
+        document.getElementById('content').value = quill.root.innerHTML;
+    });
+    
+    // Initialize hidden input with existing content
+    document.getElementById('content').value = quill.root.innerHTML;
 
     // Handle action radio buttons
     const actionRadios = document.querySelectorAll('input[name="action"]');
@@ -387,8 +429,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Sync TinyMCE content
-        tinymce.triggerSave();
+        // Sync Quill content to hidden input
+        document.getElementById('content').value = quill.root.innerHTML;
+        
+        // Validate content is not empty
+        if (quill.getText().trim().length === 0) {
+            e.preventDefault();
+            alert('Please enter some content for your newsletter.');
+            return false;
+        }
     });
 
     // Test email functionality
