@@ -208,11 +208,90 @@ class RoomTypeController extends Controller
      */
     public function destroy($id)
     {
-        $roomType = RoomType::withCount(['bookings', 'units'])->findOrFail($id);
+        $roomType = RoomType::withCount('units')->findOrFail($id);
 
-        // Prevent deletion if there are active bookings
-        if ($roomType->bookings_count > 0) {
-            return back()->with('error', 'Cannot delete room type with existing bookings.');
+        // Prevent deletion if there are still units attached
+        if ($roomType->units_count > 0) {
+            return back()->with('error', 
+                "Cannot delete room type with {$roomType->units_count} unit(s). Move or delete the units first."
+            );
+        }
+
+        // Check for ACTIVE bookings only (pending, confirmed, checked_in)
+        // Completed/cancelled bookings shouldn't block deletion
+        $activeBookingsCount = Booking::where('room_type_id', $id)
+            ->whereIn('status', ['pending', 'confirmed', 'checked_in'])
+            ->where('check_out_date', '>=', now())
+            ->count();
+
+        if ($activeBookingsCount > 0) {
+            return back()->with('error', 
+                "Cannot delete room type with {$activeBookingsCount} active booking(s). " .
+                "Please reassign or cancel those bookings first."
+            );
+        }
+
+        // Check for orphaned bookings (bookings referencing this room type but with no unit assigned)
+        // These are historical bookings that should be cleaned up
+        $orphanedBookingsCount = Booking::where('room_type_id', $id)
+            ->whereNull('room_unit_id')
+            ->count();
+
+        // For bookings with units assigned, those units should have been moved already
+        // (and the moveUnit function should have updated room_type_id)
+        // But let's check for any stragglers
+        $stragglersCount = Booking::where('room_type_id', $id)
+            ->whereNotNull('room_unit_id')
+            ->count();
+
+        if ($stragglersCount > 0) {
+            // These bookings have units that were moved but room_type_id wasn't updated
+            // Auto-fix them by running cleanup
+            $stragglerBookings = Booking::where('room_type_id', $id)
+                ->whereNotNull('room_unit_id')
+                ->with('roomUnit')
+                ->get();
+
+            $fixed = 0;
+            foreach ($stragglerBookings as $booking) {
+                if ($booking->roomUnit && $booking->roomUnit->room_type_id != $id) {
+                    $booking->room_type_id = $booking->roomUnit->room_type_id;
+                    $booking->save();
+                    $fixed++;
+                }
+            }
+
+            if ($fixed > 0) {
+                \Log::info("Auto-fixed {$fixed} orphaned bookings during room type deletion", [
+                    'room_type_id' => $id,
+                    'room_type_name' => $roomType->name,
+                ]);
+            }
+
+            // Re-check after fix
+            $remainingStragglersCount = Booking::where('room_type_id', $id)
+                ->whereNotNull('room_unit_id')
+                ->count();
+
+            if ($remainingStragglersCount > 0) {
+                return back()->with('error', 
+                    "Cannot delete: {$remainingStragglersCount} booking(s) still reference this room type. " .
+                    "Run 'php artisan bookings:cleanup-orphaned' to fix."
+                );
+            }
+        }
+
+        // Handle orphaned bookings (no unit assigned) - nullify their room_type_id
+        // These are typically old/cancelled bookings
+        if ($orphanedBookingsCount > 0) {
+            Booking::where('room_type_id', $id)
+                ->whereNull('room_unit_id')
+                ->update(['room_type_id' => null]);
+
+            \Log::info("Nullified room_type_id for {$orphanedBookingsCount} orphaned bookings", [
+                'room_type_id' => $id,
+                'room_type_name' => $roomType->name,
+            ]);
         }
 
         // Clean up images
@@ -226,7 +305,13 @@ class RoomTypeController extends Controller
         }
 
         $roomType->delete();
-        return back()->with('success', 'Room type deleted.');
+
+        $message = 'Room type deleted successfully.';
+        if ($orphanedBookingsCount > 0) {
+            $message .= " ({$orphanedBookingsCount} historical booking reference(s) were cleared.)";
+        }
+
+        return back()->with('success', $message);
     }
 
     /**
