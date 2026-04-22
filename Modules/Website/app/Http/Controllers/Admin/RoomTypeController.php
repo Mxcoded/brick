@@ -10,6 +10,7 @@ use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
 use Modules\Website\Models\RoomTypeImage;
 use Modules\Website\Models\Amenity;
+use Modules\Website\Models\Booking;
 
 class RoomTypeController extends Controller
 {
@@ -379,11 +380,12 @@ class RoomTypeController extends Controller
 
     /**
      * Move a unit to a different room type.
-     * This updates the inventory calendar automatically since availability is calculated dynamically.
+     * This also moves all associated bookings to the new room type.
+     * The inventory calendar updates automatically since availability is calculated dynamically.
      */
     public function moveUnit(Request $request, $unitId)
     {
-        $unit = RoomUnit::with('roomType')->findOrFail($unitId);
+        $unit = RoomUnit::with(['roomType', 'bookings'])->findOrFail($unitId);
         $oldRoomType = $unit->roomType;
 
         $validated = $request->validate([
@@ -394,20 +396,7 @@ class RoomTypeController extends Controller
 
         $newRoomType = RoomType::findOrFail($validated['new_room_type_id']);
 
-        // Check if unit has active bookings
-        $activeBookingsCount = $unit->bookings()
-            ->whereNotIn('status', ['cancelled', 'no_show', 'checked_out'])
-            ->where('check_out_date', '>=', now())
-            ->count();
-
-        if ($activeBookingsCount > 0) {
-            return back()->with('error', 
-                "Cannot move unit '{$unit->room_number}': It has {$activeBookingsCount} active booking(s). " .
-                "Please reassign or complete those bookings first."
-            );
-        }
-
-        // Check if unit has active registrations (Frontdesk)
+        // Check if unit has active registrations (Frontdesk) - these cannot be moved
         if (class_exists(\Modules\Frontdeskcrm\Models\Registration::class)) {
             $activeRegistrationsCount = $unit->registrations()
                 ->whereIn('stay_status', ['checked_in', 'reserved', 'draft_by_guest'])
@@ -422,22 +411,64 @@ class RoomTypeController extends Controller
             }
         }
 
-        // Move the unit
-        $unit->room_type_id = $newRoomType->id;
-        $unit->save();
+        // Use a transaction to ensure atomicity
+        \DB::beginTransaction();
+        try {
+            // Get all bookings assigned to this unit (regardless of status)
+            $bookingsToMove = Booking::where('room_unit_id', $unit->id)->get();
+            $movedBookingsCount = 0;
 
-        // Log the change for audit purposes
-        \Log::info('Room unit moved between types', [
-            'unit_id' => $unit->id,
-            'room_number' => $unit->room_number,
-            'from_room_type' => $oldRoomType->name,
-            'to_room_type' => $newRoomType->name,
-            'moved_by' => auth()->id(),
-        ]);
+            // Update each booking's room_type_id to match the new room type
+            foreach ($bookingsToMove as $booking) {
+                $oldBookingRoomTypeId = $booking->room_type_id;
+                $booking->room_type_id = $newRoomType->id;
+                $booking->save();
 
-        return back()->with('success', 
-            "Unit '{$unit->room_number}' moved from '{$oldRoomType->name}' to '{$newRoomType->name}'. " .
-            "Inventory calendar has been updated automatically."
-        );
+                $movedBookingsCount++;
+
+                \Log::info('Booking moved with unit', [
+                    'booking_id' => $booking->id,
+                    'booking_reference' => $booking->booking_reference,
+                    'from_room_type_id' => $oldBookingRoomTypeId,
+                    'to_room_type_id' => $newRoomType->id,
+                    'unit_id' => $unit->id,
+                ]);
+            }
+
+            // Move the unit
+            $unit->room_type_id = $newRoomType->id;
+            $unit->save();
+
+            \DB::commit();
+
+            // Log the change for audit purposes
+            \Log::info('Room unit moved between types', [
+                'unit_id' => $unit->id,
+                'room_number' => $unit->room_number,
+                'from_room_type' => $oldRoomType->name,
+                'to_room_type' => $newRoomType->name,
+                'bookings_moved' => $movedBookingsCount,
+                'moved_by' => auth()->id(),
+            ]);
+
+            $message = "Unit '{$unit->room_number}' moved from '{$oldRoomType->name}' to '{$newRoomType->name}'.";
+            if ($movedBookingsCount > 0) {
+                $message .= " {$movedBookingsCount} booking(s) also moved to the new room type.";
+            }
+            $message .= " Inventory calendar has been updated automatically.";
+
+            return back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            
+            \Log::error('Failed to move room unit', [
+                'unit_id' => $unitId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->with('error', 'Failed to move unit: ' . $e->getMessage());
+        }
     }
 }
