@@ -11,6 +11,8 @@ use Modules\Website\Models\RoomUnit;
 use Modules\Website\Models\RoomTypeImage;
 use Modules\Website\Models\Amenity;
 use Modules\Website\Models\Booking;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class RoomTypeController extends Controller
 {
@@ -262,7 +264,7 @@ class RoomTypeController extends Controller
             }
 
             if ($fixed > 0) {
-                \Log::info("Auto-fixed {$fixed} orphaned bookings during room type deletion", [
+                Log::info("Auto-fixed {$fixed} orphaned bookings during room type deletion", [
                     'room_type_id' => $id,
                     'room_type_name' => $roomType->name,
                 ]);
@@ -288,7 +290,7 @@ class RoomTypeController extends Controller
                 ->whereNull('room_unit_id')
                 ->update(['room_type_id' => null]);
 
-            \Log::info("Nullified room_type_id for {$orphanedBookingsCount} orphaned bookings", [
+            Log::info("Nullified room_type_id for {$orphanedBookingsCount} orphaned bookings", [
                 'room_type_id' => $id,
                 'room_type_name' => $roomType->name,
             ]);
@@ -366,11 +368,11 @@ class RoomTypeController extends Controller
 
             $unit = RoomUnit::create($validated);
 
-            \Log::info('Room unit created', [
+            Log::info('Room unit created', [
                 'unit_id' => $unit->id,
                 'room_number' => $unit->room_number,
                 'room_type' => $roomType->name,
-                'created_by' => auth()->id(),
+                'created_by' => auth()->id() ?? 'system',
             ]);
 
             return back()->with('success', "Room unit '{$unit->room_number}' added successfully.");
@@ -378,7 +380,7 @@ class RoomTypeController extends Controller
             // Re-throw validation exception to let Laravel handle it
             throw $e;
         } catch (\Exception $e) {
-            \Log::error('Failed to create room unit', [
+            Log::error('Failed to create room unit', [
                 'room_type_id' => $roomTypeId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -497,7 +499,7 @@ class RoomTypeController extends Controller
         }
 
         // Use a transaction to ensure atomicity
-        \DB::beginTransaction();
+        DB::beginTransaction();
         try {
             // Get all bookings assigned to this unit (regardless of status)
             $bookingsToMove = Booking::where('room_unit_id', $unit->id)->get();
@@ -511,7 +513,7 @@ class RoomTypeController extends Controller
 
                 $movedBookingsCount++;
 
-                \Log::info('Booking moved with unit', [
+                Log::info('Booking moved with unit', [
                     'booking_id' => $booking->id,
                     'booking_reference' => $booking->booking_reference,
                     'from_room_type_id' => $oldBookingRoomTypeId,
@@ -524,10 +526,10 @@ class RoomTypeController extends Controller
             $unit->room_type_id = $newRoomType->id;
             $unit->save();
 
-            \DB::commit();
+            DB::commit();
 
             // Log the change for audit purposes
-            \Log::info('Room unit moved between types', [
+            Log::info('Room unit moved between types', [
                 'unit_id' => $unit->id,
                 'room_number' => $unit->room_number,
                 'from_room_type' => $oldRoomType->name,
@@ -545,9 +547,9 @@ class RoomTypeController extends Controller
             return back()->with('success', $message);
 
         } catch (\Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             
-            \Log::error('Failed to move room unit', [
+            Log::error('Failed to move room unit', [
                 'unit_id' => $unitId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),

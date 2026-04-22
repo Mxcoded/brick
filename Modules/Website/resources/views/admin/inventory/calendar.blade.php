@@ -3,79 +3,98 @@
 @section('title', 'Room Inventory Calendar')
 
 @section('page-content')
-<div class="container-fluid py-3">
-    {{-- Header --}}
-    <div class="card shadow-sm mb-3">
-        <div class="card-header bg-dark text-white py-3">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div class="container-fluid px-2 px-lg-4 py-3">
+    {{-- Header Card --}}
+    <div class="card inventory-card shadow-lg border-0 mb-3">
+        {{-- Top Navigation Bar --}}
+        <div class="card-header inventory-header">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                {{-- Title & Selection Badge --}}
                 <div class="d-flex align-items-center gap-3">
-                    <h5 class="mb-0 fw-bold">
-                        <i class="fas fa-calendar-alt me-2"></i>Room Inventory Calendar
-                    </h5>
-                    <span class="badge bg-info" id="selection-badge" style="display: none;">
-                        <span id="selection-count">0</span> cells selected
+                    <div class="header-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold text-white">Room Inventory</h4>
+                        <small class="text-white-50">Manage availability & restrictions</small>
+                    </div>
+                    <span class="badge selection-badge" id="selection-badge" style="display: none;">
+                        <i class="fas fa-check-square me-1"></i>
+                        <span id="selection-count">0</span> selected
                     </span>
                 </div>
+                
+                {{-- Navigation Controls --}}
                 <div class="d-flex gap-2 align-items-center flex-wrap">
                     {{-- Date Navigation --}}
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-light" onclick="changeMonth(-1)">
+                    <div class="btn-group nav-btn-group">
+                        <button class="btn btn-nav" onclick="changeMonth(-1)" title="Previous">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-light" id="month-label" style="min-width: 140px;">
-                            Loading...
+                        <button class="btn btn-nav month-label" id="month-label">
+                            <i class="fas fa-spinner fa-spin"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-light" onclick="changeMonth(1)">
+                        <button class="btn btn-nav" onclick="changeMonth(1)" title="Next">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
-                    <button class="btn btn-sm btn-info" onclick="goToToday()">
-                        <i class="fas fa-calendar-day"></i> Today
+                    
+                    <button class="btn btn-today" onclick="goToToday()">
+                        <i class="fas fa-calendar-day me-1"></i>Today
                     </button>
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-light active" id="btn-monthly" onclick="setView('monthly')">Month</button>
-                        <button class="btn btn-sm btn-outline-light" id="btn-weekly" onclick="setView('weekly')">Week</button>
+                    
+                    <div class="btn-group view-toggle">
+                        <button class="btn btn-view active" id="btn-monthly" onclick="setView('monthly')">
+                            <i class="fas fa-calendar-alt me-1"></i>Month
+                        </button>
+                        <button class="btn btn-view" id="btn-weekly" onclick="setView('weekly')">
+                            <i class="fas fa-calendar-week me-1"></i>Week
+                        </button>
                     </div>
-                    <button class="btn btn-sm btn-success" onclick="loadInventoryData()">
-                        <i class="fas fa-sync-alt"></i> Refresh
+                    
+                    <button class="btn btn-refresh" onclick="loadInventoryData()" title="Refresh Data">
+                        <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        {{-- Legend & Quick Actions --}}
-        <div class="card-body bg-light py-2 border-bottom">
+        {{-- Legend & Quick Actions Bar --}}
+        <div class="legend-bar">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div class="d-flex gap-3 flex-wrap small">
-                    <span class="d-flex align-items-center">
-                        <span class="legend-box" style="background-color: #28a745;"></span>
-                        Available
+                {{-- Status Legend --}}
+                <div class="d-flex gap-3 flex-wrap legend-items">
+                    <span class="legend-item">
+                        <span class="legend-dot available"></span>
+                        <span>Available</span>
                     </span>
-                    <span class="d-flex align-items-center">
-                        <span class="legend-box" style="background-color: #ffc107;"></span>
-                        Limited (&lt;30%)
+                    <span class="legend-item">
+                        <span class="legend-dot limited"></span>
+                        <span>Limited (&lt;30%)</span>
                     </span>
-                    <span class="d-flex align-items-center">
-                        <span class="legend-box" style="background-color: #dc3545;"></span>
-                        Fully Booked
+                    <span class="legend-item">
+                        <span class="legend-dot full"></span>
+                        <span>Sold Out</span>
                     </span>
-                    <span class="d-flex align-items-center">
-                        <span class="legend-box" style="background-color: #6c757d;"></span>
-                        Stop Sell / Blocked
+                    <span class="legend-item">
+                        <span class="legend-dot blocked"></span>
+                        <span>Blocked</span>
                     </span>
                 </div>
-                <div class="d-flex gap-2" id="quick-actions" style="display: none !important;">
-                    <button class="btn btn-sm btn-success" onclick="quickAction('open')">
+                
+                {{-- Quick Actions (shown when cells selected) --}}
+                <div class="quick-actions-group" id="quick-actions" style="display: none !important;">
+                    <button class="btn btn-action btn-action-success" onclick="quickAction('open')">
                         <i class="fas fa-lock-open"></i> Open
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="quickAction('stop-sell')">
+                    <button class="btn btn-action btn-action-danger" onclick="quickAction('stop-sell')">
                         <i class="fas fa-ban"></i> Stop Sell
                     </button>
-                    <button class="btn btn-sm btn-warning" onclick="showBlockModal()">
+                    <button class="btn btn-action btn-action-warning" onclick="showBlockModal()">
                         <i class="fas fa-edit"></i> Edit
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="clearSelection()">
-                        <i class="fas fa-times"></i> Clear
+                    <button class="btn btn-action btn-action-secondary" onclick="clearSelection()">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
             </div>
@@ -84,45 +103,74 @@
         {{-- Inventory Grid --}}
         <div class="card-body p-0">
             <div class="inventory-grid-wrapper">
-                <table class="table table-bordered inventory-table mb-0" id="inventory-table">
-                    <thead class="sticky-top bg-white" style="z-index: 10;">
+                <table class="inventory-table" id="inventory-table">
+                    <thead id="inventory-thead">
                         <tr id="date-header-row"></tr>
                     </thead>
                     <tbody id="inventory-body">
                         <tr>
                             <td colspan="35" class="text-center py-5">
-                                <div class="spinner-border text-primary"></div>
-                                <div class="mt-2 text-muted">Loading inventory data...</div>
+                                <div class="loading-state">
+                                    <div class="spinner-grow text-primary" role="status"></div>
+                                    <div class="spinner-grow text-primary" role="status" style="animation-delay: 0.1s;"></div>
+                                    <div class="spinner-grow text-primary" role="status" style="animation-delay: 0.2s;"></div>
+                                </div>
+                                <div class="mt-3 text-muted">Loading inventory data...</div>
                             </td>
                         </tr>
                     </tbody>
-                    <tfoot id="inventory-footer" class="bg-light"></tfoot>
+                    <tfoot id="inventory-footer"></tfoot>
                 </table>
             </div>
         </div>
 
-        {{-- Summary Stats --}}
-        <div class="card-footer bg-white py-3">
-            <div class="row text-center" id="summary-stats">
-                <div class="col">
-                    <div class="h5 mb-0 text-primary" id="stat-total-nights">-</div>
-                    <small class="text-muted">Total Room Nights</small>
+        {{-- Summary Stats Footer --}}
+        <div class="card-footer stats-footer">
+            <div class="row g-3" id="summary-stats">
+                <div class="col-6 col-md">
+                    <div class="stat-card stat-total">
+                        <div class="stat-icon"><i class="fas fa-bed"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-total-nights">-</div>
+                            <div class="stat-label">Total Nights</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col">
-                    <div class="h5 mb-0 text-success" id="stat-available">-</div>
-                    <small class="text-muted">Available</small>
+                <div class="col-6 col-md">
+                    <div class="stat-card stat-available">
+                        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-available">-</div>
+                            <div class="stat-label">Available</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col">
-                    <div class="h5 mb-0 text-danger" id="stat-booked">-</div>
-                    <small class="text-muted">Booked</small>
+                <div class="col-6 col-md">
+                    <div class="stat-card stat-booked">
+                        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-booked">-</div>
+                            <div class="stat-label">Booked</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col">
-                    <div class="h5 mb-0 text-secondary" id="stat-blocked">-</div>
-                    <small class="text-muted">Blocked</small>
+                <div class="col-6 col-md">
+                    <div class="stat-card stat-blocked">
+                        <div class="stat-icon"><i class="fas fa-ban"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-blocked">-</div>
+                            <div class="stat-label">Blocked</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col">
-                    <div class="h5 mb-0 text-info" id="stat-occupancy">-</div>
-                    <small class="text-muted">Occupancy Rate</small>
+                <div class="col-12 col-md">
+                    <div class="stat-card stat-occupancy">
+                        <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="stat-occupancy">-</div>
+                            <div class="stat-label">Occupancy</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -240,111 +288,458 @@
 <div id="cell-tooltip" class="inventory-tooltip" style="display: none;"></div>
 
 <style>
+    :root {
+        --inv-primary: #1a1a2e;
+        --inv-secondary: #16213e;
+        --inv-accent: #c5a572;
+        --inv-accent-light: #d4bc8e;
+        --inv-success: #10b981;
+        --inv-warning: #f59e0b;
+        --inv-danger: #ef4444;
+        --inv-muted: #64748b;
+        --inv-light: #f8fafc;
+        --inv-border: #e2e8f0;
+        --inv-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        --inv-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+    
+    /* Card Container */
+    .inventory-card {
+        border-radius: 16px;
+        overflow: hidden;
+        background: white;
+    }
+    
+    /* Header Styles */
+    .inventory-header {
+        background: linear-gradient(135deg, var(--inv-primary) 0%, var(--inv-secondary) 100%);
+        padding: 1.25rem 1.5rem;
+        border: none;
+    }
+    
+    .header-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, var(--inv-accent) 0%, var(--inv-accent-light) 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: var(--inv-primary);
+    }
+    
+    .selection-badge {
+        background: var(--inv-accent);
+        color: var(--inv-primary);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    
+    /* Navigation Buttons */
+    .nav-btn-group {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        padding: 3px;
+    }
+    
+    .btn-nav {
+        background: transparent;
+        color: white;
+        border: none;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    
+    .btn-nav:hover {
+        background: rgba(255,255,255,0.15);
+        color: white;
+    }
+    
+    .btn-nav.month-label {
+        min-width: 160px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-today {
+        background: var(--inv-accent);
+        color: var(--inv-primary);
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    
+    .btn-today:hover {
+        background: var(--inv-accent-light);
+        color: var(--inv-primary);
+        transform: translateY(-1px);
+    }
+    
+    .view-toggle {
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        padding: 3px;
+    }
+    
+    .btn-view {
+        background: transparent;
+        color: rgba(255,255,255,0.7);
+        border: none;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+    
+    .btn-view:hover {
+        color: white;
+    }
+    
+    .btn-view.active {
+        background: white;
+        color: var(--inv-primary);
+        font-weight: 600;
+    }
+    
+    .btn-refresh {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        transition: all 0.2s;
+    }
+    
+    .btn-refresh:hover {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        transform: rotate(90deg);
+    }
+    
+    /* Legend Bar */
+    .legend-bar {
+        background: var(--inv-light);
+        padding: 0.75rem 1.5rem;
+        border-bottom: 1px solid var(--inv-border);
+    }
+    
+    .legend-items {
+        font-size: 0.85rem;
+        color: var(--inv-muted);
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .legend-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        box-shadow: inset 0 -2px 0 rgba(0,0,0,0.1);
+    }
+    
+    .legend-dot.available { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+    .legend-dot.limited { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
+    .legend-dot.full { background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); }
+    .legend-dot.blocked { background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); }
+    
+    /* Quick Actions */
+    .quick-actions-group {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn-action {
+        padding: 0.4rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-action-success { background: var(--inv-success); color: white; }
+    .btn-action-success:hover { background: #059669; color: white; transform: translateY(-1px); }
+    .btn-action-danger { background: var(--inv-danger); color: white; }
+    .btn-action-danger:hover { background: #dc2626; color: white; transform: translateY(-1px); }
+    .btn-action-warning { background: var(--inv-warning); color: white; }
+    .btn-action-warning:hover { background: #d97706; color: white; transform: translateY(-1px); }
+    .btn-action-secondary { background: var(--inv-muted); color: white; }
+    .btn-action-secondary:hover { background: #475569; color: white; }
+    
+    /* Inventory Grid */
     .inventory-grid-wrapper {
-        max-height: 65vh;
+        max-height: 60vh;
         overflow: auto;
+        background: white;
     }
     
     .inventory-table {
-        border-collapse: collapse;
-        font-size: 0.8rem;
-        table-layout: fixed;
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.85rem;
     }
     
     .inventory-table th,
     .inventory-table td {
-        padding: 4px 6px;
+        padding: 0;
         text-align: center;
         vertical-align: middle;
-        border: 1px solid #dee2e6;
-        white-space: nowrap;
+        border: 1px solid var(--inv-border);
     }
     
-    .room-type-header {
+    /* Room Type Column - WIDER */
+    .room-type-cell {
         position: sticky;
         left: 0;
-        background: #343a40 !important;
+        z-index: 20;
+        background: linear-gradient(135deg, var(--inv-primary) 0%, var(--inv-secondary) 100%);
         color: white;
-        font-weight: 600;
-        min-width: 160px;
-        max-width: 180px;
-        z-index: 15;
+        min-width: 220px;
+        width: 220px;
+        max-width: 220px;
+        padding: 12px 16px !important;
         text-align: left !important;
+        border: none !important;
+        box-shadow: 4px 0 8px rgba(0,0,0,0.1);
     }
     
-    .date-header {
-        min-width: 55px;
-        max-width: 60px;
-        font-weight: bold;
-        background: #f8f9fa;
+    .room-type-cell .room-name {
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.3px;
+        margin-bottom: 4px;
+        line-height: 1.3;
+        white-space: normal;
+        word-wrap: break-word;
     }
     
-    .date-header.today {
-        background: #0d6efd !important;
-        color: white;
+    .room-type-cell .room-info {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        display: flex;
+        gap: 10px;
+        align-items: center;
     }
     
-    .date-header.weekend {
-        background: #e9ecef;
+    .room-type-cell .room-info i {
+        font-size: 0.7rem;
     }
     
+    /* Header Room Type Cell */
+    #inventory-thead .room-type-cell {
+        background: var(--inv-primary);
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* Date Headers */
+    .date-cell {
+        min-width: 58px;
+        width: 58px;
+        padding: 8px 4px !important;
+        background: var(--inv-light);
+        border-bottom: 2px solid var(--inv-border) !important;
+    }
+    
+    .date-cell .day-name {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--inv-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .date-cell .day-num {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--inv-primary);
+        line-height: 1.2;
+    }
+    
+    .date-cell.today {
+        background: linear-gradient(135deg, var(--inv-accent) 0%, var(--inv-accent-light) 100%) !important;
+    }
+    
+    .date-cell.today .day-name,
+    .date-cell.today .day-num {
+        color: var(--inv-primary) !important;
+    }
+    
+    .date-cell.weekend {
+        background: #f1f5f9;
+    }
+    
+    .date-cell.weekend .day-name {
+        color: var(--inv-danger);
+    }
+    
+    /* Inventory Cells */
     .inventory-cell {
-        min-width: 55px;
-        height: 45px;
+        min-width: 58px;
+        width: 58px;
+        height: 56px;
         cursor: pointer;
         transition: all 0.15s ease;
         position: relative;
         user-select: none;
+        padding: 6px 4px !important;
     }
     
     .inventory-cell:hover {
-        transform: scale(1.05);
-        z-index: 5;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transform: scale(1.08);
+        z-index: 10;
+        box-shadow: var(--inv-shadow-lg);
+        border-radius: 6px;
     }
     
     .inventory-cell.selected {
-        outline: 3px solid #0d6efd !important;
+        outline: 3px solid var(--inv-accent) !important;
         outline-offset: -2px;
+        border-radius: 4px;
     }
     
-    .inventory-cell .cell-main {
-        font-weight: bold;
-        font-size: 0.85rem;
+    .inventory-cell .cell-avail {
+        font-weight: 800;
+        font-size: 1.1rem;
+        line-height: 1.2;
     }
     
-    .inventory-cell .cell-sub {
-        font-size: 0.65rem;
-        opacity: 0.8;
+    .inventory-cell .cell-total {
+        font-size: 0.7rem;
+        opacity: 0.85;
+        font-weight: 500;
     }
     
     .inventory-cell .cell-icons {
         position: absolute;
-        top: 2px;
-        right: 2px;
+        top: 3px;
+        right: 3px;
         font-size: 0.6rem;
+        display: flex;
+        gap: 2px;
     }
     
-    .legend-box {
-        width: 16px;
-        height: 16px;
-        display: inline-block;
-        margin-right: 4px;
+    .inventory-cell .cell-icons i {
+        background: rgba(0,0,0,0.2);
+        padding: 2px;
         border-radius: 3px;
-        border: 1px solid rgba(0,0,0,0.2);
     }
     
+    /* Status Colors - Gradient Style */
+    .status-available { 
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); 
+        color: white; 
+    }
+    .status-limited { 
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); 
+        color: var(--inv-primary); 
+    }
+    .status-full { 
+        background: linear-gradient(135deg, #f87171 0%, #ef4444 100%); 
+        color: white; 
+    }
+    .status-stop_sell { 
+        background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); 
+        color: white; 
+    }
+    
+    /* Today Cell Highlight */
+    .today-col {
+        background-color: rgba(197, 165, 114, 0.1) !important;
+    }
+    
+    /* Totals Row */
+    .totals-row .room-type-cell {
+        background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+    
+    .totals-row .inventory-cell {
+        background: #1e293b !important;
+        color: white;
+        font-weight: 700;
+    }
+    
+    /* Stats Footer */
+    .stats-footer {
+        background: var(--inv-light);
+        padding: 1.25rem 1.5rem;
+        border-top: 1px solid var(--inv-border);
+    }
+    
+    .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--inv-shadow);
+        transition: all 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--inv-shadow-lg);
+    }
+    
+    .stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    
+    .stat-total .stat-icon { background: #ede9fe; color: #7c3aed; }
+    .stat-available .stat-icon { background: #d1fae5; color: #059669; }
+    .stat-booked .stat-icon { background: #fee2e2; color: #dc2626; }
+    .stat-blocked .stat-icon { background: #f1f5f9; color: #64748b; }
+    .stat-occupancy .stat-icon { background: #dbeafe; color: #2563eb; }
+    
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--inv-primary);
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--inv-muted);
+        font-weight: 500;
+    }
+    
+    /* Tooltip */
     .inventory-tooltip {
         position: fixed;
-        background: #333;
+        background: var(--inv-primary);
         color: white;
-        padding: 10px 14px;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        max-width: 250px;
+        padding: 14px 18px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        max-width: 280px;
         z-index: 9999;
         pointer-events: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        box-shadow: var(--inv-shadow-lg);
+        border: 1px solid rgba(255,255,255,0.1);
     }
     
     .inventory-tooltip::before {
@@ -355,61 +750,141 @@
         transform: translateX(-50%);
         border-width: 8px 8px 0;
         border-style: solid;
-        border-color: #333 transparent transparent;
+        border-color: var(--inv-primary) transparent transparent;
     }
     
-    .totals-row td {
-        background: #e9ecef !important;
-        font-weight: bold;
+    .tooltip-header {
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.15);
     }
     
-    /* Status colors */
-    .status-available { background-color: #28a745; color: white; }
-    .status-limited { background-color: #ffc107; color: #333; }
-    .status-full { background-color: #dc3545; color: white; }
-    .status-stop_sell { background-color: #6c757d; color: white; }
+    .tooltip-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+    }
+    
+    .tooltip-status.available { background: var(--inv-success); }
+    .tooltip-status.limited { background: var(--inv-warning); color: var(--inv-primary); }
+    .tooltip-status.full { background: var(--inv-danger); }
+    .tooltip-status.stop_sell { background: var(--inv-muted); }
+    
+    .tooltip-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 0.8rem;
+    }
+    
+    .tooltip-row span:first-child {
+        opacity: 0.7;
+    }
+    
+    .tooltip-row span:last-child {
+        font-weight: 600;
+    }
+    
+    .tooltip-restriction {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.15);
+        font-size: 0.75rem;
+    }
+    
+    .tooltip-restriction i {
+        margin-right: 6px;
+    }
+    
+    /* Loading State */
+    .loading-state {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+    }
     
     /* Print styles */
     @media print {
-        .inventory-grid-wrapper {
-            max-height: none;
-            overflow: visible;
+        .inventory-grid-wrapper { max-height: none; overflow: visible; }
+        .inventory-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .inventory-header, .legend-bar, .stats-footer { display: none; }
+    }
+    
+    /* Responsive Styles */
+    @media (max-width: 1200px) {
+        .room-type-cell {
+            min-width: 180px;
+            width: 180px;
+            max-width: 180px;
         }
-        .inventory-cell {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+        .date-cell, .inventory-cell {
+            min-width: 52px;
+            width: 52px;
         }
     }
     
-    /* Responsive styles */
     @media (max-width: 992px) {
-        .inventory-grid-wrapper {
-            max-height: 55vh;
+        .inventory-header {
+            padding: 1rem;
         }
-        .room-type-header {
-            min-width: 120px;
-            max-width: 140px;
-            font-size: 0.75rem;
+        .inventory-header > .d-flex {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 1rem !important;
         }
-        .date-header, .inventory-cell {
-            min-width: 45px;
-            max-width: 50px;
+        .inventory-header .d-flex:first-child {
+            justify-content: center;
+        }
+        .inventory-header .d-flex:last-child {
+            justify-content: center;
+        }
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+        .inventory-header h4 {
+            font-size: 1.1rem;
+        }
+        .room-type-cell {
+            min-width: 150px;
+            width: 150px;
+            max-width: 150px;
+            padding: 10px 12px !important;
+        }
+        .room-type-cell .room-name {
+            font-size: 0.85rem;
+        }
+        .room-type-cell .room-info {
+            font-size: 0.7rem;
+        }
+        .date-cell, .inventory-cell {
+            min-width: 48px;
+            width: 48px;
         }
         .inventory-cell {
-            height: 40px;
+            height: 50px;
         }
-        .inventory-cell .cell-main {
-            font-size: 0.75rem;
-        }
-        .inventory-cell .cell-sub {
-            font-size: 0.6rem;
-        }
-        .card-header .d-flex {
-            flex-direction: column;
-            gap: 0.75rem !important;
-        }
-        .card-header h5 {
+        .inventory-cell .cell-avail {
             font-size: 1rem;
+        }
+        .stat-card {
+            padding: 10px 12px;
+        }
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 0.9rem;
+        }
+        .stat-value {
+            font-size: 1.1rem;
         }
     }
     
@@ -419,59 +894,140 @@
             padding-right: 0.5rem;
         }
         .inventory-grid-wrapper {
-            max-height: 50vh;
+            max-height: 55vh;
         }
-        .room-type-header {
-            min-width: 100px;
-            max-width: 110px;
-            font-size: 0.7rem;
+        .room-type-cell {
+            min-width: 120px;
+            width: 120px;
+            max-width: 120px;
+            padding: 8px 10px !important;
         }
-        .date-header, .inventory-cell {
-            min-width: 38px;
-            max-width: 42px;
-            font-size: 0.7rem;
+        .room-type-cell .room-name {
+            font-size: 0.8rem;
+        }
+        .room-type-cell .room-info {
+            font-size: 0.65rem;
+            flex-direction: column;
+            gap: 2px;
+            align-items: flex-start;
+        }
+        .date-cell, .inventory-cell {
+            min-width: 42px;
+            width: 42px;
+        }
+        .date-cell .day-name {
+            font-size: 0.6rem;
+        }
+        .date-cell .day-num {
+            font-size: 0.85rem;
         }
         .inventory-cell {
-            height: 36px;
-            padding: 2px !important;
+            height: 44px;
         }
-        .inventory-cell .cell-main {
-            font-size: 0.7rem;
+        .inventory-cell .cell-avail {
+            font-size: 0.9rem;
         }
-        .inventory-cell .cell-sub {
-            display: none;
+        .inventory-cell .cell-total {
+            font-size: 0.6rem;
         }
         .inventory-cell .cell-icons {
             font-size: 0.5rem;
         }
-        .legend-box {
-            width: 12px;
-            height: 12px;
+        .legend-bar {
+            padding: 0.5rem 1rem;
         }
-        #summary-stats .col {
-            flex: 0 0 50%;
-            margin-bottom: 0.5rem;
+        .legend-items {
+            font-size: 0.75rem;
         }
-        #summary-stats .h5 {
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+        }
+        .btn-nav.month-label {
+            min-width: 130px;
+            font-size: 0.85rem;
+        }
+        .btn-today span {
+            display: none;
+        }
+        .btn-view {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.5rem;
+        }
+        .btn-view i {
+            margin-right: 0 !important;
+        }
+        .btn-view span:not(.d-none) {
+            display: none;
+        }
+        .stats-footer {
+            padding: 1rem;
+        }
+        .stat-card {
+            padding: 8px 10px;
+        }
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 0.8rem;
+        }
+        .stat-value {
             font-size: 1rem;
+        }
+        .stat-label {
+            font-size: 0.7rem;
         }
     }
     
     @media (max-width: 576px) {
-        .btn-group .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-        }
-        .card-body.bg-light .d-flex {
+        .inventory-header > .d-flex > .d-flex:first-child {
             flex-direction: column;
-            gap: 0.5rem !important;
+            text-align: center;
         }
-        #quick-actions {
+        .header-icon {
+            margin: 0 auto 8px;
+        }
+        .nav-btn-group, .view-toggle {
             width: 100%;
             justify-content: center;
         }
-        #quick-actions .btn {
+        .btn-nav.month-label {
             flex: 1;
+        }
+        .btn-view {
+            flex: 1;
+        }
+        .legend-bar .d-flex {
+            flex-direction: column;
+            gap: 0.75rem !important;
+        }
+        .legend-items {
+            justify-content: center;
+        }
+        .quick-actions-group {
+            width: 100%;
+            justify-content: center;
+        }
+        .quick-actions-group .btn-action {
+            flex: 1;
+        }
+        .room-type-cell {
+            min-width: 100px;
+            width: 100px;
+            max-width: 100px;
+        }
+        .date-cell, .inventory-cell {
+            min-width: 38px;
+            width: 38px;
+        }
+        .inventory-cell {
+            height: 40px;
+        }
+        .inventory-cell .cell-avail {
+            font-size: 0.85rem;
+        }
+        .inventory-cell .cell-total {
+            display: none;
         }
     }
 </style>
@@ -606,43 +1162,54 @@ function renderInventoryGrid(data) {
     const footer = document.getElementById('inventory-footer');
     const today = formatDate(new Date());
     
-    // Build header row
-    let headerHtml = '<th class="room-type-header">Room Category</th>';
+    // Build header row with new styling
+    let headerHtml = '<th class="room-type-cell">Room Type</th>';
     data.dates.forEach(day => {
-        const classes = ['date-header'];
+        const classes = ['date-cell'];
         if (day.date === today) classes.push('today');
         if (day.is_weekend) classes.push('weekend');
-        headerHtml += `<th class="${classes.join(' ')}"><div>${day.weekday}</div><div>${day.day}</div></th>`;
+        headerHtml += `<th class="${classes.join(' ')}">
+            <div class="day-name">${day.weekday}</div>
+            <div class="day-num">${day.day}</div>
+        </th>`;
     });
     headerRow.innerHTML = headerHtml;
     
-    // Build room type rows
+    // Build room type rows with enhanced styling
     let bodyHtml = '';
     data.room_types.forEach(roomType => {
         bodyHtml += `<tr data-room-type="${roomType.id}">`;
-        bodyHtml += `<td class="room-type-header"><div class="fw-bold">${roomType.name}</div><small class="opacity-75">${roomType.total_units} rooms</small></td>`;
+        bodyHtml += `<td class="room-type-cell">
+            <div class="room-name">${roomType.name}</div>
+            <div class="room-info">
+                <span><i class="fas fa-door-open"></i> ${roomType.total_units} rooms</span>
+                <span><i class="fas fa-users"></i> ${roomType.capacity || '-'} guests</span>
+            </div>
+        </td>`;
         
         data.dates.forEach(day => {
             const dateData = roomType.dates[day.date];
             if (dateData) {
                 bodyHtml += renderInventoryCell(roomType.id, day.date, dateData, day.date === today);
             } else {
-                bodyHtml += `<td class="inventory-cell">-</td>`;
+                bodyHtml += `<td class="inventory-cell"><div class="cell-avail">-</div></td>`;
             }
         });
         bodyHtml += '</tr>';
     });
     body.innerHTML = bodyHtml;
     
-    // Build totals row
-    let footerHtml = '<tr class="totals-row"><td class="room-type-header">TOTAL</td>';
+    // Build totals row with enhanced styling
+    let footerHtml = '<tr class="totals-row"><td class="room-type-cell"><div class="room-name">TOTAL</div></td>';
     data.dates.forEach(day => {
         const totals = data.daily_totals[day.date];
         if (totals) {
-            const statusClass = totals.percent > 30 ? 'status-available' : (totals.percent > 0 ? 'status-limited' : 'status-full');
-            footerHtml += `<td class="inventory-cell ${statusClass}"><div class="cell-main">${totals.available}/${totals.total}</div></td>`;
+            footerHtml += `<td class="inventory-cell">
+                <div class="cell-avail">${totals.available}</div>
+                <div class="cell-total">of ${totals.total}</div>
+            </td>`;
         } else {
-            footerHtml += '<td>-</td>';
+            footerHtml += '<td class="inventory-cell"><div class="cell-avail">-</div></td>';
         }
     });
     footerHtml += '</tr>';
@@ -655,16 +1222,16 @@ function renderInventoryCell(roomTypeId, date, data, isToday) {
     const statusClass = `status-${data.status}`;
     const cellId = `${roomTypeId}-${date}`;
     let icons = '';
-    if (data.stop_sell) icons += '<i class="fas fa-ban" title="Stop Sell"></i> ';
-    if (data.closed_to_arrival) icons += '<i class="fas fa-sign-in-alt" title="CTA"></i> ';
-    if (data.min_stay) icons += `<i class="fas fa-moon" title="Min ${data.min_stay} nights"></i> `;
+    if (data.stop_sell) icons += '<i class="fas fa-ban" title="Stop Sell"></i>';
+    if (data.closed_to_arrival) icons += '<i class="fas fa-sign-in-alt" title="CTA"></i>';
+    if (data.min_stay) icons += `<i class="fas fa-moon" title="Min ${data.min_stay} nights"></i>`;
     
-    return `<td class="inventory-cell ${statusClass} ${isToday ? 'today-cell' : ''}" 
+    return `<td class="inventory-cell ${statusClass} ${isToday ? 'today-col' : ''}" 
         data-cell-id="${cellId}" data-room-type="${roomTypeId}" data-date="${date}"
         data-info='${JSON.stringify(data)}'>
         ${icons ? `<div class="cell-icons">${icons}</div>` : ''}
-        <div class="cell-main">${data.available}/${data.total}</div>
-        ${data.booked > 0 ? `<div class="cell-sub">${data.booked} booked</div>` : ''}
+        <div class="cell-avail">${data.available}</div>
+        <div class="cell-total">of ${data.total}</div>
     </td>`;
 }
 
@@ -842,46 +1409,59 @@ function showCellTooltip(e) {
     const info = JSON.parse(cell.dataset.info || '{}');
     const tooltip = document.getElementById('cell-tooltip');
     
-    // Get status label and color
-    const statusLabels = {
-        'available': { label: 'Available', color: '#28a745' },
-        'limited': { label: 'Limited Availability', color: '#ffc107' },
-        'full': { label: 'Fully Booked', color: '#dc3545' },
-        'stop_sell': { label: 'Stop Sell', color: '#6c757d' }
-    };
-    const status = statusLabels[info.status] || { label: info.status, color: '#6c757d' };
+    // Format date nicely
+    const dateObj = new Date(info.date + 'T00:00:00');
+    const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     
-    let html = `<div><strong>${info.date}</strong></div>`;
-    html += `<div class="mt-1" style="color: ${status.color}; font-weight: bold;"><i class="fas ${info.stop_sell ? 'fa-ban' : (info.status === 'full' ? 'fa-times-circle' : 'fa-check-circle')} me-1"></i>${status.label}</div>`;
-    html += `<div class="mt-1">Available: <strong>${info.available}</strong> / ${info.total}</div>`;
-    html += `<div>Booked: ${info.booked}</div>`;
+    // Get status label and icon
+    const statusConfig = {
+        'available': { label: 'Available', icon: 'fa-check-circle', class: 'available' },
+        'limited': { label: 'Limited', icon: 'fa-exclamation-circle', class: 'limited' },
+        'full': { label: 'Sold Out', icon: 'fa-times-circle', class: 'full' },
+        'stop_sell': { label: 'Stop Sell', icon: 'fa-ban', class: 'stop_sell' }
+    };
+    const status = statusConfig[info.status] || { label: info.status || 'Unknown', icon: 'fa-question-circle', class: 'stop_sell' };
+    
+    let html = `<div class="tooltip-header">${formattedDate}</div>`;
+    html += `<div class="tooltip-status ${status.class}"><i class="fas ${status.icon}"></i> ${status.label}</div>`;
+    
+    html += `<div class="tooltip-row"><span>Available</span><span>${info.available} rooms</span></div>`;
+    html += `<div class="tooltip-row"><span>Total</span><span>${info.total} rooms</span></div>`;
+    html += `<div class="tooltip-row"><span>Booked</span><span>${info.booked} rooms</span></div>`;
+    
     if (info.blocked > 0) {
-        html += `<div>Blocked: <span class="text-warning">${info.blocked}</span></div>`;
+        html += `<div class="tooltip-row"><span>Blocked</span><span>${info.blocked} rooms</span></div>`;
     }
-    if (info.stop_sell) {
-        html += `<div class="mt-1 text-danger"><i class="fas fa-ban me-1"></i>Stop Sell Active</div>`;
-    }
-    if (info.closed_to_arrival) {
-        html += `<div class="text-warning"><i class="fas fa-sign-in-alt me-1"></i>Closed to Arrival</div>`;
-    }
-    if (info.closed_to_departure) {
-        html += `<div class="text-warning"><i class="fas fa-sign-out-alt me-1"></i>Closed to Departure</div>`;
-    }
-    if (info.min_stay) {
-        html += `<div class="text-info"><i class="fas fa-moon me-1"></i>Min Stay: ${info.min_stay} nights</div>`;
-    }
-    if (info.max_stay) {
-        html += `<div class="text-info"><i class="fas fa-calendar-times me-1"></i>Max Stay: ${info.max_stay} nights</div>`;
-    }
-    if (info.restrictions && info.restrictions.length > 0) {
-        html += `<div class="mt-1 text-warning">Restrictions: ${info.restrictions.join(', ')}</div>`;
+    
+    // Restrictions section
+    let restrictions = [];
+    if (info.stop_sell) restrictions.push('<i class="fas fa-ban"></i> Stop Sell');
+    if (info.closed_to_arrival) restrictions.push('<i class="fas fa-sign-in-alt"></i> No Arrival');
+    if (info.closed_to_departure) restrictions.push('<i class="fas fa-sign-out-alt"></i> No Departure');
+    if (info.min_stay) restrictions.push(`<i class="fas fa-moon"></i> Min ${info.min_stay} nights`);
+    if (info.max_stay) restrictions.push(`<i class="fas fa-calendar-times"></i> Max ${info.max_stay} nights`);
+    
+    if (restrictions.length > 0) {
+        html += `<div class="tooltip-restriction">${restrictions.join('<br>')}</div>`;
     }
     
     tooltip.innerHTML = html;
     tooltip.style.display = 'block';
+    
     const rect = cell.getBoundingClientRect();
-    tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
-    tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    // Position tooltip above the cell, centered
+    let left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2;
+    let top = rect.top - tooltip.offsetHeight - 10;
+    
+    // Keep within viewport bounds
+    if (left < 10) left = 10;
+    if (left + tooltip.offsetWidth > window.innerWidth - 10) left = window.innerWidth - tooltip.offsetWidth - 10;
+    if (top < 10) top = rect.bottom + 10; // Show below if no room above
+    
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
 }
 
 function hideCellTooltip() {
