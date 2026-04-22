@@ -353,7 +353,10 @@ class NewsletterController extends Controller
         // Mark newsletter as sending
         $newsletter->markAsSending($count);
 
-        // Create delivery logs and dispatch jobs for each subscriber
+        $sentCount = 0;
+        $failedCount = 0;
+
+        // Send emails synchronously for immediate delivery
         foreach ($subscribers as $subscriber) {
             // Create delivery log first
             $deliveryLog = NewsletterDeliveryLog::create([
@@ -363,18 +366,49 @@ class NewsletterController extends Controller
                 'status' => NewsletterDeliveryLog::STATUS_PENDING,
             ]);
 
-            // Dispatch job with delivery log ID
-            SendNewsletterJob::dispatch($newsletter, $subscriber, $deliveryLog->id);
+            try {
+                // Send email directly for immediate delivery
+                $subscriber->ensureUnsubscribeToken();
+                
+                \Mail::to($subscriber->email)->send(
+                    new \Modules\Website\Emails\NewsletterMail($newsletter, $subscriber)
+                );
+
+                // Mark as sent
+                $deliveryLog->markAsSent();
+                $sentCount++;
+
+            } catch (\Exception $e) {
+                // Mark as failed
+                $deliveryLog->markAsFailed($e->getMessage());
+                $failedCount++;
+
+                Log::error('Newsletter delivery failed', [
+                    'newsletter_id' => $newsletter->id,
+                    'subscriber_email' => $subscriber->email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
-        Log::info('Newsletter dispatched', [
-            'newsletter_id' => $newsletter->id,
-            'recipients' => $count,
+        // Update newsletter counts and mark as sent
+        $newsletter->update([
+            'sent_count' => $sentCount,
+            'failed_count' => $failedCount,
+            'status' => Newsletter::STATUS_SENT,
+            'sent_at' => now(),
         ]);
 
-        // Redirect to delivery status page for real-time monitoring
+        Log::info('Newsletter sent', [
+            'newsletter_id' => $newsletter->id,
+            'recipients' => $count,
+            'sent' => $sentCount,
+            'failed' => $failedCount,
+        ]);
+
+        // Redirect to delivery status page showing results
         return redirect()->route('website.admin.newsletter.campaigns.delivery-status', $newsletter)
-            ->with('info', "Newsletter is being sent to {$count} subscribers. Monitor progress below.");
+            ->with('success', "Newsletter sent! {$sentCount} delivered" . ($failedCount > 0 ? ", {$failedCount} failed" : "") . ".");
     }
 
     /**
@@ -449,12 +483,15 @@ class NewsletterController extends Controller
      */
     public function retryFailed(Newsletter $campaign)
     {
-        $failedLogs = $campaign->deliveryLogs()->where('status', 'failed')->get();
+        $failedLogs = $campaign->deliveryLogs()->where('status', 'failed')->with('subscriber')->get();
         $count = $failedLogs->count();
 
         if ($count === 0) {
             return redirect()->back()->with('info', 'No failed deliveries to retry.');
         }
+
+        $sentCount = 0;
+        $stillFailed = 0;
 
         foreach ($failedLogs as $log) {
             // Reset the log status
@@ -463,23 +500,49 @@ class NewsletterController extends Controller
                 'error_message' => null,
             ]);
 
-            // Dispatch a new job
-            SendNewsletterJob::dispatch($campaign, $log->subscriber, $log->id);
+            try {
+                // Send email directly
+                $log->subscriber->ensureUnsubscribeToken();
+                
+                \Mail::to($log->email)->send(
+                    new \Modules\Website\Emails\NewsletterMail($campaign, $log->subscriber)
+                );
+
+                $log->markAsSent();
+                $sentCount++;
+
+            } catch (\Exception $e) {
+                $log->markAsFailed($e->getMessage());
+                $stillFailed++;
+
+                Log::error('Newsletter retry failed', [
+                    'newsletter_id' => $campaign->id,
+                    'subscriber_email' => $log->email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
-        // Reset failed count on newsletter
+        // Update newsletter counts
         $campaign->update([
-            'failed_count' => 0,
-            'status' => Newsletter::STATUS_SENDING,
+            'sent_count' => $campaign->sent_count + $sentCount,
+            'failed_count' => $stillFailed,
         ]);
 
-        Log::info('Retrying failed newsletter deliveries', [
+        Log::info('Retried failed newsletter deliveries', [
             'newsletter_id' => $campaign->id,
             'retry_count' => $count,
+            'sent' => $sentCount,
+            'still_failed' => $stillFailed,
         ]);
 
+        $message = "{$sentCount} of {$count} retried successfully";
+        if ($stillFailed > 0) {
+            $message .= ", {$stillFailed} still failed";
+        }
+
         return redirect()->route('website.admin.newsletter.campaigns.delivery-status', $campaign)
-            ->with('success', "Retrying {$count} failed deliveries.");
+            ->with('success', $message . '.');
     }
 
     // ==========================================

@@ -26,7 +26,13 @@ class SendNewsletterJob implements ShouldQueue
     /**
      * The number of seconds to wait before retrying.
      */
-    public int $backoff = 60;
+    public int $backoff = 10;
+
+    /**
+     * The queue connection that should handle the job.
+     * Use 'sync' for immediate processing.
+     */
+    public $connection = 'sync';
 
     /**
      * The delivery log ID for tracking.
