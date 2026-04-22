@@ -50,9 +50,20 @@
 
                     <form action="{{ route('website.contact.send') }}" method="POST" class="needs-validation" novalidate>
                         @csrf
-                        {{-- Honeypot field - hidden from users, bots will fill it --}}
+                        
+                        {{-- Time-based validation token (encrypted timestamp) --}}
+                        <input type="hidden" name="_form_token" value="{{ encrypt(time()) }}">
+                        
+                        {{-- Honeypot field 1 - hidden from users, bots will fill it --}}
                         <div style="position: absolute; left: -9999px;" aria-hidden="true">
-                            <input type="text" name="website_url" tabindex="-1" autocomplete="off">
+                            <label for="website_url">Website</label>
+                            <input type="text" name="website_url" id="website_url" tabindex="-1" autocomplete="off">
+                        </div>
+                        
+                        {{-- Honeypot field 2 - Secondary trap field --}}
+                        <div style="position: absolute; left: -9999px; top: -9999px;" aria-hidden="true">
+                            <label for="phone_number">Phone Number</label>
+                            <input type="text" name="phone_number" id="phone_number" tabindex="-1" autocomplete="off">
                         </div>
 
                         <div class="mb-3">
@@ -83,7 +94,13 @@
                             @enderror
                             <small class="text-muted">Minimum 10 characters</small>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg px-5">
+                        
+                        {{-- reCAPTCHA v3 hidden token --}}
+                        @if(config('services.recaptcha.site_key'))
+                            <input type="hidden" name="g-recaptcha-response" id="recaptcha-token">
+                        @endif
+                        
+                        <button type="submit" class="btn btn-primary btn-lg px-5" id="submit-btn">
                             <i class="fas fa-paper-plane me-2"></i>Send Message
                         </button>
                     </form>
@@ -169,27 +186,76 @@
 @endpush
 
 @push('scripts')
+    {{-- Google reCAPTCHA v3 (only if configured) --}}
+    @if(config('services.recaptcha.site_key'))
+        <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
+    @endif
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Form validation
-            const forms = document.querySelectorAll('.needs-validation');
-            Array.from(forms).forEach(form => {
-                form.addEventListener('submit', event => {
-                    if (!form.checkValidity()) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
+            const form = document.querySelector('form.needs-validation');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            // reCAPTCHA v3 token generation
+            @if(config('services.recaptcha.site_key'))
+            function getRecaptchaToken() {
+                return new Promise((resolve, reject) => {
+                    grecaptcha.ready(function() {
+                        grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'contact_form'})
+                            .then(function(token) {
+                                resolve(token);
+                            })
+                            .catch(function(error) {
+                                console.error('reCAPTCHA error:', error);
+                                resolve(null); // Allow form submission even if reCAPTCHA fails
+                            });
+                    });
+                });
+            }
+            @endif
+            
+            // Form validation with reCAPTCHA
+            form.addEventListener('submit', async function(event) {
+                // First check form validity
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
                     form.classList.add('was-validated');
-                }, false);
+                    return;
+                }
+                
+                // Get reCAPTCHA token if configured
+                @if(config('services.recaptcha.site_key'))
+                event.preventDefault();
+                
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+                
+                try {
+                    const token = await getRecaptchaToken();
+                    if (token) {
+                        document.getElementById('recaptcha-token').value = token;
+                    }
+                    form.submit();
+                } catch (error) {
+                    console.error('Error getting reCAPTCHA token:', error);
+                    form.submit(); // Submit anyway if reCAPTCHA fails
+                }
+                @else
+                form.classList.add('was-validated');
+                @endif
             });
 
             // Smooth scroll for navigation
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function(e) {
                     e.preventDefault();
-                    document.querySelector(this.getAttribute('href')).scrollIntoView({
-                        behavior: 'smooth'
-                    });
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
                 });
             });
         });

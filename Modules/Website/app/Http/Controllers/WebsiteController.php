@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use Modules\Website\Models\Settings;
 use Modules\Website\Models\Amenity;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 use Modules\Website\Http\Requests\StoreBookingRequest;
 use Illuminate\Support\Facades\DB;
@@ -602,22 +603,96 @@ class WebsiteController extends Controller
 
     public function sendMessage(Request $request)
     {
-        // Honeypot spam check - if this field is filled, it's a bot
+        $ip = $request->ip();
+        $userAgent = $request->userAgent();
+
+        // ==========================================
+        // 1. HONEYPOT CHECKS (Multiple Hidden Fields)
+        // ==========================================
+        
+        // Primary honeypot - if filled, it's a bot
         if ($request->filled('website_url')) {
-            // Silently reject spam but show success to not alert bots
-            return redirect()->route('website.contact')->with('success', 'Your message has been sent!');
+            $this->logSpamAttempt($ip, 'honeypot_website_url', $request->all());
+            return $this->fakeSuccessResponse();
         }
 
-        // Rate limiting check - prevent spam submissions
-        $ip = $request->ip();
-        $cacheKey = 'contact_form_' . $ip;
+        // Secondary honeypot - "phone_number" field that should be empty
+        if ($request->filled('phone_number')) {
+            $this->logSpamAttempt($ip, 'honeypot_phone', $request->all());
+            return $this->fakeSuccessResponse();
+        }
+
+        // ==========================================
+        // 2. TIME-BASED VALIDATION
+        // ==========================================
+        
+        // Check if form was submitted too quickly (less than 3 seconds)
+        $formLoadedAt = $request->input('_form_token');
+        if ($formLoadedAt) {
+            try {
+                $loadTime = decrypt($formLoadedAt);
+                $timeTaken = time() - $loadTime;
+                
+                // If submitted in less than 3 seconds, likely a bot
+                if ($timeTaken < 3) {
+                    $this->logSpamAttempt($ip, 'too_fast_submission', ['time_taken' => $timeTaken]);
+                    return $this->fakeSuccessResponse();
+                }
+                
+                // If form token is older than 30 minutes, reject (stale form)
+                if ($timeTaken > 1800) {
+                    return redirect()->route('website.contact')
+                        ->with('error', 'Your session has expired. Please try again.');
+                }
+            } catch (\Exception $e) {
+                // Invalid token - could be manipulation attempt
+                $this->logSpamAttempt($ip, 'invalid_form_token', []);
+                return $this->fakeSuccessResponse();
+            }
+        }
+
+        // ==========================================
+        // 3. RATE LIMITING (Stricter)
+        // ==========================================
+        
+        $cacheKey = 'contact_form_' . md5($ip);
         $submissions = cache($cacheKey, 0);
         
+        // Max 3 submissions per hour
         if ($submissions >= 3) {
+            $this->logSpamAttempt($ip, 'rate_limit_exceeded', ['submissions' => $submissions]);
             return redirect()->route('website.contact')
-                ->with('error', 'Too many submissions. Please try again later.');
+                ->with('error', 'Too many submissions. Please try again in an hour.');
         }
 
+        // Also check daily limit (max 10 per day)
+        $dailyCacheKey = 'contact_form_daily_' . md5($ip);
+        $dailySubmissions = cache($dailyCacheKey, 0);
+        
+        if ($dailySubmissions >= 10) {
+            $this->logSpamAttempt($ip, 'daily_limit_exceeded', ['daily_submissions' => $dailySubmissions]);
+            return redirect()->route('website.contact')
+                ->with('error', 'Daily submission limit reached. Please try again tomorrow.');
+        }
+
+        // ==========================================
+        // 4. GOOGLE reCAPTCHA v3 VALIDATION
+        // ==========================================
+        
+        $recaptchaToken = $request->input('g-recaptcha-response');
+        if ($recaptchaToken && config('services.recaptcha.secret')) {
+            $recaptchaValid = $this->verifyRecaptcha($recaptchaToken, $ip);
+            if (!$recaptchaValid) {
+                $this->logSpamAttempt($ip, 'recaptcha_failed', []);
+                return redirect()->route('website.contact')
+                    ->with('error', 'Security verification failed. Please try again.');
+            }
+        }
+
+        // ==========================================
+        // 5. FORM VALIDATION
+        // ==========================================
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255|regex:/^[\pL\s\-\']+$/u',
             'email' => 'required|email:rfc,dns|max:255',
@@ -628,6 +703,23 @@ class WebsiteController extends Controller
             'message.min' => 'Your message must be at least 10 characters.',
         ]);
 
+        // ==========================================
+        // 6. SUSPICIOUS PATTERN DETECTION
+        // ==========================================
+        
+        $spamCheck = $this->detectSpamPatterns($validated['name'], $validated['email'], $validated['message']);
+        if ($spamCheck['is_spam']) {
+            $this->logSpamAttempt($ip, 'spam_pattern_detected', [
+                'reason' => $spamCheck['reason'],
+                'data' => $validated
+            ]);
+            return $this->fakeSuccessResponse();
+        }
+
+        // ==========================================
+        // 7. SANITIZE & SAVE
+        // ==========================================
+        
         // Sanitize message content
         $validated['message'] = strip_tags($validated['message']);
         $validated['name'] = strip_tags($validated['name']);
@@ -639,8 +731,16 @@ class WebsiteController extends Controller
             'status' => 'unread',
         ]);
 
-        // Increment rate limit counter (expires in 1 hour)
+        // Increment rate limit counters
         cache([$cacheKey => $submissions + 1], now()->addHour());
+        cache([$dailyCacheKey => $dailySubmissions + 1], now()->addDay());
+
+        // Log successful submission
+        Log::info('Contact form submission', [
+            'ip' => $ip,
+            'email' => $validated['email'],
+            'name' => $validated['name'],
+        ]);
 
         // Send contact email to admin
         try {
@@ -650,6 +750,132 @@ class WebsiteController extends Controller
             Log::error("Contact Email Failed: " . $e->getMessage());
         }
 
+        return redirect()->route('website.contact')->with('success', 'Your message has been sent!');
+    }
+
+    /**
+     * Verify Google reCAPTCHA v3 token
+     */
+    protected function verifyRecaptcha(string $token, string $ip): bool
+    {
+        try {
+            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => config('services.recaptcha.secret'),
+                'response' => $token,
+                'remoteip' => $ip,
+            ]);
+
+            $result = $response->json();
+
+            // Check if successful and score is acceptable (0.5 or higher)
+            if (($result['success'] ?? false) && ($result['score'] ?? 0) >= 0.5) {
+                return true;
+            }
+
+            Log::warning('reCAPTCHA verification failed', [
+                'ip' => $ip,
+                'score' => $result['score'] ?? 'N/A',
+                'error_codes' => $result['error-codes'] ?? [],
+            ]);
+
+            return false;
+        } catch (\Exception $e) {
+            Log::error('reCAPTCHA verification error: ' . $e->getMessage());
+            // If reCAPTCHA service fails, allow submission but log it
+            return true;
+        }
+    }
+
+    /**
+     * Detect spam patterns in form data
+     */
+    protected function detectSpamPatterns(string $name, string $email, string $message): array
+    {
+        // 1. Check for too many URLs in message
+        $urlCount = preg_match_all('/https?:\/\/|www\./i', $message);
+        if ($urlCount > 2) {
+            return ['is_spam' => true, 'reason' => 'too_many_urls'];
+        }
+
+        // 2. Check for suspicious keywords (common spam terms)
+        $spamKeywords = [
+            'viagra', 'cialis', 'casino', 'lottery', 'winner', 'prize',
+            'bitcoin', 'cryptocurrency', 'investment opportunity', 'make money fast',
+            'click here', 'act now', 'limited time', 'free offer',
+            'nigerian prince', 'wire transfer', 'western union',
+            'sex', 'porn', 'xxx', 'nude',
+        ];
+        
+        $lowerMessage = strtolower($message . ' ' . $name);
+        foreach ($spamKeywords as $keyword) {
+            if (str_contains($lowerMessage, $keyword)) {
+                return ['is_spam' => true, 'reason' => 'spam_keyword: ' . $keyword];
+            }
+        }
+
+        // 3. Check for repeated characters (e.g., "aaaaaa" or "!!!!!!!")
+        if (preg_match('/(.)\1{5,}/', $message)) {
+            return ['is_spam' => true, 'reason' => 'repeated_characters'];
+        }
+
+        // 4. Check for all caps message (shouting)
+        $upperCount = preg_match_all('/[A-Z]/', $message);
+        $letterCount = preg_match_all('/[a-zA-Z]/', $message);
+        if ($letterCount > 20 && ($upperCount / $letterCount) > 0.7) {
+            return ['is_spam' => true, 'reason' => 'excessive_caps'];
+        }
+
+        // 5. Check for suspicious email patterns
+        $disposableDomains = [
+            'tempmail.com', 'throwaway.email', 'guerrillamail.com', 
+            'mailinator.com', '10minutemail.com', 'fakeinbox.com',
+            'trashmail.com', 'maildrop.cc', 'dispostable.com',
+        ];
+        
+        $emailDomain = strtolower(substr(strrchr($email, '@'), 1));
+        if (in_array($emailDomain, $disposableDomains)) {
+            return ['is_spam' => true, 'reason' => 'disposable_email'];
+        }
+
+        // 6. Check for Cyrillic or other non-Latin scripts in name (unless expected)
+        if (preg_match('/[\x{0400}-\x{04FF}]/u', $name)) {
+            return ['is_spam' => true, 'reason' => 'cyrillic_characters'];
+        }
+
+        // 7. Check for HTML tags in message
+        if ($message !== strip_tags($message)) {
+            return ['is_spam' => true, 'reason' => 'html_in_message'];
+        }
+
+        return ['is_spam' => false, 'reason' => null];
+    }
+
+    /**
+     * Log spam attempt for monitoring
+     */
+    protected function logSpamAttempt(string $ip, string $reason, array $data): void
+    {
+        Log::channel('daily')->warning('Spam attempt blocked', [
+            'ip' => $ip,
+            'reason' => $reason,
+            'data' => $data,
+            'user_agent' => request()->userAgent(),
+            'timestamp' => now()->toIso8601String(),
+        ]);
+
+        // Increment spam counter for this IP (for potential IP blocking)
+        $spamCacheKey = 'spam_attempts_' . md5($ip);
+        $spamAttempts = cache($spamCacheKey, 0);
+        cache([$spamCacheKey => $spamAttempts + 1], now()->addDay());
+    }
+
+    /**
+     * Return fake success response to not alert bots
+     */
+    protected function fakeSuccessResponse()
+    {
+        // Add a small random delay to mimic real processing
+        usleep(rand(100000, 500000)); // 100-500ms
         return redirect()->route('website.contact')->with('success', 'Your message has been sent!');
     }
 
