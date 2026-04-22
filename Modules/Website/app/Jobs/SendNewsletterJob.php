@@ -65,12 +65,7 @@ class SendNewsletterJob implements ShouldQueue
         }
 
         // Ensure subscriber has an unsubscribe token
-        if (!$this->subscriber->unsubscribe_token) {
-            $this->subscriber->update([
-                'unsubscribe_token' => bin2hex(random_bytes(32)),
-            ]);
-            $this->subscriber->refresh();
-        }
+        $this->subscriber->ensureUnsubscribeToken();
 
         // Increment attempt count
         $deliveryLog->incrementAttempts();
