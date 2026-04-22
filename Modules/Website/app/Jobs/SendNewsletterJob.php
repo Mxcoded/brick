@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Modules\Website\Models\Newsletter;
 use Modules\Website\Models\NewsletterSubscriber;
+use Modules\Website\Models\NewsletterDeliveryLog;
 use Modules\Website\Emails\NewsletterMail;
 
 class SendNewsletterJob implements ShouldQueue
@@ -28,24 +29,38 @@ class SendNewsletterJob implements ShouldQueue
     public int $backoff = 60;
 
     /**
+     * The delivery log ID for tracking.
+     */
+    public ?int $deliveryLogId = null;
+
+    /**
      * Create a new job instance.
      */
     public function __construct(
         public Newsletter $newsletter,
-        public NewsletterSubscriber $subscriber
-    ) {}
+        public NewsletterSubscriber $subscriber,
+        ?int $deliveryLogId = null
+    ) {
+        $this->deliveryLogId = $deliveryLogId;
+    }
 
     /**
      * Execute the job.
      */
     public function handle(): void
     {
+        // Get or create delivery log
+        $deliveryLog = $this->getOrCreateDeliveryLog();
+
         // Skip if subscriber is no longer active
         if (!$this->subscriber->is_active) {
             Log::info('Skipping inactive subscriber', [
                 'newsletter_id' => $this->newsletter->id,
                 'subscriber_id' => $this->subscriber->id,
             ]);
+            
+            // Mark as failed in delivery log
+            $deliveryLog->markAsFailed('Subscriber is no longer active');
             return;
         }
 
@@ -57,28 +72,51 @@ class SendNewsletterJob implements ShouldQueue
             $this->subscriber->refresh();
         }
 
+        // Increment attempt count
+        $deliveryLog->incrementAttempts();
+
         try {
             Mail::to($this->subscriber->email)->send(
                 new NewsletterMail($this->newsletter, $this->subscriber)
             );
 
-            // Increment sent count
+            // Mark as sent in delivery log
+            $deliveryLog->markAsSent();
+
+            // Increment sent count on newsletter
             $this->newsletter->incrementSentCount();
 
             Log::info('Newsletter sent successfully', [
                 'newsletter_id' => $this->newsletter->id,
                 'subscriber_email' => $this->subscriber->email,
+                'delivery_log_id' => $deliveryLog->id,
             ]);
 
         } catch (\Exception $e) {
-            // Increment failed count
-            $this->newsletter->incrementFailedCount();
+            $errorMessage = $e->getMessage();
 
-            Log::error('Failed to send newsletter', [
-                'newsletter_id' => $this->newsletter->id,
-                'subscriber_email' => $this->subscriber->email,
-                'error' => $e->getMessage(),
-            ]);
+            // If this is the last attempt, mark as permanently failed
+            if ($this->attempts() >= $this->tries) {
+                $deliveryLog->markAsFailed($errorMessage);
+                $this->newsletter->incrementFailedCount();
+
+                Log::error('Newsletter delivery permanently failed', [
+                    'newsletter_id' => $this->newsletter->id,
+                    'subscriber_email' => $this->subscriber->email,
+                    'delivery_log_id' => $deliveryLog->id,
+                    'error' => $errorMessage,
+                    'attempts' => $this->attempts(),
+                ]);
+            } else {
+                Log::warning('Newsletter delivery failed, will retry', [
+                    'newsletter_id' => $this->newsletter->id,
+                    'subscriber_email' => $this->subscriber->email,
+                    'delivery_log_id' => $deliveryLog->id,
+                    'error' => $errorMessage,
+                    'attempt' => $this->attempts(),
+                    'max_tries' => $this->tries,
+                ]);
+            }
 
             // Re-throw to trigger retry
             throw $e;
@@ -86,13 +124,47 @@ class SendNewsletterJob implements ShouldQueue
     }
 
     /**
-     * Handle a job failure.
+     * Get or create the delivery log for this job.
+     */
+    protected function getOrCreateDeliveryLog(): NewsletterDeliveryLog
+    {
+        if ($this->deliveryLogId) {
+            $log = NewsletterDeliveryLog::find($this->deliveryLogId);
+            if ($log) {
+                return $log;
+            }
+        }
+
+        // Find existing or create new
+        return NewsletterDeliveryLog::firstOrCreate(
+            [
+                'newsletter_id' => $this->newsletter->id,
+                'subscriber_id' => $this->subscriber->id,
+            ],
+            [
+                'email' => $this->subscriber->email,
+                'status' => NewsletterDeliveryLog::STATUS_PENDING,
+            ]
+        );
+    }
+
+    /**
+     * Handle a job failure after all retries.
      */
     public function failed(\Throwable $exception): void
     {
-        Log::error('Newsletter job permanently failed', [
+        // Ensure the delivery log is marked as failed
+        $deliveryLog = $this->getOrCreateDeliveryLog();
+        
+        if ($deliveryLog->status !== NewsletterDeliveryLog::STATUS_FAILED) {
+            $deliveryLog->markAsFailed($exception->getMessage());
+            $this->newsletter->incrementFailedCount();
+        }
+
+        Log::error('Newsletter job permanently failed after all retries', [
             'newsletter_id' => $this->newsletter->id,
             'subscriber_email' => $this->subscriber->email,
+            'delivery_log_id' => $deliveryLog->id,
             'error' => $exception->getMessage(),
         ]);
     }

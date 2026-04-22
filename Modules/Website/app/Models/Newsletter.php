@@ -54,6 +54,22 @@ class Newsletter extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Get all delivery logs for this newsletter.
+     */
+    public function deliveryLogs()
+    {
+        return $this->hasMany(NewsletterDeliveryLog::class);
+    }
+
+    /**
+     * Get failed delivery logs for this newsletter.
+     */
+    public function failedDeliveries()
+    {
+        return $this->hasMany(NewsletterDeliveryLog::class)->where('status', 'failed');
+    }
+
     // ==========================================
     // SCOPES
     // ==========================================

@@ -194,6 +194,11 @@ Route::middleware(['web'])->group(function () {
                 Route::post('/{campaign}/send', [NewsletterController::class, 'send'])->name('send');
                 Route::post('/{campaign}/duplicate', [NewsletterController::class, 'duplicate'])->name('duplicate');
                 Route::post('/{campaign}/test', [NewsletterController::class, 'sendTest'])->name('test');
+                
+                // Real-time delivery status
+                Route::get('/{campaign}/delivery-status', [NewsletterController::class, 'deliveryStatus'])->name('delivery-status');
+                Route::get('/{campaign}/delivery-status/api', [NewsletterController::class, 'deliveryStatusApi'])->name('delivery-status.api');
+                Route::post('/{campaign}/retry-failed', [NewsletterController::class, 'retryFailed'])->name('retry-failed');
             });
             
             // Newsletter Subscribers Management

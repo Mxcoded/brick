@@ -4,6 +4,7 @@ namespace Modules\Website\Emails;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -27,7 +28,12 @@ class NewsletterMail extends Mailable
      */
     public function envelope(): Envelope
     {
+        // Use no-reply email from env, fallback to mail.from config
+        $fromAddress = config('mail.from.address', 'no-reply@brickspoint.com');
+        $fromName = config('mail.from.name', 'Brickspoint Hotel');
+
         return new Envelope(
+            from: new Address($fromAddress, $fromName),
             subject: $this->newsletter->subject,
         );
     }

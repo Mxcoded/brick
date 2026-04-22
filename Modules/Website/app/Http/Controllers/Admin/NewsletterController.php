@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Modules\Website\Models\Newsletter;
 use Modules\Website\Models\NewsletterSubscriber;
+use Modules\Website\Models\NewsletterDeliveryLog;
 use Modules\Website\Jobs\SendNewsletterJob;
 
 class NewsletterController extends Controller
@@ -352,21 +353,133 @@ class NewsletterController extends Controller
         // Mark newsletter as sending
         $newsletter->markAsSending($count);
 
-        // Dispatch jobs for each subscriber
+        // Create delivery logs and dispatch jobs for each subscriber
         foreach ($subscribers as $subscriber) {
-            SendNewsletterJob::dispatch($newsletter, $subscriber);
-        }
+            // Create delivery log first
+            $deliveryLog = NewsletterDeliveryLog::create([
+                'newsletter_id' => $newsletter->id,
+                'subscriber_id' => $subscriber->id,
+                'email' => $subscriber->email,
+                'status' => NewsletterDeliveryLog::STATUS_PENDING,
+            ]);
 
-        // Mark as sent (jobs will update counts)
-        $newsletter->markAsSent();
+            // Dispatch job with delivery log ID
+            SendNewsletterJob::dispatch($newsletter, $subscriber, $deliveryLog->id);
+        }
 
         Log::info('Newsletter dispatched', [
             'newsletter_id' => $newsletter->id,
             'recipients' => $count,
         ]);
 
-        return redirect()->route('website.admin.newsletter.campaigns.index')
-            ->with('success', "Newsletter is being sent to {$count} subscribers.");
+        // Redirect to delivery status page for real-time monitoring
+        return redirect()->route('website.admin.newsletter.campaigns.delivery-status', $newsletter)
+            ->with('info', "Newsletter is being sent to {$count} subscribers. Monitor progress below.");
+    }
+
+    /**
+     * Get real-time delivery status for a newsletter.
+     */
+    public function deliveryStatus(Newsletter $campaign)
+    {
+        $stats = [
+            'total' => $campaign->recipients_count,
+            'sent' => $campaign->deliveryLogs()->where('status', 'sent')->count(),
+            'failed' => $campaign->deliveryLogs()->where('status', 'failed')->count(),
+            'pending' => $campaign->deliveryLogs()->where('status', 'pending')->count(),
+        ];
+
+        $failedEmails = $campaign->deliveryLogs()
+            ->where('status', 'failed')
+            ->with('subscriber:id,email')
+            ->latest('failed_at')
+            ->get();
+
+        return view('website::admin.newsletter.campaigns.delivery-status', compact('campaign', 'stats', 'failedEmails'));
+    }
+
+    /**
+     * API: Get delivery status for polling.
+     */
+    public function deliveryStatusApi(Newsletter $campaign)
+    {
+        $stats = [
+            'total' => $campaign->recipients_count,
+            'sent' => $campaign->deliveryLogs()->where('status', 'sent')->count(),
+            'failed' => $campaign->deliveryLogs()->where('status', 'failed')->count(),
+            'pending' => $campaign->deliveryLogs()->where('status', 'pending')->count(),
+            'status' => $campaign->status,
+            'sent_count' => $campaign->sent_count,
+            'failed_count' => $campaign->failed_count,
+        ];
+
+        // Calculate progress percentage
+        $stats['progress'] = $stats['total'] > 0 
+            ? round((($stats['sent'] + $stats['failed']) / $stats['total']) * 100, 1) 
+            : 0;
+
+        // Check if all emails have been processed
+        $stats['completed'] = ($stats['sent'] + $stats['failed']) >= $stats['total'];
+
+        // If completed, update newsletter status
+        if ($stats['completed'] && $campaign->status === Newsletter::STATUS_SENDING) {
+            $campaign->markAsSent();
+            $stats['status'] = Newsletter::STATUS_SENT;
+        }
+
+        // Get recent failed emails
+        $stats['recent_failures'] = $campaign->deliveryLogs()
+            ->where('status', 'failed')
+            ->latest('failed_at')
+            ->take(5)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'email' => $log->email,
+                    'error' => $log->error_message,
+                    'failed_at' => $log->failed_at?->diffForHumans(),
+                ];
+            });
+
+        return response()->json($stats);
+    }
+
+    /**
+     * Retry failed deliveries for a newsletter.
+     */
+    public function retryFailed(Newsletter $campaign)
+    {
+        $failedLogs = $campaign->deliveryLogs()->where('status', 'failed')->get();
+        $count = $failedLogs->count();
+
+        if ($count === 0) {
+            return redirect()->back()->with('info', 'No failed deliveries to retry.');
+        }
+
+        foreach ($failedLogs as $log) {
+            // Reset the log status
+            $log->update([
+                'status' => NewsletterDeliveryLog::STATUS_PENDING,
+                'error_message' => null,
+            ]);
+
+            // Dispatch a new job
+            SendNewsletterJob::dispatch($campaign, $log->subscriber, $log->id);
+        }
+
+        // Reset failed count on newsletter
+        $campaign->update([
+            'failed_count' => 0,
+            'status' => Newsletter::STATUS_SENDING,
+        ]);
+
+        Log::info('Retrying failed newsletter deliveries', [
+            'newsletter_id' => $campaign->id,
+            'retry_count' => $count,
+        ]);
+
+        return redirect()->route('website.admin.newsletter.campaigns.delivery-status', $campaign)
+            ->with('success', "Retrying {$count} failed deliveries.");
     }
 
     // ==========================================
