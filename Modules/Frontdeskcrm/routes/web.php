@@ -89,7 +89,10 @@ Route::prefix('frontdesk')
             Route::get('/{registration}/print', [RegistrationController::class, 'print'])->name('print');
             // ** ADD THIS NEW ROUTE FOR CHECKOUT **
             Route::post('/{registration}/checkout', [RegistrationController::class, 'checkout'])->name('checkout');
-            // --- NEW "NO-SHOW" FIX ROUTE (Gap) ---
+            // --- NO-SHOW ROUTE ---
+            Route::post('/{registration}/no-show', [RegistrationController::class, 'markNoShow'])->name('no-show');
+
+            // --- REOPEN ROUTE (From No-Show or Checked-Out) ---
             Route::post('/{registration}/reopen', [RegistrationController::class, 'reopen'])->name('reopen');
 
             // --- NEW "DELETE DRAFT" ROUTE (Feature) ---

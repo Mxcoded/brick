@@ -1,6 +1,6 @@
 @extends('website::layouts.master')
 
-@section('title', 'Welcome to Our Luxury Hotel')
+@section('title', 'Welcome to Brickspoint Boutique Aparthotel')
 
 @section('content')
     <!-- Hero Section with Video Background -->
@@ -28,9 +28,18 @@
                                 exquisite accommodations in the heart of Abuja</p>
                             <div
                                 class="d-flex justify-content-center gap-3 animate__animated animate__fadeInUp animate__delay-2s mb-5">
-                                <a href="{{ route('website.booking') }}" class="btn btn-primary btn-lg px-5 py-3">Book Your
-                                    Stay</a>
-                                <a href="#featured-rooms" class="btn btn-outline-light btn-lg px-5 py-3">Explore Rooms</a>
+                                <a href="{{ route('website.rooms.index') }}" class="btn btn-primary btn-lg px-5 py-3">
+                                    <i class="fas fa-bed me-2"></i>Explore Rooms
+                                </a>
+                                {{-- <a href={{url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1')}} class="btn btn-primary btn-lg px-5 py-3">
+                                    <i class="fas fa-bed me-2"></i>Explore Rooms
+                                </a> --}}
+                                <a href="{{ route('website.book') }}" class="btn btn-outline-light btn-lg px-5 py-3">
+                                    <i class="fas fa-calendar-check me-2"></i>Book Direct
+                                </a>
+                                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-outline-light btn-lg px-5 py-3">
+                                    <i class="fas fa-calendar-check me-2"></i>Book Direct
+                                </a> --}}
                             </div>
 
                             <!-- Quick Booking Form - Moved below CTA buttons -->
@@ -39,6 +48,9 @@
                                 <form action="{{ route('website.rooms.index') }}" method="GET"
                                     class="shadow-lg p-4 bg-white rounded rounded-3 position-relative z-index-1 mt-n5 mx-auto"
                                     style="max-width: 1000px;">
+                                    {{-- <form action="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" method="GET"
+                                    class="shadow-lg p-4 bg-white rounded rounded-3 position-relative z-index-1 mt-n5 mx-auto"
+                                    style="max-width: 1000px;"> --}}
                                     <div class="row g-3 align-items-end">
                                         <div class="col-md-3">
                                             <label class="form-label fw-bold text-uppercase small text-muted">Check
@@ -62,8 +74,9 @@
                                             </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Check
-                                                Availability</button>
+                                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                                                <i class="fas fa-search me-1"></i> Find Rooms
+                                            </button>
                                         </div>
                                     </div>
                                 </form>
@@ -90,8 +103,8 @@
                             <!-- Quick Booking Form for second slide -->
                             <div class="quick-booking-form bg-white p-4 rounded shadow mx-auto mt-4"
                                 style="max-width: 900px;">
-                                <form action="{{ route('website.booking') }}" method="GET"
-                                    class="row g-3 align-items-end">
+                                <form action="{{ route('website.book') }}" method="GET" class="row g-3 align-items-end">
+                                    {{-- <form action="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" method="GET" class="row g-3 align-items-end"> --}}
                                     <div class="col-md-3">
                                         <label for="check_in_2" class="form-label">Check-In</label>
                                         <input type="date" class="form-control" id="check_in_2" name="check_in"
@@ -112,7 +125,9 @@
                                         </select>
                                     </div>
                                     <div class="col-md-3">
-                                        <button type="submit" class="btn btn-primary w-100">Check Availability</button>
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-search me-1"></i> Find Rooms
+                                        </button>
                                     </div>
                                 </form>
                             </div>
@@ -150,47 +165,52 @@
             </div>
 
             <div class="row g-4">
-                @foreach ($featuredRooms as $room)
+                @foreach ($featuredRooms as $roomType)
                     <div class="col-md-6 col-lg-4">
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
-                                <img src="{{ $room->image_url ?? 'https://via.placeholder.com/50' }}"
-                                    class="card-img-top room-image" alt="{{ $room->name }}">
+                                <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
+                                    class="card-img-top room-image" alt="{{ $roomType->name }}">
                                 <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
-                                    ₦{{ number_format($room->price, 2) }} <small>/ night</small>
+                                    ₦{{ number_format($roomType->price, 2) }} <small>/ night</small>
                                 </div>
+                                <span class="position-absolute bottom-0 start-0 m-2 badge bg-info">
+                                    <i class="fas fa-door-open me-1"></i>{{ $roomType->units_count }}
+                                    {{ Str::plural('Room', $roomType->units_count) }}
+                                </span>
                                 <div class="room-overlay d-flex align-items-center justify-content-center">
-                                    <a href="{{ route('website.rooms.show', $room->id) }}"
+                                    <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
                                         class="btn btn-outline-light btn-lg">View Details</a>
                                 </div>
                             </div>
                             <div class="card-body">
-                                <h3 class="h5 card-title">{{ $room->name }}</h3>
-                                <p class="card-text text-muted">{{ Str::limit($room->description, 100) }}</p>
+                                <h3 class="h5 card-title">{{ $roomType->name }}</h3>
+                                <p class="card-text text-muted">{{ Str::limit($roomType->description, 100) }}</p>
                                 <div class="room-features d-flex flex-wrap gap-2 mb-3">
-                                    {{-- 1. Use the relationship collection directly --}}
-                                    @foreach ($room->amenities->take(3) as $amenity)
+                                    @foreach ($roomType->amenities->take(3) as $amenity)
                                         <span class="badge bg-light text-dark border">
-                                            {{-- 2. Use the dynamic icon from DB, fallback to check-circle if missing --}}
                                             <i
                                                 class="{{ $amenity->icon ?? 'fas fa-check-circle' }} text-primary me-1"></i>
-
-                                            {{-- 3. Output the NAME property, not the object itself --}}
                                             {{ $amenity->name }}
                                         </span>
                                     @endforeach
 
-                                    {{-- 4. Count remaining items using the collection count --}}
-                                    @if ($room->amenities->count() > 3)
+                                    @if ($roomType->amenities->count() > 3)
                                         <span class="badge bg-light text-muted border">
-                                            +{{ $room->amenities->count() - 3 }} more
+                                            +{{ $roomType->amenities->count() - 3 }} more
                                         </span>
                                     @endif
                                 </div>
                             </div>
                             <div class="card-footer bg-white border-0">
-                                <a href="{{ route('website.booking', ['room_id' => $room->id]) }}"
-                                    class="btn btn-primary w-100">Book Now</a>
+                                <a href="{{ route('website.rooms.show', $roomType->slug ?? $roomType->id) }}"
+                                    class="btn btn-primary w-100">
+                                    <i class="fas fa-arrow-right me-2"></i>Select Room
+                                </a>
+                                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-primary w-100">
+                                    <i class="fas fa-arrow-right me-2"></i>Select Room
+                                </a> --}}
+
                             </div>
                         </div>
                     </div>
@@ -200,6 +220,8 @@
             <div class="text-center mt-5">
                 <a href="{{ route('website.rooms.index') }}" class="btn btn-outline-primary btn-lg px-5">View All
                     Rooms</a>
+                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-outline-primary btn-lg px-5">View All
+                    Rooms</a> --}}
             </div>
         </div>
     </section>
@@ -254,8 +276,10 @@
                 </div>
                 <div class="col-lg-6">
                     <div class="ratio ratio-16x9 rounded overflow-hidden shadow-lg">
-                        <img src="{{ asset('images/hotel-feature.jpg') }}" alt="Hotel Feature"
-                            class="img-fluid w-100 h-100 object-fit-cover">
+                        <img src="{{ !empty($settings['hotel_feature_image'])
+                            ? asset($settings['hotel_feature_image'])
+                            : asset('images/default-hotel.jpg') }}"
+                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover">
                     </div>
                 </div>
             </div>
@@ -388,9 +412,16 @@
             <h2 class="display-5 fw-bold mb-4">Ready for an Unforgettable Experience?</h2>
             <p class="lead mb-5 mx-auto" style="max-width: 700px;">Book your stay today and discover the perfect blend of
                 luxury, comfort, and exceptional service.</p>
-            <div class="d-flex justify-content-center gap-3">
-                <a href="{{ route('website.booking') }}" class="btn btn-light btn-lg px-5">Book Now</a>
-                <a href="{{ route('website.contact') }}" class="btn btn-outline-light btn-lg px-5">Contact Us</a>
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="{{ route('website.rooms.index') }}" class="btn btn-light btn-lg px-5">
+                    <i class="fas fa-bed me-2"></i>Browse Rooms
+                </a>
+                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-light btn-lg px-5">
+                    <i class="fas fa-bed me-2"></i>Browse Rooms
+                </a> --}}
+                <a href="{{ route('website.contact') }}" class="btn btn-outline-light btn-lg px-5">
+                    <i class="fas fa-envelope me-2"></i>Contact Us
+                </a>
             </div>
         </div>
     </section>

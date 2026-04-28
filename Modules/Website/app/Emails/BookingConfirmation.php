@@ -12,13 +12,18 @@ class BookingConfirmation extends Mailable
     use Queueable, SerializesModels;
 
     public $booking;
+    public $isStaffCopy;
 
     /**
      * Create a new message instance.
+     *
+     * @param Booking $booking
+     * @param bool $isStaffCopy Whether this is a copy for staff/reservations team
      */
-    public function __construct(Booking $booking)
+    public function __construct(Booking $booking, bool $isStaffCopy = false)
     {
         $this->booking = $booking;
+        $this->isStaffCopy = $isStaffCopy;
     }
 
     /**
@@ -26,7 +31,11 @@ class BookingConfirmation extends Mailable
      */
     public function build()
     {
-        return $this->subject('Booking Confirmation - ' . $this->booking->booking_reference)
+        $subject = $this->isStaffCopy 
+            ? '[NEW BOOKING] ' . $this->booking->booking_reference . ' - ' . $this->booking->guest_name
+            : 'Booking Confirmation - ' . $this->booking->booking_reference;
+
+        return $this->subject($subject)
             ->view('website::emails.booking-confirmation');
     }
 }

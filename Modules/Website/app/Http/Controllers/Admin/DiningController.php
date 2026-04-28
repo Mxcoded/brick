@@ -26,16 +26,19 @@ class DiningController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'opening_hours' => 'nullable|string|max:255',
-            'image' => 'nullable|image|max:8192', // Max 8MB
-            'menu_link' => 'nullable|url', // Added validation for menu link
+            'cuisine_type' => 'nullable|string|max:255',
+            'dress_code' => 'nullable|string|max:255',
+            'menu_link' => 'nullable|url',
+            'image' => 'nullable|image|max:8192',
         ]);
+
+        // Handle is_featured checkbox
+        $validated['is_featured'] = $request->has('is_featured');
 
         // Handle Image Upload
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('dining', 'public');
             $validated['image_url'] = Storage::url($path);
-
-            // Remove the raw 'image' file object so it doesn't break the DB insert
             unset($validated['image']);
         }
 
@@ -59,27 +62,28 @@ class DiningController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'opening_hours' => 'nullable|string|max:255',
-            'image' => 'nullable|image|max:8192',
+            'cuisine_type' => 'nullable|string|max:255',
+            'dress_code' => 'nullable|string|max:255',
             'menu_link' => 'nullable|url',
+            'image' => 'nullable|image|max:8192',
         ]);
 
+        // Handle is_featured checkbox
+        $validated['is_featured'] = $request->has('is_featured');
+
         if ($request->hasFile('image')) {
-            // 1. Delete old image if it exists
+            // Delete old image if it exists
             if ($dining->image_url) {
-                // Convert URL back to storage path
                 $oldPath = str_replace('/storage/', '', $dining->image_url);
                 Storage::disk('public')->delete($oldPath);
             }
 
-            // 2. Store new image
+            // Store new image
             $path = $request->file('image')->store('dining', 'public');
             $validated['image_url'] = Storage::url($path);
-
-            // 3. Remove raw file object
             unset($validated['image']);
         }
 
-        // 4. Update Database
         $dining->update($validated);
 
         return redirect()->route('website.admin.dining.index')

@@ -19,7 +19,7 @@ class BookingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Booking::with(['room', 'user'])->latest();
+        $query = Booking::with(['roomType', 'roomUnit', 'room', 'user'])->latest();
 
         // 1. Filter by Status
         if ($request->filled('status')) {
@@ -31,13 +31,15 @@ class BookingController extends Controller
             $query->whereDate('check_in_date', $request->date);
         }
 
-        // 3. Search by Name, Email, or Reference
+        // 3. Search by Name, Email, Reference, or Group ID
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('booking_reference', 'like', "%$search%")
+                    ->orWhere('booking_group_id', 'like', "%$search%")
                     ->orWhere('guest_name', 'like', "%$search%")
-                    ->orWhere('guest_email', 'like', "%$search%");
+                    ->orWhere('guest_email', 'like', "%$search%")
+                    ->orWhere('guest_phone', 'like', "%$search%");
             });
         }
 
@@ -120,7 +122,7 @@ class BookingController extends Controller
      */
     public function show($id)
     {
-        $booking = Booking::with(['room', 'user'])->findOrFail($id);
+        $booking = Booking::with(['roomType', 'roomUnit', 'room', 'user', 'guest'])->findOrFail($id);
         return view('website::admin.bookings.show', compact('booking'));
     }
 
@@ -183,18 +185,39 @@ class BookingController extends Controller
      */
     public function confirm($id)
     {
-        $booking = Booking::findOrFail($id);
+        $booking = Booking::with(['roomType', 'roomUnit'])->findOrFail($id);
 
-        // Optional: Re-verify availability before confirming
-        $isAvailable = Booking::isAvailable(
-            $booking->room_id,
-            $booking->check_in_date,
-            $booking->check_out_date,
-            $id
-        );
+        // Check availability based on booking type (new room type system vs legacy)
+        $isAvailable = true;
+        
+        if ($booking->room_type_id) {
+            // New room type system - check if assigned room unit is still available
+            if ($booking->roomUnit) {
+                $isAvailable = $booking->roomUnit->isAvailableForDates(
+                    $booking->check_in_date->format('Y-m-d'),
+                    $booking->check_out_date->format('Y-m-d'),
+                    $booking->id // Exclude current booking from check
+                );
+            } else {
+                // No room unit assigned yet - check if room type has any availability
+                $availableUnits = $booking->roomType?->getAvailabilityCountForDates(
+                    $booking->check_in_date->format('Y-m-d'),
+                    $booking->check_out_date->format('Y-m-d')
+                );
+                $isAvailable = $availableUnits > 0;
+            }
+        } elseif ($booking->room_id) {
+            // Legacy system - use old availability check
+            $isAvailable = Booking::isAvailable(
+                $booking->room_id,
+                $booking->check_in_date,
+                $booking->check_out_date,
+                $id
+            );
+        }
 
         if (!$isAvailable) {
-            return back()->with('error', 'Cannot confirm: This room is now occupied or double-booked.');
+            return back()->with('error', 'Cannot confirm: The room/room type is no longer available for these dates.');
         }
 
         // 1. Update Status & Mark as PAID
@@ -260,10 +283,63 @@ class BookingController extends Controller
     }
 
     /**
-     * Move Booking to a Different Room
+     * Assign a specific room unit to the booking.
      */
+    public function assignRoom(Request $request, $id)
+    {
+        $booking = Booking::with(['roomType'])->findOrFail($id);
+
+        // Handle unassign request
+        if ($request->has('unassign') && $request->unassign == '1') {
+            $oldRoom = $booking->roomUnit?->room_number;
+            $booking->update(['room_unit_id' => null]);
+            
+            Log::info('Room unassigned from booking:', [
+                'booking_id' => $booking->id,
+                'booking_reference' => $booking->booking_reference,
+                'previous_room' => $oldRoom,
+            ]);
+
+            return back()->with('success', 'Room has been unassigned. The booking is now marked as "Room TBA".');
+        }
+
+        $request->validate([
+            'room_unit_id' => 'required|exists:room_units,id'
+        ]);
+
+        // Verify the room unit belongs to the booked room type
+        $roomUnit = \Modules\Website\Models\RoomUnit::findOrFail($request->room_unit_id);
+        
+        if ($booking->room_type_id && $roomUnit->room_type_id != $booking->room_type_id) {
+            return back()->with('error', 'Selected room does not belong to the booked room type.');
+        }
+
+        // Check availability for the dates (excluding current booking)
+        $isAvailable = $roomUnit->isAvailableForDates(
+            $booking->check_in_date->format('Y-m-d'),
+            $booking->check_out_date->format('Y-m-d'),
+            $booking->id
+        );
+
+        if (!$isAvailable) {
+            return back()->with('error', 'Selected room is not available for the booking dates.');
+        }
+
+        $oldRoom = $booking->roomUnit?->room_number;
+        $booking->update(['room_unit_id' => $request->room_unit_id]);
+
+        Log::info('Room assigned to booking:', [
+            'booking_id' => $booking->id,
+            'booking_reference' => $booking->booking_reference,
+            'previous_room' => $oldRoom,
+            'new_room' => $roomUnit->room_number,
+        ]);
+
+        return back()->with('success', 'Room ' . $roomUnit->room_number . ' has been assigned to this booking.');
+    }
+
     /**
-     * Move a booking to a different room.
+     * Move Booking to a Different Room (Legacy - kept for backward compatibility)
      */
     public function moveRoom(Request $request, $id)
     {
@@ -288,5 +364,82 @@ class BookingController extends Controller
         $booking->update(['room_id' => $request->new_room_id]);
 
         return back()->with('success', 'Booking moved successfully.');
+    }
+
+    /**
+     * Change the room type for a booking (with price recalculation).
+     */
+    public function changeRoomType(Request $request, $id)
+    {
+        $booking = Booking::with(['roomType', 'roomUnit'])->findOrFail($id);
+
+        $request->validate([
+            'room_type_id' => 'required|exists:room_types,id',
+            'room_unit_id' => 'nullable|exists:room_units,id',
+            'recalculate_price' => 'nullable|boolean',
+        ]);
+
+        $newRoomType = \Modules\Website\Models\RoomType::findOrFail($request->room_type_id);
+        $oldRoomType = $booking->roomType;
+        $oldRoomUnit = $booking->roomUnit;
+
+        // If a room unit is selected, verify it belongs to the selected room type
+        $newRoomUnitId = null;
+        if ($request->filled('room_unit_id')) {
+            $roomUnit = \Modules\Website\Models\RoomUnit::findOrFail($request->room_unit_id);
+            
+            if ($roomUnit->room_type_id != $request->room_type_id) {
+                return back()->with('error', 'Selected room does not belong to the selected room type.');
+            }
+
+            // Check availability
+            $isAvailable = $roomUnit->isAvailableForDates(
+                $booking->check_in_date->format('Y-m-d'),
+                $booking->check_out_date->format('Y-m-d'),
+                $booking->id
+            );
+
+            if (!$isAvailable) {
+                return back()->with('error', 'Selected room is not available for the booking dates.');
+            }
+
+            $newRoomUnitId = $roomUnit->id;
+        }
+
+        // Calculate new price if requested
+        $newTotalAmount = $booking->total_amount;
+        if ($request->boolean('recalculate_price') && $newRoomType->price != ($oldRoomType->price ?? 0)) {
+            $nights = $booking->check_in_date->diffInDays($booking->check_out_date);
+            $nights = $nights < 1 ? 1 : $nights;
+            $newTotalAmount = $newRoomType->price * $nights;
+        }
+
+        // Update the booking
+        $booking->update([
+            'room_type_id' => $request->room_type_id,
+            'room_unit_id' => $newRoomUnitId,
+            'total_amount' => $newTotalAmount,
+        ]);
+
+        Log::info('Booking room type changed:', [
+            'booking_id' => $booking->id,
+            'booking_reference' => $booking->booking_reference,
+            'previous_room_type' => $oldRoomType?->name,
+            'new_room_type' => $newRoomType->name,
+            'previous_room_unit' => $oldRoomUnit?->room_number,
+            'new_room_unit' => $newRoomUnitId ? $roomUnit->room_number : 'TBA',
+            'previous_amount' => $booking->getOriginal('total_amount'),
+            'new_amount' => $newTotalAmount,
+        ]);
+
+        $message = 'Room type changed to ' . $newRoomType->name;
+        if ($newRoomUnitId) {
+            $message .= ' (Room ' . $roomUnit->room_number . ')';
+        }
+        if ($newTotalAmount != $booking->getOriginal('total_amount')) {
+            $message .= '. Price updated to ₦' . number_format($newTotalAmount, 2);
+        }
+
+        return back()->with('success', $message . '.');
     }
 }

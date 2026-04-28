@@ -83,11 +83,11 @@
                                     <tbody>
                                         @foreach ($bookings as $booking)
                                             <tr>
-                                                {{-- Room Info --}}
+                                                {{-- Room Type Info --}}
                                                 <td class="ps-4">
                                                     <div class="d-flex align-items-center">
-                                                        @if ($booking->room && $booking->room->image_url)
-                                                            <img src="{{ $booking->room->image_url }}" class="rounded me-3"
+                                                        @if (optional($booking->roomType)->image_url || optional($booking->room)->image_url)
+                                                            <img src="{{ optional($booking->roomType)->image_url ?? optional($booking->room)->image_url }}" class="rounded me-3"
                                                                 style="width: 50px; height: 50px; object-fit: cover;">
                                                         @else
                                                             <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center text-muted"
@@ -97,7 +97,7 @@
                                                         @endif
                                                         <div>
                                                             <span
-                                                                class="d-block fw-bold text-dark">{{ $booking->room->name ?? 'Room Deleted' }}</span>
+                                                                class="d-block fw-bold text-dark">{{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Room' }}</span>
                                                             <span class="small text-muted">Ref:
                                                                 #{{ $booking->booking_reference }}</span>
                                                         </div>

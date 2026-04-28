@@ -218,52 +218,128 @@
             </tbody>
         </table>
 
+        @php
+            // Financial calculations
+            $roomRate = $registration->room_rate ?? 0;
+            $nights = $registration->no_of_nights ?? 1;
+            $roomCharges = $roomRate * $nights;
+            
+            // Online booking data
+            $hasOnlineBooking = $registration->booking && $registration->booking->amount_paid > 0;
+            $onlineAmountPaid = $hasOnlineBooking ? $registration->booking->amount_paid : 0;
+            
+            // Late arrival / extension calculations
+            $originalBookingNights = $registration->booking ? $registration->booking->no_of_nights : null;
+            $lateArrivalDays = 0;
+            $extensionDays = 0;
+            
+            if ($hasOnlineBooking && $originalBookingNights) {
+                $bookingCheckIn = $registration->booking->check_in;
+                $bookingCheckOut = $registration->booking->check_out;
+                $actualCheckIn = $registration->check_in;
+                $actualCheckOut = $registration->check_out;
+                
+                // Late arrival: guest arrived after original check-in
+                if ($actualCheckIn > $bookingCheckIn) {
+                    $lateArrivalDays = $bookingCheckIn->diffInDays($actualCheckIn);
+                }
+                
+                // Extension: guest staying beyond original check-out
+                if ($actualCheckOut > $bookingCheckOut) {
+                    $extensionDays = $bookingCheckOut->diffInDays($actualCheckOut);
+                }
+            }
+            
+            $extensionCharges = $extensionDays * $roomRate;
+            $totalCharges = $registration->total_amount ?? $roomCharges;
+            
+            // Staff payments
+            $staffPayments = $registration->payments ?? collect();
+            $staffPaymentsTotal = $staffPayments->sum('amount');
+            $totalPaid = $registration->total_paid ?? ($onlineAmountPaid + $staffPaymentsTotal);
+            
+            $balanceDue = $totalCharges - $totalPaid;
+            $hasCredit = $balanceDue < 0;
+        @endphp
+
         <table style="width: 100%; border: 0;">
             <tr>
-                {{-- Financial Summary (UPDATED FOR AUDIT) --}}
+                {{-- Financial Summary (Comprehensive) --}}
                 <td style="width: 50%; padding-right: 10px; vertical-align: top; border: 0;">
-                    <div class="section-title">Financial & Payment History</div>
+                    <div class="section-title">Financial Summary</div>
                     <table class="detail-table">
-                        {{-- Bill Breakdown --}}
+                        {{-- Charges Breakdown --}}
                         <tr>
-                            <td class="w-50"><strong>Total Bill:</strong></td>
-                            <td class="w-50 text-right"><strong>{{ number_format($registration->total_amount, 2) }}</strong></td>
+                            <td colspan="2" style="background-color: #eee; font-weight: bold; font-size: 9px;">Charges</td>
+                        </tr>
+                        <tr>
+                            <td>Room Charges ({{ $nights }} {{ Str::plural('night', $nights) }} × N{{ number_format($roomRate, 2) }})</td>
+                            <td class="text-right">N{{ number_format($roomCharges, 2) }}</td>
+                        </tr>
+                        @if($registration->bed_breakfast)
+                        <tr>
+                            <td>Bed & Breakfast</td>
+                            <td class="text-right">Included</td>
+                        </tr>
+                        @endif
+                        @if($extensionDays > 0)
+                        <tr>
+                            <td>Extension ({{ $extensionDays }} {{ Str::plural('night', $extensionDays) }})</td>
+                            <td class="text-right">N{{ number_format($extensionCharges, 2) }}</td>
+                        </tr>
+                        @endif
+                        <tr style="border-top: 1px solid #999;">
+                            <td><strong>Total Charges:</strong></td>
+                            <td class="text-right"><strong>N{{ number_format($totalCharges, 2) }}</strong></td>
                         </tr>
 
-                        {{-- Payment Ledger --}}
+                        {{-- Payments --}}
                         <tr>
                             <td colspan="2" style="background-color: #eee; font-weight: bold; font-size: 9px;">Payments Received</td>
                         </tr>
-
-                        {{-- Online Payment --}}
-                        @if($registration->booking && $registration->booking->amount_paid > 0)
-                        <tr>
-                            <td>Online Booking ({{ $registration->booking->booking_reference }})</td>
-                            <td class="text-right">{{ number_format($registration->booking->amount_paid, 2) }}</td>
-                        </tr>
-                        @endif
-
-                        {{-- Manual Payments Loop --}}
-                        @foreach($registration->payments as $pay)
+                        @if($hasOnlineBooking)
                         <tr>
                             <td>
-                                {{ $pay->payment_date->format('M d') }} - {{ ucfirst($pay->payment_method) }}
+                                Online Payment ({{ $registration->booking->booking_reference }})
+                                @if($lateArrivalDays > 0)
+                                <br><span style="font-size: 8px; color: #666;">Original: {{ $originalBookingNights }} nights | Late arrival: {{ $lateArrivalDays }} {{ Str::plural('day', $lateArrivalDays) }}</span>
+                                @endif
+                            </td>
+                            <td class="text-right">N{{ number_format($onlineAmountPaid, 2) }}</td>
+                        </tr>
+                        @endif
+                        @forelse($staffPayments as $pay)
+                        <tr>
+                            <td>
+                                {{ $pay->payment_date->format('M d, Y') }} - {{ ucfirst($pay->payment_method) }}
                                 @if($pay->reference) <br><span style="font-size: 8px; color: #666;">Ref: {{ $pay->reference }}</span> @endif
                             </td>
-                            <td class="text-right">{{ number_format($pay->amount, 2) }}</td>
+                            <td class="text-right">N{{ number_format($pay->amount, 2) }}</td>
                         </tr>
-                        @endforeach
-
-                        {{-- Totals --}}
-                        <tr style="border-top: 2px solid #000;">
+                        @empty
+                            @if(!$hasOnlineBooking)
+                            <tr>
+                                <td colspan="2" style="font-size: 8px; color: #666;">No payments recorded</td>
+                            </tr>
+                            @endif
+                        @endforelse
+                        <tr style="border-top: 1px solid #999;">
                             <td><strong>Total Paid:</strong></td>
-                            <td class="text-right"><strong>{{ number_format($registration->total_paid, 2) }}</strong></td>
+                            <td class="text-right"><strong>N{{ number_format($totalPaid, 2) }}</strong></td>
                         </tr>
-                        <tr>
+
+                        {{-- Balance --}}
+                        <tr style="border-top: 2px solid #000;">
+                            @if($hasCredit)
+                            <td><strong>Guest Credit:</strong></td>
+                            <td class="text-right"><strong>N{{ number_format(abs($balanceDue), 2) }}</strong></td>
+                            @elseif($balanceDue == 0)
+                            <td><strong>Status:</strong></td>
+                            <td class="text-right"><strong>FULLY PAID</strong></td>
+                            @else
                             <td><strong>Balance Due:</strong></td>
-                            <td class="text-right">
-                                <strong>{{ number_format($registration->total_amount - $registration->total_paid, 2) }}</strong>
-                            </td>
+                            <td class="text-right"><strong>N{{ number_format($balanceDue, 2) }}</strong></td>
+                            @endif
                         </tr>
                     </table>
                 </td>

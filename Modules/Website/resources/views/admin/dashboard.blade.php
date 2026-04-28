@@ -102,7 +102,7 @@
                                         <tr>
                                             <td class="ps-4 fw-bold small">{{ $booking->booking_reference }}</td>
                                             <td>{{ $booking->guest_name }}</td>
-                                            <td>{{ $booking->room->name ?? 'Unknown' }}</td>
+                                            <td>{{ $booking->roomType->name ?? ($booking->room->name ?? 'Unknown') }}</td>
                                             <td>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('M d') }}</td>
                                             <td>
                                                 <span

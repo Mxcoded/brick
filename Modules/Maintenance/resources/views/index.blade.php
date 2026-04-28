@@ -110,7 +110,7 @@
                                                 class="btn btn-light border" data-bs-toggle="tooltip" title="Update Log">
                                                 <i class="fas fa-edit text-primary"></i>
                                             </a>
-                                            @can('delete-maintenance-log')
+                                            @can('access_maintenance_dashboard')
                                             <form action="{{ route('maintenance.destroy', $log->id) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')

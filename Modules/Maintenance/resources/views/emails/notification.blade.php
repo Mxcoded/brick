@@ -343,16 +343,26 @@
                 </div>
             </div>
             
-            <div class="email-footer">
-                <p class="footer-logo">Brickspoint</p>
-                <p class="footer-tagline">Boutique Aparthotel</p>
-                <p class="footer-text">
-                    This is an automated notification from the Maintenance Log System.
-                </p>
-                <p class="copyright">
-                    © {{ date('Y') }} Brickspoint Boutique Aparthotel. All rights reserved.
-                </p>
-            </div>
+             <footer class="bg-light p-3 mt-auto border-top email-footer">
+                <div class="container-fluid text-center">
+                    <div
+                        style="display: inline-block; padding: 10px 20px;   border-radius: 12px; background: var(--glass-effect); border: 1px solid var(--glass-border);box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), 
+                            -4px -4px 15px rgba(255, 255, 255, 0.05); transform: perspective(600px) rotateX(2deg); transition: var(--transition); margin-right: 15px;">
+                        <p class="mb-0 text-muted">&copy; {{ date('Y') }}
+
+                            <a href="home"
+                                style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif; font-weight: 800; font-size: 1.4rem; color: #C8A165;  text-decoration: none; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                 ">
+                                BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub
+                                    style="font-size:8pt;">v1.0</sub>
+                            </a>
+                            . All rights reserved.
+                    </div>
+                    </p>
+                    <p class="mb-0 text-muted" style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;">™
+                        Developed with ❤️ by IT Team </p>
+                </div>
+            </footer>
         </div>
     </div>
 </body>

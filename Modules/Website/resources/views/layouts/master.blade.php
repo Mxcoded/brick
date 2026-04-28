@@ -14,8 +14,8 @@
     <meta name="author" content="{{ $author ?? config('app.name') }}">
 
     <!-- Favicon -->
-    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <link rel="icon" href=" {{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/brickspoint_logo.png') }}">
 
     <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -197,6 +197,82 @@
             display: flex;
             flex-wrap: wrap;
         }
+
+        /* Booking Progress Indicator */
+        .booking-progress-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .booking-progress {
+            position: relative;
+        }
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+        .progress-step .step-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        .progress-step.pending .step-icon {
+            background-color: #e9ecef;
+            color: #6c757d;
+            border: 2px solid #dee2e6;
+        }
+        .progress-step.active .step-icon {
+            background-color: var(--color-gold);
+            color: #fff;
+            border: 2px solid var(--color-gold);
+            box-shadow: 0 0 0 4px rgba(200, 161, 101, 0.2);
+        }
+        .progress-step.completed .step-icon {
+            background-color: #198754;
+            color: #fff;
+            border: 2px solid #198754;
+        }
+        .progress-step .step-label {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+        }
+        .progress-step.active .step-label {
+            color: var(--color-gold);
+        }
+        .progress-step.completed .step-label {
+            color: #198754;
+        }
+        .progress-line {
+            flex: 1;
+            height: 3px;
+            background-color: #dee2e6;
+            margin: 0 0.5rem;
+            margin-bottom: 1.5rem;
+            transition: background-color 0.3s ease;
+        }
+        .progress-line.completed {
+            background-color: #198754;
+        }
+        @media (max-width: 576px) {
+            .progress-step .step-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 0.85rem;
+            }
+            .progress-line {
+                margin-bottom: 1rem;
+            }
+        }
     </style>
     @stack('styles')
 </head>
@@ -227,6 +303,7 @@
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.rooms.*', 'website.booking') ? 'active' : '' }}"
                                 href="{{ route('website.rooms.index') }}">Rooms & Suites</a>
+                                {{-- <a class="nav-link" href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}">Rooms & Suites</a> --}}
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.dining') ? 'active' : '' }}"
@@ -257,10 +334,11 @@
                     </ul>
                     @guest
                         <div class="d-flex align-items-center">
-                            <a href="{{ route('website.booking') }}"
+                            <a href="{{ route('website.book') }}"
                                 class="btn btn-primary px-4 py-2 rounded fw-bold shadow-sm btn-book-mobile">
                                 <i class="fas fa-calendar-check me-2"></i>Book Now
                             </a>
+                            {{-- url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }} --}}
                         </div>
                     @else
                         <div class="d-flex align-items-center">
@@ -304,8 +382,10 @@
                     <ul class="list-unstyled">
                         <li class="mb-2"><a href="{{ route('website.home') }}"
                                 class="text-muted-footer text-decoration-none">Home</a></li>
-                        <li class="mb-2"><a href="{{ route('website.rooms.index') }}"
+                        <li class="mb-2"> <a href="{{ route('website.rooms.index') }}"
                                 class="text-muted-footer text-decoration-none">Rooms</a></li>
+                                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
+                                class="text-muted-footer text-decoration-none">Rooms</a> --}}
                         <li class="mb-2"><a href="{{ route('website.amenities') }}"
                                 class="text-muted-footer text-decoration-none">Amenities</a></li>
                         <li class="mb-2"><a href="{{ route('website.about') }}"
@@ -331,13 +411,15 @@
                 <div class="col-lg-3 col-md-4">
                     <h4 class="h5 mb-4">Newsletter</h4>
                     <p class="text-muted-footer">Subscribe for special offers and updates</p>
-                    <form class="mb-3">
+                    <form id="newsletterForm" class="mb-3">
                         <div class="input-group">
-                            <input type="email" class="form-control bg-secondary border-0"
-                                placeholder="Your Email">
-                            <button class="btn btn-primary" type="submit"><i
-                                    class="fas fa-paper-plane"></i></button>
+                            <input type="email" id="newsletterEmail" class="form-control bg-secondary border-0 text-white"
+                                placeholder="Your Email" required>
+                            <button class="btn btn-primary" type="submit" id="newsletterBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
                         </div>
+                        <div id="newsletterFeedback" class="mt-2" style="display: none;"></div>
                     </form>
                 </div>
             </div>
@@ -357,6 +439,46 @@
         </div>
     </footer>
 
+    <!-- Newsletter Popup Modal -->
+    <div class="modal fade" id="newsletterPopup" tabindex="-1" aria-labelledby="newsletterPopupLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg overflow-hidden">
+                <div class="position-relative">
+                    {{-- Background Image/Gradient --}}
+                    <div style="background: linear-gradient(135deg, var(--bs-primary) 0%, #f7e141 100%); padding: 2rem;" class="text-white text-center">
+                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <i class="fas fa-envelope-open-text fa-3x mb-3 opacity-75"></i>
+                        <h4 class="fw-bold mb-1">Stay Updated!</h4>
+                        <p class="mb-0 opacity-75">Get exclusive offers & travel tips</p>
+                    </div>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted text-center mb-4">Subscribe to our newsletter and be the first to know about special deals, new amenities, and exciting events at Brickspoint.</p>
+                    <form id="newsletterPopupForm">
+                        <div class="mb-3">
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-muted"></i></span>
+                                <input type="email" id="newsletterPopupEmail" class="form-control border-start-0 bg-light" placeholder="Enter your email" required>
+                            </div>
+                        </div>
+                        <button type="submit" id="newsletterPopupBtn" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-paper-plane me-2"></i>Subscribe Now
+                        </button>
+                        <div id="newsletterPopupFeedback" class="mt-3 text-center" style="display: none;"></div>
+                    </form>
+                    <p class="text-muted small text-center mt-3 mb-0">
+                        <i class="fas fa-lock me-1"></i>We respect your privacy. Unsubscribe anytime.
+                    </p>
+                </div>
+                <div class="modal-footer border-0 bg-light py-2 justify-content-center">
+                    <button type="button" class="btn btn-link text-muted small" id="dontShowAgain">
+                        Don't show this again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous">
@@ -366,6 +488,133 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     @stack('scripts')
+
+    {{-- Newsletter Subscription Script --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Footer newsletter form
+            const form = document.getElementById('newsletterForm');
+            const emailInput = document.getElementById('newsletterEmail');
+            const submitBtn = document.getElementById('newsletterBtn');
+            const feedback = document.getElementById('newsletterFeedback');
+
+            // Shared newsletter submit handler
+            async function handleNewsletterSubmit(email, feedbackEl, btnEl, inputEl) {
+                btnEl.disabled = true;
+                const originalBtnHtml = btnEl.innerHTML;
+                btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+                try {
+                    const response = await fetch('{{ route("website.newsletter.subscribe") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ email: email })
+                    });
+
+                    const data = await response.json();
+
+                    feedbackEl.style.display = 'block';
+                    if (data.success) {
+                        feedbackEl.className = 'mt-2 small text-success';
+                        feedbackEl.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + data.message;
+                        inputEl.value = '';
+                        
+                        // Mark as subscribed in localStorage
+                        localStorage.setItem('newsletter_subscribed', 'true');
+                        
+                        // Close popup after success (if it's the popup form)
+                        if (btnEl.id === 'newsletterPopupBtn') {
+                            setTimeout(() => {
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
+                                if (modal) modal.hide();
+                            }, 2000);
+                        }
+                    } else {
+                        feedbackEl.className = 'mt-2 small text-warning';
+                        feedbackEl.innerHTML = '<i class="fas fa-info-circle me-1"></i>' + data.message;
+                    }
+
+                    setTimeout(() => {
+                        feedbackEl.style.display = 'none';
+                    }, 5000);
+
+                } catch (error) {
+                    feedbackEl.style.display = 'block';
+                    feedbackEl.className = 'mt-2 small text-danger';
+                    feedbackEl.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
+                } finally {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = originalBtnHtml;
+                }
+            }
+
+            // Footer form handler
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const email = emailInput.value.trim();
+                    if (email) {
+                        handleNewsletterSubmit(email, feedback, submitBtn, emailInput);
+                    }
+                });
+            }
+
+            // Popup form handler
+            const popupForm = document.getElementById('newsletterPopupForm');
+            const popupEmailInput = document.getElementById('newsletterPopupEmail');
+            const popupSubmitBtn = document.getElementById('newsletterPopupBtn');
+            const popupFeedback = document.getElementById('newsletterPopupFeedback');
+
+            if (popupForm) {
+                popupForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const email = popupEmailInput.value.trim();
+                    if (email) {
+                        handleNewsletterSubmit(email, popupFeedback, popupSubmitBtn, popupEmailInput);
+                    }
+                });
+            }
+
+            // "Don't show again" button
+            const dontShowBtn = document.getElementById('dontShowAgain');
+            if (dontShowBtn) {
+                dontShowBtn.addEventListener('click', function() {
+                    localStorage.setItem('newsletter_popup_dismissed', 'true');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
+                    if (modal) modal.hide();
+                });
+            }
+
+            // Show popup on page load (with delay)
+            const newsletterPopup = document.getElementById('newsletterPopup');
+            if (newsletterPopup) {
+                const isDismissed = localStorage.getItem('newsletter_popup_dismissed') === 'true';
+                const isSubscribed = localStorage.getItem('newsletter_subscribed') === 'true';
+                const lastShown = localStorage.getItem('newsletter_popup_last_shown');
+                const now = Date.now();
+                const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+                // Show popup if:
+                // 1. User hasn't dismissed it permanently
+                // 2. User hasn't already subscribed
+                // 3. Popup hasn't been shown in the last 24 hours
+                const shouldShow = !isDismissed && !isSubscribed && (!lastShown || (now - parseInt(lastShown)) > oneDay);
+
+                if (shouldShow) {
+                    // Show popup after 3 seconds delay
+                    setTimeout(() => {
+                        const modal = new bootstrap.Modal(newsletterPopup);
+                        modal.show();
+                        localStorage.setItem('newsletter_popup_last_shown', now.toString());
+                    }, 3000);
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>
