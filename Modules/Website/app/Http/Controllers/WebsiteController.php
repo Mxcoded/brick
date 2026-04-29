@@ -1184,6 +1184,117 @@ class WebsiteController extends Controller
     }
 
     /**
+     * ✅ Paystack Webhook Handler
+     * Handles asynchronous payment notifications (bank transfers, delayed card payments, etc.)
+     * Set your webhook URL in Paystack dashboard to: https://yourdomain.com/paystack/webhook
+     */
+    public function paystackWebhook(Request $request)
+    {
+        // 1. Verify webhook signature
+        $secretKey = config('services.paystack.secret');
+        $signature = $request->header('x-paystack-signature');
+        $payload = $request->getContent();
+
+        if (!$signature || hash_hmac('sha512', $payload, $secretKey) !== $signature) {
+            Log::warning('Paystack webhook: Invalid signature');
+            return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 401);
+        }
+
+        // 2. Parse the event
+        $event = json_decode($payload, true);
+        $eventType = $event['event'] ?? null;
+        $data = $event['data'] ?? null;
+
+        Log::info('Paystack webhook received', ['event' => $eventType, 'reference' => $data['reference'] ?? 'N/A']);
+
+        // 3. Handle charge.success event (Bank Transfer, Card Payment Completed)
+        if ($eventType === 'charge.success' && $data) {
+            $reference = $data['reference'] ?? null;
+            $status = $data['status'] ?? null;
+            $amount = ($data['amount'] ?? 0) / 100; // Convert from kobo to naira
+            $channel = $data['channel'] ?? 'unknown'; // card, bank_transfer, ussd, etc.
+
+            if ($reference && $status === 'success') {
+                // Check if this is a group payment
+                $isGroupPayment = str_starts_with($reference, 'GRP');
+
+                if ($isGroupPayment) {
+                    // Update all bookings in the group
+                    $bookings = Booking::where('booking_group_id', $reference)
+                        ->where('payment_status', '!=', 'paid') // Only update if not already paid
+                        ->get();
+
+                    if ($bookings->isNotEmpty()) {
+                        foreach ($bookings as $booking) {
+                            $booking->update([
+                                'payment_status' => 'paid',
+                                'amount_paid' => $booking->total_amount,
+                                'payment_method' => $channel,
+                                'status' => 'confirmed',
+                            ]);
+                            $this->sendConfirmationEmail($booking);
+                        }
+
+                        Log::info('Paystack webhook: Group payment confirmed via ' . $channel, [
+                            'reference' => $reference,
+                            'bookings_count' => $bookings->count(),
+                            'total_amount' => $amount,
+                        ]);
+                    }
+                } else {
+                    // Single booking payment
+                    $booking = Booking::where('booking_reference', $reference)
+                        ->where('payment_status', '!=', 'paid') // Only update if not already paid
+                        ->first();
+
+                    if ($booking) {
+                        $booking->update([
+                            'payment_status' => 'paid',
+                            'amount_paid' => $booking->total_amount,
+                            'payment_method' => $channel,
+                            'status' => 'confirmed',
+                        ]);
+
+                        $this->sendConfirmationEmail($booking);
+
+                        Log::info('Paystack webhook: Payment confirmed via ' . $channel, [
+                            'reference' => $reference,
+                            'booking_id' => $booking->id,
+                            'amount' => $amount,
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // 4. Handle transfer.success event (for refunds/payouts if implemented later)
+        if ($eventType === 'transfer.success' && $data) {
+            Log::info('Paystack webhook: Transfer success', ['data' => $data]);
+            // Handle transfer success if needed
+        }
+
+        // 5. Handle payment failed event
+        if ($eventType === 'charge.failed' && $data) {
+            $reference = $data['reference'] ?? null;
+            
+            if ($reference) {
+                $booking = Booking::where('booking_reference', $reference)->first();
+                if ($booking && $booking->payment_status === 'pending') {
+                    $booking->update(['payment_status' => 'failed']);
+                    
+                    Log::warning('Paystack webhook: Payment failed', [
+                        'reference' => $reference,
+                        'reason' => $data['gateway_response'] ?? 'Unknown',
+                    ]);
+                }
+            }
+        }
+
+        // Always return 200 OK to acknowledge receipt
+        return response()->json(['status' => 'success'], 200);
+    }
+
+    /**
      * Helper to send email (Keep code DRY)
      * Sends confirmation to guest and a copy to reservations team.
      */
