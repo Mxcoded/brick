@@ -68,9 +68,9 @@ class RoomTypeController extends Controller
                 'display_order' => 'nullable|integer|min:0',
                 'image' => 'required|image|max:20480',
                 'gallery_images.*' => 'nullable|image|max:20480',
-                // Units
+                // Units - room_number is nullable, we'll filter out empty entries later
                 'units' => 'nullable|array',
-                'units.*.room_number' => 'required_with:units|string|max:50',
+                'units.*.room_number' => 'nullable|string|max:50',
                 'units.*.floor' => 'nullable|string|max:50',
             ]);
 
