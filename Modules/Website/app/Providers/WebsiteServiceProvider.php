@@ -46,6 +46,7 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->commands([
             \Modules\Website\Console\MigrateRoomsToTypes::class,
             \Modules\Website\Console\Commands\CleanupOrphanedBookings::class,
+            \Modules\Website\Console\Commands\FixConfirmedBookingBalances::class,
         ]);
     }
 
