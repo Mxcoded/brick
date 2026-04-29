@@ -335,23 +335,53 @@
 
             // Handle completion
             xhr.addEventListener('load', function() {
-                if (xhr.status >= 200 && xhr.status < 400) {
-                    uploadProgressBar.classList.add('bg-success');
-                    uploadPercentage.textContent = '100%';
-                    uploadStatus.innerHTML = '<i class="fas fa-check text-success"></i> Upload complete! Redirecting...';
+                try {
+                    const response = JSON.parse(xhr.responseText);
                     
-                    // Redirect to the response URL or reload
-                    setTimeout(() => {
-                        // Try to follow redirect from response
-                        window.location.href = '{{ route("website.admin.room-types.index") }}';
-                    }, 500);
-                } else {
-                    // Error handling
-                    uploadProgressBar.classList.remove('bg-primary', 'bg-success');
-                    uploadProgressBar.classList.add('bg-danger');
-                    uploadStatus.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> Upload failed. Please try again.';
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Changes';
+                    if (xhr.status >= 200 && xhr.status < 400 && response.success) {
+                        uploadProgressBar.classList.add('bg-success');
+                        uploadPercentage.textContent = '100%';
+                        uploadStatus.innerHTML = '<i class="fas fa-check text-success"></i> Upload complete! Reloading...';
+                        
+                        // Reload to show changes
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        // Error handling with specific message
+                        uploadProgressBar.classList.remove('bg-primary', 'bg-success');
+                        uploadProgressBar.classList.add('bg-danger');
+                        
+                        let errorMessage = response.message || 'Upload failed. Please try again.';
+                        
+                        // Handle validation errors
+                        if (response.errors) {
+                            const errorList = Object.values(response.errors).flat();
+                            errorMessage = errorList.join('<br>');
+                        }
+                        
+                        uploadStatus.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> ' + errorMessage;
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Changes';
+                    }
+                } catch (e) {
+                    // Response wasn't JSON - might be a redirect or HTML error page
+                    if (xhr.status >= 200 && xhr.status < 400) {
+                        // Assume success if status is OK
+                        uploadProgressBar.classList.add('bg-success');
+                        uploadPercentage.textContent = '100%';
+                        uploadStatus.innerHTML = '<i class="fas fa-check text-success"></i> Upload complete! Reloading...';
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        uploadProgressBar.classList.remove('bg-primary', 'bg-success');
+                        uploadProgressBar.classList.add('bg-danger');
+                        uploadStatus.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i> Upload failed. Please try again.';
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-save me-1"></i> Save Changes';
+                        console.error('Server response:', xhr.responseText);
+                    }
                 }
             });
 
