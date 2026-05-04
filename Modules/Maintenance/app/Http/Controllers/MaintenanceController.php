@@ -17,6 +17,7 @@ class MaintenanceController extends Controller
     protected array $notificationRecipients = [
         'it@brickspoint.com',
         'fm@brickspoint.com',
+        'gm@brickspoint.com',
     ];
 
     public function index()
