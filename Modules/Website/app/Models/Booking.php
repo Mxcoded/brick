@@ -17,7 +17,10 @@ class Booking extends Model
 
     protected $fillable = [
         'booking_reference',
-        'room_id',
+        'booking_group_id',   // NEW: Links multiple bookings from a single cart transaction
+        'room_id',            // Legacy: will be deprecated
+        'room_type_id',       // NEW: The room type booked
+        'room_unit_id',       // NEW: Assigned unit (nullable until check-in)
         'user_id',            // Optional: links to registered user
         'guest_profile_id',   // Optional: links to CRM profile
 
@@ -70,11 +73,27 @@ class Booking extends Model
         });
     }
     /**
-     * Relationship: The room being booked.
+     * Relationship: The room type being booked.
+     */
+    public function roomType()
+    {
+        return $this->belongsTo(RoomType::class);
+    }
+
+    /**
+     * Relationship: The assigned room unit (assigned at check-in).
+     */
+    public function roomUnit()
+    {
+        return $this->belongsTo(RoomUnit::class);
+    }
+
+    /**
+     * Legacy: The room being booked (backward compatibility).
+     * @deprecated Use roomType() and roomUnit() instead.
      */
     public function room()
     {
-        // Update the namespace below if your Room model exists elsewhere
         return $this->belongsTo(Room::class);
     }
 

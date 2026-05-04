@@ -9,11 +9,14 @@ use Modules\Website\Http\Controllers\GuestController;
 // Admin Controllers (Aliased to prevent conflicts)
 use Modules\Website\Http\Controllers\Admin\WebsiteAdminController;
 use Modules\Website\Http\Controllers\Admin\RoomController as AdminRoomController;
+use Modules\Website\Http\Controllers\Admin\RoomTypeController;
 use Modules\Website\Http\Controllers\Admin\BookingController as AdminBookingController;
 use Modules\Website\Http\Controllers\Admin\DiningController;
 use Modules\Website\Http\Controllers\Admin\AmenityController;
 use Modules\Website\Http\Controllers\Admin\SettingController;
 use Modules\Website\Http\Controllers\Admin\ContactMessageController;
+use Modules\Website\Http\Controllers\Admin\NewsletterController;
+use Modules\Website\Http\Controllers\Admin\InventoryCalendarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,9 +47,11 @@ Route::middleware(['web'])->group(function () {
 
         // Availability & Booking Logic
         Route::any('/check-availability', 'checkAvailability')->name('website.room.checkAvailability');
-        Route::get('/booking', 'booking')->name('website.booking');
+        
+        // Booking Flow: /book (Step 1: Room Selection) -> /booking (Step 2: Guest Details)
+        Route::get('/book', 'bookStep1')->name('website.book'); // Step 1: Select rooms with cart
+        Route::get('/booking', 'booking')->name('website.booking'); // Step 2: Guest details / checkout
         Route::post('/booking', 'storeBooking')->name('website.booking.store');
-        // ✅ NEW: Paystack Callback Route
         Route::get('/payment/callback', 'verifyPayment')->name('website.payment.callback');
         Route::get('/booking/confirmation/{ref?}', 'confirmation')->name('website.booking.confirmation');
 
@@ -54,11 +59,25 @@ Route::middleware(['web'])->group(function () {
         Route::post('/contact/send', 'sendMessage')->name('website.contact.send');
         Route::post('/check-email', 'checkEmail')->name('website.checkEmail');
         Route::post('/booking/resend', 'resendConfirmation')->name('website.booking.resend');
+        Route::post('/newsletter/subscribe', 'subscribeNewsletter')->name('website.newsletter.subscribe');
+
+        // Booking Cart API
+        Route::get('/api/available-units', 'getAvailableUnits')->name('website.api.available-units');
+        Route::get('/api/room-availability', 'getRoomAvailability')->name('website.api.room-availability');
+        Route::post('/cart/add', 'cartAdd')->name('website.cart.add');
+        Route::put('/cart/update', 'cartUpdate')->name('website.cart.update');
+        Route::delete('/cart/remove/{roomTypeId}', 'cartRemove')->name('website.cart.remove');
+        Route::delete('/cart/clear', 'cartClear')->name('website.cart.clear');
+        Route::get('/cart', 'cartGet')->name('website.cart.get');
 
         // Guest Booking Management
         Route::get('/my-booking', 'bookingLogin')->name('website.booking.login');
         Route::post('/my-booking/find', 'findBooking')->name('website.booking.find');
     });
+
+    // Public Newsletter Routes (No Auth Required)
+    Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])
+        ->name('website.newsletter.unsubscribe');
 
     // =========================================================================
     // 2. GUEST DASHBOARD (Authenticated Users)
@@ -103,17 +122,90 @@ Route::middleware(['web'])->group(function () {
 
             // Room Resource Route (Handles index, store, update, destroy)
             // Resource Management
-            Route::resource('rooms', AdminRoomController::class);
+            Route::resource('rooms', AdminRoomController::class); // Legacy - will be deprecated
             Route::resource('bookings', AdminBookingController::class);
             Route::resource('amenities', AmenityController::class);
             Route::resource('settings', SettingController::class);
             Route::resource('dining', DiningController::class);
+
+            // Room Types & Units Management (NEW)
+            // IMPORTANT: This route MUST be before the resource to avoid conflict
+            Route::delete('room-types/images/{imageId}', [RoomTypeController::class, 'deleteImage'])
+                ->name('room-types.images.destroy');
+            Route::resource('room-types', RoomTypeController::class);
+            
+            // Room Units
+            Route::post('room-types/{roomType}/units', [RoomTypeController::class, 'storeUnit'])
+                ->name('room-types.units.store');
+            Route::post('room-types/{roomType}/units/bulk', [RoomTypeController::class, 'bulkStoreUnits'])
+                ->name('room-types.units.bulk');
+            Route::put('room-units/{unit}', [RoomTypeController::class, 'updateUnit'])
+                ->name('room-units.update');
+            Route::post('room-units/{unit}/move', [RoomTypeController::class, 'moveUnit'])
+                ->name('room-units.move');
+            Route::delete('room-units/{unit}', [RoomTypeController::class, 'destroyUnit'])
+                ->name('room-units.destroy');
             Route::get('/api/room-status', [AdminRoomController::class, 'getRoomStatus'])->name('api.room.status');
             Route::get('/calendar', [AdminRoomController::class, 'calendar'])->name('rooms.calendar');
             Route::get('/api/calendar-data', [AdminRoomController::class, 'getCalendarData'])->name('api.calendar.data');
+
+            // =========================================================================
+            // INVENTORY CALENDAR (Expedia-Style)
+            // =========================================================================
+            Route::prefix('inventory')->name('inventory.')->group(function () {
+                Route::get('/', [InventoryCalendarController::class, 'index'])->name('index');
+                Route::get('/api/data', [InventoryCalendarController::class, 'getInventoryData'])->name('api.data');
+                Route::get('/api/blocks', [InventoryCalendarController::class, 'getBlocks'])->name('api.blocks');
+                Route::post('/block', [InventoryCalendarController::class, 'applyBlock'])->name('block');
+                Route::delete('/block', [InventoryCalendarController::class, 'removeBlock'])->name('block.remove');
+                Route::post('/restrict', [InventoryCalendarController::class, 'applyRestriction'])->name('restrict');
+                Route::post('/bulk', [InventoryCalendarController::class, 'bulkUpdate'])->name('bulk');
+                Route::post('/open', [InventoryCalendarController::class, 'openRooms'])->name('open');
+                Route::post('/stop-sell', [InventoryCalendarController::class, 'stopSell'])->name('stop-sell');
+            });
             // Contact Messages (Read Only / Reply)
             Route::resource('contact-messages', ContactMessageController::class)
                 ->only(['index', 'show', 'destroy', 'update']);
+            
+            // Contact Message Conversation Routes
+            Route::get('contact-messages/{contact_message}/reply', [ContactMessageController::class, 'reply'])
+                ->name('contact-messages.reply');
+            Route::post('contact-messages/{contact_message}/reply', [ContactMessageController::class, 'sendReply'])
+                ->name('contact-messages.send-reply');
+            Route::post('contact-messages/{contact_message}/archive', [ContactMessageController::class, 'archive'])
+                ->name('contact-messages.archive');
+            Route::post('contact-messages/{contact_message}/restore', [ContactMessageController::class, 'restore'])
+                ->name('contact-messages.restore');
+
+            // =========================================================================
+            // NEWSLETTER MANAGEMENT
+            // =========================================================================
+            
+            // Newsletter Campaigns
+            Route::prefix('newsletter/campaigns')->name('newsletter.campaigns.')->group(function () {
+                Route::get('/', [NewsletterController::class, 'index'])->name('index');
+                Route::get('/create', [NewsletterController::class, 'create'])->name('create');
+                Route::post('/', [NewsletterController::class, 'store'])->name('store');
+                Route::get('/{campaign}', [NewsletterController::class, 'show'])->name('show');
+                Route::get('/{campaign}/edit', [NewsletterController::class, 'edit'])->name('edit');
+                Route::put('/{campaign}', [NewsletterController::class, 'update'])->name('update');
+                Route::delete('/{campaign}', [NewsletterController::class, 'destroy'])->name('destroy');
+                Route::get('/{campaign}/preview', [NewsletterController::class, 'preview'])->name('preview');
+                Route::post('/{campaign}/send', [NewsletterController::class, 'send'])->name('send');
+                Route::post('/{campaign}/duplicate', [NewsletterController::class, 'duplicate'])->name('duplicate');
+                Route::post('/{campaign}/test', [NewsletterController::class, 'sendTest'])->name('test');
+                
+                // Real-time delivery status
+                Route::get('/{campaign}/delivery-status', [NewsletterController::class, 'deliveryStatus'])->name('delivery-status');
+                Route::get('/{campaign}/delivery-status/api', [NewsletterController::class, 'deliveryStatusApi'])->name('delivery-status.api');
+                Route::post('/{campaign}/retry-failed', [NewsletterController::class, 'retryFailed'])->name('retry-failed');
+            });
+            
+            // Newsletter Subscribers Management
+            Route::get('newsletter/subscribers', [NewsletterController::class, 'subscribersIndex'])->name('newsletter.subscribers');
+            Route::get('newsletter/subscribers/export', [NewsletterController::class, 'exportSubscribers'])->name('newsletter.subscribers.export');
+            Route::delete('newsletter/subscribers/{subscriber}', [NewsletterController::class, 'destroySubscriber'])->name('newsletter.subscribers.destroy');
+            Route::post('newsletter/subscribers/{subscriber}/toggle', [NewsletterController::class, 'toggleSubscriberStatus'])->name('newsletter.subscribers.toggle');
 
             // Manual specific routes if Resources don't cover everything
             Route::post('/rooms/image/upload', [AdminRoomController::class, 'uploadImage'])->name('rooms.image.upload');
@@ -122,6 +214,8 @@ Route::middleware(['web'])->group(function () {
             Route::post('/bookings/{id}/confirm', [AdminBookingController::class, 'confirm'])->name('bookings.confirm');
             Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'cancel'])->name('bookings.cancel');
             Route::post('/bookings/{id}/resend', [AdminBookingController::class, 'resendConfirmation'])->name('bookings.resend');
+            Route::post('/bookings/{id}/assign-room', [AdminBookingController::class, 'assignRoom'])->name('bookings.assign-room');
+            Route::post('/bookings/{id}/change-room-type', [AdminBookingController::class, 'changeRoomType'])->name('bookings.change-room-type');
             Route::post('/bookings/{id}/move', [AdminBookingController::class, 'moveRoom'])->name('bookings.move');
         });
 });

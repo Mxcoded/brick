@@ -96,61 +96,7 @@
         </div>
     </div>
     @endif
-{{-- ✅ NEW: Expected Arrivals Section --}}
-        @if($expectedArrivals->count() > 0)
-        <div class="card border-0 shadow-sm rounded-3 mb-4">
-            <div class="card-header bg-primary text-white py-3">
-                <h5 class="mb-0 fw-bold"><i class="fas fa-plane-arrival me-2"></i>Expected Arrivals (Online Bookings)</h5>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4">Guest Name</th>
-                            <th>Reference</th>
-                            <th>Dates</th>
-                            <th>Payment</th>
-                            <th class="text-end pe-4">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($expectedArrivals as $booking)
-                        <tr>
-                            <td class="ps-4">
-                                <span class="fw-bold text-dark">{{ $booking->guest_name }}</span>
-                                <br><small class="text-muted">{{ $booking->guest_phone }}</small>
-                            </td>
-                            <td>
-                                <span class="badge bg-light text-dark border">{{ $booking->booking_reference }}</span>
-                            </td>
-                            <td>
-                                <div class="small">
-                                    <span class="text-success"><i class="fas fa-sign-in-alt me-1"></i>{{ \Carbon\Carbon::parse($booking->check_in_date)->format('M d') }}</span>
-                                    <i class="fas fa-arrow-right mx-1 text-muted"></i>
-                                    <span class="text-danger"><i class="fas fa-sign-out-alt me-1"></i>{{ \Carbon\Carbon::parse($booking->check_out_date)->format('M d') }}</span>
-                                </div>
-                            </td>
-                            <td>
-                                @if($booking->payment_status === 'paid')
-                                    <span class="badge bg-success">Paid (₦{{ number_format($booking->amount_paid) }})</span>
-                                @else
-                                    <span class="badge bg-warning text-dark">Pay on Arrival</span>
-                                @endif
-                            </td>
-                            <td class="text-end pe-4">
-                                {{-- ✅ THE MAGIC BUTTON: Links to the Check-in Form --}}
-                                <a href="{{ route('frontdesk.bookings.checkin', $booking->booking_reference) }}" 
-                                   class="btn btn-sm btn-primary fw-bold shadow-sm">
-                                    <i class="fas fa-key me-1"></i> Check In
-                                </a>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        @endif
+
 
        
         {{-- Search & Filter Card --}}
@@ -235,6 +181,11 @@
                                                     </span>
                                                 @endif
 
+                                                {{-- ✅ Show Online Booking Badge --}}
+                                                @if ($reg->booking_id)
+                                                    <span class="badge bg-info"><i class="fas fa-globe me-1"></i>Online</span>
+                                                @endif
+
                                                 {{-- ✅ Show Agent Name if available --}}
                                                 @if ($reg->front_desk_agent)
                                                     <div class="small text-muted" style="font-size: 0.75rem;">
@@ -254,7 +205,7 @@
                                         </div>
                                     </td>
 
-                                    {{-- DATES --}}
+                                    {{-- DATES & ROOM --}}
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <i class="fas fa-calendar text-muted me-2"></i>
@@ -266,6 +217,9 @@
                                                 {{-- Check if Room is assigned yet --}}
                                                 @if ($reg->room_allocation)
                                                     <small class="text-success fw-bold">{{ $reg->room_allocation }}</small>
+                                                    @if ($reg->total_amount)
+                                                        <small class="text-muted">| ₦{{ number_format($reg->total_amount) }}</small>
+                                                    @endif
                                                 @else
                                                     <small class="text-danger fst-italic">Room Unassigned</small>
                                                 @endif

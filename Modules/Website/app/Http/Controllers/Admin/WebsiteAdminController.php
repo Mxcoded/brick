@@ -5,17 +5,15 @@ namespace Modules\Website\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Modules\Website\Models\Room;
+use Modules\Website\Models\RoomType;
+use Modules\Website\Models\RoomUnit;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\Amenity;
+use Carbon\Carbon;
 
 class WebsiteAdminController extends Controller
 {
-    /**
-     * Display the admin dashboard.
-     *
-     * @return \Illuminate\View\View
-     */
     /**
      * Display the Website Admin Dashboard.
      */
@@ -29,15 +27,39 @@ class WebsiteAdminController extends Controller
             'revenue' => Booking::where('payment_status', 'paid')->sum('total_amount'),
         ];
 
-        // 2. Room Status
+        // 2. Room Status - Using RoomType/RoomUnit architecture
+        $today = Carbon::today();
+        $totalUnits = RoomUnit::count();
+        $maintenanceUnits = RoomUnit::where('status', 'maintenance')->count();
+        
+        // Calculate truly available units (not in maintenance AND not booked for today)
+        $bookedUnitIds = Booking::whereIn('status', ['confirmed', 'pending', 'checked_in'])
+            ->whereDate('check_in_date', '<=', $today)
+            ->whereDate('check_out_date', '>', $today)
+            ->whereNotNull('room_unit_id')
+            ->pluck('room_unit_id')
+            ->toArray();
+        
+        // Also count bookings without assigned units (they occupy capacity)
+        $unassignedBookings = Booking::whereIn('status', ['confirmed', 'pending', 'checked_in'])
+            ->whereDate('check_in_date', '<=', $today)
+            ->whereDate('check_out_date', '>', $today)
+            ->whereNull('room_unit_id')
+            ->count();
+        
+        $availableUnits = RoomUnit::where('status', 'available')
+            ->whereNotIn('id', $bookedUnitIds)
+            ->count() - $unassignedBookings;
+        
         $rooms = [
-            'total' => Room::count(),
-            'available' => Room::where('status', 'available')->count(),
-            'maintenance' => Room::where('status', 'maintenance')->count(),
+            'total' => $totalUnits,
+            'available' => max(0, $availableUnits),
+            'maintenance' => $maintenanceUnits,
+            'occupied' => $totalUnits - max(0, $availableUnits) - $maintenanceUnits,
         ];
 
         // 3. Recent Activity
-        $recentBookings = Booking::with('room')->latest()->take(5)->get();
+        $recentBookings = Booking::with(['roomType', 'roomUnit'])->latest()->take(5)->get();
         $recentMessages = ContactMessage::where('status', false)->latest()->take(5)->get();
 
         return view('website::admin.dashboard', compact('stats', 'rooms', 'recentBookings', 'recentMessages'));

@@ -5,10 +5,13 @@
 @section('content')
     <section class="py-5 bg-light">
         <div class="container">
+            {{-- Progress Indicator --}}
+            @include('website::partials.booking-progress', ['step' => 4])
+
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     
-                    {{-- ✅ NO-PRINT AREA: Navigation/Success Messages --}}
+                    {{-- NO-PRINT AREA: Navigation/Success Messages --}}
                     <div class="d-print-none mb-4">
                         @if(session('success'))
                             <div class="alert alert-success border-0 shadow-sm rounded-3 d-flex align-items-center">
@@ -25,20 +28,31 @@
                         </a>
                     </div>
 
-                    {{-- ✅ PRINTABLE CARD: The Actual Receipt --}}
+                    {{-- PRINTABLE CARD: The Actual Receipt --}}
                     <div class="card border-0 shadow-sm rounded-3 overflow-hidden" id="printableArea">
                         
                         {{-- Header (Branded) --}}
                         <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center">
                             <div>
-                                <h5 class="fw-bold text-dark mb-0 text-uppercase">Booking @if($booking->status === 'confirmed')Receipt @else Invoice @endif</h5>
-                                Payment Status: <span class="badge {{ $booking->status === 'confirmed' ? 'bg-success' : 'bg-danger' }}">
-                                    @if($booking->status === 'confirmed') Paid @else Pay on Arrival @endif
-                                </span>
+                                <h5 class="fw-bold text-dark mb-0 text-uppercase">
+                                    @if(isset($isGroupBooking) && $isGroupBooking)
+                                        Group Booking @if($booking->status === 'confirmed')Receipt @else Invoice @endif
+                                    @else
+                                        Booking @if($booking->status === 'confirmed')Receipt @else Invoice @endif
+                                    @endif
+                                </h5>
+                                <div class="mt-1">
+                                    Payment Status: <span class="badge {{ $booking->status === 'confirmed' ? 'bg-success' : 'bg-warning' }}">
+                                        @if($booking->payment_status === 'paid') Paid @else Pay on Arrival @endif
+                                    </span>
+                                    @if(isset($isGroupBooking) && $isGroupBooking)
+                                        <span class="badge bg-info ms-1">{{ $groupedBookings->count() }} Rooms</span>
+                                    @endif
+                                </div>
                             </div>
                             <div class="text-end">
                                 <small class="text-muted d-block">Reference</small>
-                                <span class="h4 fw-bold text-primary">{{ $booking->booking_reference }}</span>
+                                <span class="h4 fw-bold text-primary">{{ $booking->booking_group_id ?? $booking->booking_reference }}</span>
                             </div>
                         </div>
 
@@ -72,34 +86,79 @@
                                     </span>
                                 </div>
                                 <div class="col-6 col-md-3 text-center">
-                                    <small class="text-muted text-uppercase fw-bold d-block mb-1">Guests</small>
-                                    <span class="fw-bold text-dark fs-5">{{ $booking->adults }} Ad, {{ $booking->children }} Ch</span>
+                                    <small class="text-muted text-uppercase fw-bold d-block mb-1">
+                                        @if(isset($isGroupBooking) && $isGroupBooking) Rooms @else Guests @endif
+                                    </small>
+                                    <span class="fw-bold text-dark fs-5">
+                                        @if(isset($isGroupBooking) && $isGroupBooking)
+                                            {{ $groupedBookings->count() }}
+                                        @else
+                                            {{ $booking->adults }} Ad, {{ $booking->children }} Ch
+                                        @endif
+                                    </span>
                                 </div>
                             </div>
 
-                            {{-- Room & Payment --}}
+                            {{-- Room Type & Payment --}}
                             <div class="mb-4">
                                 <table class="table table-borderless">
                                     <tbody>
-                                        <tr>
-                                            <td class="ps-0">
-                                                <span class="fw-bold text-dark d-block">{{ $booking->room->name ?? 'Room' }}</span>
-                                                <small class="text-muted">Accommodation Charge</small>
-                                            </td>
-                                            <td class="text-end fw-bold pe-0 align-middle">
-                                                ₦{{ number_format($booking->total_amount, 2) }}
-                                            </td>
-                                        </tr>
-                                        @if($booking->payment_status === 'paid')
+                                        @if(isset($isGroupBooking) && $isGroupBooking && isset($groupedBookings))
+                                            {{-- GROUPED BOOKINGS: Show all rooms --}}
+                                            @php
+                                                $groupedByType = $groupedBookings->groupBy(fn($b) => optional($b->roomType)->name ?? 'Room');
+                                            @endphp
+                                            @foreach($groupedByType as $typeName => $bookingsOfType)
+                                                <tr>
+                                                    <td class="ps-0">
+                                                        <span class="fw-bold text-dark d-block">{{ $typeName }}</span>
+                                                        <small class="text-muted">{{ $bookingsOfType->count() }} room(s) × {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }} nights</small>
+                                                    </td>
+                                                    <td class="text-end fw-bold pe-0 align-middle">
+                                                        ₦{{ number_format($bookingsOfType->sum('total_amount'), 2) }}
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                            
+                                            {{-- Show individual booking references --}}
+                                            <tr>
+                                                <td colspan="2" class="ps-0 pt-3">
+                                                    <small class="text-muted d-block mb-2">Individual Booking References:</small>
+                                                    @foreach($groupedBookings as $gb)
+                                                        <span class="badge bg-light text-dark border me-1 mb-1">
+                                                            {{ $gb->booking_reference }} - {{ optional($gb->roomType)->name ?? 'Room' }}
+                                                        </span>
+                                                    @endforeach
+                                                </td>
+                                            </tr>
+                                        @else
+                                            {{-- SINGLE BOOKING --}}
+                                            <tr>
+                                                <td class="ps-0">
+                                                    <span class="fw-bold text-dark d-block">{{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Room' }}</span>
+                                                    <small class="text-muted">Accommodation Charge (Room assigned at check-in)</small>
+                                                </td>
+                                                <td class="text-end fw-bold pe-0 align-middle">
+                                                    ₦{{ number_format($booking->total_amount, 2) }}
+                                                </td>
+                                            </tr>
+                                        @endif
+                                        
+                                        @php
+                                            $displayTotal = isset($totalAmount) ? $totalAmount : $booking->total_amount;
+                                            $amountPaid = isset($groupedBookings) ? $groupedBookings->sum('amount_paid') : ($booking->amount_paid ?? 0);
+                                        @endphp
+                                        
+                                        @if($amountPaid > 0)
                                         <tr>
                                             <td class="ps-0 text-success"><i class="fas fa-check-circle me-1"></i> Amount Paid</td>
-                                            <td class="text-end text-success fw-bold pe-0">- ₦{{ number_format($booking->amount_paid, 2) }}</td>
+                                            <td class="text-end text-success fw-bold pe-0">- ₦{{ number_format($amountPaid, 2) }}</td>
                                         </tr>
                                         @endif
                                         <tr class="border-top">
                                             <td class="ps-0 pt-3 h5 fw-bold">Total Due</td>
                                             <td class="text-end pt-3 h4 fw-bold text-primary pe-0">
-                                                ₦{{ number_format($booking->total_amount - ($booking->amount_paid ?? 0), 2) }}
+                                                ₦{{ number_format($displayTotal - $amountPaid, 2) }}
                                             </td>
                                         </tr>
                                     </tbody>
@@ -136,16 +195,31 @@
                         </div>
                     </div>
 
-                    {{-- Bottom Actions (Dashboard vs Home) --}}
+                    {{-- Bottom Actions --}}
                     <div class="d-print-none mt-4 text-center">
-                        @auth
-                            <a href="{{ route('guest.dashboard') }}" class="btn btn-primary px-4 shadow-sm">
-                                <i class="fas fa-tachometer-alt me-2"></i> Go to Dashboard
-                            </a>
-                        @else
-                            <p class="text-muted small">Want to save this booking permanently? Create an account using this email.</p>
-                            <a href="{{ route('register') }}" class="btn btn-outline-primary px-4">Create Account</a>
-                        @endauth
+                        <div class="d-flex justify-content-center gap-3 flex-wrap">
+                            @auth
+                                <a href="{{ route('guest.bookings') }}" class="btn btn-primary px-4 shadow-sm">
+                                    <i class="fas fa-list me-2"></i>View My Bookings
+                                </a>
+                                <a href="{{ route('website.rooms.index') }}" class="btn btn-outline-primary px-4">
+                                    <i class="fas fa-plus me-2"></i>Book Another Stay
+                                </a>
+                            @else
+                                <a href="{{ route('website.rooms.index') }}" class="btn btn-primary px-4 shadow-sm">
+                                    <i class="fas fa-plus me-2"></i>Book Another Stay
+                                </a>
+                                <a href="{{ route('website.home') }}" class="btn btn-outline-secondary px-4">
+                                    <i class="fas fa-home me-2"></i>Return Home
+                                </a>
+                            @endauth
+                        </div>
+                        @guest
+                            <p class="text-muted small mt-3 mb-0">
+                                <i class="fas fa-user-plus me-1"></i> 
+                                <a href="{{ route('register') }}" class="text-primary">Create an account</a> to manage your bookings easily
+                            </p>
+                        @endguest
                     </div>
 
                 </div>

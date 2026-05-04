@@ -3,83 +3,265 @@
 namespace Modules\Website\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Website\Models\Room; // Ensure namespace matches your model
+use Modules\Website\Models\Room;
 use Illuminate\Support\Str;
 
 class RoomSeeder extends Seeder
 {
     public function run()
     {
-        // 1. Deluxe Room
-        Room::create([
-            'name' => 'Deluxe Ocean View',
-            'slug' => 'deluxe-ocean-view',
-            'price' => 75000.00,
-            'capacity' => 2,
-            'size' => '45 sqm',
-            'bed_type' => 'King Size',
-            'description' => 'Experience ultimate relaxation in our Deluxe Ocean View room. Featuring a private balcony with panoramic views of the Atlantic, a spacious workspace, and a luxury marble bathroom.',
-          
-            // Primary Image (Thumbnail)
-            'image_url' => 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=800&auto=format&fit=crop',
-            'video_url' => 'https://www.youtube.com/watch?v=gymTeL-10pE', // Example Hotel Tour
+        $rooms = [
+            // BLOCK A
+            [
+                'name' => 'AP 1 - Special Needs One Bedroom Suite',
+                'slug' => Str::slug('AP 1 Special Needs One Bedroom Suite'),
+                'price' => 360000,
+                'capacity' => 2,
+                'size' => '49.5 sqm',
+                'description' => 'A separate living room, bedroom, sitting balcony and bathroom with a standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 2 - Superior One Bedroom Suite',
+                'slug' => Str::slug('AP 2 Superior One Bedroom Suite'),
+                'price' => 430000,
+                'capacity' => 2,
+                'size' => '76 sqm',
+                'description' => 'A separate living room, spacious bedroom, reading table, bathroom with a standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 3 - Executive One Bedroom Apartment',
+                'slug' => Str::slug('AP 3 Executive One Bedroom Apartment'),
+                'price' => 480000,
+                'capacity' => 2,
+                'size' => '109.3 sqm',
+                'description' => 'A separate living room, spacious bedroom, kitchenette, sitting balcony, a bathroom with a standing shower and an ante room.',
+                'image_url' => 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => true,
+            ],
+            [
+                'name' => 'AP 4 - Executive Studio Suite',
+                'slug' => Str::slug('AP 4 Executive Studio Suite'),
+                'price' => 360000,
+                'capacity' => 2,
+                'size' => '61.8 sqm',
+                'description' => 'A spacious studio suite, with a living area, bedroom, bathroom, standing shower and Balcony.',
+                'image_url' => 'https://images.unsplash.com/photo-1631049307264-da039d59562a?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 5 - Deluxe One Bedroom Suite',
+                'slug' => Str::slug('AP 5 Deluxe One Bedroom Suite'),
+                'price' => 410000,
+                'capacity' => 2,
+                'size' => '60.9 sqm',
+                'description' => 'A separate living room, bedroom, dining area, bathroom, standing shower and a view of the art gallery.',
+                'image_url' => 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 6 - Standard One Bedroom Apartment',
+                'slug' => Str::slug('AP 6 Standard One Bedroom Apartment'),
+                'price' => 430000,
+                'capacity' => 2,
+                'size' => '66.9 sqm',
+                'description' => 'A separate living room, bedroom, kitchenette, bathroom, standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 7 - Luxury One Bedroom Apartment',
+                'slug' => Str::slug('AP 7 Luxury One Bedroom Apartment'),
+                'price' => 480000,
+                'capacity' => 2,
+                'size' => '115.4 sqm',
+                'description' => 'A separate spacious living room, kitchenette, bedroom, sitting balcony, bathroom, standing shower and bathtub.',
+                'image_url' => 'https://images.unsplash.com/photo-1590490359683-658d3d23f972?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => true,
+            ],
 
-            'status' => 'available',
-            'is_featured' => true,
-        ]);
+            // BLOCK B
+            [
+                'name' => 'AP 8 - Standard Studio Suite',
+                'slug' => Str::slug('AP 8 Standard Studio Suite'),
+                'price' => 290000,
+                'capacity' => 2,
+                'size' => '39.8 sqm',
+                'description' => 'A sitting area, bedroom, bathroom and standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1505691938895-1758d7eaa511?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 9 - Deluxe Studio Suite',
+                'slug' => Str::slug('AP 9 Deluxe Studio Suite'),
+                'price' => 320000,
+                'capacity' => 2,
+                'size' => '48.7 sqm',
+                'description' => 'A sitting area, bedroom, bathroom and standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 10 - Standard Studio Suite',
+                'slug' => Str::slug('AP 10 Standard Studio Suite'),
+                'price' => 290000,
+                'capacity' => 2,
+                'size' => '47.1 sqm',
+                'description' => 'A sitting area, bedroom, bathroom and standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1505691938895-1758d7eaa511?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 11 - Deluxe Studio Suite',
+                'slug' => Str::slug('AP 11 Deluxe Studio Suite'),
+                'price' => 320000,
+                'capacity' => 2,
+                'size' => '48.6 sqm',
+                'description' => 'A spacious sitting area, bedroom, bathroom and standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 12 - Executive Two Bedroom Apartment',
+                'slug' => Str::slug('AP 12 Executive Two Bedroom Apartment'),
+                'price' => 540000,
+                'capacity' => 4,
+                'size' => '138 sqm',
+                'description' => 'A separate living room, dining area, kitchenette, sitting balcony, master and secondary bedroom, standing showers, a bathtub and guest toilet.',
+                'image_url' => 'https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => true,
+            ],
+            [
+                'name' => 'AP 13 - Executive Two Bedroom Apartment',
+                'slug' => Str::slug('AP 13 Executive Two Bedroom Apartment'),
+                'price' => 540000,
+                'capacity' => 4,
+                'size' => '138 sqm',
+                'description' => 'A separate living room, dining area, kitchenette, spacious sitting balcony, master and secondary bedroom, standing showers, a bathtub and guest toilet.',
+                'image_url' => 'https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => true,
+            ],
+            [
+                'name' => 'AP 14 - Executive Two Bedroom Apartment',
+                'slug' => Str::slug('AP 14 Executive Two Bedroom Apartment'),
+                'price' => 540000,
+                'capacity' => 4,
+                'size' => '138 sqm',
+                'description' => 'A separate living room, dining area, kitchenette, sitting balcony, master and secondary bedroom, standing showers, a bathtub, a view of the restaurant and pool area and guest toilet.',
+                'image_url' => 'https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => true,
+            ],
+            [
+                'name' => 'AP 15 - Executive Two Bedroom Apartment',
+                'slug' => Str::slug('AP 15 Executive Two Bedroom Apartment'),
+                'price' => 540000,
+                'capacity' => 4,
+                'size' => '138 sqm',
+                'description' => 'A separate living room, dining area, kitchenette, sitting balcony, master and secondary bedroom, standing showers, a bathtub, and guest toilet.',
+                'image_url' => 'https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => true,
+            ],
+            [
+                'name' => 'AP 16 - Executive Studio Apartment',
+                'slug' => Str::slug('AP 16 Executive Studio Apartment'),
+                'price' => 410000,
+                'capacity' => 2,
+                'size' => '51.4 sqm',
+                'description' => 'A studio apartment with, sitting area, bedroom, kitchenette, bathroom and standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 17 - Premium One Bedroom Apartment',
+                'slug' => Str::slug('AP 17 Premium One Bedroom Apartment'),
+                'price' => 430000,
+                'capacity' => 2,
+                'size' => '83.1 sqm',
+                'description' => 'A separate living room, kitchnnette, dining area, sitting balcony, bedroom, bathroom, standing shower and a view of the restaurant and pool area.',
+                'image_url' => 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 18 - Executive Studio Apartment',
+                'slug' => Str::slug('AP 18 Executive Studio Apartment'),
+                'price' => 410000,
+                'capacity' => 2,
+                'size' => '51.4 sqm',
+                'description' => 'A studio apartment with, sitting area, bedroom, kitchenette, bathroom and standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'AP 19 - Premium One Bedroom Apartment',
+                'slug' => Str::slug('AP 19 Premium One Bedroom Apartment'),
+                'price' => 430000,
+                'capacity' => 2,
+                'size' => '51.4 sqm',
+                'description' => 'A separate living room, kitchnette, dining area, sitting balcony, bedroom, bathroom, standing shower and a view of the restaurant and pool area.',
+                'image_url' => 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => false,
+            ],
+            [
+                'name' => 'Presidential Suite (Penthouse)',
+                'slug' => Str::slug('Presidential Suite Penthouse'),
+                'price' => 2000000,
+                'capacity' => 4,
+                'size' => '270 sqm',
+                'description' => 'A separate living room, dining area, open plan kitchen, spacious terrace, terrace garden, mini office space, master and secondary bedroom with sitting areas in each room, standing showers, bathtub, guest toilet, an ante room, a private elevator, and a 180 view of the city.',
+                'image_url' => 'https://images.unsplash.com/photo-1590490359683-658d3d23f972?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => true,
+            ],
 
-        // 2. Executive Suite
-        Room::create([
-            'name' => 'Executive Suite',
-            'slug' => 'executive-suite',
-            'price' => 120000.00,
-            'capacity' => 3,
-            'size' => '65 sqm',
-            'bed_type' => 'King + Sofa Bed',
-            'description' => 'Designed for business and leisure, the Executive Suite offers a separate living area, premium soundproofing, and exclusive access to the Executive Lounge.',
-          
-            // Primary Image
-            'image_url' => 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=800&auto=format&fit=crop',
-            'video_url' => null,
+            // BLOCK C
+            [
+                'name' => 'T1 - One Bedroom Duplex',
+                'slug' => Str::slug('T1 One Bedroom Duplex'),
+                'price' => 500000,
+                'capacity' => 2,
+                'size' => '89.9 sqm',
+                'description' => 'A living room downstairs, dining area, kitchenette, guest toilet, bedroom upstairs, reading table, bathroom and standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => true,
+            ],
+            [
+                'name' => 'T2 - One Bedroom Duplex',
+                'slug' => Str::slug('T2 One Bedroom Duplex'),
+                'price' => 500000,
+                'capacity' => 2,
+                'size' => '89.9 sqm',
+                'description' => 'A living room downstairs, dining area, kitchenette, guest toilet, bedroom upstairs, reading table, bathroom and standing shower.',
+                'image_url' => 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?q=80&w=800&auto=format&fit=crop',
+                'status' => 'available',
+                'is_featured' => true,
+            ],
+        ];
 
-            'status' => 'available',
-            'is_featured' => true,
-        ]);
-
-        // 3. Family Room
-        Room::create([
-            'name' => 'Family Garden Room',
-            'slug' => 'family-garden-room',
-            'price' => 95000.00,
-            'capacity' => 4,
-            'size' => '55 sqm',
-            'bed_type' => '2 Queen Beds',
-            'description' => 'Perfect for families, this room features two queen beds, a kid-friendly layout, and direct access to the hotel gardens and pool area.',
-           
-            // Primary Image
-            'image_url' => 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?q=80&w=800&auto=format&fit=crop',
-            'video_url' => null,
-
-            'status' => 'maintenance', // Example of maintenance status
-            'is_featured' => false,
-        ]);
-
-        // 4. Presidential Suite
-        Room::create([
-            'name' => 'Presidential Penthouse',
-            'slug' => 'presidential-penthouse',
-            'price' => 500000.00,
-            'capacity' => 2,
-            'size' => '120 sqm',
-            'bed_type' => 'Emperor King',
-            'description' => 'The pinnacle of luxury. Private elevator access, personal butler service, jacuzzi, and a rooftop terrace with 360-degree city views.',
-         
-            // Primary Image
-            'image_url' => 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=800&auto=format&fit=crop',
-            'video_url' => 'https://www.youtube.com/watch?v=sample',
-
-            'status' => 'booked', // Example of booked status
-            'is_featured' => true,
-        ]);
+        foreach ($rooms as $roomData) {
+            Room::updateOrCreate(['slug' => $roomData['slug']], $roomData);
+        }
     }
 }

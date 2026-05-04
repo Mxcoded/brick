@@ -26,35 +26,83 @@
 
                     @if (session('success'))
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ session('success') }}
+                            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    @if (session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    @if ($errors->any())
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
                         </div>
                     @endif
 
                     <form action="{{ route('website.contact.send') }}" method="POST" class="needs-validation" novalidate>
                         @csrf
+                        
+                        {{-- Time-based validation token (encrypted timestamp) --}}
+                        <input type="hidden" name="_form_token" value="{{ encrypt(time()) }}">
+                        
+                        {{-- Honeypot field 1 - hidden from users, bots will fill it --}}
+                        <div style="position: absolute; left: -9999px;" aria-hidden="true">
+                            <label for="website_url">Website</label>
+                            <input type="text" name="website_url" id="website_url" tabindex="-1" autocomplete="off">
+                        </div>
+                        
+                        {{-- Honeypot field 2 - Secondary trap field --}}
+                        <div style="position: absolute; left: -9999px; top: -9999px;" aria-hidden="true">
+                            <label for="phone_number">Phone Number</label>
+                            <input type="text" name="phone_number" id="phone_number" tabindex="-1" autocomplete="off">
+                        </div>
+
                         <div class="mb-3">
-                            <label for="name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
-                            <div class="invalid-feedback">
-                                Please enter your name.
-                            </div>
+                            <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" required>
+                            @error('name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @else
+                                <div class="invalid-feedback">Please enter your name.</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
-                            <div class="invalid-feedback">
-                                Please enter a valid email address.
-                            </div>
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" value="{{ old('email') }}" required>
+                            @error('email')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @else
+                                <div class="invalid-feedback">Please enter a valid email address.</div>
+                            @enderror
                         </div>
                         <div class="mb-3">
-                            <label for="message" class="form-label">Message</label>
-                            <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
-                            <div class="invalid-feedback">
-                                Please enter your message.
-                            </div>
+                            <label for="message" class="form-label">Message <span class="text-danger">*</span></label>
+                            <textarea class="form-control @error('message') is-invalid @enderror" id="message" name="message" rows="5" minlength="10" required>{{ old('message') }}</textarea>
+                            @error('message')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @else
+                                <div class="invalid-feedback">Please enter your message (minimum 10 characters).</div>
+                            @enderror
+                            <small class="text-muted">Minimum 10 characters</small>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg px-5">Send Message</button>
+                        
+                        {{-- reCAPTCHA v3 hidden token --}}
+                        @if(config('services.recaptcha.site_key'))
+                            <input type="hidden" name="g-recaptcha-response" id="recaptcha-token">
+                        @endif
+                        
+                        <button type="submit" class="btn btn-primary btn-lg px-5" id="submit-btn">
+                            <i class="fas fa-paper-plane me-2"></i>Send Message
+                        </button>
                     </form>
                 </div>
                 <div class="col-lg-6 ps-lg-5">
@@ -109,7 +157,7 @@
             <p class="lead mb-5 mx-auto" style="max-width: 700px;">Reach out to us and let us make your visit unforgettable.
             </p>
             <div class="d-flex justify-content-center gap-3">
-                <a href="{{ route('website.booking') }}" class="btn btn-light btn-lg px-5">Book Now</a>
+                <a href="{{ route('website.book') }}" class="btn btn-light btn-lg px-5">Book Now</a>
                 <a href="{{ route('website.rooms.index') }}" class="btn btn-outline-light btn-lg px-5">Explore Rooms</a>
             </div>
         </div>
@@ -138,27 +186,76 @@
 @endpush
 
 @push('scripts')
+    {{-- Google reCAPTCHA v3 (only if configured) --}}
+    @if(config('services.recaptcha.site_key'))
+        <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
+    @endif
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Form validation
-            const forms = document.querySelectorAll('.needs-validation');
-            Array.from(forms).forEach(form => {
-                form.addEventListener('submit', event => {
-                    if (!form.checkValidity()) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
+            const form = document.querySelector('form.needs-validation');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            // reCAPTCHA v3 token generation
+            @if(config('services.recaptcha.site_key'))
+            function getRecaptchaToken() {
+                return new Promise((resolve, reject) => {
+                    grecaptcha.ready(function() {
+                        grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'contact_form'})
+                            .then(function(token) {
+                                resolve(token);
+                            })
+                            .catch(function(error) {
+                                console.error('reCAPTCHA error:', error);
+                                resolve(null); // Allow form submission even if reCAPTCHA fails
+                            });
+                    });
+                });
+            }
+            @endif
+            
+            // Form validation with reCAPTCHA
+            form.addEventListener('submit', async function(event) {
+                // First check form validity
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
                     form.classList.add('was-validated');
-                }, false);
+                    return;
+                }
+                
+                // Get reCAPTCHA token if configured
+                @if(config('services.recaptcha.site_key'))
+                event.preventDefault();
+                
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+                
+                try {
+                    const token = await getRecaptchaToken();
+                    if (token) {
+                        document.getElementById('recaptcha-token').value = token;
+                    }
+                    form.submit();
+                } catch (error) {
+                    console.error('Error getting reCAPTCHA token:', error);
+                    form.submit(); // Submit anyway if reCAPTCHA fails
+                }
+                @else
+                form.classList.add('was-validated');
+                @endif
             });
 
             // Smooth scroll for navigation
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function(e) {
                     e.preventDefault();
-                    document.querySelector(this.getAttribute('href')).scrollIntoView({
-                        behavior: 'smooth'
-                    });
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
                 });
             });
         });
