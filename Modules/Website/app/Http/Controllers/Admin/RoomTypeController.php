@@ -52,73 +52,106 @@ class RoomTypeController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:room_types,name',
-            'price' => 'required|numeric|min:0',
-            'capacity' => 'required|integer|min:1',
-            'size' => 'nullable|string',
-            'bed_type' => 'nullable|string',
-            'description' => 'required|string',
-            'amenities' => 'nullable|array',
-            'amenities.*' => 'exists:amenities,id',
-            'video_url' => 'nullable|url',
-            'is_featured' => 'boolean',
-            'is_active' => 'boolean',
-            'display_order' => 'nullable|integer|min:0',
-            'image' => 'required|image|max:20480',
-            'gallery_images.*' => 'nullable|image|max:20480',
-            // Units
-            'units' => 'nullable|array',
-            'units.*.room_number' => 'required_with:units|string|max:50',
-            'units.*.floor' => 'nullable|string|max:50',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255|unique:room_types,name',
+                'price' => 'required|numeric|min:0',
+                'capacity' => 'required|integer|min:1',
+                'size' => 'nullable|string',
+                'bed_type' => 'nullable|string',
+                'description' => 'required|string',
+                'amenities' => 'nullable|array',
+                'amenities.*' => 'exists:amenities,id',
+                'video_url' => 'nullable|url',
+                'is_featured' => 'boolean',
+                'is_active' => 'boolean',
+                'display_order' => 'nullable|integer|min:0',
+                'image' => 'required|image|max:20480',
+                'gallery_images.*' => 'nullable|image|max:20480',
+                // Units - room_number is nullable, we'll filter out empty entries later
+                'units' => 'nullable|array',
+                'units.*.room_number' => 'nullable|string|max:50',
+                'units.*.floor' => 'nullable|string|max:50',
+            ]);
 
-        $validated['slug'] = Str::slug($validated['name']);
-        $validated['is_featured'] = $request->boolean('is_featured');
-        $validated['is_active'] = $request->boolean('is_active', true);
-        $validated['display_order'] = $validated['display_order'] ?? 0;
+            $validated['slug'] = Str::slug($validated['name']);
+            $validated['is_featured'] = $request->boolean('is_featured');
+            $validated['is_active'] = $request->boolean('is_active', true);
+            $validated['display_order'] = $validated['display_order'] ?? 0;
 
-        // Upload & Compress Primary Image
-        if ($request->hasFile('image')) {
-            $result = $this->imageService->compressAndStore($request->file('image'), 'room_types');
-            $validated['image_url'] = $result['url'];
-        }
-
-        $roomType = RoomType::create($validated);
-
-        // Sync amenities
-        if (!empty($validated['amenities'])) {
-            $roomType->amenities()->sync($validated['amenities']);
-        }
-
-        // Handle Gallery Images
-        if ($request->hasFile('gallery_images')) {
-            foreach ($request->file('gallery_images') as $file) {
-                $result = $this->imageService->compressAndStore($file, 'room_type_gallery');
-                RoomTypeImage::create([
-                    'room_type_id' => $roomType->id,
-                    'image_url' => $result['url'],
-                    'path' => $result['path']
-                ]);
+            // Upload & Compress Primary Image
+            if ($request->hasFile('image')) {
+                $result = $this->imageService->compressAndStore($request->file('image'), 'room_types');
+                $validated['image_url'] = $result['url'];
             }
-        }
 
-        // Create initial units
-        if (!empty($request->units)) {
-            foreach ($request->units as $unitData) {
-                if (!empty($unitData['room_number'])) {
-                    RoomUnit::create([
+            $roomType = RoomType::create($validated);
+
+            // Sync amenities
+            if (!empty($validated['amenities'])) {
+                $roomType->amenities()->sync($validated['amenities']);
+            }
+
+            // Handle Gallery Images
+            if ($request->hasFile('gallery_images')) {
+                foreach ($request->file('gallery_images') as $file) {
+                    $result = $this->imageService->compressAndStore($file, 'room_type_gallery');
+                    RoomTypeImage::create([
                         'room_type_id' => $roomType->id,
-                        'room_number' => $unitData['room_number'],
-                        'floor' => $unitData['floor'] ?? null,
-                        'status' => 'available',
+                        'image_url' => $result['url'],
+                        'path' => $result['path']
                     ]);
                 }
             }
-        }
 
-        return redirect()->route('website.admin.room-types.index')
-            ->with('success', 'Room type created successfully.');
+            // Create initial units
+            if (!empty($request->units)) {
+                foreach ($request->units as $unitData) {
+                    if (!empty($unitData['room_number'])) {
+                        RoomUnit::create([
+                            'room_type_id' => $roomType->id,
+                            'room_number' => $unitData['room_number'],
+                            'floor' => $unitData['floor'] ?? null,
+                            'status' => 'available',
+                        ]);
+                    }
+                }
+            }
+
+            // Return JSON for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Room type created successfully.',
+                    'redirect' => route('website.admin.room-types.index'),
+                ]);
+            }
+
+            return redirect()->route('website.admin.room-types.index')
+                ->with('success', 'Room type created successfully.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $e->errors(),
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Room type creation failed: ' . $e->getMessage());
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create room type: ' . $e->getMessage(),
+                ], 500);
+            }
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to create room type. Please try again.');
+        }
     }
 
     /**
@@ -149,60 +182,93 @@ class RoomTypeController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $roomType = RoomType::findOrFail($id);
+        try {
+            $roomType = RoomType::findOrFail($id);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:room_types,name,' . $id,
-            'price' => 'required|numeric|min:0',
-            'capacity' => 'required|integer|min:1',
-            'size' => 'nullable|string',
-            'bed_type' => 'nullable|string',
-            'description' => 'required|string',
-            'amenities' => 'nullable|array',
-            'amenities.*' => 'exists:amenities,id',
-            'video_url' => 'nullable|url',
-            'is_featured' => 'boolean',
-            'is_active' => 'boolean',
-            'display_order' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|max:20480',
-            'gallery_images.*' => 'nullable|image|max:20480',
-        ]);
+            $validated = $request->validate([
+                'name' => 'required|string|max:255|unique:room_types,name,' . $id,
+                'price' => 'required|numeric|min:0',
+                'capacity' => 'required|integer|min:1',
+                'size' => 'nullable|string',
+                'bed_type' => 'nullable|string',
+                'description' => 'required|string',
+                'amenities' => 'nullable|array',
+                'amenities.*' => 'exists:amenities,id',
+                'video_url' => 'nullable|url',
+                'is_featured' => 'boolean',
+                'is_active' => 'boolean',
+                'display_order' => 'nullable|integer|min:0',
+                'image' => 'nullable|image|max:20480',
+                'gallery_images.*' => 'nullable|image|max:20480',
+            ]);
 
-        $validated['slug'] = Str::slug($validated['name']);
-        $validated['is_featured'] = $request->boolean('is_featured');
-        $validated['is_active'] = $request->boolean('is_active');
+            $validated['slug'] = Str::slug($validated['name']);
+            $validated['is_featured'] = $request->boolean('is_featured');
+            $validated['is_active'] = $request->boolean('is_active');
 
-        // Upload & Compress Primary Image
-        if ($request->hasFile('image')) {
-            if ($roomType->image_url) {
-                $this->imageService->deleteByUrl($roomType->image_url);
+            // Upload & Compress Primary Image
+            if ($request->hasFile('image')) {
+                if ($roomType->image_url) {
+                    $this->imageService->deleteByUrl($roomType->image_url);
+                }
+                $result = $this->imageService->compressAndStore($request->file('image'), 'room_types');
+                $validated['image_url'] = $result['url'];
             }
-            $result = $this->imageService->compressAndStore($request->file('image'), 'room_types');
-            $validated['image_url'] = $result['url'];
-        }
 
-        $roomType->update($validated);
+            $roomType->update($validated);
 
-        // Sync amenities
-        if (isset($validated['amenities'])) {
-            $roomType->amenities()->sync($validated['amenities']);
-        } else {
-            $roomType->amenities()->detach();
-        }
+            // Sync amenities
+            if (isset($validated['amenities'])) {
+                $roomType->amenities()->sync($validated['amenities']);
+            } else {
+                $roomType->amenities()->detach();
+            }
 
-        // Handle Gallery Images
-        if ($request->hasFile('gallery_images')) {
-            foreach ($request->file('gallery_images') as $file) {
-                $result = $this->imageService->compressAndStore($file, 'room_type_gallery');
-                RoomTypeImage::create([
-                    'room_type_id' => $roomType->id,
-                    'image_url' => $result['url'],
-                    'path' => $result['path']
+            // Handle Gallery Images
+            if ($request->hasFile('gallery_images')) {
+                foreach ($request->file('gallery_images') as $file) {
+                    $result = $this->imageService->compressAndStore($file, 'room_type_gallery');
+                    RoomTypeImage::create([
+                        'room_type_id' => $roomType->id,
+                        'image_url' => $result['url'],
+                        'path' => $result['path']
+                    ]);
+                }
+            }
+
+            // Return JSON for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Room type updated successfully.',
+                    'redirect' => route('website.admin.room-types.edit', $roomType->id),
                 ]);
             }
-        }
 
-        return redirect()->back()->with('success', 'Room type updated successfully.');
+            return redirect()->back()->with('success', 'Room type updated successfully.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $e->errors(),
+                ], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Room type update failed: ' . $e->getMessage());
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update room type: ' . $e->getMessage(),
+                ], 500);
+            }
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to update room type. Please try again.');
+        }
     }
 
     /**
