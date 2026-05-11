@@ -372,7 +372,6 @@ class BanquetController extends Controller
 
             return redirect()->route('banquet.orders.add-menu-item', [$order->order_id, $day->id])
                 ->with('success', 'Event day added successfully.');
-
         } catch (\Exception $e) {
             Log::error('Add Day failed', [
                 'order_id' => $order_id,
@@ -464,7 +463,7 @@ class BanquetController extends Controller
             return back()->withInput()->with('error', 'Failed to add day: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Update the status of an event day quickly.
      */
@@ -910,21 +909,13 @@ class BanquetController extends Controller
         //     ->whereIn('status', ['Completed', 'Cancelled', 'Confirmed'])
         //     ->whereBetween('preparation_date', [$startDate, $endDate])
         //     ->get();
-<<<<<<< HEAD
-
-=======
->>>>>>> adbba98e2f1ec1cd3f4edc892ff24faa43ef42fc
         $start = \Carbon\Carbon::parse($startDate)->startOfDay();
         $end = \Carbon\Carbon::parse($endDate)->endOfDay();
 
         $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
             ->whereIn('status', ['Completed', 'Cancelled', 'Confirmed'])
             ->whereHas('eventDays', function ($query) use ($start, $end) {
-<<<<<<< HEAD
                 // This ensures we only pick orders where the VERY FIRST day
-=======
-                // This ensures we only pick orders where the VERY FIRST day 
->>>>>>> adbba98e2f1ec1cd3f4edc892ff24faa43ef42fc
                 // of the event falls within our report range.
                 $query->select('event_date')
                     ->whereBetween('event_date', [$start, $end])
