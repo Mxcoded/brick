@@ -133,13 +133,9 @@ class WebsiteController extends Controller
 
         return view('website::room-details', compact('roomType', 'relatedRooms'));
     }
-<<<<<<< HEAD
-    
-=======
     /**
      * Display the booking form.
      */
->>>>>>> 906e7a586886564176404b18921d3c1599cfba39
     /**
      * Show the Booking Form (GET) - Step 2: Guest Details
      * Supports both cart-based multi-room booking and legacy single-room booking.
