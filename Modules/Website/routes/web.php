@@ -27,6 +27,13 @@ use Modules\Website\Http\Controllers\Admin\InventoryCalendarController;
 |
 */
 
+// =========================================================================
+// PAYSTACK WEBHOOK (Must be outside web middleware - no CSRF)
+// =========================================================================
+Route::post('/paystack/webhook', [WebsiteController::class, 'paystackWebhook'])
+    ->name('website.paystack.webhook')
+    ->withoutMiddleware(['web', 'csrf']);
+
 Route::middleware(['web'])->group(function () {
 
     // =========================================================================

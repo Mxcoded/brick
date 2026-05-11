@@ -220,10 +220,11 @@ class BookingController extends Controller
             return back()->with('error', 'Cannot confirm: The room/room type is no longer available for these dates.');
         }
 
-        // 1. Update Status & Mark as PAID
+        // 1. Update Status & Mark as PAID (also update amount_paid to clear balance)
         $booking->update([
             'status' => 'confirmed',
-            'payment_status' => 'paid', // ✅ Manual Payment Confirmation
+            'payment_status' => 'paid',
+            'amount_paid' => $booking->total_amount, // ✅ Clear balance due
         ]);
 
         // 2. Send Confirmation Email
