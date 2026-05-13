@@ -14,7 +14,8 @@
     <meta name="author" content="{{ $author ?? config('app.name') }}">
 
     <!-- Favicon -->
-    <link rel="icon" href=" {{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" type="image/x-icon">
+    <link rel="icon" href=" {{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
+        type="image/x-icon">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/brickspoint_logo.png') }}">
 
     <!-- Preconnect to CDNs -->
@@ -203,15 +204,18 @@
             max-width: 600px;
             margin: 0 auto;
         }
+
         .booking-progress {
             position: relative;
         }
+
         .progress-step {
             display: flex;
             flex-direction: column;
             align-items: center;
             z-index: 2;
         }
+
         .progress-step .step-icon {
             width: 45px;
             height: 45px;
@@ -222,22 +226,26 @@
             font-size: 1rem;
             transition: all 0.3s ease;
         }
+
         .progress-step.pending .step-icon {
             background-color: #e9ecef;
             color: #6c757d;
             border: 2px solid #dee2e6;
         }
+
         .progress-step.active .step-icon {
             background-color: var(--color-gold);
             color: #fff;
             border: 2px solid var(--color-gold);
             box-shadow: 0 0 0 4px rgba(200, 161, 101, 0.2);
         }
+
         .progress-step.completed .step-icon {
             background-color: #198754;
             color: #fff;
             border: 2px solid #198754;
         }
+
         .progress-step .step-label {
             margin-top: 0.5rem;
             font-size: 0.75rem;
@@ -246,12 +254,15 @@
             letter-spacing: 0.5px;
             color: #6c757d;
         }
+
         .progress-step.active .step-label {
             color: var(--color-gold);
         }
+
         .progress-step.completed .step-label {
             color: #198754;
         }
+
         .progress-line {
             flex: 1;
             height: 3px;
@@ -260,15 +271,18 @@
             margin-bottom: 1.5rem;
             transition: background-color 0.3s ease;
         }
+
         .progress-line.completed {
             background-color: #198754;
         }
+
         @media (max-width: 576px) {
             .progress-step .step-icon {
                 width: 36px;
                 height: 36px;
                 font-size: 0.85rem;
             }
+
             .progress-line {
                 margin-bottom: 1rem;
             }
@@ -303,7 +317,7 @@
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.rooms.*', 'website.booking') ? 'active' : '' }}"
                                 href="{{ route('website.rooms.index') }}">Rooms & Suites</a>
-                                {{-- <a class="nav-link" href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}">Rooms & Suites</a> --}}
+                            {{-- <a class="nav-link" href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}">Rooms & Suites</a> --}}
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.dining') ? 'active' : '' }}"
@@ -315,7 +329,7 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.location') ? 'active' : '' }}"
-                                href="{{ route('website.location') }}">Location</a>
+                                href="{{ route('website.location') }}">Our Hotels</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.about') ? 'active' : '' }}"
@@ -384,14 +398,14 @@
                                 class="text-muted-footer text-decoration-none">Home</a></li>
                         <li class="mb-2"> <a href="{{ route('website.rooms.index') }}"
                                 class="text-muted-footer text-decoration-none">Rooms</a></li>
-                                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
+                        {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
                                 class="text-muted-footer text-decoration-none">Rooms</a> --}}
                         <li class="mb-2"><a href="{{ route('website.amenities') }}"
                                 class="text-muted-footer text-decoration-none">Amenities</a></li>
+                        <li class="mb-2"><a href="{{ route('website.location') }}"
+                                class="text-muted-footer text-decoration-none">Our Hotels</a></li>
                         <li class="mb-2"><a href="{{ route('website.about') }}"
                                 class="text-muted-footer text-decoration-none">About Us</a></li>
-                        <li class="mb-2"><a href="{{ route('website.contact') }}"
-                                class="text-muted-footer text-decoration-none">Contact</a></li>
                         <li class="mb-2"><a href="{{ route('website.booking.login') }}"
                                 class="text-muted-footer text-decoration-none">Manage Booking</a></li>
                     </ul>
@@ -403,8 +417,18 @@
                         <li class="mb-2"><i class="fas fa-map-marker-alt me-2 text-primary"></i> 24 Jose Marti
                             Crescent,
                             Asokoro, Abuja</li>
-                        <li class="mb-2"><i class="fas fa-phone me-2 text-primary"></i> +234 (809) 999-9627</li>
-                        <li class="mb-2"><i class="fas fa-envelope me-2 text-primary"></i> rsv@brickspoint.com</li>
+                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2 text-primary"></i> 11 Adzope Crescent,
+                            Wuse II, Abuja</li>
+                        <li class="mb-2"><i class="fas fa-phone me-2 text-primary"></i> +234 (809) 999-9627 <br>
+                            +234 (809) 999-9620</li>
+                        <li class="mb-2"><a href="mailto:rsv@brickspoint.com"
+                                class="text-muted-footer text-decoration-none">
+                                <i class="fas fa-envelope me-2 text-primary"></i> rsv@brickspoint.com(Asokoro)
+                            </a></li>
+                        <li class="mb-2"><a href="mailto:rsv@brickspoint.ng"
+                                class="text-muted-footer text-decoration-none">
+                                <i class="fas fa-envelope me-2 text-primary"></i> rsv@brickspoint.ng(Wuse)
+                            </a></li>
                     </ul>
                 </div>
 
@@ -413,8 +437,9 @@
                     <p class="text-muted-footer">Subscribe for special offers and updates</p>
                     <form id="newsletterForm" class="mb-3">
                         <div class="input-group">
-                            <input type="email" id="newsletterEmail" class="form-control bg-secondary border-0 text-white"
-                                placeholder="Your Email" required>
+                            <input type="email" id="newsletterEmail"
+                                class="form-control bg-secondary border-0 text-white" placeholder="Your Email"
+                                required>
                             <button class="btn btn-primary" type="submit" id="newsletterBtn">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
@@ -440,25 +465,32 @@
     </footer>
 
     <!-- Newsletter Popup Modal -->
-    <div class="modal fade" id="newsletterPopup" tabindex="-1" aria-labelledby="newsletterPopupLabel" aria-hidden="true">
+    <div class="modal fade" id="newsletterPopup" tabindex="-1" aria-labelledby="newsletterPopupLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg overflow-hidden">
                 <div class="position-relative">
                     {{-- Background Image/Gradient --}}
-                    <div style="background: linear-gradient(135deg, var(--bs-primary) 0%, #f7e141 100%); padding: 2rem;" class="text-white text-center">
-                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div style="background: linear-gradient(135deg, var(--bs-primary) 0%, #f7e141 100%); padding: 2rem;"
+                        class="text-white text-center">
+                        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                            data-bs-dismiss="modal" aria-label="Close"></button>
                         <i class="fas fa-envelope-open-text fa-3x mb-3 opacity-75"></i>
                         <h4 class="fw-bold mb-1">Stay Updated!</h4>
                         <p class="mb-0 opacity-75">Get exclusive offers & travel tips</p>
                     </div>
                 </div>
                 <div class="modal-body p-4">
-                    <p class="text-muted text-center mb-4">Subscribe to our newsletter and be the first to know about special deals, new amenities, and exciting events at Brickspoint.</p>
+                    <p class="text-muted text-center mb-4">Subscribe to our newsletter and be the first to know about
+                        special deals, new amenities, and exciting events at Brickspoint.</p>
                     <form id="newsletterPopupForm">
                         <div class="mb-3">
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-envelope text-muted"></i></span>
-                                <input type="email" id="newsletterPopupEmail" class="form-control border-start-0 bg-light" placeholder="Enter your email" required>
+                                <span class="input-group-text bg-light border-end-0"><i
+                                        class="fas fa-envelope text-muted"></i></span>
+                                <input type="email" id="newsletterPopupEmail"
+                                    class="form-control border-start-0 bg-light" placeholder="Enter your email"
+                                    required>
                             </div>
                         </div>
                         <button type="submit" id="newsletterPopupBtn" class="btn btn-primary btn-lg w-100">
@@ -505,14 +537,16 @@
                 btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
                 try {
-                    const response = await fetch('{{ route("website.newsletter.subscribe") }}', {
+                    const response = await fetch('{{ route('website.newsletter.subscribe') }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
                             'Accept': 'application/json',
                         },
-                        body: JSON.stringify({ email: email })
+                        body: JSON.stringify({
+                            email: email
+                        })
                     });
 
                     const data = await response.json();
@@ -522,14 +556,15 @@
                         feedbackEl.className = 'mt-2 small text-success';
                         feedbackEl.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + data.message;
                         inputEl.value = '';
-                        
+
                         // Mark as subscribed in localStorage
                         localStorage.setItem('newsletter_subscribed', 'true');
-                        
+
                         // Close popup after success (if it's the popup form)
                         if (btnEl.id === 'newsletterPopupBtn') {
                             setTimeout(() => {
-                                const modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
+                                const modal = bootstrap.Modal.getInstance(document.getElementById(
+                                    'newsletterPopup'));
                                 if (modal) modal.hide();
                             }, 2000);
                         }
@@ -545,7 +580,8 @@
                 } catch (error) {
                     feedbackEl.style.display = 'block';
                     feedbackEl.className = 'mt-2 small text-danger';
-                    feedbackEl.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
+                    feedbackEl.innerHTML =
+                        '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
                 } finally {
                     btnEl.disabled = false;
                     btnEl.innerHTML = originalBtnHtml;
@@ -602,7 +638,8 @@
                 // 1. User hasn't dismissed it permanently
                 // 2. User hasn't already subscribed
                 // 3. Popup hasn't been shown in the last 24 hours
-                const shouldShow = !isDismissed && !isSubscribed && (!lastShown || (now - parseInt(lastShown)) > oneDay);
+                const shouldShow = !isDismissed && !isSubscribed && (!lastShown || (now - parseInt(lastShown)) >
+                    oneDay);
 
                 if (shouldShow) {
                     // Show popup after 3 seconds delay
