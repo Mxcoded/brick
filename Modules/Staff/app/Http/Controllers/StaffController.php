@@ -24,16 +24,30 @@ use Carbon\Carbon;
 class StaffController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
         Log::info('Middleware: ', app('router')->getMiddleware());
-        $employees = Employee::all();
+        
+        // Get branch filter from query string
+        $branchFilter = $request->query('branch');
+        
+        // Build query with optional branch filter
+        $query = Employee::query();
+        
+        if ($branchFilter) {
+            $query->whereRaw('LOWER(branch_name) = ?', [strtolower($branchFilter)]);
+        }
+        
+        $employees = $query->get();
+        
+        // Get all employees for stats (unfiltered)
+        $allEmployees = Employee::all();
 
         // Total approved staff
-        $totalApprovedStaff = $employees->where('status', 'approved')->count();
+        $totalApprovedStaff = $allEmployees->where('status', 'approved')->count();
 
         // Staff currently on leave
-        $currentDate = now(); // Current date: March 23, 2025
+        $currentDate = now();
         $staffOnLeaveCount = LeaveRequest::where('status', 'approved')
             ->where('start_date', '<=', $currentDate)
             ->where('end_date', '>=', $currentDate)
@@ -43,7 +57,24 @@ class StaffController extends Controller
         // Active staff (total approved minus staff on leave)
         $activeStaffCount = $totalApprovedStaff - $staffOnLeaveCount;
 
-        return view('staff::index', compact('employees', 'totalApprovedStaff', 'staffOnLeaveCount', 'activeStaffCount'));
+        // Branch-based staff counts (approved staff only)
+        $asokoroStaffCount = $allEmployees->where('status', 'approved')
+            ->filter(fn($e) => strtolower($e->branch_name ?? '') === 'asokoro')
+            ->count();
+        
+        $wuseStaffCount = $allEmployees->where('status', 'approved')
+            ->filter(fn($e) => strtolower($e->branch_name ?? '') === 'wuse')
+            ->count();
+
+        return view('staff::index', compact(
+            'employees', 
+            'totalApprovedStaff', 
+            'staffOnLeaveCount', 
+            'activeStaffCount',
+            'asokoroStaffCount',
+            'wuseStaffCount',
+            'branchFilter'
+        ));
     }
     public function dashboard()
     {

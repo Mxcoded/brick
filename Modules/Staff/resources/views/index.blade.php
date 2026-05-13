@@ -16,6 +16,7 @@
             </div>
         @endif
 
+        {{-- Main Stats Row --}}
         <div class="mb-4 row">
             <div class="col-md-3 mb-4">
                 <div class="card bg-primary text-white shadow-sm h-100">
@@ -87,6 +88,71 @@
                 </div>
             </div>
         </div>
+
+        {{-- Branch Stats Row --}}
+        <div class="mb-4 row">
+            <div class="col-md-6 mb-4">
+                <a href="{{ route('staff.index', ['branch' => 'Asokoro']) }}" class="card-link">
+                    <div class="card border-0 shadow-sm h-100 hover-scale {{ $branchFilter === 'Asokoro' ? 'ring-active' : '' }}" style="background: linear-gradient(135deg, #1a472a 0%, #2d5a3f 100%);">
+                        <div class="card-body p-4 d-flex flex-column text-white">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="text-uppercase mb-2" style="letter-spacing: 1px; opacity: 0.9;">
+                                        <i class="fas fa-building me-1"></i> Asokoro Branch
+                                    </h6>
+                                    <h2 class="mb-0 fw-bold">{{ $asokoroStaffCount }}</h2>
+                                    <small class="opacity-75">Approved Staff</small>
+                                </div>
+                                <div class="icon-circle" style="background-color: rgba(255,255,255,0.15);">
+                                    <i class="fas fa-filter fa-lg text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-auto pt-2 text-end">
+                                <small><i class="fas fa-mouse-pointer me-1"></i> Click to filter</small>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <a href="{{ route('staff.index', ['branch' => 'Wuse']) }}" class="card-link">
+                    <div class="card border-0 shadow-sm h-100 hover-scale {{ $branchFilter === 'Wuse' ? 'ring-active' : '' }}" style="background: linear-gradient(135deg, #4a1a6b 0%, #6b2d8a 100%);">
+                        <div class="card-body p-4 d-flex flex-column text-white">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h6 class="text-uppercase mb-2" style="letter-spacing: 1px; opacity: 0.9;">
+                                        <i class="fas fa-building me-1"></i> Wuse Branch
+                                    </h6>
+                                    <h2 class="mb-0 fw-bold">{{ $wuseStaffCount }}</h2>
+                                    <small class="opacity-75">Approved Staff</small>
+                                </div>
+                                <div class="icon-circle" style="background-color: rgba(255,255,255,0.15);">
+                                    <i class="fas fa-filter fa-lg text-white"></i>
+                                </div>
+                            </div>
+                            <div class="mt-auto pt-2 text-end">
+                                <small><i class="fas fa-mouse-pointer me-1"></i> Click to filter</small>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        {{-- Active Filter Indicator --}}
+        @if($branchFilter)
+            <div class="alert alert-info d-flex align-items-center justify-content-between mb-4" role="alert">
+                <div>
+                    <i class="fas fa-filter me-2"></i>
+                    Showing staff from <strong>{{ ucfirst($branchFilter) }} Branch</strong>
+                    <span class="badge bg-primary ms-2">{{ $employees->count() }} records</span>
+                </div>
+                <a href="{{ route('staff.index') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-times me-1"></i> Clear Filter
+                </a>
+            </div>
+        @endif
 
         <div class="table-responsive">
             <table id="staffTable" class="table table-bordered table-hover">
@@ -194,6 +260,31 @@
         }
         .bg-dark-transparent {
             background-color: rgba(0, 0, 0, 0.2);
+        }
+        /* Active filter ring for branch cards */
+        .ring-active {
+            box-shadow: 0 0 0 4px #fff, 0 0 0 6px #0d6efd !important;
+            transform: scale(1.02);
+        }
+        .ring-active::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #0d6efd;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .card.ring-active {
+            position: relative;
         }
     </style>
 @endsection
