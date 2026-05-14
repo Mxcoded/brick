@@ -80,6 +80,12 @@ Route::prefix('staff')
 
         // ** NEW BIRTHDAY ROUTE **
         Route::get('/birthdays', [StaffController::class, 'birthdays'])->name('birthdays');
+
+        // ** EXPORT ROUTE **
+        Route::get('/export', [StaffController::class, 'export'])
+            ->name('export')
+            ->middleware('permission:view_employees');
+
         Route::resource('/', StaffController::class)->names([
             'index'  => 'index',
             'create' => 'create',

@@ -6,9 +6,64 @@
 
 @section('page-content')
     <div class="container-fluid my-4">
-        <h1>Staff Management</h1>
-        <a href="{{ route('staff.create') }}" class="mb-3 btn btn-primary"><i class="fas fa-plus me-1"></i> Add New Staff</a>
-        <a href="{{ route('staff.approvals.index') }}" class="mb-3 btn btn-success"><i class="fas fa-check me-1"></i> Approve Staff Update</a>
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+            <h1 class="mb-0">Staff Management</h1>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ route('staff.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Add New Staff
+                </a>
+                <a href="{{ route('staff.approvals.index') }}" class="btn btn-success">
+                    <i class="fas fa-check me-1"></i> Approve Staff
+                </a>
+                
+                {{-- Export Dropdown --}}
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-file-excel me-1"></i> Export
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+                        <li><h6 class="dropdown-header">Export Options</h6></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('staff.export') }}">
+                                <i class="fas fa-users me-2 text-primary"></i> All Staff
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">By Branch</h6></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('staff.export', ['branch' => 'Asokoro']) }}">
+                                <i class="fas fa-building me-2 text-success"></i> Asokoro Branch
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('staff.export', ['branch' => 'Wuse']) }}">
+                                <i class="fas fa-building me-2 text-purple"></i> Wuse Branch
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">By Status</h6></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('staff.export', ['status' => 'approved']) }}">
+                                <i class="fas fa-check-circle me-2 text-success"></i> Approved Staff Only
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('staff.export', ['status' => 'rejected']) }}">
+                                <i class="fas fa-times-circle me-2 text-danger"></i> Inactive Staff Only
+                            </a>
+                        </li>
+                        @if($branchFilter)
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('staff.export', ['branch' => $branchFilter]) }}">
+                                <i class="fas fa-filter me-2 text-info"></i> Current Filter ({{ ucfirst($branchFilter) }})
+                            </a>
+                        </li>
+                        @endif
+                    </ul>
+                </div>
+            </div>
+        </div>
 
         @if (session('success'))
             <div class="alert alert-success">
@@ -285,6 +340,10 @@
         }
         .card.ring-active {
             position: relative;
+        }
+        /* Custom purple color for Wuse branch */
+        .text-purple {
+            color: #6b2d8a !important;
         }
     </style>
 @endsection

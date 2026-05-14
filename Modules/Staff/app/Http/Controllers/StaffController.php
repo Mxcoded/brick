@@ -13,9 +13,11 @@ use Modules\Staff\Models\LeaveBalance;
 use Modules\Banquet\Models\BanquetOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Pagination\LengthAwarePaginator; // <--- ADD THIS IMPORT
-use Illuminate\Support\Facades\Request as RequestFacade; // Helper for pagination URL
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Request as RequestFacade;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use Modules\Staff\Exports\StaffExport;
 
 
 
@@ -460,5 +462,29 @@ class StaffController extends Controller
         );
 
         return view('staff::birthdays', compact('paginatedBirthdays'));
+    }
+
+    /**
+     * Export staff data to Excel.
+     */
+    public function export(Request $request)
+    {
+        $branchFilter = $request->query('branch');
+        $statusFilter = $request->query('status');
+
+        // Build filename
+        $filename = 'staff-data';
+        if ($branchFilter) {
+            $filename .= '-' . strtolower($branchFilter);
+        }
+        if ($statusFilter) {
+            $filename .= '-' . strtolower($statusFilter);
+        }
+        $filename .= '-' . now()->format('Y-m-d') . '.xlsx';
+
+        return Excel::download(
+            new StaffExport($branchFilter, $statusFilter),
+            $filename
+        );
     }
 }
