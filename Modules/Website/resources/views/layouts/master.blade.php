@@ -189,6 +189,27 @@
             padding-bottom: 0.5rem;
         }
 
+        /* Dropdown styling for Our Hotels */
+        .navbar .dropdown-menu-dark {
+            background-color: #2d2d2d;
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar .dropdown-item {
+            padding: 0.75rem 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .navbar .dropdown-item:hover {
+            background-color: rgba(200, 161, 101, 0.15);
+        }
+
+        .navbar .dropdown-item small {
+            font-size: 0.75rem;
+        }
+
         .text-muted-footer {
             opacity: 0.8;
         }
@@ -327,9 +348,31 @@
                             <a class="nav-link {{ request()->routeIs('website.amenities') ? 'active' : '' }}"
                                 href="{{ route('website.amenities') }}">Amenities</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('website.location') ? 'active' : '' }}"
-                                href="{{ route('website.location') }}">Our Hotels</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {{ request()->routeIs('website.location') ? 'active' : '' }}"
+                                href="#" id="ourHotelsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Our Hotels
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="ourHotelsDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('website.location') }}">
+                                        <i class="fas fa-building me-2 text-warning"></i>All Locations
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('website.location') }}#asokoro">
+                                        <i class="fas fa-location-dot me-2 text-success"></i>Brickspoint Asokoro
+                                        <small class="text-muted d-block ps-4">24 Jose Marti Crescent</small>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="https://brickspoint.ng" target="_blank" rel="noopener noreferrer">
+                                        <i class="fas fa-location-dot me-2 text-info"></i>Brickspoint Wuse II
+                                        <small class="text-muted d-block ps-4">11 Adzope Crescent <i class="fas fa-external-link-alt ms-1 small"></i></small>
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.about') ? 'active' : '' }}"
@@ -402,8 +445,21 @@
                                 class="text-muted-footer text-decoration-none">Rooms</a> --}}
                         <li class="mb-2"><a href="{{ route('website.amenities') }}"
                                 class="text-muted-footer text-decoration-none">Amenities</a></li>
-                        <li class="mb-2"><a href="{{ route('website.location') }}"
-                                class="text-muted-footer text-decoration-none">Our Hotels</a></li>
+                        <li class="mb-2">
+                            <a href="{{ route('website.location') }}" class="text-muted-footer text-decoration-none">Our Hotels</a>
+                            <ul class="list-unstyled ps-3 mt-1" style="font-size: 0.85rem;">
+                                <li class="mb-1">
+                                    <a href="{{ route('website.location') }}#asokoro" class="text-muted-footer text-decoration-none">
+                                        <i class="fas fa-location-dot me-1 small text-success"></i>Asokoro
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="https://brickspoint.ng" target="_blank" rel="noopener noreferrer" class="text-muted-footer text-decoration-none">
+                                        <i class="fas fa-location-dot me-1 small text-info"></i>Wuse II <i class="fas fa-external-link-alt ms-1" style="font-size: 0.65rem;"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
                         <li class="mb-2"><a href="{{ route('website.about') }}"
                                 class="text-muted-footer text-decoration-none">About Us</a></li>
                         <li class="mb-2"><a href="{{ route('website.booking.login') }}"
