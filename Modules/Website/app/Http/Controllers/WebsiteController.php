@@ -133,7 +133,7 @@ class WebsiteController extends Controller
 
         return view('website::room-details', compact('roomType', 'relatedRooms'));
     }
-    
+
     /**
      * Show the Booking Form (GET) - Step 2: Guest Details
      * Supports both cart-based multi-room booking and legacy single-room booking.
@@ -163,7 +163,7 @@ class WebsiteController extends Controller
 
         // Check if room_type_id is provided (legacy direct booking from room details)
         $roomTypeId = old('room_type_id', $request->room_type_id ?? $request->room_id);
-        
+
         // If no cart and no room selected, redirect to room selection page
         if (!$roomTypeId) {
             return redirect()->route('website.book')
@@ -379,7 +379,7 @@ class WebsiteController extends Controller
                     // CART-BASED BOOKING: Create bookings from cart
                     // Calculate total rooms across all cart items
                     $totalRoomsInCart = array_sum(array_column($cart['items'], 'quantity'));
-                    
+
                     // Only generate group ID if booking more than 1 room
                     if ($totalRoomsInCart > 1) {
                         $bookingGroupId = 'GRP' . date('y') . strtoupper(Str::random(6));
@@ -420,7 +420,6 @@ class WebsiteController extends Controller
 
                     // Clear cart after successful booking
                     $cartService->clear();
-
                 } else {
                     // SINGLE-ROOM: Legacy booking flow
                     $roomType = RoomType::findOrFail($validated['room_type_id']);
@@ -490,7 +489,6 @@ class WebsiteController extends Controller
 
             return redirect()->route('website.booking.confirmation', $primaryBooking->booking_reference)
                 ->with('success', 'Booking Reserved! Please pay upon arrival.');
-
         } catch (\Exception $e) {
             Log::error($e);
             return back()->with('error', 'Error: ' . $e->getMessage())->withInput();
@@ -609,7 +607,7 @@ class WebsiteController extends Controller
         // ==========================================
         // 1. HONEYPOT CHECKS (Multiple Hidden Fields)
         // ==========================================
-        
+
         // Primary honeypot - if filled, it's a bot
         if ($request->filled('website_url')) {
             $this->logSpamAttempt($ip, 'honeypot_website_url', $request->all());
@@ -625,20 +623,20 @@ class WebsiteController extends Controller
         // ==========================================
         // 2. TIME-BASED VALIDATION
         // ==========================================
-        
+
         // Check if form was submitted too quickly (less than 3 seconds)
         $formLoadedAt = $request->input('_form_token');
         if ($formLoadedAt) {
             try {
                 $loadTime = decrypt($formLoadedAt);
                 $timeTaken = time() - $loadTime;
-                
+
                 // If submitted in less than 3 seconds, likely a bot
                 if ($timeTaken < 3) {
                     $this->logSpamAttempt($ip, 'too_fast_submission', ['time_taken' => $timeTaken]);
                     return $this->fakeSuccessResponse();
                 }
-                
+
                 // If form token is older than 30 minutes, reject (stale form)
                 if ($timeTaken > 1800) {
                     return redirect()->route('website.contact')
@@ -654,10 +652,10 @@ class WebsiteController extends Controller
         // ==========================================
         // 3. RATE LIMITING (Stricter)
         // ==========================================
-        
+
         $cacheKey = 'contact_form_' . md5($ip);
         $submissions = cache($cacheKey, 0);
-        
+
         // Max 3 submissions per hour
         if ($submissions >= 3) {
             $this->logSpamAttempt($ip, 'rate_limit_exceeded', ['submissions' => $submissions]);
@@ -668,7 +666,7 @@ class WebsiteController extends Controller
         // Also check daily limit (max 10 per day)
         $dailyCacheKey = 'contact_form_daily_' . md5($ip);
         $dailySubmissions = cache($dailyCacheKey, 0);
-        
+
         if ($dailySubmissions >= 10) {
             $this->logSpamAttempt($ip, 'daily_limit_exceeded', ['daily_submissions' => $dailySubmissions]);
             return redirect()->route('website.contact')
@@ -678,7 +676,7 @@ class WebsiteController extends Controller
         // ==========================================
         // 4. GOOGLE reCAPTCHA v3 VALIDATION
         // ==========================================
-        
+
         $recaptchaToken = $request->input('g-recaptcha-response');
         if ($recaptchaToken && config('services.recaptcha.secret')) {
             $recaptchaValid = $this->verifyRecaptcha($recaptchaToken, $ip);
@@ -692,7 +690,7 @@ class WebsiteController extends Controller
         // ==========================================
         // 5. FORM VALIDATION
         // ==========================================
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|regex:/^[\pL\s\-\']+$/u',
             'email' => 'required|email:rfc,dns|max:255',
@@ -706,7 +704,7 @@ class WebsiteController extends Controller
         // ==========================================
         // 6. SUSPICIOUS PATTERN DETECTION
         // ==========================================
-        
+
         $spamCheck = $this->detectSpamPatterns($validated['name'], $validated['email'], $validated['message']);
         if ($spamCheck['is_spam']) {
             $this->logSpamAttempt($ip, 'spam_pattern_detected', [
@@ -719,7 +717,7 @@ class WebsiteController extends Controller
         // ==========================================
         // 7. SANITIZE & SAVE
         // ==========================================
-        
+
         // Sanitize message content
         $validated['message'] = strip_tags($validated['message']);
         $validated['name'] = strip_tags($validated['name']);
@@ -799,13 +797,29 @@ class WebsiteController extends Controller
 
         // 2. Check for suspicious keywords (common spam terms)
         $spamKeywords = [
-            'viagra', 'cialis', 'casino', 'lottery', 'winner', 'prize',
-            'bitcoin', 'cryptocurrency', 'investment opportunity', 'make money fast',
-            'click here', 'act now', 'limited time', 'free offer',
-            'nigerian prince', 'wire transfer', 'western union',
-            'sex', 'porn', 'xxx', 'nude',
+            'viagra',
+            'cialis',
+            'casino',
+            'lottery',
+            'winner',
+            'prize',
+            'bitcoin',
+            'cryptocurrency',
+            'investment opportunity',
+            'make money fast',
+            'click here',
+            'act now',
+            'limited time',
+            'free offer',
+            'nigerian prince',
+            'wire transfer',
+            'western union',
+            'sex',
+            'porn',
+            'xxx',
+            'nude',
         ];
-        
+
         $lowerMessage = strtolower($message . ' ' . $name);
         foreach ($spamKeywords as $keyword) {
             if (str_contains($lowerMessage, $keyword)) {
@@ -827,11 +841,17 @@ class WebsiteController extends Controller
 
         // 5. Check for suspicious email patterns
         $disposableDomains = [
-            'tempmail.com', 'throwaway.email', 'guerrillamail.com', 
-            'mailinator.com', '10minutemail.com', 'fakeinbox.com',
-            'trashmail.com', 'maildrop.cc', 'dispostable.com',
+            'tempmail.com',
+            'throwaway.email',
+            'guerrillamail.com',
+            'mailinator.com',
+            '10minutemail.com',
+            'fakeinbox.com',
+            'trashmail.com',
+            'maildrop.cc',
+            'dispostable.com',
         ];
-        
+
         $emailDomain = strtolower(substr(strrchr($email, '@'), 1));
         if (in_array($emailDomain, $disposableDomains)) {
             return ['is_spam' => true, 'reason' => 'disposable_email'];
@@ -1019,7 +1039,7 @@ class WebsiteController extends Controller
     {
         return Settings::pluck('value', 'key')->toArray();
     }
-   
+
     /**
      * Resend Booking Confirmation Email
      * Allows guests to resend to the same email OR fix a typo.
@@ -1135,7 +1155,7 @@ class WebsiteController extends Controller
                 if ($isGroupPayment) {
                     // Update all bookings in the group
                     $bookings = Booking::where('booking_group_id', $reference)->get();
-                    
+
                     if ($bookings->isEmpty()) {
                         return redirect()->route('website.booking')->with('error', 'Booking not found.');
                     }
@@ -1155,7 +1175,6 @@ class WebsiteController extends Controller
 
                     return redirect()->route('website.booking.confirmation', $primaryBooking->booking_reference)
                         ->with('success', 'Payment successful! All ' . $bookings->count() . ' rooms are confirmed.');
-
                 } else {
                     // Single booking payment
                     $booking = Booking::where('booking_reference', $reference)->first();
@@ -1276,12 +1295,12 @@ class WebsiteController extends Controller
         // 5. Handle payment failed event
         if ($eventType === 'charge.failed' && $data) {
             $reference = $data['reference'] ?? null;
-            
+
             if ($reference) {
                 $booking = Booking::where('booking_reference', $reference)->first();
                 if ($booking && $booking->payment_status === 'pending') {
                     $booking->update(['payment_status' => 'failed']);
-                    
+
                     Log::warning('Paystack webhook: Payment failed', [
                         'reference' => $reference,
                         'reason' => $data['gateway_response'] ?? 'Unknown',
@@ -1303,7 +1322,7 @@ class WebsiteController extends Controller
         try {
             // Send to guest
             Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
-            
+
             // Send copy to reservations team if configured
             $reservationsEmail = config('mail.reservations_email');
             if ($reservationsEmail) {
@@ -1352,7 +1371,7 @@ class WebsiteController extends Controller
             session()->put('just_booked_group', $reference);
 
             return redirect()->route('website.booking.confirmation', $booking->booking_reference)
-                ->with('success', 'Group booking found! Showing all ' . 
+                ->with('success', 'Group booking found! Showing all ' .
                     Booking::where('booking_group_id', $reference)->count() . ' rooms.');
         }
 
@@ -1367,7 +1386,7 @@ class WebsiteController extends Controller
 
         // ✅ SECURITY: Grant temporary access via session
         session()->put('just_booked_ref', $booking->booking_reference);
-        
+
         // If this booking belongs to a group, also grant group access
         if ($booking->booking_group_id) {
             session()->put('just_booked_group', $booking->booking_group_id);
@@ -1389,7 +1408,7 @@ class WebsiteController extends Controller
     {
         $cartService = new BookingCartService();
         $availabilityService = app(RoomAvailabilityService::class);
-        
+
         // Get dates from request or cart
         $cartDates = $cartService->getDates();
         $checkIn = $request->check_in ?? $cartDates['check_in'] ?? date('Y-m-d');
@@ -1550,7 +1569,7 @@ class WebsiteController extends Controller
     public function cartGet()
     {
         $cartService = new BookingCartService();
-        
+
         return response()->json([
             'success' => true,
             'cart' => $cartService->getCartSummary(),

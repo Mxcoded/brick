@@ -3,6 +3,8 @@
 namespace Modules\Staff\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Staff\Models\Employee;
+use Modules\Staff\Models\LeaveBalance;
 
 class StaffDatabaseSeeder extends Seeder
 {
@@ -11,6 +13,8 @@ class StaffDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            BranchStaffSeeder::class,
+        ]);
     }
 }
