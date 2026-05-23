@@ -407,8 +407,8 @@ class BanquetController extends Controller
             'guest_count' => 'required|integer|min:1',
             'event_status' => 'required|in:Pending,Confirmed,Cancelled',
             'event_type' => 'required|string',
-            'banquet_venue_id' => 'required|exists:banquet_venues,id', // Validate ID
-            'banquet_setup_style_id' => 'required|exists:banquet_setup_styles,id', // Validate ID
+            'banquet_venue_id' => 'required|exists:banquet_venues,id',
+            'banquet_setup_style_id' => 'required|exists:banquet_setup_styles,id',
             'start_time' => 'required',
             'end_time' => 'required',
             'event_description' => 'nullable|string',
@@ -417,12 +417,13 @@ class BanquetController extends Controller
         $startTime = date('H:i', strtotime($request->start_time));
         $endTime = date('H:i', strtotime($request->end_time));
 
-        // 2. Perform Conflict Check using ID
+        // Perform Conflict Check, excluding the current day being edited
         $conflict = $this->checkAvailability(
             $request->event_date,
             $request->banquet_venue_id,
             $startTime,
-            $endTime
+            $endTime,
+            $day_id // Exclude current day from conflict check
         );
 
         if ($conflict) {
@@ -431,36 +432,74 @@ class BanquetController extends Controller
 
         try {
             $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+            $day = BanquetOrderDay::findOrFail($day_id);
 
             // Retrieve Objects to populate legacy string columns
             $venue = BanquetVenue::find($request->banquet_venue_id);
             $style = BanquetSetupStyle::find($request->banquet_setup_style_id);
 
-            $day = $order->eventDays()->create([
+            if (!$venue || !$style) {
+                return back()->withInput()->with('error', 'Invalid venue or setup style selected.');
+            }
+
+            // Update the existing day instead of creating a new one
+            $day->update([
                 'event_date' => $request->event_date,
                 'event_description' => $request->event_description,
                 'guest_count' => $request->guest_count,
                 'event_status' => $request->event_status,
                 'event_type' => $request->event_type,
-
-                // Save ID References
                 'banquet_venue_id' => $venue->id,
                 'banquet_setup_style_id' => $style->id,
-
-                // Save Strings (Backward Compatibility)
                 'room' => $venue->name,
                 'setup_style' => $style->name,
-
                 'start_time' => $startTime,
                 'end_time' => $endTime,
                 'duration_minutes' => $this->calculateDuration($startTime, $endTime),
             ]);
 
-            return redirect()->route('banquet.orders.add-menu-item', [$order->order_id, $day->id])
-                ->with('success', 'Event day added successfully.');
+            return redirect()->route('banquet.orders.show', $order->order_id)
+                ->with('success', 'Event day updated successfully.');
         } catch (\Exception $e) {
-            Log::error('Add Day failed: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Failed to add day: ' . $e->getMessage());
+            Log::error('Update Day failed: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to update day: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete an event day and its menu items.
+     */
+    public function destroyDay($order_id, $day_id)
+    {
+        try {
+            $order = BanquetOrder::where('order_id', $order_id)->firstOrFail();
+            $day = BanquetOrderDay::findOrFail($day_id);
+
+            // Calculate revenue to subtract from order total
+            $dayMenuTotal = $day->menuItems->sum('total_price') ?? 0;
+
+            DB::transaction(function () use ($day, $order, $dayMenuTotal) {
+                // Delete all menu items for this day
+                $day->menuItems()->delete();
+                
+                // Delete the day
+                $day->delete();
+
+                // Update order financials
+                $newTotalRevenue = $order->total_revenue - $dayMenuTotal;
+                $profitMargin = $this->calculateProfitMargin($newTotalRevenue, $order->expenses);
+
+                $order->update([
+                    'total_revenue' => $newTotalRevenue,
+                    'profit_margin' => $profitMargin,
+                ]);
+            });
+
+            return redirect()->route('banquet.orders.show', $order_id)
+                ->with('success', 'Event day deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Delete Day failed: ' . $e->getMessage());
+            return back()->with('error', 'Failed to delete event day: ' . $e->getMessage());
         }
     }
 
