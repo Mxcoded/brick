@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AdminController;
+use App\Http\Controllers\Admin\LoginLogController;
 use App\Enums\RoleEnum; // Import the Enum
 
 /*
@@ -38,4 +39,13 @@ Route::prefix('admin')
 
         Route::get('/employees/create-user', [AdminController::class, 'createUserFromEmployee'])->name('employees.create-user');
         Route::post('/employees/store-user', [AdminController::class, 'storeUserFromEmployee'])->name('employees.store-user');
+
+        // Login Logs / User Activity Tracking
+        Route::prefix('login-logs')->name('login-logs.')->group(function () {
+            Route::get('/', [LoginLogController::class, 'index'])->name('index');
+            Route::get('/datatable', [LoginLogController::class, 'datatable'])->name('datatable');
+            Route::get('/active-sessions', [LoginLogController::class, 'activeSessions'])->name('active-sessions');
+            Route::get('/user/{userId}', [LoginLogController::class, 'userHistory'])->name('user-history');
+            Route::get('/export', [LoginLogController::class, 'export'])->name('export');
+        });
     });

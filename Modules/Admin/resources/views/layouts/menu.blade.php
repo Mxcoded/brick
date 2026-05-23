@@ -17,6 +17,8 @@
     <a href="{{ route('admin.roles.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Roles</a>
     @endcan
 
+    <a href="{{ route('admin.login-logs.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.login-logs.*') ? 'active' : '' }}" style="color: #ddd; border: none;"><i class="fas fa-history fa-fw me-1"></i> Login History</a>
+
     {{-- @can('manage_permissions')
     <a href="{{ route('admin.permissions.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Permissions</a>
     @endcan --}}
