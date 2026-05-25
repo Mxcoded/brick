@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Illuminate\Console\Scheduling\Schedule;
+use App\Http\Middleware\TrackUserActivity;
 
 return Application::configure(basePath: __DIR__ . '/../')
     ->withRouting(
@@ -19,6 +20,9 @@ return Application::configure(basePath: __DIR__ . '/../')
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
         ]);
+
+        // Track user activity for login session monitoring
+        $middleware->appendToGroup('web', TrackUserActivity::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

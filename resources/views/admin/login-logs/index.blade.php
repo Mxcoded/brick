@@ -24,12 +24,12 @@
 
     {{-- Statistics Cards --}}
     <div class="row g-3 mb-4">
-        <div class="col-md-2">
+        <div class="col-6 col-lg-3 col-xl">
             <div class="card bg-primary text-white h-100">
-                <div class="card-body">
+                <div class="card-body py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-1 text-white-50">Today's Logins</h6>
+                            <h6 class="card-subtitle mb-1 text-white-50 small">Today's Logins</h6>
                             <h3 class="mb-0">{{ number_format($stats['total_logins_today']) }}</h3>
                         </div>
                         <i class="fas fa-sign-in-alt fa-2x opacity-50"></i>
@@ -37,12 +37,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-6 col-lg-3 col-xl">
             <div class="card bg-info text-white h-100">
-                <div class="card-body">
+                <div class="card-body py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-1 text-white-50">Unique Users Today</h6>
+                            <h6 class="card-subtitle mb-1 text-white-50 small">Unique Users</h6>
                             <h3 class="mb-0">{{ number_format($stats['unique_users_today']) }}</h3>
                         </div>
                         <i class="fas fa-user-check fa-2x opacity-50"></i>
@@ -50,25 +50,38 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-6 col-lg-3 col-xl">
             <div class="card bg-success text-white h-100">
-                <div class="card-body">
+                <div class="card-body py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-1 text-white-50">Active Sessions</h6>
+                            <h6 class="card-subtitle mb-1 text-white-50 small">Active Now</h6>
                             <h3 class="mb-0">{{ number_format($stats['active_sessions']) }}</h3>
                         </div>
-                        <i class="fas fa-wifi fa-2x opacity-50"></i>
+                        <i class="fas fa-circle fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
-            <div class="card bg-danger text-white h-100">
-                <div class="card-body">
+        <div class="col-6 col-lg-3 col-xl">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-1 text-white-50">Failed Today</h6>
+                            <h6 class="card-subtitle mb-1 small" style="opacity: 0.7;">Idle Sessions</h6>
+                            <h3 class="mb-0">{{ number_format($stats['stale_sessions']) }}</h3>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3 col-xl">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-1 text-white-50 small">Failed Today</h6>
                             <h3 class="mb-0">{{ number_format($stats['failed_logins_today']) }}</h3>
                         </div>
                         <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
@@ -76,12 +89,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-6 col-lg-3 col-xl">
             <div class="card bg-secondary text-white h-100">
-                <div class="card-body">
+                <div class="card-body py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-1 text-white-50">This Week</h6>
+                            <h6 class="card-subtitle mb-1 text-white-50 small">This Week</h6>
                             <h3 class="mb-0">{{ number_format($stats['total_logins_week']) }}</h3>
                         </div>
                         <i class="fas fa-calendar-week fa-2x opacity-50"></i>
@@ -89,12 +102,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-6 col-lg-3 col-xl">
             <div class="card bg-dark text-white h-100">
-                <div class="card-body">
+                <div class="card-body py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-1 text-white-50">This Month</h6>
+                            <h6 class="card-subtitle mb-1 text-white-50 small">This Month</h6>
                             <h3 class="mb-0">{{ number_format($stats['total_logins_month']) }}</h3>
                         </div>
                         <i class="fas fa-calendar-alt fa-2x opacity-50"></i>

@@ -36,6 +36,7 @@ class LogSuccessfulLogin
             'login_type' => 'web',
             'status' => 'success',
             'logged_in_at' => now(),
+            'last_activity_at' => now(),
         ]);
     }
 

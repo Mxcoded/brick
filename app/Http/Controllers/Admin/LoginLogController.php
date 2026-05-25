@@ -19,10 +19,11 @@ class LoginLogController extends Controller
         $stats = [
             'total_logins_today' => UserLoginLog::today()->successful()->count(),
             'unique_users_today' => UserLoginLog::today()->successful()->distinct('user_id')->count('user_id'),
-            'active_sessions' => UserLoginLog::whereNull('logged_out_at')->where('status', 'success')->count(),
+            'active_sessions' => UserLoginLog::active()->count(),
             'failed_logins_today' => UserLoginLog::today()->failed()->count(),
             'total_logins_week' => UserLoginLog::whereBetween('logged_in_at', [now()->startOfWeek(), now()])->successful()->count(),
             'total_logins_month' => UserLoginLog::whereBetween('logged_in_at', [now()->startOfMonth(), now()])->successful()->count(),
+            'stale_sessions' => UserLoginLog::stale()->count(),
         ];
 
         // Get users for filter dropdown
@@ -72,7 +73,17 @@ class LoginLogController extends Controller
                 return $log->logged_in_at->format('M d, Y h:i A');
             })
             ->addColumn('logged_out_at_formatted', function ($log) {
-                return $log->logged_out_at ? $log->logged_out_at->format('M d, Y h:i A') : '<span class="badge bg-success">Active</span>';
+                if ($log->logged_out_at) {
+                    return $log->logged_out_at->format('M d, Y h:i A');
+                }
+                if ($log->is_active) {
+                    return '<span class="badge bg-success"><i class="fas fa-circle fa-xs me-1"></i>Active</span>';
+                }
+                return '<span class="badge bg-warning text-dark"><i class="fas fa-clock fa-xs me-1"></i>Idle</span>';
+            })
+            ->addColumn('last_activity_formatted', function ($log) {
+                $lastActivity = $log->last_activity_at ?? $log->logged_in_at;
+                return $lastActivity->diffForHumans();
             })
             ->addColumn('session_duration', function ($log) {
                 if (!$log->logged_out_at) {
@@ -93,7 +104,7 @@ class LoginLogController extends Controller
                 $badgeClass = $log->status === 'success' ? 'bg-success' : 'bg-danger';
                 return '<span class="badge ' . $badgeClass . '">' . ucfirst($log->status) . '</span>';
             })
-            ->rawColumns(['logged_out_at_formatted', 'session_duration', 'device_info', 'status_badge'])
+            ->rawColumns(['logged_out_at_formatted', 'session_duration', 'device_info', 'status_badge', 'last_activity_formatted'])
             ->make(true);
     }
 
@@ -124,13 +135,19 @@ class LoginLogController extends Controller
      */
     public function activeSessions()
     {
-        $sessions = UserLoginLog::with('user')
-            ->whereNull('logged_out_at')
-            ->where('status', 'success')
+        // Truly active sessions (within activity timeout)
+        $activeSessions = UserLoginLog::with('user')
+            ->active()
+            ->latest('last_activity_at')
+            ->get();
+
+        // Stale sessions (logged in but inactive)
+        $staleSessions = UserLoginLog::with('user')
+            ->stale()
             ->latest('logged_in_at')
             ->get();
 
-        return view('admin.login-logs.active-sessions', compact('sessions'));
+        return view('admin.login-logs.active-sessions', compact('activeSessions', 'staleSessions'));
     }
 
     /**

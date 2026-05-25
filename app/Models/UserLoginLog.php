@@ -10,6 +10,16 @@ class UserLoginLog extends Model
 {
     use HasFactory;
 
+    /**
+     * Session timeout in minutes - sessions inactive for longer are considered expired.
+     */
+    public const SESSION_TIMEOUT_MINUTES = 30;
+
+    /**
+     * Maximum session age in hours - sessions older than this are auto-expired.
+     */
+    public const MAX_SESSION_AGE_HOURS = 24;
+
     protected $fillable = [
         'user_id',
         'ip_address',
@@ -23,11 +33,13 @@ class UserLoginLog extends Model
         'failure_reason',
         'logged_in_at',
         'logged_out_at',
+        'last_activity_at',
     ];
 
     protected $casts = [
         'logged_in_at' => 'datetime',
         'logged_out_at' => 'datetime',
+        'last_activity_at' => 'datetime',
     ];
 
     /**
@@ -83,10 +95,78 @@ class UserLoginLog extends Model
     }
 
     /**
-     * Check if session is still active.
+     * Check if session is still active (considering activity timeout).
      */
     public function getIsActiveAttribute(): bool
     {
-        return $this->status === 'success' && is_null($this->logged_out_at);
+        // Must be a successful login without explicit logout
+        if ($this->status !== 'success' || !is_null($this->logged_out_at)) {
+            return false;
+        }
+
+        // Check if session has exceeded max age
+        if ($this->logged_in_at->diffInHours(now()) >= self::MAX_SESSION_AGE_HOURS) {
+            return false;
+        }
+
+        // Check activity timeout
+        $lastActivity = $this->last_activity_at ?? $this->logged_in_at;
+        return $lastActivity->diffInMinutes(now()) < self::SESSION_TIMEOUT_MINUTES;
+    }
+
+    /**
+     * Check if session is stale (inactive but not logged out).
+     */
+    public function getIsStaleAttribute(): bool
+    {
+        if ($this->status !== 'success' || !is_null($this->logged_out_at)) {
+            return false;
+        }
+
+        return !$this->is_active;
+    }
+
+    /**
+     * Scope for truly active sessions (within activity timeout).
+     */
+    public function scopeActive($query)
+    {
+        $timeout = now()->subMinutes(self::SESSION_TIMEOUT_MINUTES);
+        $maxAge = now()->subHours(self::MAX_SESSION_AGE_HOURS);
+
+        return $query->where('status', 'success')
+            ->whereNull('logged_out_at')
+            ->where('logged_in_at', '>=', $maxAge)
+            ->where(function ($q) use ($timeout) {
+                $q->where('last_activity_at', '>=', $timeout)
+                  ->orWhere(function ($q2) use ($timeout) {
+                      $q2->whereNull('last_activity_at')
+                         ->where('logged_in_at', '>=', $timeout);
+                  });
+            });
+    }
+
+    /**
+     * Scope for stale sessions (logged in but inactive beyond timeout).
+     */
+    public function scopeStale($query)
+    {
+        $timeout = now()->subMinutes(self::SESSION_TIMEOUT_MINUTES);
+        $maxAge = now()->subHours(self::MAX_SESSION_AGE_HOURS);
+
+        return $query->where('status', 'success')
+            ->whereNull('logged_out_at')
+            ->where(function ($q) use ($timeout, $maxAge) {
+                // Either too old
+                $q->where('logged_in_at', '<', $maxAge)
+                  // Or inactive beyond timeout
+                  ->orWhere(function ($q2) use ($timeout) {
+                      $q2->where('last_activity_at', '<', $timeout);
+                  })
+                  ->orWhere(function ($q2) use ($timeout) {
+                      $q2->whereNull('last_activity_at')
+                         ->where('logged_in_at', '<', $timeout);
+                  });
+            });
     }
 }
