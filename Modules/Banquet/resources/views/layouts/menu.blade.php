@@ -24,7 +24,14 @@
     </a>
     @endcan
 
-    {{-- 3. REPORTS --}}
+    {{-- 3. CUSTOMERS --}}
+    <a href="{{ route('banquet.customers.index') }}" 
+       class="list-group-item list-group-item-action {{ request()->routeIs('banquet.customers.*') ? 'active' : '' }}" 
+       style="color: #ddd; border: none; padding-left: 3rem;">
+        <i class="fas fa-users me-2"></i>Customers
+    </a>
+
+    {{-- 4. REPORTS --}}
     <a href="{{ route('banquet.reports.form') }}" 
        class="list-group-item list-group-item-action {{ request()->routeIs('banquet.reports.*') ? 'active' : '' }}" 
        style="color: #ddd; border: none; padding-left: 3rem;">

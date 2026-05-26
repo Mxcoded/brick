@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Banquet\Http\Controllers\BanquetController;
+use Modules\Banquet\Http\Controllers\CustomerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +29,20 @@ Route::prefix('banquet')
             Route::get('/form', [BanquetController::class, 'eventReportForm'])->name('form');
             Route::post('/generate', [BanquetController::class, 'generateEventReport'])->name('generate');
             Route::post('/export', [BanquetController::class, 'exportEventReport'])->name('export');
+        });
+
+        // ==========================================================
+        // CUSTOMER MANAGEMENT
+        // ==========================================================
+        Route::prefix('customers')->name('customers.')->group(function () {
+            Route::get('/', [CustomerController::class, 'index'])->name('index');
+            Route::get('/datatable', [CustomerController::class, 'datatable'])->name('datatable');
+            Route::get('/create', [CustomerController::class, 'create'])->name('create')->middleware('can:manage_banquet');
+            Route::post('/', [CustomerController::class, 'store'])->name('store')->middleware('can:manage_banquet');
+            Route::get('/{id}', [CustomerController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [CustomerController::class, 'edit'])->name('edit')->middleware('can:manage_banquet');
+            Route::put('/{id}', [CustomerController::class, 'update'])->name('update')->middleware('can:manage_banquet');
+            Route::delete('/{id}', [CustomerController::class, 'destroy'])->name('destroy')->middleware('can:manage_banquet');
         });
 
         // ==========================================================

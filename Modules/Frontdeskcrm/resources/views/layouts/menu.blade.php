@@ -14,7 +14,12 @@
  
     {{-- Guest Management --}}
     <a href="{{ route('frontdesk.registrations.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.registrations.dashboard') ? 'active' : '' }}" style="color: #ddd; border: none; padding-left: 3rem;">
-        <i class="fas fa-users me-2"></i> Guest List
+        <i class="fas fa-clipboard-list me-2"></i> Registrations
+    </a>
+
+    {{-- Guest Directory --}}
+    <a href="{{ route('frontdesk.guests.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.guests.*') ? 'active' : '' }}" style="color: #ddd; border: none; padding-left: 3rem;">
+        <i class="fas fa-address-book me-2"></i> Guest Directory
     </a>
     
     {{-- Check-In Actions --}}

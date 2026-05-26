@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Frontdeskcrm\Http\Controllers\RegistrationController;
 use Modules\Frontdeskcrm\Http\Controllers\BookingSourceController;
 use Modules\Frontdeskcrm\Http\Controllers\GuestTypeController;
+use Modules\Frontdeskcrm\Http\Controllers\GuestController;
 use App\Enums\RoleEnum; // Import the Enum
 
 /*
@@ -106,6 +107,18 @@ Route::prefix('frontdesk')
 
         // Routes for managing Guest Types (e.g., Corporate, VIP).
         Route::resource('guest-types', GuestTypeController::class)->except(['show']);
+
+        // --- GUEST DIRECTORY MANAGEMENT ---
+        Route::prefix('guests')->name('guests.')->group(function () {
+            Route::get('/', [GuestController::class, 'index'])->name('index');
+            Route::get('/datatable', [GuestController::class, 'datatable'])->name('datatable');
+            Route::get('/create', [GuestController::class, 'create'])->name('create');
+            Route::post('/', [GuestController::class, 'store'])->name('store');
+            Route::get('/{guest}', [GuestController::class, 'show'])->name('show');
+            Route::get('/{guest}/edit', [GuestController::class, 'edit'])->name('edit');
+            Route::put('/{guest}', [GuestController::class, 'update'])->name('update');
+            Route::delete('/{guest}', [GuestController::class, 'destroy'])->name('destroy');
+        });
 
         Route::prefix('rooms')->name('rooms.')->group(function () {
             // 1. The Visual Room Rack (Box View)
