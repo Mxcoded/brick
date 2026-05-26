@@ -199,34 +199,36 @@
             serverSide: true,
             ajax: "{{ route('banquet.orders.datatable') }}",
             columns: [
-                { data: null, render: (d, t, r, m) => m.row + m.settings._iDisplayStart + 1, orderable: false },
+                { data: null, render: (d, t, r, m) => m.row + m.settings._iDisplayStart + 1, orderable: false, searchable: false },
                 { 
                     data: 'order_id', 
                     name: 'order_id',
                     render: data => `<span class="fw-bold text-gold">#${data}</span>` 
                 },
                 { 
-                    data: 'customer', 
+                    data: 'customer',
+                    name: 'customer',
+                    orderable: false,
+                    searchable: false,
                     render: (data, type, row) => {
                         let org = row.organization !== 'Private' ? `<br><small class="text-muted"><i class="fas fa-building me-1"></i>${row.organization}</small>` : '';
                         return `<span class="fw-bold text-charcoal">${data.name}</span>${org}`;
                     }
                 },
-                { data: 'event_dates', name: 'event_dates' },
-                { data: 'total_guests', name: 'total_guests', className: 'text-center' },
-                { data: 'total_revenue', name: 'total_revenue', className: 'text-end fw-bold text-charcoal' },
-                { data: 'profit_margin', name: 'profit_margin', className: 'text-center' },
+                { data: 'event_dates', name: 'event_dates', orderable: false, searchable: false },
+                { data: 'total_guests', name: 'total_guests', className: 'text-center', orderable: false, searchable: false },
+                { data: 'total_revenue', name: 'total_revenue', className: 'text-end fw-bold text-charcoal', searchable: false },
+                { data: 'profit_margin', name: 'profit_margin', className: 'text-center', searchable: false },
                 { 
                     data: 'status', 
                     name: 'status',
                     className: 'text-center',
                     render: function(data) {
-                        // Custom badge logic can go here, or use Bootstrap defaults
                         const colors = {'Pending': 'warning', 'Confirmed': 'primary', 'Completed': 'success', 'Cancelled': 'danger'};
                         return `<span class="badge bg-${colors[data] || 'secondary'} rounded-pill px-3">${data}</span>`;
                     }
                 },
-                { data: 'actions', name: 'actions', orderable: false, className: 'text-end' }
+                { data: 'actions', name: 'actions', orderable: false, searchable: false, className: 'text-end' }
             ],
             dom: 'tp',
             language: { emptyTable: "No orders found" },

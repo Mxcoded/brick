@@ -17,7 +17,7 @@ class CustomerController extends Controller
     {
         $stats = [
             'total_customers' => Customer::count(),
-            'organizations' => Customer::whereNotNull('organization')->distinct('organization')->count('organization'),
+            'organizations' => Customer::whereNotNull('organization')->where('organization', '!=', '')->distinct()->count('organization'),
             'repeat_customers' => Customer::has('banquetOrders', '>', 1)->count(),
             'new_this_month' => Customer::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
@@ -37,6 +37,28 @@ class CustomerController extends Controller
             ->latest();
 
         return DataTables::of($query)
+            ->filterColumn('name', function ($query, $keyword) {
+                $query->where('name', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('email', function ($query, $keyword) {
+                $query->where('email', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('phone', function ($query, $keyword) {
+                $query->where('phone', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('organization_display', function ($query, $keyword) {
+                $query->where('organization', 'like', "%{$keyword}%");
+            })
+            ->filter(function ($query) use ($request) {
+                if ($search = $request->input('search.value')) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                          ->orWhere('email', 'like', "%{$search}%")
+                          ->orWhere('phone', 'like', "%{$search}%")
+                          ->orWhere('organization', 'like', "%{$search}%");
+                    });
+                }
+            }, true)
             ->addColumn('total_orders', function ($customer) {
                 return $customer->banquet_orders_count;
             })

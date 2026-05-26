@@ -832,10 +832,32 @@ class BanquetController extends Controller
     public function datatable(Request $request)
     {
         $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
-            ->select('id', 'order_id', 'contact_person_name', 'expenses', 'hall_rental_fees', 'status', 'customer_id', 'profit_margin', 'total_revenue', 'created_at')
-            ->latest();
+            ->select('banquet_orders.*')
+            ->leftJoin('customers', 'banquet_orders.customer_id', '=', 'customers.id');
 
         return DataTables::of($orders)
+            ->filter(function ($query) use ($request) {
+                // Global search
+                if ($search = $request->input('search.value')) {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('banquet_orders.order_id', 'like', "%{$search}%")
+                          ->orWhere('banquet_orders.contact_person_name', 'like', "%{$search}%")
+                          ->orWhere('banquet_orders.contact_person_phone', 'like', "%{$search}%")
+                          ->orWhere('customers.name', 'like', "%{$search}%")
+                          ->orWhere('customers.phone', 'like', "%{$search}%")
+                          ->orWhere('customers.organization', 'like', "%{$search}%");
+                    });
+                }
+                
+                // Status filter (column 7)
+                $statusSearch = $request->input('columns.7.search.value');
+                if (!empty($statusSearch)) {
+                    $query->where('banquet_orders.status', $statusSearch);
+                }
+            })
+            ->order(function ($query) {
+                $query->orderBy('banquet_orders.created_at', 'desc');
+            })
             ->addColumn('customer', function ($order) {
                 return [
                     'name' => $order->customer->name ?? $order->contact_person_name ?? 'N/A',
@@ -872,10 +894,7 @@ class BanquetController extends Controller
             ->addColumn('actions', function ($order) {
                 return view('banquet::partials.actions', compact('order'))->render();
             })
-            ->filterColumn('status', function ($query, $keyword) {
-                $query->where('status', $keyword);
-            })
-            ->rawColumns(['event_dates', 'profit_margin', 'actions', 'status'])
+            ->rawColumns(['event_dates', 'profit_margin', 'actions'])
             ->make(true);
     }
 
