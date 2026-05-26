@@ -33,22 +33,26 @@ class CustomerController extends Controller
     public function datatable(Request $request)
     {
         $query = Customer::withCount('banquetOrders')
-            ->withSum('banquetOrders', 'total_revenue')
-            ->latest();
+            ->withSum('banquetOrders', 'total_revenue');
+
+        // Apply card filters
+        $filter = $request->input('filter', 'all');
+        switch ($filter) {
+            case 'organizations':
+                $query->whereNotNull('organization')->where('organization', '!=', '');
+                break;
+            case 'repeat':
+                $query->has('banquetOrders', '>', 1);
+                break;
+            case 'new_this_month':
+                $query->whereMonth('created_at', now()->month)
+                      ->whereYear('created_at', now()->year);
+                break;
+        }
+
+        $query->latest();
 
         return DataTables::of($query)
-            ->filterColumn('name', function ($query, $keyword) {
-                $query->where('name', 'like', "%{$keyword}%");
-            })
-            ->filterColumn('email', function ($query, $keyword) {
-                $query->where('email', 'like', "%{$keyword}%");
-            })
-            ->filterColumn('phone', function ($query, $keyword) {
-                $query->where('phone', 'like', "%{$keyword}%");
-            })
-            ->filterColumn('organization_display', function ($query, $keyword) {
-                $query->where('organization', 'like', "%{$keyword}%");
-            })
             ->filter(function ($query) use ($request) {
                 if ($search = $request->input('search.value')) {
                     $query->where(function ($q) use ($search) {
@@ -58,7 +62,7 @@ class CustomerController extends Controller
                           ->orWhere('organization', 'like', "%{$search}%");
                     });
                 }
-            }, true)
+            })
             ->addColumn('total_orders', function ($customer) {
                 return $customer->banquet_orders_count;
             })
@@ -88,6 +92,92 @@ class CustomerController extends Controller
             })
             ->rawColumns(['organization_display', 'actions'])
             ->make(true);
+    }
+
+    /**
+     * Export customers to Excel/CSV.
+     */
+    public function export(Request $request)
+    {
+        $filter = $request->input('filter', 'all');
+        
+        $query = Customer::withCount('banquetOrders')
+            ->withSum('banquetOrders', 'total_revenue');
+
+        // Apply filters
+        switch ($filter) {
+            case 'organizations':
+                $query->whereNotNull('organization')->where('organization', '!=', '');
+                $filterLabel = 'Organizations';
+                break;
+            case 'repeat':
+                $query->has('banquetOrders', '>', 1);
+                $filterLabel = 'Repeat Customers';
+                break;
+            case 'new_this_month':
+                $query->whereMonth('created_at', now()->month)
+                      ->whereYear('created_at', now()->year);
+                $filterLabel = 'New This Month';
+                break;
+            default:
+                $filterLabel = 'All Customers';
+        }
+
+        $customers = $query->latest()->get();
+        
+        $filename = 'banquet-customers-' . ($filter !== 'all' ? $filter . '-' : '') . now()->format('Y-m-d-His') . '.csv';
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function () use ($customers, $filterLabel) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // UTF-8 BOM
+
+            // Header row
+            fputcsv($file, ['Banquet Customer Export - ' . $filterLabel]);
+            fputcsv($file, ['Generated: ' . now()->format('F d, Y h:i A')]);
+            fputcsv($file, []);
+
+            // Column headers
+            fputcsv($file, [
+                'Name',
+                'Email',
+                'Phone',
+                'Organization',
+                'Total Orders',
+                'Total Spent (NGN)',
+                'Customer Since'
+            ]);
+
+            // Data rows
+            foreach ($customers as $customer) {
+                fputcsv($file, [
+                    $customer->name,
+                    $customer->email,
+                    $customer->phone,
+                    $customer->organization ?? 'Private',
+                    $customer->banquet_orders_count,
+                    number_format($customer->banquet_orders_sum_total_revenue ?? 0, 2),
+                    $customer->created_at->format('M d, Y')
+                ]);
+            }
+
+            // Summary
+            fputcsv($file, []);
+            fputcsv($file, ['SUMMARY']);
+            fputcsv($file, ['Total Customers', $customers->count()]);
+            fputcsv($file, ['Total Revenue', 'NGN ' . number_format($customers->sum('banquet_orders_sum_total_revenue'), 2)]);
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     /**

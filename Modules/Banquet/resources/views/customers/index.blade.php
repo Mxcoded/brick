@@ -39,7 +39,7 @@
     {{-- Statistics Cards --}}
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 bg-gold text-white">
+            <div class="card border-0 shadow-sm h-100 bg-gold text-white stat-card" data-filter="all" role="button" style="cursor: pointer;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -52,7 +52,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card border-0 shadow-sm h-100 stat-card" data-filter="organizations" role="button" style="cursor: pointer;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -65,7 +65,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card border-0 shadow-sm h-100 stat-card" data-filter="repeat" role="button" style="cursor: pointer;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -78,7 +78,7 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100">
+            <div class="card border-0 shadow-sm h-100 stat-card" data-filter="new_this_month" role="button" style="cursor: pointer;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -94,11 +94,21 @@
 
     {{-- Customer List --}}
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold text-gold"><i class="fas fa-list me-2"></i>Customer List</h5>
-            <div class="input-group" style="width: 300px;">
-                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                <input type="text" id="customSearch" class="form-control border-start-0 ps-0" placeholder="Search customers...">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <h5 class="mb-0 fw-bold text-gold"><i class="fas fa-list me-2"></i>Customer List</h5>
+                    <span id="activeFilter" class="badge bg-secondary d-none"></span>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <div class="input-group" style="width: 250px;">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" id="customSearch" class="form-control border-start-0 ps-0" placeholder="Search customers...">
+                    </div>
+                    <a href="{{ route('banquet.customers.export') }}" id="exportBtn" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-file-excel me-1"></i>Export
+                    </a>
+                </div>
             </div>
         </div>
         <div class="card-body">
@@ -131,6 +141,9 @@
     .bg-gold { background-color: #C8A165 !important; }
     .btn-gold { background-color: #C8A165; border-color: #C8A165; color: #FFFFFF; }
     .btn-gold:hover { background-color: #b08d55; border-color: #b08d55; color: #FFFFFF; }
+    .stat-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15) !important; }
+    .stat-card.active { outline: 3px solid #C8A165; outline-offset: 2px; }
 </style>
 @endsection
 
@@ -139,20 +152,27 @@
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
 $(document).ready(function() {
+    let currentFilter = 'all';
+    
     const table = $('#customersTable').DataTable({
         processing: true,
         serverSide: true,
-        ajax: "{{ route('banquet.customers.datatable') }}",
+        ajax: {
+            url: "{{ route('banquet.customers.datatable') }}",
+            data: function(d) {
+                d.filter = currentFilter;
+            }
+        },
         columns: [
-            { data: null, render: (d, t, r, m) => m.row + m.settings._iDisplayStart + 1, orderable: false },
+            { data: null, render: (d, t, r, m) => m.row + m.settings._iDisplayStart + 1, orderable: false, searchable: false },
             { data: 'name', render: data => `<span class="fw-bold text-charcoal">${data}</span>` },
             { data: 'email' },
             { data: 'phone' },
-            { data: 'organization_display' },
-            { data: 'total_orders', className: 'text-center' },
-            { data: 'total_spent', className: 'text-end fw-bold' },
-            { data: 'created_at_formatted' },
-            { data: 'actions', orderable: false, className: 'text-end' }
+            { data: 'organization_display', searchable: false },
+            { data: 'total_orders', className: 'text-center', searchable: false },
+            { data: 'total_spent', className: 'text-end fw-bold', searchable: false },
+            { data: 'created_at_formatted', searchable: false },
+            { data: 'actions', orderable: false, searchable: false, className: 'text-end' }
         ],
         dom: 'tp',
         pageLength: 25,
@@ -163,6 +183,52 @@ $(document).ready(function() {
             });
         }
     });
+    
+    // Stat card click handlers
+    $('.stat-card').on('click', function() {
+        const filter = $(this).data('filter');
+        currentFilter = filter;
+        
+        // Update active state
+        $('.stat-card').removeClass('active');
+        $(this).addClass('active');
+        
+        // Update filter badge
+        const filterLabels = {
+            'all': 'All Customers',
+            'organizations': 'With Organization',
+            'repeat': 'Repeat Customers',
+            'new_this_month': 'New This Month'
+        };
+        
+        if (filter === 'all') {
+            $('#activeFilter').addClass('d-none').text('');
+        } else {
+            $('#activeFilter').removeClass('d-none').html(`<i class="fas fa-filter me-1"></i>${filterLabels[filter]} <button type="button" class="btn-close btn-close-white ms-2" style="font-size: 0.6rem;" id="clearFilter"></button>`);
+        }
+        
+        // Update export link with filter
+        const exportUrl = new URL("{{ route('banquet.customers.export') }}", window.location.origin);
+        exportUrl.searchParams.set('filter', filter);
+        $('#exportBtn').attr('href', exportUrl.toString());
+        
+        // Reload table with new filter
+        table.ajax.reload();
+    });
+    
+    // Clear filter handler
+    $(document).on('click', '#clearFilter', function(e) {
+        e.stopPropagation();
+        currentFilter = 'all';
+        $('.stat-card').removeClass('active');
+        $('.stat-card[data-filter="all"]').addClass('active');
+        $('#activeFilter').addClass('d-none').text('');
+        $('#exportBtn').attr('href', "{{ route('banquet.customers.export') }}");
+        table.ajax.reload();
+    });
+    
+    // Set initial active state
+    $('.stat-card[data-filter="all"]').addClass('active');
 });
 </script>
 @endsection

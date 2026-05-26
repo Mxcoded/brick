@@ -37,6 +37,7 @@ Route::prefix('banquet')
         Route::prefix('customers')->name('customers.')->group(function () {
             Route::get('/', [CustomerController::class, 'index'])->name('index');
             Route::get('/datatable', [CustomerController::class, 'datatable'])->name('datatable');
+            Route::get('/export', [CustomerController::class, 'export'])->name('export');
             Route::get('/create', [CustomerController::class, 'create'])->name('create')->middleware('can:manage_banquet');
             Route::post('/', [CustomerController::class, 'store'])->name('store')->middleware('can:manage_banquet');
             Route::get('/{id}', [CustomerController::class, 'show'])->name('show');
