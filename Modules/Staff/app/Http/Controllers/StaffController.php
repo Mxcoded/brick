@@ -423,7 +423,7 @@ class StaffController extends Controller
         ]);
 
         return redirect()->route('staff.approvals.index')
-            ->with('success', 'Employee rejected successfully.');
+            ->with('success', 'Employee marked as exited successfully.');
     }
     public function birthdays(Request $request)
     {

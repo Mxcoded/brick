@@ -49,7 +49,7 @@
                         </li>
                         <li>
                             <a class="dropdown-item" href="{{ route('staff.export', ['status' => 'rejected']) }}">
-                                <i class="fas fa-times-circle me-2 text-danger"></i> Inactive Staff Only
+                                <i class="fas fa-times-circle me-2 text-danger"></i> Exited Staff Only
                             </a>
                         </li>
                         @if($branchFilter)
@@ -132,7 +132,7 @@
                     <div class="card-body p-4 d-flex flex-column">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <h5 class="card-title mb-3">Inactive Staff</h5>
+                                <h5 class="card-title mb-3">Exited Staff</h5>
                                 <h3 class="mb-0">{{ $employees->where('status', 'rejected')->count() }}</h3>
                             </div>
                             <div class="icon-circle bg-white-transparent">
@@ -248,7 +248,11 @@
                                     @elseif($employee->status == 'rejected') bg-danger
                                     @elseif($employee->status == 'pending') bg-warning
                                     @else bg-secondary @endif">
-                                    {{ ucfirst($employee->status) }}
+                                    @if($employee->status == 'rejected')
+                                        Exited
+                                    @else
+                                        {{ ucfirst($employee->status) }}
+                                    @endif
                                 </span>
                             </td>
                             <td>
