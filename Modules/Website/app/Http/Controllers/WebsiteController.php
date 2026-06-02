@@ -161,8 +161,8 @@ class WebsiteController extends Controller
             ]);
         }
 
-        // Check if room_type_id is provided (legacy direct booking from room details)
-        $roomTypeId = old('room_type_id', $request->room_type_id ?? $request->room_id);
+        // Check if room_type_id is provided
+        $roomTypeId = old('room_type_id', $request->room_type_id);
 
         // If no cart and no room selected, redirect to room selection page
         if (!$roomTypeId) {
@@ -562,7 +562,9 @@ class WebsiteController extends Controller
         }
 
         if (!$canView) {
-            abort(403, 'Access denied. Please login to view your booking.');
+            if (Auth::check()) {
+                abort(403, 'Access denied.');
+            }
             return redirect()->route('website.home')->with('error', 'You are not authorized to view this booking.');
         }
 
@@ -1420,10 +1422,10 @@ class WebsiteController extends Controller
         if ($request->filled('room_type_id')) {
             $roomType = RoomType::find($request->room_type_id);
             if ($roomType) {
-                $availability = $availabilityService->checkRoomTypeAvailability($roomType->id, $checkIn, $checkOut);
-                if ($availability['available']) {
-                    // Auto-add 1 room of this type to the cart
-                    $cartService->add($roomType->id, 1, $checkIn, $checkOut);
+                $result = $cartService->add($roomType->id, 1, $checkIn, $checkOut);
+                if (!$result['success']) {
+                    return redirect()->route('website.book.step1')
+                        ->with('error', $result['message']);
                 }
             }
         }

@@ -185,7 +185,9 @@ class RoomAvailabilityService
         $effectiveAvailable = max(0, $availableUnits->count() - $unassignedBookingsCount - $maxBlockedCount);
 
         // Return the effective available units
-        return $availableUnits->take($effectiveAvailable);
+        // Existing unassigned bookings get priority on the first units;
+        // new bookings get whatever remains.
+        return $availableUnits->values()->skip($unassignedBookingsCount + $maxBlockedCount)->values();
     }
 
     /**
