@@ -11,6 +11,7 @@ class NewsletterSubscriber extends Model
     use HasFactory;
 
     protected $fillable = [
+        'name',
         'email',
         'unsubscribe_token',
         'is_active',

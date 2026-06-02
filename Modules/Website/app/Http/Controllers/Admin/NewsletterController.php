@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Log;
 use Modules\Website\Models\Newsletter;
 use Modules\Website\Models\NewsletterSubscriber;
 use Modules\Website\Models\NewsletterDeliveryLog;
+use Modules\Website\Imports\NewsletterSubscriberImport;
 use Modules\Website\Jobs\SendNewsletterJob;
+use Maatwebsite\Excel\Facades\Excel;
 
 class NewsletterController extends Controller
 {
@@ -30,7 +32,11 @@ class NewsletterController extends Controller
 
         // Search
         if ($request->filled('search')) {
-            $query->where('email', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('email', 'like', '%' . $search . '%')
+                  ->orWhere('name', 'like', '%' . $search . '%');
+            });
         }
 
         $subscribers = $query->paginate(20)->withQueryString();
@@ -59,16 +65,87 @@ class NewsletterController extends Controller
 
         $callback = function() use ($subscribers) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Email', 'Subscribed At', 'Status']);
+            fputcsv($file, ['Name', 'Email', 'Subscribed At', 'Status']);
             
             foreach ($subscribers as $sub) {
                 fputcsv($file, [
+                    $sub->name ?? '',
                     $sub->email,
                     $sub->subscribed_at?->format('Y-m-d H:i:s'),
                     $sub->is_active ? 'Active' : 'Inactive',
                 ]);
             }
             
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Import subscribers from Excel/CSV.
+     */
+    public function importSubscribers(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        $import = new NewsletterSubscriberImport();
+        Excel::import($import, $request->file('file'));
+
+        $imported = $import->getImportedCount();
+        $reactivated = $import->getReactivatedCount();
+        $skipped = $import->getSkippedCount();
+
+        $parts = [];
+        if ($imported > 0) {
+            $parts[] = "{$imported} new subscribers added";
+        }
+        if ($reactivated > 0) {
+            $parts[] = "{$reactivated} reactivated";
+        }
+        if ($skipped > 0) {
+            $parts[] = "{$skipped} already existed";
+        }
+
+        $message = 'Import completed. ' . (empty($parts) ? 'No changes made.' : implode(', ', $parts) . '.');
+
+        $failures = $import->failures();
+        $failureCount = $failures->count();
+
+        if ($failureCount > 0) {
+            \Illuminate\Support\Facades\Log::warning('Newsletter import had failures', [
+                'count' => $failureCount,
+                'failures' => $failures->map(fn($f) => [
+                    'row' => $f->row(),
+                    'attribute' => $f->attribute(),
+                    'errors' => $f->errors(),
+                    'values' => $f->values(),
+                ])->toArray(),
+            ]);
+        }
+
+        return redirect()->route('website.admin.newsletter.subscribers')
+            ->with('success', $message)
+            ->with('import_failures', $failureCount);
+    }
+
+    /**
+     * Download a sample CSV template for importing subscribers.
+     */
+    public function downloadSampleImport()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="newsletter_import_sample.csv"',
+        ];
+
+        $callback = function () {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['name', 'email']);
+            fputcsv($file, ['John Doe', 'john@example.com']);
+            fputcsv($file, ['Jane Smith', 'jane@example.com']);
             fclose($file);
         };
 

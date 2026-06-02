@@ -492,6 +492,10 @@
                     <h4 class="h5 mb-4">Newsletter</h4>
                     <p class="text-muted-footer">Subscribe for special offers and updates</p>
                     <form id="newsletterForm" class="mb-3">
+                        <div class="mb-2">
+                            <input type="text" id="newsletterName"
+                                class="form-control bg-secondary border-0 text-white" placeholder="Your Name (optional)">
+                        </div>
                         <div class="input-group">
                             <input type="email" id="newsletterEmail"
                                 class="form-control bg-secondary border-0 text-white" placeholder="Your Email"
@@ -543,6 +547,14 @@
                         <div class="mb-3">
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text bg-light border-end-0"><i
+                                        class="fas fa-user text-muted"></i></span>
+                                <input type="text" id="newsletterPopupName"
+                                    class="form-control border-start-0 bg-light" placeholder="Your Name (optional)">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light border-end-0"><i
                                         class="fas fa-envelope text-muted"></i></span>
                                 <input type="email" id="newsletterPopupEmail"
                                     class="form-control border-start-0 bg-light" placeholder="Enter your email"
@@ -587,10 +599,11 @@
             const feedback = document.getElementById('newsletterFeedback');
 
             // Shared newsletter submit handler
-            async function handleNewsletterSubmit(email, feedbackEl, btnEl, inputEl) {
+            async function handleNewsletterSubmit(email, feedbackEl, btnEl, inputEl, nameInput) {
                 btnEl.disabled = true;
                 const originalBtnHtml = btnEl.innerHTML;
                 btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                const name = nameInput ? nameInput.value.trim() : '';
 
                 try {
                     const response = await fetch('{{ route('website.newsletter.subscribe') }}', {
@@ -601,6 +614,7 @@
                             'Accept': 'application/json',
                         },
                         body: JSON.stringify({
+                            name: name,
                             email: email
                         })
                     });
@@ -645,12 +659,14 @@
             }
 
             // Footer form handler
+            const nameInput = document.getElementById('newsletterName');
+
             if (form) {
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
                     const email = emailInput.value.trim();
                     if (email) {
-                        handleNewsletterSubmit(email, feedback, submitBtn, emailInput);
+                        handleNewsletterSubmit(email, feedback, submitBtn, emailInput, nameInput);
                     }
                 });
             }
@@ -660,13 +676,14 @@
             const popupEmailInput = document.getElementById('newsletterPopupEmail');
             const popupSubmitBtn = document.getElementById('newsletterPopupBtn');
             const popupFeedback = document.getElementById('newsletterPopupFeedback');
+            const popupNameInput = document.getElementById('newsletterPopupName');
 
             if (popupForm) {
                 popupForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     const email = popupEmailInput.value.trim();
                     if (email) {
-                        handleNewsletterSubmit(email, popupFeedback, popupSubmitBtn, popupEmailInput);
+                        handleNewsletterSubmit(email, popupFeedback, popupSubmitBtn, popupEmailInput, popupNameInput);
                     }
                 });
             }

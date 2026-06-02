@@ -211,6 +211,8 @@ Route::middleware(['web'])->group(function () {
             // Newsletter Subscribers Management
             Route::get('newsletter/subscribers', [NewsletterController::class, 'subscribersIndex'])->name('newsletter.subscribers');
             Route::get('newsletter/subscribers/export', [NewsletterController::class, 'exportSubscribers'])->name('newsletter.subscribers.export');
+            Route::post('newsletter/subscribers/import', [NewsletterController::class, 'importSubscribers'])->name('newsletter.subscribers.import');
+            Route::get('newsletter/subscribers/import/sample', [NewsletterController::class, 'downloadSampleImport'])->name('newsletter.subscribers.import.sample');
             Route::delete('newsletter/subscribers/{subscriber}', [NewsletterController::class, 'destroySubscriber'])->name('newsletter.subscribers.destroy');
             Route::post('newsletter/subscribers/{subscriber}/toggle', [NewsletterController::class, 'toggleSubscriberStatus'])->name('newsletter.subscribers.toggle');
 

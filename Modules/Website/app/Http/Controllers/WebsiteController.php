@@ -1584,9 +1584,11 @@ class WebsiteController extends Controller
     public function subscribeNewsletter(Request $request)
     {
         $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
             'email' => 'required|email:rfc,dns|max:255',
         ], [
             'email.email' => 'Please enter a valid email address.',
+            'email.required' => 'Please enter your email address.',
         ]);
 
         // Check if already subscribed
@@ -1602,6 +1604,7 @@ class WebsiteController extends Controller
 
             // Reactivate subscription
             $existing->update([
+                'name' => $validated['name'] ?? $existing->name,
                 'is_active' => true,
                 'subscribed_at' => now(),
                 'unsubscribed_at' => null,
@@ -1615,14 +1618,17 @@ class WebsiteController extends Controller
 
         // Create new subscriber
         NewsletterSubscriber::create([
+            'name' => $validated['name'] ?? null,
             'email' => $validated['email'],
             'is_active' => true,
             'subscribed_at' => now(),
         ]);
 
+        $greeting = $validated['name'] ? "Thank you, {$validated['name']}!" : 'Thank you for subscribing to our newsletter!';
+
         return response()->json([
             'success' => true,
-            'message' => 'Thank you for subscribing to our newsletter!',
+            'message' => $greeting,
         ]);
     }
 }

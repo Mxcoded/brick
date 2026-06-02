@@ -423,6 +423,15 @@
             </div>
             @endif
             
+            <!-- Personalized Greeting -->
+            <div style="padding: 24px 40px 0; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #2D2D2D;">
+                @if($subscriber->name)
+                    <p style="margin: 0 0 8px;">Dear <strong>{{ $subscriber->name }}</strong>,</p>
+                @else
+                    <p style="margin: 0 0 8px;">Dear Valued Subscriber,</p>
+                @endif
+            </div>
+
             <!-- Main Content -->
             <div class="email-content">
                 {!! $newsletter->content !!}
