@@ -536,7 +536,7 @@
                         <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
                             data-bs-dismiss="modal" aria-label="Close"></button>
                         <i class="fas fa-envelope-open-text fa-3x mb-3 opacity-75"></i>
-                        <h4 class="fw-bold mb-1">Stay Updated!</h4>
+                        <h4 class="fw-bold mb-1" id="newsletterPopupLabel">Stay Updated!</h4>
                         <p class="mb-0 opacity-75">Get exclusive offers & travel tips</p>
                     </div>
                 </div>
@@ -700,26 +700,27 @@
 
             // Show popup on page load (with delay)
             const newsletterPopup = document.getElementById('newsletterPopup');
-            if (newsletterPopup) {
+            if (newsletterPopup && typeof bootstrap !== 'undefined') {
                 const isDismissed = localStorage.getItem('newsletter_popup_dismissed') === 'true';
                 const isSubscribed = localStorage.getItem('newsletter_subscribed') === 'true';
                 const lastShown = localStorage.getItem('newsletter_popup_last_shown');
                 const now = Date.now();
-                const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+                const oneDay = 24 * 60 * 60 * 1000;
 
-                // Show popup if:
-                // 1. User hasn't dismissed it permanently
-                // 2. User hasn't already subscribed
-                // 3. Popup hasn't been shown in the last 24 hours
-                const shouldShow = !isDismissed && !isSubscribed && (!lastShown || (now - parseInt(lastShown)) >
-                    oneDay);
+                const lastShownTime = lastShown ? parseInt(lastShown, 10) : null;
+                const cooldownElapsed = !lastShownTime || !isNaN(lastShownTime) && (now - lastShownTime) > oneDay;
+
+                const shouldShow = !isDismissed && !isSubscribed && cooldownElapsed;
 
                 if (shouldShow) {
-                    // Show popup after 3 seconds delay
                     setTimeout(() => {
-                        const modal = new bootstrap.Modal(newsletterPopup);
-                        modal.show();
-                        localStorage.setItem('newsletter_popup_last_shown', now.toString());
+                        try {
+                            const modal = new bootstrap.Modal(newsletterPopup);
+                            modal.show();
+                            localStorage.setItem('newsletter_popup_last_shown', now.toString());
+                        } catch (e) {
+                            console.error('Newsletter popup failed to show:', e);
+                        }
                     }, 3000);
                 }
             }
