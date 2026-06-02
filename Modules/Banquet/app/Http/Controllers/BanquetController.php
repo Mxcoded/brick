@@ -990,11 +990,7 @@ class BanquetController extends Controller
         $orders = BanquetOrder::with(['customer', 'eventDays.menuItems'])
             ->whereIn('status', ['Completed', 'Cancelled', 'Confirmed'])
             ->whereHas('eventDays', function ($query) use ($start, $end) {
-                // This ensures we only pick orders where the VERY FIRST day
-                // of the event falls within our report range.
-                $query->select('event_date')
-                    ->whereBetween('event_date', [$start, $end])
-                    ->whereRaw('event_date = (select min(event_date) from banquet_order_days where banquet_order_days.banquet_order_id = banquet_orders.id)');
+                $query->whereBetween('event_date', [$start, $end]);
             })
             ->get();
 
