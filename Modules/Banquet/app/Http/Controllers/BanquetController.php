@@ -28,14 +28,31 @@ class BanquetController extends Controller
             'total_orders' => BanquetOrder::count(),
             'pending_orders' => BanquetOrder::where('status', 'Pending')->count(),
             'total_revenue' => BanquetOrder::sum('total_revenue'),
-            'this_month_events' => BanquetOrder::whereMonth('preparation_date', now()->month)
-                ->whereYear('preparation_date', now()->year)
-                ->count(),
+            'this_month_events' => BanquetOrder::whereHas('eventDays', function ($q) {
+                $q->whereMonth('event_date', now()->month)
+                  ->whereYear('event_date', now()->year);
+            })->count(),
         ];
+
+        $thisMonthOrders = BanquetOrder::with(['customer', 'eventDays' => function ($q) {
+                $q->whereMonth('event_date', now()->month)
+                  ->whereYear('event_date', now()->year);
+            }])
+            ->whereHas('eventDays', function ($q) {
+                $q->whereMonth('event_date', now()->month)
+                  ->whereYear('event_date', now()->year);
+            })
+            ->orderBy(
+                BanquetOrderDay::select('event_date')
+                    ->whereColumn('banquet_order_days.banquet_order_id', 'banquet_orders.id')
+                    ->orderBy('event_date')
+                    ->limit(1)
+            )
+            ->get();
 
         $statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
 
-        return view('banquet::index', compact('statuses', 'stats'));
+        return view('banquet::index', compact('statuses', 'stats', 'thisMonthOrders'));
     }
 
     /**

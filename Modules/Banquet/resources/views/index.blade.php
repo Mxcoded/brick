@@ -70,17 +70,90 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm h-100 bg-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase mb-1 small text-muted">Events This Month</h6>
-                            <h3 class="fw-bold mb-0 text-success">{{ $stats['this_month_events'] }}</h3>
+            <button type="button" class="card-link w-100 border-0 bg-transparent p-0" data-bs-toggle="modal" data-bs-target="#eventsThisMonthModal">
+                <div class="card border-0 shadow-sm h-100 bg-white hover-scale">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase mb-1 small text-muted">Events This Month</h6>
+                                <h3 class="fw-bold mb-0 text-success">{{ $stats['this_month_events'] }}</h3>
+                            </div>
+                            <div class="icon-circle bg-success-subtle text-success rounded-circle p-3">
+                                <i class="fas fa-calendar-check fa-lg"></i>
+                            </div>
                         </div>
-                        <div class="icon-circle bg-success-subtle text-success rounded-circle p-3">
-                            <i class="fas fa-calendar-check fa-lg"></i>
+                        <div class="mt-2 text-end">
+                            <small class="text-muted">View details <i class="fas fa-arrow-right"></i></small>
                         </div>
                     </div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    {{-- Events This Month Modal --}}
+    <div class="modal fade" id="eventsThisMonthModal" tabindex="-1" aria-labelledby="eventsThisMonthModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="eventsThisMonthModalLabel">
+                        <i class="fas fa-calendar-check me-2"></i>Events This Month ({{ now()->format('F Y') }})
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    @if($thisMonthOrders->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover mb-0">
+                                <thead class="table-light text-uppercase small text-muted">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Client / Org</th>
+                                        <th>Event Date</th>
+                                        <th>Type</th>
+                                        <th>Guests</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($thisMonthOrders as $order)
+                                        @foreach($order->eventDays as $day)
+                                            <tr>
+                                                <td><span class="fw-bold text-gold">#{{ $order->order_id }}</span></td>
+                                                <td>
+                                                    <span class="fw-bold">{{ $order->customer?->name }}</span>
+                                                    @if($order->customer?->organization && $order->customer->organization !== 'Private')
+                                                        <br><small class="text-muted"><i class="fas fa-building me-1"></i>{{ $order->customer->organization }}</small>
+                                                    @endif
+                                                </td>
+                                                <td>{{ \Carbon\Carbon::parse($day->event_date)->format('d M Y') }}</td>
+                                                <td><span class="badge bg-info">{{ $day->event_type ?? '—' }}</span></td>
+                                                <td class="text-center">{{ number_format($day->guest_count) }}</td>
+                                                <td class="text-center">
+                                                    @php
+                                                        $colors = ['Pending' => 'warning', 'Confirmed' => 'primary', 'Completed' => 'success', 'Cancelled' => 'danger'];
+                                                    @endphp
+                                                    <span class="badge bg-{{ $colors[$order->status] ?? 'secondary' }} rounded-pill px-3">{{ $order->status }}</span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar text-muted fa-3x mb-3"></i>
+                            <h5>No events this month</h5>
+                            <p class="text-muted mb-0">There are no events scheduled for {{ now()->format('F Y') }}.</p>
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <a href="{{ route('banquet.reports.form') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-pdf me-1"></i> Generate Report
+                    </a>
+                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -178,6 +251,24 @@
     .btn-outline-charcoal:hover {
         background-color: #333333;
         color: #FFFFFF;
+    }
+
+    /* CLICKABLE CARD */
+    .card-link {
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
+    }
+    .card-link:focus-visible {
+        outline: 2px solid #C8A165;
+        outline-offset: 2px;
+        border-radius: 0.375rem;
+    }
+    .hover-scale {
+        transition: transform 0.2s ease-in-out;
+    }
+    .hover-scale:hover {
+        transform: scale(1.03);
     }
 
     /* TABLE */
