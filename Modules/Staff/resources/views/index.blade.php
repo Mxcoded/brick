@@ -106,7 +106,7 @@
             </div>
 
             <div class="col-md-3 mb-4">
-                <a href="{{ route('staff.leaves.admin.history') }}" class="card-link">
+                <button type="button" class="card-link w-100 border-0 bg-transparent p-0" data-bs-toggle="modal" data-bs-target="#onLeaveModal">
                     <div class="card bg-warning text-dark shadow-sm h-100 hover-scale">
                         <div class="card-body p-4 d-flex flex-column">
                             <div>
@@ -121,11 +121,11 @@
                                 </div>
                             </div>
                             <div class="mt-auto pt-2 text-end">
-                                <small>View Report <i class="fas fa-arrow-right"></i></small>
+                                <small>View Details <i class="fas fa-arrow-right"></i></small>
                             </div>
                         </div>
                     </div>
-                </a>
+                </button>
             </div>
             <div class="col-md-3 mb-4">
                 <div class="card bg-danger text-white shadow-sm h-100">
@@ -208,6 +208,64 @@
                 </a>
             </div>
         @endif
+
+        {{-- On Leave Modal --}}
+        <div class="modal fade" id="onLeaveModal" tabindex="-1" aria-labelledby="onLeaveModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title" id="onLeaveModalLabel">
+                            <i class="fas fa-calendar-check me-2"></i>Staff Currently On Leave
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        @if($staffOnLeave->count() > 0)
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Staff Name</th>
+                                            <th>Department</th>
+                                            <th>Branch</th>
+                                            <th>Leave Type</th>
+                                            <th>Start Date</th>
+                                            <th>End Date</th>
+                                            <th>Days</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($staffOnLeave as $leave)
+                                            <tr>
+                                                <td>{{ Str::upper($leave->employee?->name ?? 'N/A') }}</td>
+                                                <td>{{ $leave->employee?->department ?? 'N/A' }}</td>
+                                                <td>{{ $leave->employee?->branch_name ?? 'N/A' }}</td>
+                                                <td><span class="badge bg-info">{{ $leave->leave_type }}</span></td>
+                                                <td>{{ \Carbon\Carbon::parse($leave->start_date)->format('d M Y') }}</td>
+                                                <td>{{ \Carbon\Carbon::parse($leave->end_date)->format('d M Y') }}</td>
+                                                <td class="text-center fw-bold">{{ $leave->days_count ?? '—' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="text-center py-5">
+                                <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                                <h5>No staff currently on leave</h5>
+                                <p class="text-muted mb-0">All approved staff are active at work.</p>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <a href="{{ route('staff.leaves.admin.history') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-history me-1"></i> View Full Leave History
+                        </a>
+                        <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="table-responsive">
             <table id="staffTable" class="table table-bordered table-hover">

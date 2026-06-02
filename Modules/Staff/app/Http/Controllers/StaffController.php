@@ -56,6 +56,13 @@ class StaffController extends Controller
             ->distinct('employee_id')
             ->count('employee_id');
 
+        // Staff on leave with details
+        $staffOnLeave = LeaveRequest::with('employee')
+            ->where('status', 'approved')
+            ->where('start_date', '<=', $currentDate)
+            ->where('end_date', '>=', $currentDate)
+            ->get();
+
         // Active staff (total approved minus staff on leave)
         $activeStaffCount = $totalApprovedStaff - $staffOnLeaveCount;
 
@@ -72,6 +79,7 @@ class StaffController extends Controller
             'employees', 
             'totalApprovedStaff', 
             'staffOnLeaveCount', 
+            'staffOnLeave',
             'activeStaffCount',
             'asokoroStaffCount',
             'wuseStaffCount',
