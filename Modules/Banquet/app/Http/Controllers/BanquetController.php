@@ -28,6 +28,9 @@ class BanquetController extends Controller
             'total_orders' => BanquetOrder::count(),
             'pending_orders' => BanquetOrder::where('status', 'Pending')->count(),
             'total_revenue' => BanquetOrder::sum('total_revenue'),
+            'total_paid' => BanquetPayment::sum('amount'),
+            'total_balance' => BanquetOrder::sum('total_revenue') - BanquetPayment::sum('amount'),
+            'total_customers' => Customer::count(),
             'this_month_events' => BanquetOrder::whereHas('eventDays', function ($q) {
                 $q->whereMonth('event_date', now()->month)
                   ->whereYear('event_date', now()->year);
@@ -50,9 +53,23 @@ class BanquetController extends Controller
             )
             ->get();
 
+        $statusBreakdown = [
+            'Pending' => BanquetOrder::where('status', 'Pending')->count(),
+            'Confirmed' => BanquetOrder::where('status', 'Confirmed')->count(),
+            'Completed' => BanquetOrder::where('status', 'Completed')->count(),
+            'Cancelled' => BanquetOrder::where('status', 'Cancelled')->count(),
+        ];
+
+        $weeklyUpcoming = BanquetOrderDay::with('banquetOrder.customer')
+            ->whereBetween('event_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
+            ->where('event_status', '!=', 'Cancelled')
+            ->orderBy('event_date')
+            ->take(5)
+            ->get();
+
         $statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
 
-        return view('banquet::index', compact('statuses', 'stats', 'thisMonthOrders'));
+        return view('banquet::index', compact('statuses', 'stats', 'thisMonthOrders', 'statusBreakdown', 'weeklyUpcoming'));
     }
 
     /**

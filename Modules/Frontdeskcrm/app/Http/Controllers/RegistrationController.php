@@ -209,7 +209,7 @@ class RegistrationController extends Controller
         $totalGuests = $booking->adults + $booking->children;
         $totalNights = $booking->check_in_date->diffInDays($booking->check_out_date);
         $guest = $booking->guest;
-        $title = ($guest->gender == 'Male') ? 'Mr. ' : 'Ms. ';
+        $title = $guest ? (($guest->gender == 'Male') ? 'Mr. ' : 'Ms. ') : '';
 
         session([
             'returning_guest' => [
@@ -419,13 +419,18 @@ class RegistrationController extends Controller
                 $guest = Guest::where('contact_number', $inputPhone)->first();
             }
 
-            // Smart Merge (Email Check)
+            // Smart Merge (Email Check) — with phone collision guard
             if (!$guest && $inputEmail) {
                 $guest = Guest::where('email', $inputEmail)->first();
                 if ($guest) {
-                    $guest->contact_number = $inputPhone;
-                    $guest->save();
-                    $notificationMessage .= " We found your profile via email and updated your phone number.";
+                    if ($inputPhone) {
+                        $phoneOwner = Guest::where('contact_number', $inputPhone)->where('id', '!=', $guest->id)->first();
+                        if (!$phoneOwner) {
+                            $guest->contact_number = $inputPhone;
+                            $guest->save();
+                            $notificationMessage .= " We found your profile via email and updated your phone number.";
+                        }
+                    }
                 }
             }
 
@@ -447,7 +452,7 @@ class RegistrationController extends Controller
                 // === RETURNING GUEST ===
                 // [CRITICAL FIX] Use '?? $guest->attribute' to fallback to existing DB value
                 // if the input is missing from the form (which happens for Secure Returning Guests).
-                $guest->update([
+                $updateData = [
                     'title' => $validated['title'] ?? $guest->title,
                     'full_name' => $validated['full_name'] ?? $guest->full_name ?? session('returning_guest.name'), // <--- PREVENTS CRASH
                     'nationality' => $validated['nationality'] ?? $guest->nationality,
@@ -455,8 +460,16 @@ class RegistrationController extends Controller
                     'emergency_name' => $validated['emergency_name'] ?? $guest->emergency_name,
                     'emergency_contact' => $validated['emergency_contact'] ?? $guest->emergency_contact,
                     'occupation' => $validated['occupation'] ?? $guest->occupation,
-                    'email' => $validated['email'] ?? $guest->email,
-                ]);
+                ];
+                // Only update email if it's not already taken by another guest
+                $newEmail = $validated['email'] ?? null;
+                if ($newEmail && $newEmail !== $guest->email) {
+                    $emailOwner = Guest::where('email', $newEmail)->where('id', '!=', $guest->id)->first();
+                    if (!$emailOwner) {
+                        $updateData['email'] = $newEmail;
+                    }
+                }
+                $guest->update($updateData);
             } else {
                 // === NEW GUEST ===
                 // ✅ CRITICAL FIX: Recover missing data from Session if form was hidden
@@ -469,19 +482,25 @@ class RegistrationController extends Controller
                     return redirect()->route('frontdesk.registrations.create', ['clear' => 1])
                         ->with('error', 'Session expired or missing data. Please start over.');
                 }
-                $guest = Guest::create([
-                    'title' => $validated['title'] ?? null,
-                    'full_name' =>  $fullName, // Required for new guests
-                    'contact_number' => $contactNumber, // Required for new guests
-                    'email' => $inputEmail,
-                    'nationality' => $validated['nationality'] ?? null,
-                    'home_address' => $validated['home_address'] ?? null,
-                    'gender' => $validated['gender'] ?? null,
-                    'occupation' => $validated['occupation'] ?? null,
-                    'company_name' => $validated['company_name'] ?? null,
-                    'emergency_name' => $validated['emergency_name'] ?? null,
-                    'emergency_contact' => $validated['emergency_contact'] ?? null,
-                ]);
+                // Double-check phone is still unique (format might differ from earlier query)
+                $existingPhoneGuest = Guest::where('contact_number', $contactNumber)->first();
+                if ($existingPhoneGuest) {
+                    $guest = $existingPhoneGuest;
+                } else {
+                    $guest = Guest::create([
+                        'title' => $validated['title'] ?? null,
+                        'full_name' =>  $fullName, // Required for new guests
+                        'contact_number' => $contactNumber, // Required for new guests
+                        'email' => $inputEmail,
+                        'nationality' => $validated['nationality'] ?? null,
+                        'home_address' => $validated['home_address'] ?? null,
+                        'gender' => $validated['gender'] ?? null,
+                        'occupation' => $validated['occupation'] ?? null,
+                        'company_name' => $validated['company_name'] ?? null,
+                        'emergency_name' => $validated['emergency_name'] ?? null,
+                        'emergency_contact' => $validated['emergency_contact'] ?? null,
+                    ]);
+                }
             }
 
             // 5. REGISTRATION SNAPSHOT
@@ -641,7 +660,8 @@ class RegistrationController extends Controller
     // =====================================================================
 
     /**
-     * Display the agent's dashboard of all registrations with Search & Filter.
+     * Display the agent's dashboard of all registrations with Search & Filter,
+     * synced with upcoming and overdue website bookings.
      */
     public function index(Request $request)
     {
@@ -668,10 +688,42 @@ class RegistrationController extends Controller
 
         $registrations = $query->latest()->paginate(10);
 
-        
-        
+        // 2. Sync website bookings — bookings that are ready for check-in
+        if (class_exists(\Modules\Website\Models\Booking::class)) {
+            $today = now()->startOfDay();
+            $bookedIds = Registration::whereNotNull('booking_id')->pluck('booking_id')->toArray();
 
-        return view('frontdeskcrm::registrations.index', compact('registrations'));
+            // Bookings whose check-in has passed (overdue) — auto-mark no_show after 1 day grace
+            $overdueBookings = \Modules\Website\Models\Booking::whereIn('status', ['pending', 'confirmed'])
+                ->where('check_in_date', '<', $today)
+                ->whereNotIn('id', $bookedIds)
+                ->get();
+
+            foreach ($overdueBookings as $booking) {
+                $daysOverdue = $today->diffInDays($booking->check_in_date, false);
+                if ($daysOverdue >= 1) {
+                    // Auto no-show: check-in was 2+ days ago with no action
+                    $booking->update(['status' => 'no_show']);
+                    \Illuminate\Support\Facades\Log::info("Auto no-show for booking {$booking->booking_reference} — {$daysOverdue} day(s) overdue.");
+                }
+            }
+
+            // Re-fetch overdue bookings excluding those just auto-moved (only today/yesterday)
+            $overdueBookings = \Modules\Website\Models\Booking::whereIn('status', ['pending', 'confirmed'])
+                ->where('check_in_date', '<', $today)
+                ->whereNotIn('id', $bookedIds)
+                ->orderBy('check_in_date', 'asc')
+                ->get();
+
+            // Upcoming arrivals (check-in today or in the future)
+            $expectedArrivals = \Modules\Website\Models\Booking::whereIn('status', ['pending', 'confirmed'])
+                ->where('check_in_date', '>=', $today)
+                ->whereNotIn('id', $bookedIds)
+                ->orderBy('check_in_date', 'asc')
+                ->get();
+        }
+
+        return view('frontdeskcrm::registrations.index', compact('registrations', 'expectedArrivals', 'overdueBookings'));
     }
     // --- NEW "WALK-IN" FEATURE (Scenario 3) ---
 
@@ -1836,6 +1888,21 @@ class RegistrationController extends Controller
         ]);
 
         return back()->with('success', 'Payment recorded successfully.');
+    }
+
+    /**
+     * Mark a website booking as no-show directly from the dashboard.
+     */
+    public function markBookingNoShow(Booking $booking)
+    {
+        if (!in_array($booking->status, ['pending', 'confirmed'])) {
+            return back()->with('error', 'Booking cannot be marked as no-show in its current state.');
+        }
+
+        $booking->update(['status' => 'no_show']);
+        Log::info("Booking {$booking->booking_reference} marked as no-show by agent.");
+
+        return back()->with('success', "Booking {$booking->booking_reference} marked as no-show.");
     }
 
 }

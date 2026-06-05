@@ -11,11 +11,19 @@ use App\Enums\RoleEnum; // Import the Enum
 |--------------------------------------------------------------------------
 */
 
+// Pending route – must be BEFORE the permission-gated group to avoid 404 (resource catch-all)
+Route::prefix('staff')
+    ->middleware(['web', 'auth'])
+    ->name('staff.')
+    ->group(function () {
+        Route::get('/pending', [StaffController::class, 'pending'])->name('pending');
+    });
+
 Route::prefix('staff')
     ->middleware(['web', 'auth', 'can:access_staff_dashboard']) // Updated
     ->name('staff.')
     ->group(function () {
-        Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard')->middleware('can:view_employees');
         // **Leave Management Routes** - NOW HANDLED BY LeaveController
         Route::prefix('leaves')->group(function () {
             // User Leave Routes

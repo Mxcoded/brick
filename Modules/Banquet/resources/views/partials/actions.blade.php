@@ -4,9 +4,11 @@
     </button>
     <ul class="dropdown-menu dropdown-menu-end">
         <li><a class="dropdown-item" href="{{ route('banquet.orders.show', $order->order_id) }}"><i class="fas fa-eye me-2 text-primary"></i> View Details</a></li>
-        @can('manage_banquet')
+        @can('banquet.update')
             <li><a class="dropdown-item" href="{{ route('banquet.orders.edit', $order->order_id) }}"><i class="fas fa-edit me-2 text-warning"></i> Edit Order</a></li>
-            <li><a class="dropdown-item" href="{{ route('banquet.orders.pdf', $order->order_id) }}" target="_blank"><i class="fas fa-file-pdf me-2 text-success"></i> Function Sheet</a></li>
+        @endcan
+        <li><a class="dropdown-item" href="{{ route('banquet.orders.pdf', $order->order_id) }}" target="_blank"><i class="fas fa-file-pdf me-2 text-success"></i> Function Sheet</a></li>
+        @can('banquet.delete')
             <li><hr class="dropdown-divider"></li>
             <li>
                 {{-- CHANGE: Added data-url attribute --}}

@@ -41,6 +41,7 @@ class RegisterController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'type' => 'guest',
         ]);
 
         // 1. SECURITY: Force every public signup to be a Guest

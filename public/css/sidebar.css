@@ -1,20 +1,21 @@
 /* --- Root variables for easy theming --- */
 :root {
-    --sidebar-bg: #1c1f26;
+    --sidebar-bg: #333333;
     --sidebar-text: #b0b8c1;
     --sidebar-text-hover: #ffffff;
-    --sidebar-brand-text: #ffffff;
-    --sidebar-active-bg: #ffd700;
-    /* Gold */
-    --sidebar-active-text: #1c1f26;
-    /* Dark text for high contrast on gold */
-    --sidebar-active-border: #ffd700;
-    /* Gold */
+    --sidebar-brand: #C8A165;
+    --sidebar-active-bg: rgba(200, 161, 101, 0.15);
+    --sidebar-active-text: #C8A165;
+    --sidebar-active-border: #C8A165;
     --sidebar-submenu-text: #c2c7d0;
+    --sidebar-item-hover: rgba(255, 255, 255, 0.05);
+    --sidebar-divider: rgba(255, 255, 255, 0.1);
+    --sidebar-toggle-color: #FFFFFF;
 }
 
 body {
     background-color: #f4f6f9;
+    font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
 }
 
 #wrapper {
@@ -28,58 +29,167 @@ body {
     width: 260px;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
     transition: margin 0.3s ease;
+    overflow-y: auto;
 }
 
-#sidebar-wrapper .sidebar-heading {
-    padding: 1.5rem;
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: var(--sidebar-brand-text);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+/* --- Brand --- */
+.sidebar-heading .brand-wrapper {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-right: 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--sidebar-divider);
+    box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), -4px -4px 15px rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
 }
 
+.brand-link {
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--sidebar-brand);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.brand-sub {
+    font-size: 8pt;
+    color: #fff;
+    margin-left: 4px;
+}
+
+/* --- Sidebar links & toggles --- */
 #sidebar-wrapper .list-group-item {
-    background-color: transparent;
+    font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
+    background-color: transparent !important;
     color: var(--sidebar-text);
-    border: none;
-    padding: 1rem 1.5rem;
+    border: none !important;
+    border-left: 3px solid transparent;
+    padding: 0.85rem 1.5rem;
     font-size: 0.95rem;
     transition: all 0.25s ease;
 }
 
-#sidebar-wrapper .list-group-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: var(--sidebar-text-hover);
-    transform: translateX(6px);
+#sidebar-wrapper .list-group-item:hover,
+#sidebar-wrapper .list-group-item:focus-visible {
+    background-color: var(--sidebar-item-hover) !important;
+    color: var(--sidebar-text-hover) !important;
+    padding-left: 1.75rem;
+    border-left-color: var(--sidebar-active-border);
 }
 
-/* --- FIX: Unified Active State for Main and Sub Menus --- */
 #sidebar-wrapper .list-group-item.active {
-    background-color: var(--sidebar-active-bg);
+    background-color: var(--sidebar-active-bg) !important;
     color: var(--sidebar-active-text) !important;
-    /* Use !important to ensure override */
     font-weight: 600;
-    border-left: 4px solid var(--sidebar-active-border);
+    border-left: 3px solid var(--sidebar-active-border);
 }
 
 #sidebar-wrapper .list-group-item.active i {
     color: var(--sidebar-active-text);
-    /* Ensure icon color matches text */
 }
 
-/* --- Submenu specific styles --- */
-#sidebar-wrapper .submenu .list-group-item {
-    padding-left: 2rem;
-    /* Indent submenu items */
-    font-size: 0.9rem;
+/* --- Toggle buttons (collapsible section headers) --- */
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"] {
+    color: var(--sidebar-toggle-color);
+    cursor: pointer;
+}
+
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"]:hover {
+    color: var(--sidebar-active-text);
+}
+
+/* --- Chevron rotation --- */
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"] .fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"][aria-expanded="true"] .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+/* --- Submenu collapse container --- */
+#sidebar-wrapper .collapse:not(.show) {
+    display: none;
+}
+
+/* --- Submenu items --- */
+#sidebar-wrapper .collapse .list-group-item {
+    padding-left: 3.5rem !important;
+    font-size: 0.87rem;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
     color: var(--sidebar-submenu-text);
+    background-color: rgba(0, 0, 0, 0.15) !important;
+    border-left: 3px solid transparent;
 }
 
-/* Ensure active submenu items don't have a left border */
-#sidebar-wrapper .submenu .list-group-item.active {
-    border-left: none;
+#sidebar-wrapper .collapse .list-group-item:hover {
+    color: var(--sidebar-text-hover) !important;
+    background-color: var(--sidebar-item-hover) !important;
+    padding-left: 3.75rem !important;
 }
 
+#sidebar-wrapper .collapse .list-group-item.active {
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--sidebar-active-text) !important;
+    border-left: 3px solid var(--sidebar-active-border);
+}
+
+/* --- Nested submenu (e.g. Newsletter > Campaigns/Subscribers) --- */
+#sidebar-wrapper .collapse .collapse .list-group-item {
+    padding-left: 4.5rem !important;
+    font-size: 0.82rem;
+}
+
+/* --- Divider inside submenus --- */
+.sidebar-divider {
+    border-top: 1px solid var(--sidebar-divider);
+    margin: 0.5rem 1rem;
+}
+
+/* --- Section heading inside submenus --- */
+.sidebar-subheading {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--sidebar-brand);
+    font-weight: 700;
+    padding: 0.5rem 1rem 0.25rem 3.5rem;
+    letter-spacing: 0.5px;
+}
+
+/* --- Operations section heading in main sidebar --- */
+.text-gold {
+    color: var(--sidebar-brand);
+}
+
+/* --- Badge styling inside sidebar items --- */
+#sidebar-wrapper .badge {
+    font-size: 0.7rem;
+    padding: 0.2em 0.5em;
+}
+
+/* --- Scrollbar styling --- */
+#sidebar-wrapper::-webkit-scrollbar {
+    width: 5px;
+}
+
+#sidebar-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#sidebar-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+#sidebar-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* --- Main content area --- */
 #page-content-wrapper {
     width: 100%;
 }
@@ -88,6 +198,7 @@ body {
     margin-left: -260px;
 }
 
+/* --- Responsive --- */
 @media (min-width: 768px) {
     #sidebar-wrapper {
         margin-left: 0;

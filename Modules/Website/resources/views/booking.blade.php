@@ -56,6 +56,14 @@
                                 $reqRoomTypeId = old('room_type_id', request('room_type_id', request('room_id', $selectedRoomType->id ?? '')));
                                 $reqCheckIn = $useCartFlow ? ($cart['check_in'] ?? '') : old('check_in_date', request('check_in_date', request('check_in')));
                                 $reqCheckOut = $useCartFlow ? ($cart['check_out'] ?? '') : old('check_out_date', request('check_out_date', request('check_out')));
+                                // Determine which guest fields already have stored data (read-only if exists)
+                                $hasPhone = Auth::check() && !empty($guest->contact_number);
+                                $hasGender = Auth::check() && !empty($guest->gender);
+                                $hasAddress = Auth::check() && !empty($guest->home_address);
+                                $hasIdType = Auth::check() && !empty($guest->identification_type);
+                                $hasIdNumber = Auth::check() && !empty($guest->identification_number);
+                                $hasNationality = Auth::check() && !empty($guest->nationality);
+                                $hasDob = Auth::check() && !is_null($guest->birthday);
                             @endphp
 
                             @if($useCartFlow)
@@ -125,17 +133,23 @@
                                 <div class="card-body p-4">
                                     <div class="row g-3">
                                         {{-- Name & Email --}}
+                                        @php
+                                            $hasName = Auth::check() && !empty($guest->full_name);
+                                            $hasEmail = Auth::check() && !empty($guest->email);
+                                        @endphp
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Full Name <span
                                                     class="text-danger">*</span></label>
-                                            <input type="text" name="guest_name" class="form-control"
-                                                value="{{ old('guest_name', Auth::user()->name ?? '') }}" required>
+                                            <input type="text" name="guest_name" class="form-control {{ $hasName ? 'bg-light text-muted' : '' }}"
+                                                value="{{ old('guest_name', $guest->full_name ?? Auth::user()->name ?? '') }}" required
+                                                {{ $hasName ? 'readonly' : '' }}>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Email Address <span
                                                     class="text-danger">*</span></label>
-                                            <input type="email" name="guest_email" id="guest_email" class="form-control"
-                                                value="{{ old('guest_email', Auth::user()->email ?? '') }}" required>
+                                            <input type="email" name="guest_email" id="guest_email" class="form-control {{ $hasEmail ? 'bg-light text-muted' : '' }}"
+                                                value="{{ old('guest_email', $guest->email ?? Auth::user()->email ?? '') }}" required
+                                                {{ $hasEmail ? 'readonly' : '' }}>
                                             <div id="emailFeedback" class="invalid-feedback"></div>
                                         </div>
 
@@ -143,20 +157,22 @@
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Phone Number <span
                                                     class="text-danger">*</span></label>
-                                            <input type="tel" name="guest_phone" class="form-control"
-                                                value="{{ old('guest_phone') }}" required>
+                                            <input type="tel" name="guest_phone" class="form-control {{ $hasPhone ? 'bg-light text-muted' : '' }}"
+                                                value="{{ old('guest_phone', $guest->contact_number ?? '') }}" required
+                                                {{ $hasPhone ? 'readonly' : '' }}>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Gender <span
                                                     class="text-danger">*</span></label>
-                                            <select name="guest_gender" class="form-select" required>
-                                                <option value="" disabled selected>Select Gender...</option>
-                                                <option value="male"
-                                                    {{ old('guest_gender') == 'male' ? 'selected' : '' }}>Male</option>
-                                                <option value="female"
-                                                    {{ old('guest_gender') == 'female' ? 'selected' : '' }}>Female</option>
-                                                <option value="other"
-                                                    {{ old('guest_gender') == 'other' ? 'selected' : '' }}>Other</option>
+                                            @php $selGender = old('guest_gender', $guest->gender ?? ''); @endphp
+                                            @if ($hasGender)
+                                                <input type="hidden" name="guest_gender" value="{{ $selGender }}">
+                                            @endif
+                                            <select name="guest_gender" class="form-select {{ $hasGender ? 'bg-light text-muted' : '' }}" required {{ $hasGender ? 'disabled' : '' }}>
+                                                <option value="" disabled {{ empty($selGender) ? 'selected' : '' }}>Select Gender...</option>
+                                                <option value="male" {{ $selGender == 'male' ? 'selected' : '' }}>Male</option>
+                                                <option value="female" {{ $selGender == 'female' ? 'selected' : '' }}>Female</option>
+                                                <option value="other" {{ $selGender == 'other' ? 'selected' : '' }}>Other</option>
                                             </select>
                                         </div>
 
@@ -164,31 +180,26 @@
                                         <div class="col-12">
                                             <label class="form-label fw-bold">Home Address <span
                                                     class="text-danger">*</span></label>
-                                            <input type="text" name="guest_address" class="form-control"
+                                            <input type="text" name="guest_address" class="form-control {{ $hasAddress ? 'bg-light text-muted' : '' }}"
                                                 placeholder="Street Address, City, State"
-                                                value="{{ old('guest_address') }}" required>
+                                                value="{{ old('guest_address', $guest->home_address ?? '') }}" required
+                                                {{ $hasAddress ? 'readonly' : '' }}>
                                         </div>
                                         {{-- ✅ NEW: Identity Verification --}}
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">ID Card Type <span
                                                     class="text-danger">*</span></label>
-                                            <select name="guest_id_type" class="form-select" required>
-                                                <option value="" disabled selected>Select ID Type...</option>
-                                                <option value="International Passport"
-                                                    {{ old('guest_id_type') == 'International Passport' ? 'selected' : '' }}>
-                                                    International Passport</option>
-                                                <option value="NIN"
-                                                    {{ old('guest_id_type') == 'NIN' ? 'selected' : '' }}>NIN (National ID)
-                                                </option>
-                                                <option value="Drivers License"
-                                                    {{ old('guest_id_type') == 'Drivers License' ? 'selected' : '' }}>
-                                                    Driver's License</option>
-                                                <option value="Voters Card"
-                                                    {{ old('guest_id_type') == 'Voters Card' ? 'selected' : '' }}>Voter's
-                                                    Card</option>
-                                                <option value="Other"
-                                                    {{ old('guest_id_type') == 'Other' ? 'selected' : '' }}>Other Govt ID
-                                                </option>
+                                            @php $selIdType = old('guest_id_type', $guest->identification_type ?? ''); @endphp
+                                            @if ($hasIdType)
+                                                <input type="hidden" name="guest_id_type" value="{{ $selIdType }}">
+                                            @endif
+                                            <select name="guest_id_type" class="form-select {{ $hasIdType ? 'bg-light text-muted' : '' }}" required {{ $hasIdType ? 'disabled' : '' }}>
+                                                <option value="" disabled {{ empty($selIdType) ? 'selected' : '' }}>Select ID Type...</option>
+                                                <option value="International Passport" {{ $selIdType == 'International Passport' ? 'selected' : '' }}>International Passport</option>
+                                                <option value="NIN" {{ $selIdType == 'NIN' ? 'selected' : '' }}>NIN (National ID)</option>
+                                                <option value="Drivers License" {{ $selIdType == 'Drivers License' ? 'selected' : '' }}>Driver's License</option>
+                                                <option value="Voters Card" {{ $selIdType == 'Voters Card' ? 'selected' : '' }}>Voter's Card</option>
+                                                <option value="Other" {{ $selIdType == 'Other' ? 'selected' : '' }}>Other Govt ID</option>
                                             </select>
                                             <div class="form-text text-muted">Present this ID at the front desk for
                                                 verification.</div>
@@ -197,21 +208,23 @@
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">ID Number <span
                                                     class="text-danger">*</span></label>
-                                            <input type="text" name="guest_id_number" class="form-control"
-                                                placeholder="e.g. A01234567" value="{{ old('guest_id_number') }}"
-                                                required>
+                                            <input type="text" name="guest_id_number" class="form-control {{ $hasIdNumber ? 'bg-light text-muted' : '' }}"
+                                                placeholder="e.g. A01234567" value="{{ old('guest_id_number', $guest->identification_number ?? '') }}" required
+                                                {{ $hasIdNumber ? 'readonly' : '' }}>
                                         </div>
                                         {{-- Nationality & DOB (NEW) --}}
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Nationality/Country <span
                                                     class="text-danger">*</span></label>
-                                            <input type="text" name="guest_nationality" class="form-control"
-                                                value="{{ old('guest_nationality', 'Nigeria') }}" required>
+                                            <input type="text" name="guest_nationality" class="form-control {{ $hasNationality ? 'bg-light text-muted' : '' }}"
+                                                value="{{ old('guest_nationality', $guest->nationality ?? 'Nigeria') }}" required
+                                                {{ $hasNationality ? 'readonly' : '' }}>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Date of Birth</label>
-                                            <input type="date" name="guest_dob" class="form-control"
-                                                value="{{ old('guest_dob') }}">
+                                            <input type="date" name="guest_dob" class="form-control {{ $hasDob ? 'bg-light text-muted' : '' }}"
+                                                value="{{ old('guest_dob', $guest->birthday?->format('Y-m-d') ?? '') }}"
+                                                {{ $hasDob ? 'readonly' : '' }}>
                                             <div class="form-text text-muted">Required for age verification.</div>
                                         </div>
 

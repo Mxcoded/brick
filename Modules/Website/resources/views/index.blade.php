@@ -372,6 +372,125 @@
         </div>
     </section>
 
+    <!-- Login / Signup Section -->
+    <section id="auth-section" class="py-5 py-lg-7" style="background: linear-gradient(135deg, #f8f6f1 0%, #efece4 100%);">
+        <div class="container">
+            <div class="section-header text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3" style="text-transform: uppercase; color: #1a1a1a;">Guest Access</h2>
+                <p class="mx-auto" style="max-width: 650px; color: #555; font-size: 1.1rem;">Sign in to manage your bookings, or create a new account to get started.</p>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-lg" style="border-radius: 12px;">
+                        <div class="card-header bg-white border-bottom-0 pt-4 px-4" style="border-radius: 12px 12px 0 0;">
+                            <ul class="nav nav-tabs border-0 justify-content-center gap-2 auth-tabs" id="authTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active fw-semibold px-4" id="login-tab" data-bs-toggle="tab"
+                                        data-bs-target="#login" type="button" role="tab" aria-selected="true">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link fw-semibold px-4" id="register-tab" data-bs-toggle="tab"
+                                        data-bs-target="#register" type="button" role="tab" aria-selected="false">
+                                        <i class="fas fa-user-plus me-2"></i>Create Account
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="tab-content" id="authTabContent">
+                                {{-- Login Tab --}}
+                                <div class="tab-pane fade show active" id="login" role="tabpanel">
+                                    <form method="POST" action="{{ route('login') }}">
+                                        @csrf
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold" style="color: #333;">Email Address</label>
+                                            <input type="email" name="email" class="form-control" required
+                                                placeholder="your@email.com" value="{{ old('email') }}"
+                                                style="border-radius: 8px; border: 1px solid #e0dcd3; padding: 0.65rem 1rem;">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold" style="color: #333;">Password</label>
+                                            <input type="password" name="password" class="form-control" required
+                                                placeholder="Enter your password"
+                                                style="border-radius: 8px; border: 1px solid #e0dcd3; padding: 0.65rem 1rem;">
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-4">
+                                            <div class="form-check">
+                                                <input type="checkbox" name="remember" class="form-check-input" id="remember"
+                                                    style="border-color: #C8A165;">
+                                                <label class="form-check-label" for="remember" style="color: #555;">Remember me</label>
+                                            </div>
+                                            <a href="{{ route('password.request') }}" class="text-decoration-none small fw-semibold"
+                                                style="color: #C8A165;">Forgot password?</a>
+                                        </div>
+                                        <button type="submit" class="btn w-100 py-2 fw-bold border-0"
+                                            style="background: linear-gradient(135deg, #C8A165, #b8924f); color: #fff; border-radius: 8px;">
+                                            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                                        </button>
+                                    </form>
+                                </div>
+
+                                {{-- Register Tab --}}
+                                <div class="tab-pane fade" id="register" role="tabpanel">
+                                    <form method="POST" action="{{ route('register') }}">
+                                        @csrf
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold" style="color: #333;">Full Name</label>
+                                                <input type="text" name="name" class="form-control" required
+                                                    placeholder="John Doe" value="{{ old('name') }}"
+                                                    style="border-radius: 8px; border: 1px solid #e0dcd3; padding: 0.65rem 1rem;">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold" style="color: #333;">Email Address</label>
+                                                <input type="email" name="email" class="form-control" required
+                                                    placeholder="your@email.com" value="{{ old('email') }}"
+                                                    style="border-radius: 8px; border: 1px solid #e0dcd3; padding: 0.65rem 1rem;">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-semibold" style="color: #333;">Phone Number</label>
+                                                <input type="text" name="contact_number" class="form-control" required
+                                                    placeholder="+234 800 000 0000" value="{{ old('contact_number') }}"
+                                                    style="border-radius: 8px; border: 1px solid #e0dcd3; padding: 0.65rem 1rem;">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold" style="color: #333;">Password</label>
+                                                <input type="password" name="password" class="form-control" required
+                                                    minlength="8" placeholder="Min 8 characters"
+                                                    style="border-radius: 8px; border: 1px solid #e0dcd3; padding: 0.65rem 1rem;">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold" style="color: #333;">Confirm Password</label>
+                                                <input type="password" name="password_confirmation" class="form-control" required
+                                                    placeholder="Repeat password"
+                                                    style="border-radius: 8px; border: 1px solid #e0dcd3; padding: 0.65rem 1rem;">
+                                            </div>
+                                        </div>
+                                        <div class="form-check mt-3">
+                                            <input type="checkbox" name="terms" class="form-check-input" id="terms" required
+                                                style="border-color: #C8A165;">
+                                            <label class="form-check-label" for="terms" style="color: #555;">
+                                                I agree to the <a href="#" style="color: #C8A165; font-weight: 600;">Terms of Service</a> and
+                                                <a href="#" style="color: #C8A165; font-weight: 600;">Privacy Policy</a>
+                                            </label>
+                                        </div>
+                                        <button type="submit" class="btn w-100 py-2 fw-bold mt-4 border-0"
+                                            style="background: linear-gradient(135deg, #C8A165, #b8924f); color: #fff; border-radius: 8px;">
+                                            <i class="fas fa-user-plus me-2"></i>Create Account
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Testimonials Section -->
     <section class="py-5 py-lg-7 bg-dark text-white">
         <div class="container">
@@ -570,6 +689,40 @@
                 60% {
                     transform: translateY(-10px) translateX(-50%);
                 }
+            }
+
+            /* Auth Section Tabs */
+            .auth-tabs .nav-link {
+                color: #666 !important;
+                background: transparent !important;
+                border: none !important;
+                padding: 0.6rem 1.2rem !important;
+                transition: all 0.2s ease;
+                position: relative;
+            }
+
+            .auth-tabs .nav-link::after {
+                content: '';
+                position: absolute;
+                bottom: -1px;
+                left: 1.2rem;
+                right: 1.2rem;
+                height: 3px;
+                background: #C8A165;
+                transform: scaleX(0);
+                transition: transform 0.2s ease;
+            }
+
+            .auth-tabs .nav-link:hover {
+                color: #333 !important;
+            }
+
+            .auth-tabs .nav-link.active {
+                color: #C8A165 !important;
+            }
+
+            .auth-tabs .nav-link.active::after {
+                transform: scaleX(1);
             }
 
             /* Responsive Adjustments */

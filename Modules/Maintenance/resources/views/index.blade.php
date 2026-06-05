@@ -1,326 +1,272 @@
-@extends('maintenance::layouts.master')
-@section('current-breadcrumb')
-    <li class="breadcrumb-item active" aria-current="page">Maintenance Tracker</li>
-@endsection
+@extends('layouts.master')
 
-@section('content')
-    <div class="container-fluid px-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="fw-bold text-gradient">🏗️ Maintenance Tracker</h1>
-            <a href="{{ route('maintenance.create') }}" class="btn btn-luxury-gold rounded-pill shadow-sm px-4">
-                <i class="fas fa-plus-circle me-2"></i> New Log
-            </a>
-            @auth
-            <a href="{{route('home')}}" class="btn btn-warning rounded-pill shadow-sm">
-                <i class="fas fa-arrow-left me-2"></i> Back Home
-            </a>
-            @endauth
+@section('page-content')
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="fas fa-tools me-2" style="color: var(--luxury-gold);"></i>Maintenance Logs</h2>
+            <p class="text-muted mb-0">Track and manage all maintenance issues across departments</p>
         </div>
+        <div class="d-flex gap-2 mt-2 mt-sm-0">
+            <a href="{{ route('maintenance.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+            </a>
+            <a href="{{ route('maintenance.report') }}" class="btn btn-outline-success">
+                <i class="fas fa-chart-bar me-1"></i> Reports
+            </a>
+            @can('access_maintenance_dashboard')
+                <a href="{{ route('maintenance.create') }}" class="btn btn-gold">
+                    <i class="fas fa-plus me-1"></i> New Log
+                </a>
+            @endcan
+        </div>
+    </div>
 
-        @if (session('success'))
-            <div class="toast-alert position-fixed top-20 end-0 p-3" style="z-index: 1050;">
-                <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
-                    ✅ {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0">{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @php
+        $stats = [
+            'total' => $logs->count(),
+            'open' => $logs->whereIn('status', ['new', 'in_progress'])->count(),
+            'completed' => $logs->where('status', 'completed')->count(),
+            'cancelled' => $logs->where('status', 'cancelled')->count(),
+        ];
+    @endphp
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 h-100">
+                <div class="card-body text-center py-3">
+                    <div class="fs-3 fw-bold text-primary">{{ $stats['total'] }}</div>
+                    <div class="small text-muted text-uppercase">Total</div>
                 </div>
             </div>
-        @endif
-
-        <div class="card border-0 shadow-lg rounded-4">
-            <div class="card-header bg-transparent py-3">
-                <div class="row g-2">
-                    <div class="col-md-4">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-0"><i class="fas fa-search"></i></span>
-                            <input type="search" id="customSearch" class="form-control border-0 bg-light"
-                                placeholder="Search logs...">
-                        </div>
-                    </div>
-                    <div class="col-md-8 d-flex justify-content-end gap-2">
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-light filter-btn active" data-status="all">All</button>
-                            <button type="button" class="btn btn-light filter-btn" data-status="New">New</button>
-                            <button type="button" class="btn btn-light filter-btn" data-status="In Progress">In Progress</button>
-                            <button type="button" class="btn btn-light filter-btn" data-status="Completed">Completed</button>
-                            <button type="button" class="btn btn-light filter-btn" data-status="Cancelled">Cancelled</button>
-                        </div>
-                        <button type="button" class="btn btn-print rounded-pill shadow-sm px-3" id="printBtn" title="Print">
-                            <i class="fas fa-print me-1"></i> Print
-                        </button>
-                    </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-warning bg-opacity-10 h-100">
+                <div class="card-body text-center py-3">
+                    <div class="fs-3 fw-bold text-warning">{{ $stats['open'] }}</div>
+                    <div class="small text-muted text-uppercase">Open</div>
                 </div>
             </div>
-
-            <div class="card-body p-0">
-                <div class="table-responsive w-100">
-                    <table id="maintenanceTable" class="table table-hover align-middle mb-0 w-100">
-                        <thead class="bg-light-100">
-                            <tr>
-                                <th class="ps-4">Location</th>
-                                <th>Complaint Date</th>
-                                <th>Nature of Complaint</th>
-                                <th>Status</th>
-                                <th>Last Updated</th>
-                                <th class="text-end pe-4">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($logs as $log)
-                                <tr class="hover-scale">
-                                    <td class="ps-4">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                                            {{ $log->location }}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-light text-dark">
-                                            <i class="fas fa-calendar-day me-2"></i>
-                                            {{ $log->complaint_datetime->format('M d, Y H:i') }}
-                                        </span>
-                                    </td>
-                                    <td class="text-truncate" style="max-width: 200px;">
-                                        {{ $log->nature_of_complaint }}
-                                    </td>
-                                    <td>
-                                        @php
-                                            $statusConfig = [
-                                                'new' => ['color' => 'primary', 'icon' => 'clock'],
-                                                'in_progress' => ['color' => 'warning', 'icon' => 'tools'],
-                                                'completed' => ['color' => 'success', 'icon' => 'check-circle'],
-                                                'cancelled' => ['color' => 'danger', 'icon' => 'times-circle'],
-                                            ][$log->status] ?? ['color' => 'secondary', 'icon' => 'question-circle'];
-                                        @endphp
-                                        <span
-                                            class="badge rounded-pill bg-{{ $statusConfig['color'] }}-100 text-{{ $statusConfig['color'] }}">
-                                            <i class="fas fa-{{ $statusConfig['icon'] }} me-2"></i>
-                                            {{ ucwords(str_replace('_', ' ', $log->status)) }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {{ $log->updated_at->diffForHumans() }}
-                                    </td>
-                                    <td class="text-end pe-4">
-                                        <div class="btn-group btn-group-sm shadow-sm">
-                                            <a href="{{ route('maintenance.show', $log->id) }}"
-                                                class="btn btn-light border" data-bs-toggle="tooltip" title="Show Detail">
-                                                <i class="fas fa-eye text-info"></i>
-                                            </a>
-                                            <a href="{{ route('maintenance.edit', $log->id) }}"
-                                                class="btn btn-light border" data-bs-toggle="tooltip" title="Update Log">
-                                                <i class="fas fa-edit text-primary"></i>
-                                            </a>
-                                            @can('access_maintenance_dashboard')
-                                            <form action="{{ route('maintenance.destroy', $log->id) }}" method="POST">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-light border" data-bs-toggle="tooltip"
-                                                    title="Delete" onclick="return confirmAction('delete')">
-                                                    <i class="fas fa-trash text-danger"></i>
-                                                </button>
-                                            </form>
-                                            @endcan
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="6" class="text-center py-5">
-                                        <div class="empty-state">
-                                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                                            <h4 class="fw-bold">No maintenance logs found</h4>
-                                            <p class="text-muted">Start by creating a new maintenance log</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-success bg-opacity-10 h-100">
+                <div class="card-body text-center py-3">
+                    <div class="fs-3 fw-bold text-success">{{ $stats['completed'] }}</div>
+                    <div class="small text-muted text-uppercase">Completed</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-secondary bg-opacity-10 h-100">
+                <div class="card-body text-center py-3">
+                    <div class="fs-3 fw-bold text-secondary">{{ $stats['cancelled'] }}</div>
+                    <div class="small text-muted text-uppercase">Cancelled</div>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 py-3">
+            <span class="fw-semibold"><i class="fas fa-list me-2" style="color: var(--luxury-gold);"></i>All Logs</span>
+            <div class="d-flex flex-wrap gap-1" id="statusFilters">
+                <button class="btn btn-sm status-filter active" data-status="">All</button>
+                <button class="btn btn-sm status-filter" data-status="new">New</button>
+                <button class="btn btn-sm status-filter" data-status="in_progress">Doing</button>
+                <button class="btn btn-sm status-filter" data-status="completed">Done</button>
+                <button class="btn btn-sm status-filter" data-status="cancelled">Cancel</button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if ($logs->count())
+                <div class="table-responsive">
+                    <table id="logsTable" class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 60px;">#</th>
+                                <th>Location</th>
+                                <th style="width: 110px;">Department</th>
+                                <th>Complaint</th>
+                                <th style="width: 140px;">Lodged By</th>
+                                <th style="width: 100px;">Status</th>
+                                <th style="width: 100px;">Date</th>
+                                <th style="width: 110px;">Cost (NGN)</th>
+                                <th style="width: 110px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($logs as $log)
+                                @php
+                                    $statusBorder = ['new' => '#ffc107', 'in_progress' => '#0d6efd', 'completed' => '#198754', 'cancelled' => '#6c757d'];
+                                    $departmentColors = ['IT' => '#0d6efd', 'Maintenance' => '#198754', 'Housekeeping' => '#dc3545', 'Electrical' => '#ffc107', 'Plumbing' => '#0dcaf0', 'HVAC' => '#6f42c1', 'Security' => '#fd7e14', 'Other' => '#6c757d'];
+                                    $deptColor = $departmentColors[$log->department] ?? '#6c757d';
+                                @endphp
+                                <tr data-status="{{ $log->status }}" style="border-left: 4px solid {{ $statusBorder[$log->status] }};">
+                                    <td class="text-muted">{{ $log->id }}</td>
+                                    <td class="fw-medium">{{ $log->location }}</td>
+                                    <td><span class="badge" style="background-color: {{ $deptColor }};">{{ $log->department }}</span></td>
+                                    <td>
+                                        <a href="{{ route('maintenance.show', $log->id) }}" class="text-decoration-none text-dark fw-medium">
+                                            {{ Str::limit($log->nature_of_complaint, 50) }}
+                                        </a>
+                                    </td>
+                                    <td class="small">{{ $log->lodged_by }}</td>
+                                    <td>
+                                        @php
+                                            $statusColors = ['new' => '#ffc107', 'in_progress' => '#0d6efd', 'completed' => '#198754', 'cancelled' => '#6c757d'];
+                                            $statusIcons = ['new' => 'fa-exclamation-circle', 'in_progress' => 'fa-sync-alt', 'completed' => 'fa-check-circle', 'cancelled' => 'fa-times-circle'];
+                                            $statusLabels = ['new' => 'New', 'in_progress' => 'Doing', 'completed' => 'Done', 'cancelled' => 'Cancel'];
+                                        @endphp
+                                        <div class="dropdown status-dropdown">
+                                            <button class="btn btn-sm rounded-pill dropdown-toggle status-badge" type="button"
+                                                data-bs-toggle="dropdown" aria-expanded="false"
+                                                style="background-color: {{ $statusColors[$log->status] }}; color: {{ $log->status === 'new' ? '#212529' : '#fff' }}; border: none;">
+                                                <i class="fas {{ $statusIcons[$log->status] }} me-1"></i>
+                                                {{ $statusLabels[$log->status] }}
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                                                @foreach (['new' => ['New', '#ffc107'], 'in_progress' => ['Doing', '#0d6efd'], 'completed' => ['Done', '#198754'], 'cancelled' => ['Cancel', '#6c757d']] as $st => $info)
+                                                    <li>
+                                                        <form action="{{ route('maintenance.toggle-status', $log->id) }}" method="POST" class="status-toggle-form">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <input type="hidden" name="status" value="{{ $st }}">
+                                                            <button type="submit" class="dropdown-item small {{ $log->status === $st ? 'active' : '' }}"
+                                                                style="{{ $log->status === $st ? 'background-color: ' . $info[1] . '; color: ' . ($st === 'new' ? '#212529' : '#fff') : '' }};"
+                                                                {{ $log->status === $st ? 'disabled' : '' }}>
+                                                                <i class="fas {{ $statusIcons[$st] }} me-2" style="color: {{ $info[1] }};"></i>
+                                                                {{ $info[0] }}
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted small">{{ $log->complaint_datetime->format('M d, Y') }}</td>
+                                    <td class="text-nowrap text-end font-monospace">{{ $log->cost_of_fixing ? number_format($log->cost_of_fixing, 2) : '--' }}</td>
+                                    <td>
+                                        <div class="d-flex gap-1">
+                                            <a href="{{ route('maintenance.show', $log->id) }}" class="btn btn-sm btn-outline-secondary" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            @can('access_maintenance_dashboard')
+                                                <a href="{{ route('maintenance.edit', $log->id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" title="Delete"
+                                                    data-bs-toggle="modal" data-bs-target="#deleteModal{{ $log->id }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            @endcan
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-center py-5">
+                    <i class="fas fa-tools fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Maintenance Logs Yet</h5>
+                    <p class="text-muted">Create the first maintenance log to get started.</p>
+                    <a href="{{ route('maintenance.create') }}" class="btn btn-gold">
+                        <i class="fas fa-plus me-1"></i> Create First Log
+                    </a>
+                </div>
+            @endif
+        </div>
+    </div>
 @endsection
 
-@section('scripts')
-    <!-- DataTables CSS and JS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-
-    <style>
-        /* Hide DataTables default search - we use custom search */
-        .dataTables_filter {
-            display: none !important;
-        }
-        /* Full width table */
-        .dataTables_wrapper {
-            width: 100%;
-        }
-        #maintenanceTable {
-            width: 100% !important;
-        }
-        /* Luxury Gold Button */
-        .btn-luxury-gold {
-            background: linear-gradient(135deg, #C5A572 0%, #D4AF37 100%);
-            border: none;
-            color: #fff;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .btn-luxury-gold:hover {
-            background: linear-gradient(135deg, #B8956A 0%, #C5A572 100%);
-            color: #fff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(197, 165, 114, 0.4);
-        }
-        /* Print Button */
-        .btn-print {
-            background: #fff;
-            border: 2px solid #C5A572;
-            color: #C5A572;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .btn-print:hover {
-            background: #C5A572;
-            color: #fff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(197, 165, 114, 0.4);
-        }
-        /* Luxury Gold Pagination for Bootstrap 5 DataTables */
-        .dataTables_wrapper .dataTables_paginate .pagination .page-item.active .page-link {
-            background-color: #C5A572 !important;
-            border-color: #C5A572 !important;
-            color: #fff !important;
-        }
-        .dataTables_wrapper .dataTables_paginate .pagination .page-link {
-            color: #C5A572;
-        }
-        .dataTables_wrapper .dataTables_paginate .pagination .page-link:hover {
-            background-color: #F5EFE6 !important;
-            border-color: #C5A572 !important;
-            color: #C5A572 !important;
-        }
-        .dataTables_wrapper .dataTables_paginate .pagination .page-link:focus {
-            box-shadow: 0 0 0 0.25rem rgba(197, 165, 114, 0.25);
-        }
-        /* Page length selector styling */
-        .dataTables_wrapper .dataTables_length {
-            padding: 0.75rem 1rem;
-        }
-        .dataTables_wrapper .dataTables_length select {
-            border: 1px solid #C5A572;
-            border-radius: 6px;
-            padding: 0.375rem 2rem 0.375rem 0.75rem;
-            color: #C5A572;
-        }
-        .dataTables_wrapper .dataTables_length select:focus {
-            border-color: #C5A572;
-            box-shadow: 0 0 0 0.25rem rgba(197, 165, 114, 0.25);
-            outline: none;
-        }
-        /* Bottom section layout */
-        .dataTables_wrapper .bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            padding: 1rem;
-            border-top: 1px solid #e9ecef;
-        }
-        .dataTables_info {
-            color: #6c757d;
-        }
-        /* Print styles */
-        @media print {
-            .btn, .btn-group, .card-header, .toast-alert, .dataTables_paginate, .dataTables_info, .dataTables_length {
-                display: none !important;
-            }
-            .card {
-                border: none !important;
-                box-shadow: none !important;
-            }
-            .table {
-                font-size: 12px;
-            }
-            h1 {
-                font-size: 18px;
-                -webkit-text-fill-color: #333 !important;
-                background: none !important;
-            }
-        }
-    </style>
-
-    <script>
-        $(document).ready(function() {
-            const table = $('#maintenanceTable').DataTable({
-                dom: '<"top"l>rt<"bottom d-flex justify-content-between align-items-center flex-wrap px-3 py-2"ip><"clear">',
-                order: [[3, 'asc']], // Sort by Status column (New first alphabetically)
-                pageLength: 10, // Default 10 items per page
-                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]], // Page length options
-                language: {
-                    search: '',
-                    searchPlaceholder: "Search logs...",
-                    lengthMenu: "Show _MENU_ entries"
-                },
-                columnDefs: [
-                    {
-                        orderable: false,
-                        targets: [5]
-                    },
-                    {
-                        // Custom sort for status: New > In Progress > Completed > Cancelled
-                        targets: 3,
-                        type: 'status-priority'
+@section('page-scripts')
+<script>
+    $(document).ready(function () {
+        $('.status-toggle-form').on('submit', function (e) {
+            e.preventDefault();
+            var form = $(this);
+            var dropdown = form.closest('.dropdown-menu');
+            var btn = dropdown.closest('.status-dropdown').find('.dropdown-toggle');
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+            $.ajax({
+                url: form.attr('action'),
+                method: 'POST',
+                data: form.serialize(),
+                dataType: 'json',
+                success: function (res) {
+                    if (res.success) {
+                        var colors = {'new': '#ffc107', 'in_progress': '#0d6efd', 'completed': '#198754', 'cancelled': '#6c757d'};
+                        var icons = {'new': 'fa-exclamation-circle', 'in_progress': 'fa-sync-alt', 'completed': 'fa-check-circle', 'cancelled': 'fa-times-circle'};
+                        var labels = {'new': 'New', 'in_progress': 'Doing', 'completed': 'Done', 'cancelled': 'Cancel'};
+                        var s = res.status;
+                        btn.css('background-color', colors[s]);
+                        btn.css('color', s === 'new' ? '#212529' : '#fff');
+                        btn.html('<i class="fas ' + icons[s] + ' me-1"></i> ' + labels[s]);
+                        form.closest('tr').css('border-left-color', colors[s]).attr('data-status', s);
+                        dropdown.find('.dropdown-item').each(function () {
+                            var st = $(this).closest('form').find('input[name="status"]').val();
+                            $(this).removeClass('active').prop('disabled', false).css({'background-color': '', 'color': ''});
+                            if (st === s) {
+                                $(this).addClass('active').prop('disabled', true).css({'background-color': colors[s], 'color': s === 'new' ? '#212529' : '#fff'});
+                            }
+                        });
                     }
-                ]
-            });
-
-            // Custom sorting for status priority
-            $.fn.dataTable.ext.type.order['status-priority-pre'] = function(data) {
-                const statusOrder = {
-                    'New': 1,
-                    'In Progress': 2,
-                    'Completed': 3,
-                    'Cancelled': 4
-                };
-                // Extract text from the badge
-                const text = $(data).text().trim();
-                return statusOrder[text] || 99;
-            };
-
-            // Custom search input
-            $('#customSearch').on('keyup', function() {
-                table.search(this.value).draw();
-            });
-
-            // Status filtering
-            $('.filter-btn').click(function() {
-                const status = $(this).data('status');
-                $('.filter-btn').removeClass('active');
-                $(this).addClass('active');
-                table.column(3).search(status === 'all' ? '' : status).draw();
-            });
-
-            // Initialize tooltips
-            $('[data-bs-toggle="tooltip"]').tooltip();
-
-            // Auto-hide success message
-            setTimeout(function() {
-                $('.toast-alert').fadeOut('slow');
-            }, 3000);
-
-            // Print button
-            $('#printBtn').click(function() {
-                window.print();
+                },
+                complete: function () { btn.prop('disabled', false); }
             });
         });
 
-        function confirmAction(type) {
-            return confirm(`Are you sure you want to ${type} this log?`);
-        }
-    </script>
+        var table = $('#logsTable').DataTable({
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            order: [[0, 'desc']],
+            language: { search: "Search logs:" },
+            dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
+            columnDefs: [
+                { targets: [8], orderable: false }
+            ]
+        });
+
+        $('#statusFilters .status-filter').click(function () {
+            $('#statusFilters .status-filter').removeClass('active');
+            $(this).addClass('active');
+            var status = $(this).data('status');
+            $.fn.dataTable.ext.search.pop();
+            if (status !== '') {
+                $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                    return $(table.row(dataIndex).node()).data('status') === status;
+                });
+            }
+            table.draw();
+        });
+    });
+</script>
+@endsection
+
+@section('styles')
+<style>
+    .card { border-radius: 10px; }
+    .card-header { border-bottom: 2px solid #f0f0f0; }
+    table.dataTable thead th { border-bottom: 2px solid #f0f0f0 !important; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
+    table.dataTable tbody tr { transition: background-color 0.15s ease, box-shadow 0.15s ease; }
+    table.dataTable tbody tr:hover { background-color: #f8f9fa !important; }
+    .dataTables_wrapper .dataTables_info { padding-left: 0; font-size: 0.85rem; }
+    .dataTables_wrapper .dataTables_paginate { padding-right: 0; }
+    .dataTables_filter input { border: 1px solid #ddd; border-radius: 8px; padding: 5px 12px; font-size: 0.9rem; }
+    .dataTables_filter input:focus { border-color: #C8A165; outline: none; box-shadow: 0 0 0 3px rgba(200, 161, 101, 0.15); }
+    .dataTables_length select { border: 1px solid #ddd; border-radius: 8px; padding: 4px 28px 4px 10px; appearance: auto; }
+    #statusFilters .status-filter { border-radius: 20px; padding: 4px 14px; font-size: 0.8rem; font-weight: 500; border: 1px solid #dee2e6; background: #fff; color: #666; transition: all 0.15s; }
+    #statusFilters .status-filter:hover { border-color: #C8A165; color: #C8A165; }
+    #statusFilters .status-filter.active { background: #C8A165; border-color: #C8A165; color: #fff; }
+    .status-dropdown .dropdown-toggle { font-size: 0.78rem; padding: 3px 12px; }
+    .status-dropdown .dropdown-menu { min-width: 140px; border-radius: 10px; padding: 6px; }
+    .status-dropdown .dropdown-item { border-radius: 6px; padding: 6px 10px; font-size: 0.82rem; }
+    .status-dropdown .dropdown-item:hover { background-color: #f5f5f5; }
+</style>
 @endsection

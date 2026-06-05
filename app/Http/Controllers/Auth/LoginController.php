@@ -31,17 +31,27 @@ class LoginController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        // 2. Staff Dashboard (HR, Receptionist, Managers go here)
-        if ($user->can('access_staff_dashboard')) {
+        // 2. Front Desk
+        if ($user->can('access_frontdesk_dashboard')) {
+            return redirect()->route('frontdesk.dashboard');
+        }
+
+        // 3. HR Dashboard (only for users with employee management permissions)
+        if ($user->can('access_staff_dashboard') && $user->can('view_employees')) {
             return redirect()->route('staff.dashboard');
         }
 
-        // 3. Front Desk Specific (If you have a separate dashboard for them)
-        if ($user->can('access_frontdesk_dashboard')) {
-            return redirect()->route('frontdesk.dashboard'); // Or whatever the route is
+        // 4. Regular Staff → personal task list
+        if ($user->can('access_tasks_dashboard')) {
+            return redirect()->route('tasks.index');
         }
 
-        // 4. Default: Guest Dashboard
+        // 5. Staff with no roles assigned
+        if ($user->isStaff()) {
+            return redirect()->route('staff.pending');
+        }
+
+        // 6. Default: Guest Dashboard
         return redirect()->route('guest.dashboard');
     }
 }

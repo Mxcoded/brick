@@ -17,7 +17,7 @@ use Modules\Inventory\Http\Controllers\DepartmentController;
 |
 */
 
-Route::group(['prefix' => 'inventory', 'as' => 'inventory.'], function () {
+Route::group(['prefix' => 'inventory', 'as' => 'inventory.', 'middleware' => ['auth', 'can:access_inventory_dashboard']], function () {
     // Items management and dashboard
     Route::get('/', [InventoryController::class, 'index'])->name('dashboard');
     Route::resource('items', InventoryController::class);

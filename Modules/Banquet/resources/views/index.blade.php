@@ -40,11 +40,60 @@
             </div>
         </div>
         <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 small opacity-75">Amount Paid</h6>
+                            <h3 class="fw-bold mb-0">₦{{ number_format($stats['total_paid']) }}</h3>
+                        </div>
+                        <div class="icon-circle bg-white text-success rounded-circle p-3">
+                            <i class="fas fa-hand-holding-usd fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 small opacity-75">Outstanding Balance</h6>
+                            <h3 class="fw-bold mb-0">₦{{ number_format($stats['total_balance']) }}</h3>
+                        </div>
+                        <div class="icon-circle bg-white text-danger rounded-circle p-3">
+                            <i class="fas fa-exclamation-triangle fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 small opacity-75">Total Customers</h6>
+                            <h3 class="fw-bold mb-0">{{ $stats['total_customers'] }}</h3>
+                        </div>
+                        <div class="icon-circle bg-white text-info rounded-circle p-3">
+                            <i class="fas fa-users fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- 2. SECOND STATS ROW --}}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
             <div class="card border-0 shadow-sm h-100 bg-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase mb-1 small text-muted">Active Orders</h6>
+                            <h6 class="text-uppercase mb-1 small text-muted">Total Orders</h6>
                             <h3 class="fw-bold mb-0 text-charcoal">{{ $stats['total_orders'] }}</h3>
                         </div>
                         <div class="icon-circle bg-light text-charcoal rounded-circle p-3">
@@ -88,6 +137,26 @@
                     </div>
                 </div>
             </button>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100 bg-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 small text-muted">Order Status</h6>
+                            <div class="d-flex gap-2 flex-wrap mt-2">
+                                @foreach ($statusBreakdown as $status => $count)
+                                    @php $colors = ['Pending' => 'warning', 'Confirmed' => 'primary', 'Completed' => 'success', 'Cancelled' => 'danger']; @endphp
+                                    <span class="badge bg-{{ $colors[$status] }} rounded-pill px-2">{{ $status }}: {{ $count }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="icon-circle bg-light text-muted rounded-circle p-3 align-self-start">
+                            <i class="fas fa-chart-pie fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -159,20 +228,60 @@
         </div>
     </div>
 
-    {{-- 2. MAIN CONTENT AREA --}}
+    {{-- 3. UPCOMING THIS WEEK --}}
+    @if($weeklyUpcoming->isNotEmpty())
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-gold"><i class="fas fa-calendar-week me-2"></i>Upcoming This Week</h5>
+            @can('banquet.create')
+            <a href="{{ route('banquet.orders.create') }}" class="btn btn-sm btn-gold"><i class="fas fa-plus me-1"></i> New Event</a>
+            @endcan
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="bg-light text-uppercase small text-muted">
+                        <tr>
+                            <th>Date</th>
+                            <th>Event</th>
+                            <th>Client</th>
+                            <th>Venue</th>
+                            <th>Guests</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($weeklyUpcoming as $day)
+                            <tr>
+                                <td class="fw-bold">{{ \Carbon\Carbon::parse($day->event_date)->format('d M') }}</td>
+                                <td>{{ $day->event_type ?? '—' }}</td>
+                                <td>{{ $day->banquetOrder->customer?->name ?? $day->banquetOrder->contact_person_name ?? '—' }}</td>
+                                <td>{{ $day->venue?->name ?? '—' }}</td>
+                                <td class="text-center">{{ number_format($day->guest_count) }}</td>
+                                <td>{{ $day->start_time ? \Carbon\Carbon::parse($day->start_time)->format('g:i A') : '—' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- 4. MAIN CONTENT AREA --}}
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold text-gold"><i class="fas fa-list me-2"></i>Order Management</h5>
-            @can('manage-banquet')
                 <div class="d-flex gap-2">
                     <a href="{{ route('banquet.reports.form') }}" class="btn btn-outline-charcoal btn-sm">
                         <i class="fas fa-file-pdf me-2"></i>Reports
                     </a>
+                    @can('banquet.create')
                     <a href="{{ route('banquet.orders.create') }}" class="btn btn-gold btn-sm">
                         <i class="fas fa-plus me-2"></i>New Order
                     </a>
+                    @endcan
                 </div>
-            @endcan
         </div>
         
         <div class="card-body">

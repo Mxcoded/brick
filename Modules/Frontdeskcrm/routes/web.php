@@ -53,6 +53,9 @@ Route::prefix('frontdesk')
         // Route to process the conversion
         Route::post('/bookings/{ref}/process', [RegistrationController::class, 'processBookingCheckin'])
             ->name('bookings.process');
+        // Route to mark a booking as no-show directly
+        Route::post('/bookings/{booking}/no-show', [RegistrationController::class, 'markBookingNoShow'])
+            ->name('bookings.no-show');
     //records a payment made against a registration.
     Route::post('/registrations/{registration}/payment', [RegistrationController::class, 'storePayment'])
         ->name('registrations.payment.store');
@@ -103,10 +106,10 @@ Route::prefix('frontdesk')
         // --- MASTER DATA MANAGEMENT ---
 
         // Routes for managing Booking Sources (e.g., Walk-in, Booking.com).
-        Route::resource('booking-sources', BookingSourceController::class)->except(['show']);
+        Route::resource('booking-sources', BookingSourceController::class);
 
         // Routes for managing Guest Types (e.g., Corporate, VIP).
-        Route::resource('guest-types', GuestTypeController::class)->except(['show']);
+        Route::resource('guest-types', GuestTypeController::class);
 
         // --- GUEST DIRECTORY MANAGEMENT ---
         Route::prefix('guests')->name('guests.')->group(function () {

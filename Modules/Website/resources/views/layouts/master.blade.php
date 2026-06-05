@@ -111,43 +111,343 @@
             color: var(--color-dark-gray);
         }
 
-        /* Enhanced logo styling */
+        /* ===== Enhanced Navbar ===== */
+        .navbar {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
         .navbar-brand {
             padding: 0;
+            position: relative;
+            z-index: 2;
         }
 
         .navbar-brand img {
-            height: 100px;
-            /* Larger default size */
+            height: 80px;
             width: auto;
-            transition: transform 0.3s ease;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
 
         .navbar-brand img:hover {
             transform: scale(1.05);
         }
 
+        /* Nav link base */
         .nav-link {
             font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.9rem;
-            padding: 0.5rem 1rem !important;
-            transition: color 0.3s ease;
+            letter-spacing: 0.8px;
+            font-size: 0.8rem;
+            padding: 0.5rem 1.1rem !important;
+            transition: all 0.3s ease;
+            position: relative;
+            color: rgba(255,255,255,0.8) !important;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            left: 1.1rem;
+            right: 1.1rem;
+            height: 2px;
+            background: var(--color-gold);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: #fff !important;
+        }
+
+        .nav-link:hover::after {
+            transform: scaleX(1);
         }
 
         .nav-link.active {
-            color: #d4a017 !important;
-            /* Gold/Primary Color */
+            color: var(--color-gold) !important;
         }
 
-        .active-link {
-            color: black !important;
-            font-weight: bold;
-            background-color: rgba(255, 215, 0, 0.1);
-            /* subtle gold highlight */
-            border-left: 4px solid gold;
-            /* optional accent */
+        .nav-link.active::after {
+            transform: scaleX(1);
+        }
+
+        /* Navbar CTA buttons */
+        .btn-nav-auth {
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding: 0.45rem 1.1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-nav-auth:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-nav-gold {
+            background: var(--color-gold);
+            border: 1px solid var(--color-gold);
+            color: #1a1a1a !important;
+            box-shadow: 0 2px 8px rgba(200, 161, 101, 0.3);
+        }
+
+        .btn-nav-gold:hover {
+            background: #b08d55;
+            border-color: #b08d55;
+            color: #fff !important;
+            box-shadow: 0 4px 14px rgba(200, 161, 101, 0.4);
+        }
+
+        .btn-nav-outline {
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff !important;
+            background: transparent;
+        }
+
+        .btn-nav-outline:hover {
+            border-color: var(--color-gold);
+            color: var(--color-gold) !important;
+            background: rgba(200, 161, 101, 0.08);
+        }
+
+        /* ===== Animated Hamburger ===== */
+        .navbar-toggler {
+            border: none;
+            padding: 0;
+            width: 36px;
+            height: 36px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        .navbar-toggler-icon {
+            background-image: none !important;
+            position: relative;
+            width: 28px;
+            height: 20px;
+            display: inline-block;
+        }
+
+        .navbar-toggler-icon span {
+            display: block;
+            position: absolute;
+            height: 2px;
+            width: 100%;
+            background: #fff;
+            border-radius: 2px;
+            left: 0;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-toggler-icon span:nth-child(1) {
+            top: 0;
+        }
+        .navbar-toggler-icon span:nth-child(2) {
+            top: 9px;
+        }
+        .navbar-toggler-icon span:nth-child(3) {
+            top: 18px;
+        }
+
+        .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon span:nth-child(1) {
+            top: 9px;
+            transform: rotate(45deg);
+        }
+        .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon span:nth-child(2) {
+            opacity: 0;
+        }
+        .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon span:nth-child(3) {
+            top: 9px;
+            transform: rotate(-45deg);
+        }
+
+        /* ===== Mobile Menu ===== */
+        @media (max-width: 991.98px) {
+            .navbar {
+                padding-top: 0.5rem;
+                padding-bottom: 0.5rem;
+            }
+
+            .navbar-brand img {
+                height: 50px;
+            }
+
+            .navbar-collapse {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(20, 20, 20, 0.98);
+                z-index: 1;
+                padding: 90px 1.5rem 1.5rem;
+                overflow-y: auto;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.35s ease;
+            }
+
+            .navbar-collapse.show {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .navbar-nav {
+                margin: 0 !important;
+            }
+
+            .navbar-nav .nav-item {
+                opacity: 0;
+                transform: translateY(12px);
+                transition: all 0.35s ease;
+            }
+
+            .navbar-collapse.show .nav-item {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .navbar-collapse.show .nav-item:nth-child(1) { transition-delay: 0.05s; }
+            .navbar-collapse.show .nav-item:nth-child(2) { transition-delay: 0.1s; }
+            .navbar-collapse.show .nav-item:nth-child(3) { transition-delay: 0.15s; }
+            .navbar-collapse.show .nav-item:nth-child(4) { transition-delay: 0.2s; }
+            .navbar-collapse.show .nav-item:nth-child(5) { transition-delay: 0.25s; }
+            .navbar-collapse.show .nav-item:nth-child(6) { transition-delay: 0.3s; }
+            .navbar-collapse.show .nav-item:nth-child(7) { transition-delay: 0.35s; }
+            .navbar-collapse.show .nav-item:nth-child(8) { transition-delay: 0.4s; }
+            .navbar-collapse.show .nav-item:nth-child(9) { transition-delay: 0.45s; }
+
+            .navbar-nav .nav-link {
+                font-size: 0.95rem;
+                padding: 0.75rem 0 !important;
+                border-bottom: 1px solid rgba(255,255,255,0.06);
+            }
+
+            .navbar-nav .nav-link::after {
+                display: none;
+            }
+
+            .navbar-nav .nav-link.active {
+                color: var(--color-gold) !important;
+                padding-left: 0.75rem !important;
+                border-left: 3px solid var(--color-gold);
+            }
+
+            /* Mobile auth buttons */
+            .nav-mobile-auth {
+                display: flex;
+                flex-direction: column;
+                gap: 0.6rem;
+                margin-top: 1.2rem;
+                padding-top: 1.2rem;
+                border-top: 1px solid rgba(255,255,255,0.1);
+            }
+
+            .nav-mobile-auth .btn {
+                padding: 0.7rem 1rem;
+                font-size: 0.85rem;
+                font-weight: 600;
+                border-radius: 6px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .btn-mobile-signin {
+                background: transparent;
+                border: 1px solid rgba(255,255,255,0.25);
+                color: #fff;
+            }
+
+            .btn-mobile-signin:hover {
+                border-color: var(--color-gold);
+                color: var(--color-gold);
+            }
+
+            .btn-mobile-register {
+                background: var(--color-gold);
+                border: 1px solid var(--color-gold);
+                color: #1a1a1a;
+            }
+
+            .btn-mobile-register:hover {
+                background: #b08d55;
+                color: #fff;
+            }
+
+            /* Hide desktop CTA on mobile */
+            .desktop-cta {
+                display: none !important;
+            }
+        }
+
+        @media (min-width: 992px) {
+            .mobile-auth-links {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar-brand img {
+                height: 44px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .navbar-brand img {
+                height: 38px;
+            }
+
+            .navbar-collapse {
+                padding: 80px 1rem 1rem;
+            }
+        }
+
+        /* Dropdown styling for Our Hotels */
+        .navbar .dropdown-menu {
+            background: #1e1e1e;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            animation: dropdownIn 0.25s ease;
+        }
+
+        @keyframes dropdownIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .navbar .dropdown-item {
+            padding: 0.6rem 0.9rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            color: rgba(255,255,255,0.85);
+        }
+
+        .navbar .dropdown-item:hover {
+            background: rgba(200, 161, 101, 0.12);
+            color: var(--color-gold);
+        }
+
+        .navbar .dropdown-item small {
+            font-size: 0.75rem;
+            opacity: 0.6;
+        }
+
+        .navbar .dropdown-divider {
+            border-color: rgba(255,255,255,0.08);
         }
 
         /* Footer logo styling */
@@ -157,57 +457,16 @@
             margin-bottom: 1rem;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 992px) {
-            .navbar-brand img {
-                height: 50px;
-            }
-
             .footer-logo {
                 height: 60px;
             }
         }
 
-        @media (max-width: 768px) {
-            .navbar-brand img {
-                height: 50px;
-            }
-        }
-
         @media (max-width: 576px) {
-            .navbar-brand img {
-                height: 40px;
-            }
-
             .footer-logo {
                 height: 50px;
             }
-        }
-
-        .navbar {
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-        }
-
-        /* Dropdown styling for Our Hotels */
-        .navbar .dropdown-menu-dark {
-            background-color: #2d2d2d;
-            border: none;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .navbar .dropdown-item {
-            padding: 0.75rem 1rem;
-            transition: background-color 0.2s ease;
-        }
-
-        .navbar .dropdown-item:hover {
-            background-color: rgba(200, 161, 101, 0.15);
-        }
-
-        .navbar .dropdown-item small {
-            font-size: 0.75rem;
         }
 
         .text-muted-footer {
@@ -315,22 +574,24 @@
 <body class="d-flex flex-column min-vh-100">
     <!-- Navigation -->
     <header class="sticky-top">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm py-3">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark" id="siteNavbar">
             <div class="container">
                 <a class="navbar-brand d-flex align-items-center" href="{{ route('website.home') }}">
                     <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
-                        alt="Brickspoint ApartHotel" height="50" class="d-inline-block"
+                        alt="Brickspoint ApartHotel" class="d-inline-block"
                         style="width: auto; object-fit: contain;">
                 </a>
 
-                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false"
                     aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+                    <span class="navbar-toggler-icon">
+                        <span></span><span></span><span></span>
+                    </span>
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarMain">
-                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0 align-items-lg-center">
+                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.home') ? 'active' : '' }}"
                                 href="{{ route('website.home') }}">Home</a>
@@ -338,7 +599,6 @@
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.rooms.*', 'website.booking') ? 'active' : '' }}"
                                 href="{{ route('website.rooms.index') }}">Rooms & Suites</a>
-                            {{-- <a class="nav-link" href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}">Rooms & Suites</a> --}}
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.dining') ? 'active' : '' }}"
@@ -353,23 +613,23 @@
                                 href="#" id="ourHotelsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 Our Hotels
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="ourHotelsDropdown">
+                            <ul class="dropdown-menu" aria-labelledby="ourHotelsDropdown">
                                 <li>
                                     <a class="dropdown-item" href="{{ route('website.location') }}">
-                                        <i class="fas fa-building me-2 text-warning"></i>All Locations
+                                        <i class="fas fa-building me-2" style="color: #C8A165;"></i>All Locations
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item" href="{{ route('website.location') }}#asokoro">
-                                        <i class="fas fa-location-dot me-2 text-success"></i>Brickspoint Asokoro
-                                        <small class="text-muted d-block ps-4">24 Jose Marti Crescent</small>
+                                        <i class="fas fa-location-dot me-2" style="color: #28a745;"></i>Brickspoint Asokoro
+                                        <small class="d-block ps-4" style="color: rgba(255,255,255,0.5);">24 Jose Marti Crescent</small>
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item" href="https://brickspoint.ng" target="_blank" rel="noopener noreferrer">
-                                        <i class="fas fa-location-dot me-2 text-info"></i>Brickspoint Wuse II
-                                        <small class="text-muted d-block ps-4">11 Adzope Crescent <i class="fas fa-external-link-alt ms-1 small"></i></small>
+                                        <i class="fas fa-location-dot me-2" style="color: #17a2b8;"></i>Brickspoint Wuse II
+                                        <small class="d-block ps-4" style="color: rgba(255,255,255,0.5);">11 Adzope Crescent <i class="fas fa-external-link-alt ms-1 small"></i></small>
                                     </a>
                                 </li>
                             </ul>
@@ -389,20 +649,52 @@
                             </a>
                         </li>
                     </ul>
-                    @guest
-                        <div class="d-flex align-items-center">
-                            <a href="{{ route('website.book') }}"
-                                class="btn btn-primary px-4 py-2 rounded fw-bold shadow-sm btn-book-mobile">
-                                <i class="fas fa-calendar-check me-2"></i>Book Now
+
+                    {{-- Desktop CTA --}}
+                    <div class="d-flex align-items-center gap-2 desktop-cta">
+                        @guest
+                            <a href="{{ route('login') }}"
+                                class="btn btn-nav-auth btn-nav-outline">
+                                Sign In
                             </a>
-                            {{-- url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }} --}}
+                            <a href="{{ route('register') }}"
+                                class="btn btn-nav-auth btn-nav-gold">
+                                Register
+                            </a>
+                            <a href="{{ route('website.book') }}"
+                                class="btn btn-nav-auth btn-nav-gold ms-1">
+                                <i class="fas fa-calendar-check me-1"></i>Book Now
+                            </a>
+                        @else
+                            <a href="{{ route('home') }}"
+                                class="btn btn-nav-auth btn-nav-gold">
+                                <i class="fas fa-dashboard me-1"></i>Dashboard
+                            </a>
+                        @endguest
+                    </div>
+
+                    {{-- Mobile Auth Links (inside collapse) --}}
+                    @guest
+                        <div class="mobile-auth-links">
+                            <div class="nav-mobile-auth">
+                                <a href="{{ route('login') }}" class="btn btn-mobile-signin text-center">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                                </a>
+                                <a href="{{ route('register') }}" class="btn btn-mobile-register text-center">
+                                    <i class="fas fa-user-plus me-2"></i>Create Account
+                                </a>
+                                <a href="{{ route('website.book') }}" class="btn btn-nav-gold text-center">
+                                    <i class="fas fa-calendar-check me-2"></i>Book Now
+                                </a>
+                            </div>
                         </div>
                     @else
-                        <div class="d-flex align-items-center">
-                            <a href="{{ route('home') }}"
-                                class="btn btn-primary px-4 py-2 rounded fw-bold shadow-sm btn-book-mobile">
-                                <i class="fas fa-dashboard me-2"></i>Dashboard
-                            </a>
+                        <div class="mobile-auth-links">
+                            <div class="nav-mobile-auth">
+                                <a href="{{ route('home') }}" class="btn btn-nav-gold text-center">
+                                    <i class="fas fa-dashboard me-2"></i>Dashboard
+                                </a>
+                            </div>
                         </div>
                     @endguest
                 </div>
@@ -524,6 +816,10 @@
         </div>
     </footer>
 
+    <!-- Newsletter Popup Modal Trigger (hidden) -->
+    <button type="button" id="newsletterPopupTrigger" data-bs-toggle="modal" data-bs-target="#newsletterPopup"
+        style="display:none;"></button>
+
     <!-- Newsletter Popup Modal -->
     <div class="modal fade" id="newsletterPopup" tabindex="-1" aria-labelledby="newsletterPopupLabel"
         aria-hidden="true">
@@ -531,13 +827,13 @@
             <div class="modal-content border-0 shadow-lg overflow-hidden">
                 <div class="position-relative">
                     {{-- Background Image/Gradient --}}
-                    <div style="background: linear-gradient(135deg, var(--bs-primary) 0%, #f7e141 100%); padding: 2rem;"
+                    <div style="background: linear-gradient(135deg, var(--color-gold) 0%, #81817f 100%); padding: 2rem;"
                         class="text-white text-center">
                         <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
                             data-bs-dismiss="modal" aria-label="Close"></button>
                         <i class="fas fa-envelope-open-text fa-3x mb-3 opacity-75"></i>
-                        <h4 class="fw-bold mb-1" id="newsletterPopupLabel">Stay Updated!</h4>
-                        <p class="mb-0 opacity-75">Get exclusive offers & travel tips</p>
+                        <h4 class="fw-bold mb-1" id="newsletterPopupLabel">Stay in Touch</h4>
+                        <p class="mb-0 opacity-75">Become a member for exclusive offers and latest news.</p>
                     </div>
                 </div>
                 <div class="modal-body p-4">
@@ -571,7 +867,7 @@
                     </p>
                 </div>
                 <div class="modal-footer border-0 bg-light py-2 justify-content-center">
-                    <button type="button" class="btn btn-link text-muted small" id="dontShowAgain">
+                    <button type="button" class="btn btn-link text-muted small" id="newsletterPopupDismiss">
                         Don't show this again
                     </button>
                 </div>
@@ -673,10 +969,11 @@
 
             // Popup form handler
             const popupForm = document.getElementById('newsletterPopupForm');
+            const popupNameInput = document.getElementById('newsletterPopupName');
             const popupEmailInput = document.getElementById('newsletterPopupEmail');
             const popupSubmitBtn = document.getElementById('newsletterPopupBtn');
             const popupFeedback = document.getElementById('newsletterPopupFeedback');
-            const popupNameInput = document.getElementById('newsletterPopupName');
+            
 
             if (popupForm) {
                 popupForm.addEventListener('submit', function(e) {
@@ -689,42 +986,59 @@
             }
 
             // "Don't show again" button
-            const dontShowBtn = document.getElementById('dontShowAgain');
-            if (dontShowBtn) {
-                dontShowBtn.addEventListener('click', function() {
+            const popupDismissBtn = document.getElementById('newsletterPopupDismiss');
+            if (popupDismissBtn) {
+                popupDismissBtn.addEventListener('click', function() {
                     localStorage.setItem('newsletter_popup_dismissed', 'true');
                     const modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
                     if (modal) modal.hide();
                 });
             }
 
-            // Show popup on page load (with delay)
-            const newsletterPopup = document.getElementById('newsletterPopup');
-            if (newsletterPopup && typeof bootstrap !== 'undefined') {
-                const isDismissed = localStorage.getItem('newsletter_popup_dismissed') === 'true';
-                const isSubscribed = localStorage.getItem('newsletter_subscribed') === 'true';
-                const lastShown = localStorage.getItem('newsletter_popup_last_shown');
-                const now = Date.now();
-                const oneDay = 24 * 60 * 60 * 1000;
+        });
+    </script>
 
-                const lastShownTime = lastShown ? parseInt(lastShown, 10) : null;
-                const cooldownElapsed = !lastShownTime || !isNaN(lastShownTime) && (now - lastShownTime) > oneDay;
+    {{-- Debug: manual trigger button --}}
+    <button type="button" onclick="document.getElementById('newsletterPopupTrigger').click()"
+        style="position:fixed;bottom:60px;right:20px;z-index:9999;background:#C8A165;color:#fff;border:none;border-radius:50%;width:80px;height:80px;font-size:24px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);"
+        title="Subscribe to Newsletter"><span class="fa fa-envelope"></span></button>
 
-                const shouldShow = !isDismissed && !isSubscribed && cooldownElapsed;
+    {{-- Newsletter Auto-Show (triggers via hidden Bootstrap data-api button) --}}
+    <script>
+        (function() {
+            var trigger = document.getElementById('newsletterPopupTrigger');
+            if (!trigger) {
+                console.warn('[Newsletter] Trigger button not found.');
+                return;
+            }
 
-                if (shouldShow) {
-                    setTimeout(() => {
-                        try {
-                            const modal = new bootstrap.Modal(newsletterPopup);
-                            modal.show();
-                            localStorage.setItem('newsletter_popup_last_shown', now.toString());
-                        } catch (e) {
-                            console.error('Newsletter popup failed to show:', e);
-                        }
-                    }, 3000);
+            var isDismissed = localStorage.getItem('newsletter_popup_dismissed') === 'true';
+
+            if (isDismissed) {
+                console.log('[Newsletter] Skipped: popup_dismissed flag set.');
+                return;
+            }
+
+            var lastShown = localStorage.getItem('newsletter_popup_last_shown');
+            var now = Date.now();
+            var oneDay = 24 * 60 * 60 * 1000;
+
+            if (lastShown) {
+                var lastTime = parseInt(lastShown, 10);
+                if (!isNaN(lastTime) && (now - lastTime) < oneDay) {
+                    var remaining = Math.round((oneDay - (now - lastTime)) / 1000 / 60);
+                    console.log('[Newsletter] Skipped: shown ' + remaining + 'm ago, cooldown active.');
+                    return;
                 }
             }
-        });
+
+            console.log('[Newsletter] Conditions passed, showing popup in 3s...');
+            setTimeout(function() {
+                console.log('[Newsletter] Clicking trigger now.');
+                trigger.click();
+                localStorage.setItem('newsletter_popup_last_shown', now.toString());
+            }, 3000);
+        })();
     </script>
 </body>
 

@@ -144,6 +144,14 @@ class WebsiteController extends Controller
         $cartService = new BookingCartService();
         $cart = $cartService->getCartSummary();
 
+        // Fetch existing guest profile for logged-in users
+        $guest = null;
+        if (Auth::check()) {
+            $guest = \Modules\Frontdeskcrm\Models\Guest::where('user_id', Auth::id())->first();
+        }
+
+        $viewData = compact('guest');
+
         // If cart has items, use cart-based booking flow
         if (!empty($cart['items'])) {
             // Validate cart availability before showing form
@@ -153,7 +161,7 @@ class WebsiteController extends Controller
                     ->with('error', 'Some rooms in your cart are no longer available. Please review your selection.');
             }
 
-            return view('website::booking', [
+            return view('website::booking', $viewData + [
                 'cart' => $cart,
                 'roomTypes' => collect(),
                 'selectedRoomType' => null,
@@ -178,7 +186,7 @@ class WebsiteController extends Controller
 
         $selectedRoomType = RoomType::find($roomTypeId);
 
-        return view('website::booking', [
+        return view('website::booking', $viewData + [
             'cart' => $cart,
             'roomTypes' => $roomTypes,
             'selectedRoomType' => $selectedRoomType,
@@ -332,7 +340,9 @@ class WebsiteController extends Controller
                         'name' => $validated['guest_name'],
                         'email' => $validated['guest_email'],
                         'password' => Hash::make($request->password),
+                        'type' => 'guest',
                     ]);
+                    $newUser->assignRole('guest');
                     $userId = $newUser->id;
                     Auth::login($newUser);
                 }

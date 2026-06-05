@@ -10,7 +10,6 @@ use Modules\Staff\Models\EmploymentHistory;
 use Modules\Staff\Models\EducationalBackground;
 use Modules\Staff\Models\LeaveRequest;
 use Modules\Staff\Models\LeaveBalance;
-use Modules\Banquet\Models\BanquetOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -88,15 +87,95 @@ class StaffController extends Controller
     }
     public function dashboard()
     {
-        Log::info('StaffController@dashboard reached', ['user_id' => Auth::user()->id]);
+        $now = now();
+        $employees = Employee::all();
+
+        // Core counts
+        $totalEmployees = $employees->where('status', 'approved')->count();
+        $exitedEmployees = $employees->where('status', 'rejected')->count();
+        $pendingApprovals = $employees->where('status', 'draft')->count();
+
+        // Currently on leave
+        $currentDate = $now;
+        $onLeaveCount = LeaveRequest::where('status', 'approved')
+            ->where('start_date', '<=', $currentDate)
+            ->where('end_date', '>=', $currentDate)
+            ->distinct('employee_id')
+            ->count('employee_id');
+
+        $activeAtWork = $totalEmployees - $onLeaveCount;
+
+        $staffOnLeave = LeaveRequest::with('employee')
+            ->where('status', 'approved')
+            ->where('start_date', '<=', $currentDate)
+            ->where('end_date', '>=', $currentDate)
+            ->get();
+
+        // New hires this month
+        $newHiresThisMonth = Employee::where('status', 'approved')
+            ->whereMonth('created_at', $now->month)
+            ->whereYear('created_at', $now->year)
+            ->count();
+
+        // Recent hires (last 5)
+        $recentHires = Employee::where('status', 'approved')
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // Department distribution
+        $departmentStats = Employee::where('status', 'approved')
+            ->select('department', DB::raw('count(*) as count'))
+            ->groupBy('department')
+            ->orderByDesc('count')
+            ->get();
+
+        // Branch breakdown
+        $asokoroCount = $employees->where('status', 'approved')
+            ->filter(fn($e) => strtolower($e->branch_name ?? '') === 'asokoro')->count();
+        $wuseCount = $employees->where('status', 'approved')
+            ->filter(fn($e) => strtolower($e->branch_name ?? '') === 'wuse')->count();
+        $otherBranchCount = $totalEmployees - $asokoroCount - $wuseCount;
+
+        // Gender breakdown
+        $maleCount = $employees->where('status', 'approved')
+            ->where('gender', 'Male')->count();
+        $femaleCount = $employees->where('status', 'approved')
+            ->where('gender', 'Female')->count();
+        $otherGenderCount = $employees->where('status', 'approved')
+            ->where('gender', 'Other')->count();
+
+        // Pending leave requests
+        $pendingLeaves = LeaveRequest::where('status', 'pending')->count();
+
+        // Upcoming birthdays this month
+        $upcomingBirthdays = Employee::where('status', 'approved')
+            ->whereMonth('date_of_birth', $now->month)
+            ->orderByRaw('DAY(date_of_birth)')
+            ->get();
+
         $userRoles = session('user_roles', []);
-        $upcomingEvents = BanquetOrder::upcoming()->take(3)->get();
-        if (view()->exists('staff::dashboard')) {
-            Log::info('Rendering staff::dashboard');
-            return view('staff::dashboard', compact('userRoles', 'upcomingEvents'));
-        }
-        Log::info('View staff::dashboard not found');
-        return response('View staff::dashboard not found', 404);
+
+        return view('staff::dashboard', compact(
+            'totalEmployees',
+            'activeAtWork',
+            'onLeaveCount',
+            'staffOnLeave',
+            'pendingApprovals',
+            'exitedEmployees',
+            'newHiresThisMonth',
+            'recentHires',
+            'departmentStats',
+            'asokoroCount',
+            'wuseCount',
+            'otherBranchCount',
+            'maleCount',
+            'femaleCount',
+            'otherGenderCount',
+            'pendingLeaves',
+            'upcomingBirthdays',
+            'userRoles',
+        ));
     }
     public function create()
     {
@@ -364,6 +443,11 @@ class StaffController extends Controller
         return redirect()->route('staff.index')
             ->with('success', 'Employee deleted successfully.');
     }
+    public function pending()
+    {
+        return view('staff::pending');
+    }
+
     public function showCompleteRegistrationForm()
     {
         return view('staff::complete-registration');

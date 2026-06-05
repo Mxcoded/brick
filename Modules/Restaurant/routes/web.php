@@ -72,7 +72,7 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
     Route::match(['get', 'post'], '/online/orders', [RestaurantController::class, 'viewOrderHistory'])->name('restaurant.online.orders');
 });
 
-Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
+Route::prefix('restaurant-waiter')->middleware(['web', 'auth', 'can:access_restaurant_dashboard'])->group(function () {
     Route::get('/dashboard', [RestaurantController::class, 'waiterDashboard'])->name('restaurant.waiter.dashboard');
     Route::post('/order/{order}/accept', [RestaurantController::class, 'acceptOrder'])->name('restaurant.waiter.accept');
     Route::post('/order/{order}/update-status', [RestaurantController::class, 'updateOrderStatus'])->name('restaurant.waiter.update-status');
@@ -80,7 +80,7 @@ Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
     Route::post('/order/{order}/void', [RestaurantController::class, 'voidOrder'])->name('restaurant.waiter.void');
 });
 
-Route::prefix('restaurant-admin')->middleware(['web', 'auth'])->group(function () {
+Route::prefix('restaurant-admin')->middleware(['web', 'auth', 'can:access_restaurant_dashboard'])->group(function () {
     Route::get('/dashboard', [RestaurantController::class, 'adminDashboard'])->name('restaurant.admin.dashboard');
 
     // Menu Category CRUD

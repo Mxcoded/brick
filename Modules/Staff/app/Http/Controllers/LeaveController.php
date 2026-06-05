@@ -363,7 +363,7 @@ class LeaveController extends Controller
         // return redirect()->route('staff.leaves.admin')->with('success', "Leave request for {$employee->name} has been submitted successfully.");
         // --- NEW CONDITIONAL REDIRECT LOGIC ---
         // Check if the logged-in user has permission to apply leave for others.
-        if (Auth::user()->can('apply-leave-for-others')) {
+        if (Auth::user()->can('leaves.apply-for-others')) {
             // If they can, they are likely HR/Admin. Redirect to the admin page.
             return redirect()->route('staff.leaves.admin')->with('success', "Leave request for {$employee->name} has been submitted successfully.");
         } else {

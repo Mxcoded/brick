@@ -21,7 +21,7 @@ use Modules\Gym\Http\Controllers\GymController;
 //         });
 //     }
 // );
-Route::prefix('gym')->middleware(['web', 'auth'])->group(function () {
+Route::prefix('gym')->middleware(['web', 'auth', 'can:access_gym_dashboard'])->group(function () {
     Route::get('/', [GymController::class, 'index'])->name('gym.index');
     Route::get('memberships/create', [GymController::class, 'create'])->name('gym.memberships.create');
     Route::get('membership/show/{id}', [GymController::class, 'show'])->name('gym.memberships.show');

@@ -1,4 +1,4 @@
-<div class="border-end" id="sidebar-wrapper" style="background-color: #333333;">
+<div class="border-end" id="sidebar-wrapper">
 
     <div class="sidebar-heading">
         <div class="brand-wrapper">
@@ -12,8 +12,7 @@
 
         {{-- 1. DASHBOARD HUB (Visible to Everyone) --}}
         <a href="{{ route('home') }}"
-            class="list-group-item list-group-item-action p-3 {{ request()->routeIs('home') ? 'active' : '' }}"
-            style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
+            class="list-group-item list-group-item-action p-3 {{ request()->routeIs('home') ? 'active' : '' }}">
             <i class="fas fa-th-large fa-fw me-3"></i> Hub
         </a>
 
@@ -30,7 +29,7 @@
         @can('access_frontdesk_dashboard')
             @includeIf('frontdeskcrm::layouts.menu')
         @endcan
-       
+
         {{-- WEBSITE MODULE --}}
         @can('access_website_dashboard')
             @includeIf('website::layouts.menu')
@@ -70,8 +69,7 @@
 
         <a href="{{ route('logout') }}"
             onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-            class="list-group-item list-group-item-action p-3 text-danger"
-            style="background-color: transparent; border-color: rgba(255,255,255,0.1);">
+            class="list-group-item list-group-item-action p-3 text-danger">
             <i class="fas fa-power-off fa-fw me-3"></i> Logout
         </a>
         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
@@ -80,61 +78,3 @@
 
     </div>
 </div>
-
-<style>
-    .brand-wrapper {
-        display: inline-block;
-        padding: 10px 20px;
-        margin-right: 15px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), -4px -4px 15px rgba(255, 255, 255, 0.05);
-        transition: all 0.3s ease;
-    }
-
-    .brand-link {
-        font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
-        font-weight: 800;
-        font-size: 1.2rem;
-        color: #C8A165;
-        text-decoration: none;
-        letter-spacing: -0.5px;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    .brand-sub {
-        font-size: 8pt;
-        color: #fff;
-        margin-left: 4px;
-    }
-
-    /* Sidebar Item Styling */
-    #sidebar-wrapper .list-group-item {
-        font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-        border-left: 3px solid transparent;
-    }
-
-    #sidebar-wrapper .list-group-item:hover {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        color: #C8A165 !important;
-        padding-left: 1.5rem !important;
-        /* Slide effect */
-    }
-
-    #sidebar-wrapper .list-group-item.active {
-        background-color: rgba(200, 161, 101, 0.15) !important;
-        color: #C8A165 !important;
-        border-left: 3px solid #C8A165;
-        font-weight: bold;
-    }
-
-    /* Submenu Styling */
-    .collapse .list-group-item {
-        padding-left: 3.5rem !important;
-        font-size: 0.85rem;
-        background-color: rgba(0, 0, 0, 0.2) !important;
-    }
-</style>

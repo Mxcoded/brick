@@ -115,7 +115,7 @@ Route::middleware(['web'])->group(function () {
     // 3. ADMIN MANAGEMENT ROUTES
     // =========================================================================
     // Access: http://your-site.com/website/admin
-    Route::middleware(['auth']) // Add 'can:manage_website' here in production
+    Route::middleware(['auth', 'can:access_website_dashboard'])
         ->prefix('website/admin')
         ->name('website.admin.')
         ->group(function () {

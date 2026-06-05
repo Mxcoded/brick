@@ -1,26 +1,31 @@
 @can('access_admin_dashboard')
 <a class="list-group-item list-group-item-action p-3 d-flex justify-content-between align-items-center"
    data-bs-toggle="collapse" href="#adminSubmenu" role="button"
-   aria-expanded="{{ request()->routeIs('admin.*') ? 'true' : 'false' }}" aria-controls="adminSubmenu"
-   style="color: #FFFFFF; background-color: transparent; border-color: rgba(255,255,255,0.1);">
+   aria-expanded="{{ request()->routeIs('admin.*') ? 'true' : 'false' }}" aria-controls="adminSubmenu">
     <span><i class="fas fa-user-shield fa-fw me-3"></i> Admin</span>
     <i class="fas fa-chevron-down small"></i>
 </a>
 <div class="collapse {{ request()->routeIs('admin.*') ? 'show' : '' }}" id="adminSubmenu">
-    <a href="{{ route('admin.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" style="color: #ddd; border: none;">Overview</a>
+    <a href="{{ route('admin.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"><i class="fas fa-tachometer-alt me-2"></i> Overview</a>
     
     @can('manage_users')
-    <a href="{{ route('admin.users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Users</a>
+    <a href="{{ route('admin.users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"><i class="fas fa-users me-2"></i> Users</a>
     @endcan
 
     @can('manage_roles')
-    <a href="{{ route('admin.roles.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Roles</a>
+    <a href="{{ route('admin.roles.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"><i class="fas fa-user-tag me-2"></i> Roles</a>
     @endcan
 
-    <a href="{{ route('admin.login-logs.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.login-logs.*') ? 'active' : '' }}" style="color: #ddd; border: none;"><i class="fas fa-history fa-fw me-1"></i> Login History</a>
+    <a href="{{ route('admin.login-logs.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.login-logs.*') ? 'active' : '' }}"><i class="fas fa-history me-2"></i> Login History</a>
 
-    {{-- @can('manage_permissions')
-    <a href="{{ route('admin.permissions.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}" style="color: #ddd; border: none;">Permissions</a>
-    @endcan --}}
+    @can('permissions.read')
+    <a href="{{ route('admin.permissions.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}"><i class="fas fa-key me-2"></i> Permissions</a>
+    @endcan
+
+    @can('manage_settings')
+    <a href="{{ route('admin.modules.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.modules.*') ? 'active' : '' }}"><i class="fas fa-cubes me-2"></i> Modules</a>
+    @endcan
+
+    <a href="{{ route('admin.activity-logs.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.activity-logs.*') ? 'active' : '' }}"><i class="fas fa-history me-2"></i> Activity Logs</a>
 </div>
 @endcan
