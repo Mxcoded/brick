@@ -4,8 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $dining->name }} — Menu — {{ config('app.name') }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    @vite(['resources/sass/app.scss'])
     <style>
         body { background: #f5f7fb; margin: 0; font-family: system-ui, -apple-system, sans-serif; }
         .menu-header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 1.5rem; text-align: center; color: #fff; }

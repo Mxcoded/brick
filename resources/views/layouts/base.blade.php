@@ -8,16 +8,14 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
     <title>Staff Module - {{ config('app.name', 'BRICKSPOINT ERP') }}</title>
-<link rel="icon" href=" {{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" type="image/x-icon">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <!-- Fonts -->
     <link href="https://fonts.cdnfonts.com/css/proxima-nova" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.bunny.net">
     
-    <!-- Bootstrap & Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Vite (Bootstrap, Icons, FontAwesome) -->
+    @vite(['resources/sass/app.scss'])
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
 
     <style>
@@ -78,10 +76,10 @@
     @yield('content')
 
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     
+    @vite(['resources/js/app.js'])
     @yield('scripts')
       <script>
         (() => {
