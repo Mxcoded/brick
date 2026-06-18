@@ -541,7 +541,7 @@
 <section class="cta-section">
     <div class="container">
         <h2>Start planning your event with us</h2>
-        <p>{{ $page->contact_email ?? 'reservations@brickspoint.com' }} &nbsp;|&nbsp; {{ $page->contact_phone ?? '+234 809 999 9627' }}</p>
+        <p>{{ $page->contact_email ?? 'rsv@brickspoint.com' }} &nbsp;|&nbsp; {{ $page->contact_phone ?? '+234 809 999 9627' }}</p>
         <a href="{{ route('website.meeting-enquiry') }}" class="btn-gold">
             <i class="fas fa-paper-plane me-2"></i>Request A Quote
         </a>
