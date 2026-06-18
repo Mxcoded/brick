@@ -15,8 +15,9 @@ use Modules\Maintenance\Models\MaintenanceReading;
 class MaintenanceController extends Controller
 {
     protected array $notificationRecipients = [
+        'gm@brickspoint.com',
+        'fm@brickspoint.com',
         'it@brickspoint.com',
-
     ];
 
     public function dashboard()
