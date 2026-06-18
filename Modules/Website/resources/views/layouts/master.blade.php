@@ -291,6 +291,11 @@
             transform: rotate(-45deg);
         }
 
+        @keyframes navItemFadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* ===== Mobile Menu ===== */
         @media (max-width: 991.98px) {
             .navbar {
@@ -316,14 +321,6 @@
                 z-index: 1;
                 padding: 90px 1.5rem 1.5rem;
                 overflow-y: auto;
-                opacity: 0;
-                visibility: hidden;
-                transition: all 0.35s ease;
-            }
-
-            .navbar-collapse.show {
-                opacity: 1;
-                visibility: visible;
             }
 
             .nav-close-btn {
@@ -358,23 +355,21 @@
             .navbar-nav .nav-item {
                 opacity: 0;
                 transform: translateY(12px);
-                transition: all 0.35s ease;
             }
 
             .navbar-collapse.show .nav-item {
-                opacity: 1;
-                transform: translateY(0);
+                animation: navItemFadeIn 0.35s ease forwards;
             }
 
-            .navbar-collapse.show .nav-item:nth-child(1) { transition-delay: 0.05s; }
-            .navbar-collapse.show .nav-item:nth-child(2) { transition-delay: 0.1s; }
-            .navbar-collapse.show .nav-item:nth-child(3) { transition-delay: 0.15s; }
-            .navbar-collapse.show .nav-item:nth-child(4) { transition-delay: 0.2s; }
-            .navbar-collapse.show .nav-item:nth-child(5) { transition-delay: 0.25s; }
-            .navbar-collapse.show .nav-item:nth-child(6) { transition-delay: 0.3s; }
-            .navbar-collapse.show .nav-item:nth-child(7) { transition-delay: 0.35s; }
-            .navbar-collapse.show .nav-item:nth-child(8) { transition-delay: 0.4s; }
-            .navbar-collapse.show .nav-item:nth-child(9) { transition-delay: 0.45s; }
+            .navbar-collapse.show .nav-item:nth-child(1) { animation-delay: 0.05s; }
+            .navbar-collapse.show .nav-item:nth-child(2) { animation-delay: 0.1s; }
+            .navbar-collapse.show .nav-item:nth-child(3) { animation-delay: 0.15s; }
+            .navbar-collapse.show .nav-item:nth-child(4) { animation-delay: 0.2s; }
+            .navbar-collapse.show .nav-item:nth-child(5) { animation-delay: 0.25s; }
+            .navbar-collapse.show .nav-item:nth-child(6) { animation-delay: 0.3s; }
+            .navbar-collapse.show .nav-item:nth-child(7) { animation-delay: 0.35s; }
+            .navbar-collapse.show .nav-item:nth-child(8) { animation-delay: 0.4s; }
+            .navbar-collapse.show .nav-item:nth-child(9) { animation-delay: 0.45s; }
 
             .navbar-nav .nav-link {
                 font-size: 0.95rem;
