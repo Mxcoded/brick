@@ -113,6 +113,16 @@
             padding-bottom: 0.75rem;
             transition: all 0.3s ease;
             border-bottom: 1px solid rgba(255,255,255,0.06);
+            background: rgba(26, 26, 26, 0.92) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .navbar.navbar-shrink {
+            padding-top: 0.35rem;
+            padding-bottom: 0.35rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            border-bottom-color: rgba(200, 161, 101, 0.15);
         }
 
         .navbar-brand {
@@ -126,6 +136,10 @@
             width: auto;
             transition: all 0.3s ease;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .navbar.navbar-shrink .navbar-brand img {
+            height: 55px;
         }
 
         .navbar-brand img:hover {
@@ -199,6 +213,15 @@
             border-color: #b08d55;
             color: #fff !important;
             box-shadow: 0 4px 14px rgba(200, 161, 101, 0.4);
+        }
+
+        .btn-nav-book {
+            animation: bookPulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes bookPulse {
+            0%, 100% { box-shadow: 0 2px 8px rgba(200, 161, 101, 0.3); }
+            50% { box-shadow: 0 2px 20px rgba(200, 161, 101, 0.6); }
         }
 
         .btn-nav-outline {
@@ -279,6 +302,10 @@
                 height: 50px;
             }
 
+            .navbar.navbar-shrink .navbar-brand img {
+                height: 44px;
+            }
+
             .navbar-collapse {
                 position: fixed;
                 top: 0;
@@ -297,6 +324,31 @@
             .navbar-collapse.show {
                 opacity: 1;
                 visibility: visible;
+            }
+
+            .nav-close-btn {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                width: 40px;
+                height: 40px;
+                border: 1px solid rgba(255,255,255,0.15);
+                border-radius: 50%;
+                background: transparent;
+                color: #fff;
+                font-size: 1.2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                z-index: 3;
+            }
+
+            .nav-close-btn:hover {
+                background: rgba(200, 161, 101, 0.15);
+                border-color: var(--color-gold);
+                color: var(--color-gold);
             }
 
             .navbar-nav {
@@ -391,11 +443,17 @@
             .mobile-auth-links {
                 display: none !important;
             }
+            .nav-close-btn {
+                display: none !important;
+            }
         }
 
         @media (max-width: 768px) {
             .navbar-brand img {
                 height: 44px;
+            }
+            .navbar.navbar-shrink .navbar-brand img {
+                height: 38px;
             }
         }
 
@@ -409,7 +467,7 @@
             }
         }
 
-        /* Dropdown styling for Our Hotels */
+        /* ===== Dropdown ===== */
         .navbar .dropdown-menu {
             background: #1e1e1e;
             border: 1px solid rgba(255,255,255,0.08);
@@ -417,12 +475,28 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
             padding: 0.5rem;
             margin-top: 0.5rem;
-            animation: dropdownIn 0.25s ease;
+            display: block;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-6px);
+            transition: all 0.25s ease;
+            pointer-events: none;
         }
 
-        @keyframes dropdownIn {
-            from { opacity: 0; transform: translateY(-6px); }
-            to { opacity: 1; transform: translateY(0); }
+        .navbar .dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        @media (min-width: 992px) {
+            .navbar .dropdown:hover > .dropdown-menu {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+                pointer-events: all;
+            }
         }
 
         .navbar .dropdown-item {
@@ -587,6 +661,9 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarMain">
+                    <button class="nav-close-btn" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-label="Close menu">
+                        <i class="fas fa-times"></i>
+                    </button>
                     <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.home') ? 'active' : '' }}"
@@ -678,7 +755,7 @@
                                 Register
                             </a>
                             <a href="{{ route('website.book') }}"
-                                class="btn btn-nav-auth btn-nav-gold ms-1">
+                                class="btn btn-nav-auth btn-nav-gold btn-nav-book ms-1">
                                 <i class="fas fa-calendar-check me-1"></i>Book Now
                             </a>
                         @else
@@ -904,6 +981,40 @@
     {{-- Newsletter Subscription Script --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Navbar shrink on scroll
+            const navbar = document.getElementById('siteNavbar');
+            let lastScroll = 0;
+            window.addEventListener('scroll', function() {
+                const scrollY = window.scrollY;
+                if (scrollY > 80) {
+                    navbar.classList.add('navbar-shrink');
+                } else {
+                    navbar.classList.remove('navbar-shrink');
+                }
+                lastScroll = scrollY;
+            }, { passive: true });
+
+            // Close mobile menu on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const collapse = document.getElementById('navbarMain');
+                    if (collapse && collapse.classList.contains('show')) {
+                        bootstrap.Collapse.getInstance(collapse)?.hide();
+                    }
+                }
+            });
+
+            // Body scroll lock when mobile menu opens
+            const navbarCollapse = document.getElementById('navbarMain');
+            if (navbarCollapse) {
+                navbarCollapse.addEventListener('shown.bs.collapse', function () {
+                    document.body.style.overflow = 'hidden';
+                });
+                navbarCollapse.addEventListener('hidden.bs.collapse', function () {
+                    document.body.style.overflow = '';
+                });
+            }
+
             // Footer newsletter form
             const form = document.getElementById('newsletterForm');
             const emailInput = document.getElementById('newsletterEmail');
