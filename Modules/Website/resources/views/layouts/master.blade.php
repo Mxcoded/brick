@@ -291,11 +291,6 @@
             transform: rotate(-45deg);
         }
 
-        @keyframes navItemFadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         /* ===== Mobile Menu ===== */
         @media (max-width: 991.98px) {
             .navbar {
@@ -321,55 +316,16 @@
                 z-index: 1;
                 padding: 90px 1.5rem 1.5rem;
                 overflow-y: auto;
+                display: none;
             }
 
-            .nav-close-btn {
-                position: absolute;
-                top: 1rem;
-                right: 1rem;
-                width: 40px;
-                height: 40px;
-                border: 1px solid rgba(255,255,255,0.15);
-                border-radius: 50%;
-                background: transparent;
-                color: #fff;
-                font-size: 1.2rem;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                z-index: 3;
-            }
-
-            .nav-close-btn:hover {
-                background: rgba(200, 161, 101, 0.15);
-                border-color: var(--color-gold);
-                color: var(--color-gold);
+            .navbar-collapse.open {
+                display: block;
             }
 
             .navbar-nav {
                 margin: 0 !important;
             }
-
-            .navbar-nav .nav-item {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-
-            .navbar-collapse.show .nav-item {
-                animation: navItemFadeIn 0.35s ease forwards;
-            }
-
-            .navbar-collapse.show .nav-item:nth-child(1) { animation-delay: 0.05s; }
-            .navbar-collapse.show .nav-item:nth-child(2) { animation-delay: 0.1s; }
-            .navbar-collapse.show .nav-item:nth-child(3) { animation-delay: 0.15s; }
-            .navbar-collapse.show .nav-item:nth-child(4) { animation-delay: 0.2s; }
-            .navbar-collapse.show .nav-item:nth-child(5) { animation-delay: 0.25s; }
-            .navbar-collapse.show .nav-item:nth-child(6) { animation-delay: 0.3s; }
-            .navbar-collapse.show .nav-item:nth-child(7) { animation-delay: 0.35s; }
-            .navbar-collapse.show .nav-item:nth-child(8) { animation-delay: 0.4s; }
-            .navbar-collapse.show .nav-item:nth-child(9) { animation-delay: 0.45s; }
 
             .navbar-nav .nav-link {
                 font-size: 0.95rem;
@@ -436,9 +392,6 @@
 
         @media (min-width: 992px) {
             .mobile-auth-links {
-                display: none !important;
-            }
-            .nav-close-btn {
                 display: none !important;
             }
         }
@@ -643,8 +596,7 @@
                         style="width: auto; object-fit: contain;">
                 </a>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false"
+                <button class="navbar-toggler" type="button" id="navToggler"
                     aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon">
                         <span></span><span></span><span></span>
@@ -652,9 +604,6 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarMain">
-                    <button class="nav-close-btn" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-label="Close menu">
-                        <i class="fas fa-times"></i>
-                    </button>
                     <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.home') ? 'active' : '' }}"
@@ -982,39 +931,26 @@
     {{-- Newsletter Subscription Script --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Mobile nav toggle
+            const toggler = document.getElementById('navToggler');
+            const collapse = document.getElementById('navbarMain');
+            if (toggler && collapse) {
+                toggler.addEventListener('click', function() {
+                    const isOpen = collapse.classList.toggle('open');
+                    toggler.setAttribute('aria-expanded', isOpen);
+                    document.body.style.overflow = isOpen ? 'hidden' : '';
+                });
+            }
+
             // Navbar shrink on scroll
             const navbar = document.getElementById('siteNavbar');
-            let lastScroll = 0;
             window.addEventListener('scroll', function() {
-                const scrollY = window.scrollY;
-                if (scrollY > 80) {
+                if (window.scrollY > 80) {
                     navbar.classList.add('navbar-shrink');
                 } else {
                     navbar.classList.remove('navbar-shrink');
                 }
-                lastScroll = scrollY;
             }, { passive: true });
-
-            // Close mobile menu on Escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    const collapse = document.getElementById('navbarMain');
-                    if (collapse && collapse.classList.contains('show')) {
-                        bootstrap.Collapse.getInstance(collapse)?.hide();
-                    }
-                }
-            });
-
-            // Body scroll lock when mobile menu opens
-            const navbarCollapse = document.getElementById('navbarMain');
-            if (navbarCollapse) {
-                navbarCollapse.addEventListener('shown.bs.collapse', function () {
-                    document.body.style.overflow = 'hidden';
-                });
-                navbarCollapse.addEventListener('hidden.bs.collapse', function () {
-                    document.body.style.overflow = '';
-                });
-            }
 
             // Footer newsletter form
             const form = document.getElementById('newsletterForm');
