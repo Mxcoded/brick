@@ -486,7 +486,7 @@
                             @foreach($upcomingEvents as $event)
                             <tr>
                                 <td><a href="{{ route('banquet.orders.show', $event->order_id) }}" class="text-decoration-none">{{ $event->customer?->name ?? 'N/A' }}</a></td>
-                                <td class="small">{{ $event->earliest_event_date?->format('M d, Y') ?: '—' }}</td>
+                                <td class="small">{{ $event->earliest_event_date ? \Carbon\Carbon::parse($event->earliest_event_date)->format('M d, Y') : '—' }}</td>
                                 <td><span class="badge bg-{{ $event->status === 'Confirmed' ? 'success' : 'warning' }}">{{ $event->status }}</span></td>
                                 <td class="small text-end fw-bold">₦{{ number_format($event->total_revenue) }}</td>
                             </tr>
