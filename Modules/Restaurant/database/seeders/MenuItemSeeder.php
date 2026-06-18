@@ -16,14 +16,14 @@ class MenuItemSeeder extends Seeder
             'restaurant_menu_categories_id' => 1, // Make sure this ID exists in MenuCategory table
             'name' => 'Spicy Jollof Rice',
             'description' => 'Delicious Nigerian-style rice with a spicy tomato base.',
-            'price' => 1500.00
+            'price' => 1500.00,
         ]);
 
         MenuItem::create([
             'restaurant_menu_categories_id' => 2,
             'name' => 'Grilled Chicken',
             'description' => 'Juicy grilled chicken served with side salad.',
-            'price' => 2000.00
+            'price' => 2000.00,
         ]);
     }
 }

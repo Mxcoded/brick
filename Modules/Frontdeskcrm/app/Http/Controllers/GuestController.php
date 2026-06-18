@@ -4,8 +4,9 @@ namespace Modules\Frontdeskcrm\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Maatwebsite\Excel\Facades\Excel;
+use Modules\Frontdeskcrm\Exports\GuestsImport;
 use Modules\Frontdeskcrm\Models\Guest;
-use Modules\Frontdeskcrm\Models\GuestType;
 use Yajra\DataTables\DataTables;
 
 class GuestController extends Controller
@@ -37,17 +38,20 @@ class GuestController extends Controller
 
         return DataTables::of($query)
             ->addColumn('name_display', function ($guest) {
-                $title = $guest->title ? $guest->title . ' ' : '';
-                return '<span class="fw-bold">' . $title . $guest->full_name . '</span>';
+                $title = $guest->title ? $guest->title.' ' : '';
+
+                return '<span class="fw-bold">'.$title.$guest->full_name.'</span>';
             })
             ->addColumn('contact_display', function ($guest) {
-                $phone = $guest->contact_number ? '<i class="fas fa-phone me-1"></i>' . $guest->contact_number : '';
-                $email = $guest->email ? '<br><small class="text-muted"><i class="fas fa-envelope me-1"></i>' . $guest->email . '</small>' : '';
-                return $phone . $email;
+                $phone = $guest->contact_number ? '<i class="fas fa-phone me-1"></i>'.$guest->contact_number : '';
+                $email = $guest->email ? '<br><small class="text-muted"><i class="fas fa-envelope me-1"></i>'.$guest->email.'</small>' : '';
+
+                return $phone.$email;
             })
             ->addColumn('visit_count_display', function ($guest) {
                 $badge = $guest->visit_count > 1 ? 'bg-success' : 'bg-secondary';
-                return '<span class="badge ' . $badge . '">' . ($guest->visit_count ?? 0) . ' visits</span>';
+
+                return '<span class="badge '.$badge.'">'.($guest->visit_count ?? 0).' visits</span>';
             })
             ->addColumn('last_visit_formatted', function ($guest) {
                 return $guest->last_visit_at ? $guest->last_visit_at->format('M d, Y') : '<span class="text-muted">Never</span>';
@@ -58,13 +62,13 @@ class GuestController extends Controller
             ->addColumn('actions', function ($guest) {
                 $showUrl = route('frontdesk.guests.show', $guest->id);
                 $editUrl = route('frontdesk.guests.edit', $guest->id);
-                
+
                 return '
                     <div class="btn-group btn-group-sm">
-                        <a href="' . $showUrl . '" class="btn btn-outline-primary" title="View">
+                        <a href="'.$showUrl.'" class="btn btn-outline-primary" title="View">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <a href="' . $editUrl . '" class="btn btn-outline-secondary" title="Edit">
+                        <a href="'.$editUrl.'" class="btn btn-outline-secondary" title="Edit">
                             <i class="fas fa-edit"></i>
                         </a>
                     </div>
@@ -139,6 +143,7 @@ class GuestController extends Controller
     public function edit($id)
     {
         $guest = Guest::findOrFail($id);
+
         return view('frontdeskcrm::guests.edit', compact('guest'));
     }
 
@@ -192,5 +197,23 @@ class GuestController extends Controller
 
         return redirect()->route('frontdesk.guests.index')
             ->with('success', 'Guest profile deleted successfully.');
+    }
+
+    public function showImportForm()
+    {
+        return view('frontdeskcrm::guests.import');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        $import = new GuestsImport;
+        Excel::import($import, $request->file('file'));
+
+        return redirect()->route('frontdesk.guests.index')
+            ->with('success', $import->getImportedCount().' guests imported. '.$import->getSkippedCount().' skipped (duplicates).');
     }
 }

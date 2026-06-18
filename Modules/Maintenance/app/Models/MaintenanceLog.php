@@ -2,8 +2,9 @@
 
 namespace Modules\Maintenance\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class MaintenanceLog extends Model
 {
@@ -12,8 +13,10 @@ class MaintenanceLog extends Model
     protected $fillable = [
         'location',
         'department',
+        'priority',
         'complaint_datetime',
         'nature_of_complaint',
+        'image',
         'lodged_by',
         'received_by',
         'cost_of_fixing',
@@ -42,6 +45,24 @@ class MaintenanceLog extends Model
         'Security' => 'Security',
         'Other' => 'Other',
     ];
+
+    public const PRIORITIES = [
+        'low' => 'Low',
+        'medium' => 'Medium',
+        'high' => 'High',
+        'critical' => 'Critical',
+    ];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if (! $this->image) {
+            return null;
+        }
+
+        return str_starts_with($this->image, 'http')
+            ? $this->image
+            : Storage::url($this->image);
+    }
 
     public function scopeByDepartment($query, $department)
     {

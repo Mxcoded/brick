@@ -4,12 +4,12 @@ namespace Modules\Website\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Website\Models\Booking;
 use Modules\Website\Models\Room;
+use Modules\Website\Models\RoomInventoryBlock;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
-use Modules\Website\Models\RoomInventoryBlock;
-use Modules\Website\Models\Booking;
-use Modules\Frontdeskcrm\Models\Registration;
 
 class RoomCalendarService
 {
@@ -17,26 +17,26 @@ class RoomCalendarService
      * Status color mapping for consistency across all views.
      */
     const STATUS_COLORS = [
-        'checked_in'    => '#32CD32', // Light Green
-        'checked_out'   => '#006400', // Dark Green
-        'reserved'      => '#00CED1', // Cyan
-        'draft_by_guest'=> '#FFC107', // Yellow
-        'online_booking'=> '#0d6efd', // Blue
-        'maintenance'   => '#FF00FF', // Magenta
-        'available'     => null,
+        'checked_in' => '#32CD32', // Light Green
+        'checked_out' => '#006400', // Dark Green
+        'reserved' => '#00CED1', // Cyan
+        'draft_by_guest' => '#FFC107', // Yellow
+        'online_booking' => '#0d6efd', // Blue
+        'maintenance' => '#FF00FF', // Magenta
+        'available' => null,
     ];
 
     /**
      * Status labels for display.
      */
     const STATUS_LABELS = [
-        'checked_in'    => 'In-House',
-        'checked_out'   => 'Checked Out',
-        'reserved'      => 'Reserved',
-        'draft_by_guest'=> 'Pending',
-        'online_booking'=> 'Online',
-        'maintenance'   => 'Maintenance',
-        'available'     => 'Available',
+        'checked_in' => 'In-House',
+        'checked_out' => 'Checked Out',
+        'reserved' => 'Reserved',
+        'draft_by_guest' => 'Pending',
+        'online_booking' => 'Online',
+        'maintenance' => 'Maintenance',
+        'available' => 'Available',
     ];
 
     /**
@@ -78,7 +78,7 @@ class RoomCalendarService
                     ->orWhereBetween('check_out_date', [$start, $end])
                     ->orWhere(function ($inner) use ($start, $end) {
                         $inner->where('check_in_date', '<=', $start)
-                              ->where('check_out_date', '>=', $end);
+                            ->where('check_out_date', '>=', $end);
                     });
             })->get();
     }
@@ -88,7 +88,7 @@ class RoomCalendarService
      */
     public function getRegistrations(Carbon $start, Carbon $end): Collection
     {
-        if (!class_exists(Registration::class)) {
+        if (! class_exists(Registration::class)) {
             return collect();
         }
 
@@ -98,7 +98,7 @@ class RoomCalendarService
                     ->orWhereBetween('check_out', [$start, $end])
                     ->orWhere(function ($inner) use ($start, $end) {
                         $inner->where('check_in', '<=', $start)
-                              ->where('check_out', '>=', $end);
+                            ->where('check_out', '>=', $end);
                     });
             })->get();
     }
@@ -108,7 +108,7 @@ class RoomCalendarService
      */
     public function getActiveRegistrations(): Collection
     {
-        if (!class_exists(Registration::class)) {
+        if (! class_exists(Registration::class)) {
             return collect();
         }
 
@@ -140,7 +140,7 @@ class RoomCalendarService
     {
         $dates = [];
         $current = $start->copy();
-        
+
         while ($current->lte($end)) {
             $dates[] = [
                 'date' => $current->format('Y-m-d'),
@@ -151,7 +151,7 @@ class RoomCalendarService
             ];
             $current->addDay();
         }
-        
+
         return $dates;
     }
 
@@ -160,7 +160,7 @@ class RoomCalendarService
      */
     public function registrationMatchesRoom($registration, $unitId, string $roomNumber, bool $isLegacy): bool
     {
-        if (!$isLegacy && $registration->room_unit_id == $unitId) {
+        if (! $isLegacy && $registration->room_unit_id == $unitId) {
             return true;
         }
         if ($isLegacy && $registration->room_id == $unitId) {
@@ -169,6 +169,7 @@ class RoomCalendarService
         if ($registration->room_allocation && str_contains($registration->room_allocation, $roomNumber)) {
             return true;
         }
+
         return false;
     }
 
@@ -177,12 +178,13 @@ class RoomCalendarService
      */
     public function bookingMatchesRoom($booking, $unitId, bool $isLegacy): bool
     {
-        if (!$isLegacy && $booking->room_unit_id == $unitId) {
+        if (! $isLegacy && $booking->room_unit_id == $unitId) {
             return true;
         }
         if ($booking->room_id == $unitId) {
             return true;
         }
+
         return false;
     }
 
@@ -192,16 +194,16 @@ class RoomCalendarService
     public function buildRoomDisplayName($unit): string
     {
         $isLegacy = $unit->is_legacy ?? false;
-        
+
         if ($isLegacy) {
             return $unit->room_number;
         }
-        
+
         $name = "Room {$unit->room_number}";
         if ($unit->roomType) {
             $name .= " ({$unit->roomType->name})";
         }
-        
+
         return $name;
     }
 
@@ -214,6 +216,7 @@ class RoomCalendarService
         if (preg_match('/Room\s+(\w+)\s*\(([^)]+)\)/i', $name, $match)) {
             return ['number' => $match[1], 'type' => $match[2]];
         }
+
         return ['type' => $name, 'number' => ''];
     }
 
@@ -225,6 +228,7 @@ class RoomCalendarService
         if ($date instanceof Carbon) {
             return $date->format('Y-m-d');
         }
+
         return substr($date, 0, 10);
     }
 
@@ -276,12 +280,12 @@ class RoomCalendarService
         // 1. Maintenance Status
         if ($unit->status === 'maintenance') {
             $events[] = [
-                'id' => 'maint-' . $unitId,
+                'id' => 'maint-'.$unitId,
                 'title' => 'Maintenance',
                 'start' => $start->toDateString(),
                 'end' => $end->toDateString(),
                 'color' => self::STATUS_COLORS['maintenance'],
-                'status' => 'maintenance'
+                'status' => 'maintenance',
             ];
         }
 
@@ -289,7 +293,7 @@ class RoomCalendarService
         foreach ($registrations as $reg) {
             if ($this->registrationMatchesRoom($reg, $unitId, $roomNumber, $isLegacy)) {
                 $events[] = [
-                    'id' => 'reg-' . $reg->id,
+                    'id' => 'reg-'.$reg->id,
                     'title' => "{$reg->full_name} ({$this->getStatusLabel($reg->stay_status)})",
                     'start' => $this->formatDate($reg->check_in),
                     'end' => $this->formatDate($reg->check_out),
@@ -303,10 +307,10 @@ class RoomCalendarService
         foreach ($bookings as $booking) {
             if ($this->bookingMatchesRoom($booking, $unitId, $isLegacy)) {
                 $hasRegistration = $registrations->where('booking_id', $booking->id)->isNotEmpty();
-                
-                if (!$hasRegistration) {
+
+                if (! $hasRegistration) {
                     $events[] = [
-                        'id' => 'bk-' . $booking->id,
+                        'id' => 'bk-'.$booking->id,
                         'title' => "{$booking->guest_name} (Online)",
                         'start' => $this->formatDate($booking->check_in_date),
                         'end' => $this->formatDate($booking->check_out_date),
@@ -327,7 +331,7 @@ class RoomCalendarService
             'room_type' => $parsed['type'],
             'room_number' => $parsed['number'] ?: $roomNumber,
             'capacity' => $unit->roomType->capacity ?? 2,
-            'events' => $events
+            'events' => $events,
         ];
     }
 
@@ -355,9 +359,9 @@ class RoomCalendarService
         $isLegacy = $unit->is_legacy ?? false;
         $displayName = $this->buildRoomDisplayName($unit);
 
-        // A. Maintenance Check
-        if ($unit->status === 'maintenance') {
-            return $this->formatRoomStatus($unitId, $displayName, 'maintenance', 'secondary', 'Maintenance');
+        // A. Unit Status Check (maintenance / blocked)
+        if (in_array($unit->status, ['maintenance', 'blocked'])) {
+            return $this->formatRoomStatus($unitId, $displayName, $unit->status, $unit->status_color, ucfirst($unit->status));
         }
 
         // B. Frontdesk Priority Check
@@ -367,6 +371,7 @@ class RoomCalendarService
 
         if ($registration) {
             $statusColor = $registration->stay_status === 'checked_in' ? 'danger' : 'warning';
+
             return $this->formatRoomStatus(
                 $unitId,
                 $displayName,
@@ -385,6 +390,7 @@ class RoomCalendarService
         if ($booking) {
             $checkoutDate = $this->formatDate($booking->check_out_date);
             $isCheckingOut = $checkoutDate === now()->format('Y-m-d');
+
             return $this->formatRoomStatus(
                 $unitId,
                 $displayName,
@@ -421,48 +427,49 @@ class RoomCalendarService
     {
         $date = $date ?? now();
         $dateStr = $date->format('Y-m-d');
-        
+
         $roomUnits = $this->getRoomUnits();
         $totalRooms = $roomUnits->count();
-        
+
         $activeRegistrations = $this->getActiveRegistrations();
         $activeBookings = $this->getActiveBookings();
-        
+
         $occupied = 0;
         $reserved = 0;
-        
+
         foreach ($roomUnits as $unit) {
             $isLegacy = $unit->is_legacy ?? false;
             $unitId = $unit->id;
             $roomNumber = $unit->room_number;
-            
+
             // Check registrations
             $hasRegistration = $activeRegistrations->first(function ($reg) use ($unitId, $roomNumber, $isLegacy) {
                 return $this->registrationMatchesRoom($reg, $unitId, $roomNumber, $isLegacy);
             });
-            
+
             if ($hasRegistration) {
                 if ($hasRegistration->stay_status === 'checked_in') {
                     $occupied++;
                 } else {
                     $reserved++;
                 }
+
                 continue;
             }
-            
+
             // Check bookings
             $hasBooking = $activeBookings->first(function ($booking) use ($unitId, $isLegacy) {
                 return $this->bookingMatchesRoom($booking, $unitId, $isLegacy);
             });
-            
+
             if ($hasBooking) {
                 $reserved++;
             }
         }
-        
+
         $available = $totalRooms - $occupied - $reserved;
         $occupancyRate = $totalRooms > 0 ? round(($occupied / $totalRooms) * 100) : 0;
-        
+
         return [
             'total_rooms' => $totalRooms,
             'occupied' => $occupied,
@@ -542,19 +549,27 @@ class RoomCalendarService
 
         // Count booked units from registrations
         $bookedFromRegistrations = $registrations->filter(function ($reg) use ($roomType, $date) {
-            if ($reg->room_type_id != $roomType->id) return false;
+            if ($reg->room_type_id != $roomType->id) {
+                return false;
+            }
             $checkIn = Carbon::parse($reg->check_in);
             $checkOut = Carbon::parse($reg->check_out);
+
             return $date->gte($checkIn) && $date->lt($checkOut);
         })->count();
 
         // Count booked units from website bookings (excluding those with registrations)
         $bookedFromBookings = $bookings->filter(function ($booking) use ($roomType, $date, $registrations) {
-            if ($booking->room_type_id != $roomType->id) return false;
+            if ($booking->room_type_id != $roomType->id) {
+                return false;
+            }
             // Skip if already has a registration
-            if ($registrations->where('booking_id', $booking->id)->isNotEmpty()) return false;
+            if ($registrations->where('booking_id', $booking->id)->isNotEmpty()) {
+                return false;
+            }
             $checkIn = Carbon::parse($booking->check_in_date);
             $checkOut = Carbon::parse($booking->check_out_date);
+
             return $date->gte($checkIn) && $date->lt($checkOut);
         })->count();
 
@@ -601,9 +616,16 @@ class RoomCalendarService
      */
     protected function getAvailabilityStatus(int $percent, bool $stopSell): string
     {
-        if ($stopSell) return 'stop_sell';
-        if ($percent <= self::AVAILABILITY_THRESHOLDS['full']) return 'full';
-        if ($percent <= self::AVAILABILITY_THRESHOLDS['limited']) return 'limited';
+        if ($stopSell) {
+            return 'stop_sell';
+        }
+        if ($percent <= self::AVAILABILITY_THRESHOLDS['full']) {
+            return 'full';
+        }
+        if ($percent <= self::AVAILABILITY_THRESHOLDS['limited']) {
+            return 'limited';
+        }
+
         return 'available';
     }
 
@@ -627,10 +649,19 @@ class RoomCalendarService
     protected function formatRestrictions($minStay, $maxStay, $closedToArrival, $closedToDeparture): array
     {
         $restrictions = [];
-        if ($minStay) $restrictions[] = "Min {$minStay} nights";
-        if ($maxStay) $restrictions[] = "Max {$maxStay} nights";
-        if ($closedToArrival) $restrictions[] = 'CTA';
-        if ($closedToDeparture) $restrictions[] = 'CTD';
+        if ($minStay) {
+            $restrictions[] = "Min {$minStay} nights";
+        }
+        if ($maxStay) {
+            $restrictions[] = "Max {$maxStay} nights";
+        }
+        if ($closedToArrival) {
+            $restrictions[] = 'CTA';
+        }
+        if ($closedToDeparture) {
+            $restrictions[] = 'CTD';
+        }
+
         return $restrictions;
     }
 
@@ -696,13 +727,13 @@ class RoomCalendarService
         }
 
         return [
-            'period' => $start->format('M d') . ' - ' . $end->format('M d, Y'),
+            'period' => $start->format('M d').' - '.$end->format('M d, Y'),
             'total_room_nights' => $totalRoomNights,
             'booked_room_nights' => $bookedRoomNights,
             'blocked_room_nights' => $blockedRoomNights,
             'available_room_nights' => $availableRoomNights,
-            'occupancy_rate' => $totalRoomNights > 0 
-                ? round(($bookedRoomNights / $totalRoomNights) * 100, 1) 
+            'occupancy_rate' => $totalRoomNights > 0
+                ? round(($bookedRoomNights / $totalRoomNights) * 100, 1)
                 : 0,
         ];
     }
@@ -736,6 +767,7 @@ class RoomCalendarService
     public function removeBlock(int $blockId): bool
     {
         $block = RoomInventoryBlock::find($blockId);
+
         return $block ? $block->delete() : false;
     }
 

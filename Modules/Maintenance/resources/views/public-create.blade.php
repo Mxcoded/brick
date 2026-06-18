@@ -48,7 +48,7 @@
 
             <div class="card form-card">
                 <div class="card-body">
-                    <form method="POST" action="{{ route('maintenance.public.store') }}">
+                    <form method="POST" action="{{ route('maintenance.public.store') }}" enctype="multipart/form-data">
                         @csrf
 
                         <div class="mb-4">
@@ -73,13 +73,31 @@
                         </div>
 
                         <div class="mb-4">
+                            <label class="form-label">Priority</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                @foreach (\Modules\Maintenance\Models\MaintenanceLog::PRIORITIES as $key => $label)
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="priority" id="p-{{ $key }}" value="{{ $key }}" {{ old('priority', 'medium') === $key ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="p-{{ $key }}">{{ $label }}</label>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Photo <span class="text-muted fw-normal">(optional)</span></label>
+                            <input type="file" name="image" class="form-control" accept="image/*" capture="environment" data-compress="1200">
+                        </div>
+
+                        <div class="mb-4">
                             <label class="form-label">Description of Issue <span class="text-danger">*</span></label>
                             <textarea name="nature_of_complaint" class="form-control" rows="5" required placeholder="Please describe the issue in detail...">{{ old('nature_of_complaint') }}</textarea>
                         </div>
 
                         <div class="d-flex gap-3">
-                            <button type="submit" class="btn btn-lg px-5" style="background-color: #C8A165; color: #fff; border-radius: 10px; font-weight: 600;">
-                                <i class="fas fa-paper-plane me-2"></i> Submit Report
+                            <button type="submit" class="btn btn-lg px-5" id="publicSubmitBtn" style="background-color: #C8A165; color: #fff; border-radius: 10px; font-weight: 600;">
+                                <i class="fas fa-paper-plane me-2" id="publicSubmitIcon"></i> <span id="publicSubmitText">Submit Report</span>
+                                <span class="spinner-border spinner-border-sm d-none" id="publicSubmitSpinner" role="status"></span>
                             </button>
                             <a href="{{ url('/') }}" class="btn btn-lg btn-outline-secondary px-4" style="border-radius: 10px;">Back to Home</a>
                         </div>
@@ -93,4 +111,55 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+@parent
+<script>
+document.addEventListener('change', function (e) {
+    var input = e.target;
+    if (input.matches('input[type="file"][data-compress]') && input.files && input.files[0]) {
+        var maxDim = parseInt(input.dataset.compress) || 1200;
+        var file = input.files[0];
+        if (!file.type.startsWith('image/')) return;
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+            var img = new Image();
+            img.onload = function () {
+                var canvas = document.createElement('canvas');
+                var w = img.width, h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    var ratio = Math.min(maxDim / w, maxDim / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                }
+                canvas.width = w;
+                canvas.height = h;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                canvas.toBlob(function (blob) {
+                    if (blob.size < file.size) {
+                        var newFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
+                        var dt = new DataTransfer();
+                        dt.items.add(newFile);
+                        input.files = dt.files;
+                    }
+                }, 'image/jpeg', 0.7);
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+document.getElementById('publicSubmitBtn')?.addEventListener('click', function (e) {
+    var btn = this;
+    setTimeout(function () {
+        btn.disabled = true;
+        document.getElementById('publicSubmitIcon').classList.add('d-none');
+        document.getElementById('publicSubmitText').textContent = 'Submitting...';
+        document.getElementById('publicSubmitSpinner').classList.remove('d-none');
+    }, 50);
+});
+</script>
 @endsection

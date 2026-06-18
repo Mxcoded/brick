@@ -2,11 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\UserLoginLog;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use App\Models\UserLoginLog;
 use Symfony\Component\HttpFoundation\Response;
 
 class TrackUserActivity
@@ -19,7 +19,7 @@ class TrackUserActivity
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -36,7 +36,7 @@ class TrackUserActivity
      */
     protected function updateUserActivity(int $userId): void
     {
-        $cacheKey = 'user_activity_' . $userId;
+        $cacheKey = 'user_activity_'.$userId;
 
         // Only update if enough time has passed since last update
         if (Cache::has($cacheKey)) {

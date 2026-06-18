@@ -144,6 +144,140 @@
         </div>
     </div>
 
+    {{-- ══════ Daily Readings ══════ --}}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <span class="fw-semibold"><i class="fas fa-clipboard-list me-2" style="color: var(--luxury-gold);"></i>Daily Readings</span>
+            <div class="d-flex gap-2">
+                <a href="{{ route('maintenance.readings.create') }}" class="btn btn-sm" style="background-color: var(--luxury-gold); color: #fff;"><i class="fas fa-plus me-1"></i> New</a>
+                <a href="{{ route('maintenance.readings.index') }}" class="btn btn-sm btn-outline-secondary">View Report</a>
+            </div>
+        </div>
+        <div class="card-body">
+            @if($lastReadingDate)
+            <p class="small text-muted mb-3">Last reading: {{ \Carbon\Carbon::parse($lastReadingDate)->format('M d, Y') }} &middot; {{ $readingsThisWeek }} readings this week</p>
+            @endif
+            <div class="row g-3">
+                {{-- Generators --}}
+                <div class="col-md-3 col-6">
+                    <div class="p-3 rounded" style="background: #f8f9fa;" title="Latest generator screen readings from {{ $todayGen->count() > 0 ? $todayGen->first()->reading_date->format('M d') : 'recent entries' }}">
+                        <h6 class="fw-bold small mb-2"><i class="fas fa-bolt me-1 text-warning"></i>Generators</h6>
+                        @if($todayGen->count())
+                        @foreach($todayGen as $gen)
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">{{ str_replace('_', ' ', ucfirst($gen->category)) }}</span>
+                            <span class="fw-bold">{{ $gen->reading_value }}%</span>
+                        </div>
+                        @endforeach
+                        @elseif($recentReadings->where('reading_type', 'generator')->count())
+                        @php $recentGen = $recentReadings->where('reading_type', 'generator'); @endphp
+                        @foreach($recentGen as $gen)
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">{{ str_replace('_', ' ', ucfirst($gen->category)) }}</span>
+                            <span class="fw-bold">{{ $gen->reading_value }}%</span>
+                        </div>
+                        @endforeach
+                        <small class="text-muted">{{ $recentGen->first()->reading_date->format('M d') }}</small>
+                        @else
+                        <p class="small text-muted mb-0">No readings yet</p>
+                        @endif
+                    </div>
+                </div>
+                {{-- Diesel Reservoir --}}
+                <div class="col-md-3 col-6">
+                    <div class="p-3 rounded" style="background: #f8f9fa;">
+                        <h6 class="fw-bold small mb-2"><i class="fas fa-oil-can me-1 text-secondary"></i>Diesel Reservoir</h6>
+                        @if($todayDiesel)
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">Level</span>
+                            <span class="fw-bold">{{ number_format($todayDiesel->reading_value) }}L</span>
+                        </div>
+                        @if($todayDiesel->capacity)
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted">Capacity</span>
+                            <span>{{ number_format($todayDiesel->capacity) }}L</span>
+                        </div>
+                        @endif
+                        @else
+                        <p class="small text-muted mb-0">No reading today</p>
+                        @endif
+                    </div>
+                </div>
+                {{-- Water Tank --}}
+                <div class="col-md-3 col-6">
+                    <div class="p-3 rounded" style="background: #f8f9fa;">
+                        <h6 class="fw-bold small mb-2"><i class="fas fa-water me-1 text-info"></i>Water Tank</h6>
+                        @if($todayWater)
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">Level</span>
+                            <span class="fw-bold">{{ $todayWater->reading_value }}%</span>
+                        </div>
+                        @else
+                        <p class="small text-muted mb-0">No reading today</p>
+                        @endif
+                    </div>
+                </div>
+                {{-- Cold Room --}}
+                <div class="col-md-3 col-6">
+                    <div class="p-3 rounded" style="background: #f8f9fa;">
+                        <h6 class="fw-bold small mb-2"><i class="fas fa-snowflake me-1 text-primary"></i>Cold Room</h6>
+                        @if($todayColdRoom->count())
+                        @foreach($todayColdRoom as $cr)
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">{{ ucfirst($cr->category) }}</span>
+                            <span class="fw-bold">{{ number_format($cr->reading_value, 1) }}&deg;C</span>
+                        </div>
+                        @endforeach
+                        @else
+                        <p class="small text-muted mb-0">No reading today</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            {{-- Recent Readings History --}}
+            @if($recentReadings->count())
+            <hr class="my-3">
+            <h6 class="fw-semibold small mb-2">Recent Entries</h6>
+            <div class="table-responsive">
+                <table class="table table-sm table-borderless mb-0 small">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th class="text-end">Reading</th>
+                            <th>By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($recentReadings as $r)
+                        <tr>
+                            <td>{{ $r->reading_date->format('M d') }}</td>
+                            <td>
+                                @php
+                                $icons = ['generator' => 'bolt', 'diesel_reservoir' => 'oil-can', 'water_tank' => 'water', 'cold_room' => 'snowflake'];
+                                @endphp
+                                <i class="fas fa-{{ $icons[$r->reading_type] ?? 'circle' }} me-1" style="font-size: 8px;"></i>
+                                {{ \Modules\Maintenance\Models\MaintenanceReading::TYPES[$r->reading_type] ?? $r->reading_type }}
+                                @if($r->category)
+                                <small class="text-muted">({{ str_replace('_', ' ', $r->category) }})</small>
+                                @endif
+                            </td>
+                            <td class="text-end fw-bold">
+                                @if($r->reading_type === 'cold_room') {{ number_format($r->reading_value, 1) }}&deg;C
+                                @elseif($r->reading_type === 'diesel_reservoir') {{ number_format($r->reading_value, 0) }}L
+                                @else {{ number_format($r->reading_value, 1) }}%
+                                @endif
+                            </td>
+                            <td class="text-muted">{{ $r->recorder?->name ?: '—' }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @endif
+        </div>
+    </div>
+
     {{-- Recent Logs --}}
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">

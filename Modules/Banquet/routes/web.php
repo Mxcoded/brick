@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Banquet\Http\Controllers\BanquetController;
 use Modules\Banquet\Http\Controllers\CustomerController;
+use Modules\Banquet\Http\Controllers\EnquiryController;
+use Modules\Banquet\Http\Controllers\EventLeadController;
+use Modules\Banquet\Http\Controllers\LeadEventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +50,19 @@ Route::prefix('banquet')
         });
 
         // ==========================================================
+        // ENQUIRY MANAGEMENT
+        // ==========================================================
+        Route::prefix('enquiries')->name('enquiries.')->group(function () {
+            Route::get('/', [EnquiryController::class, 'index'])->name('index');
+            Route::get('/datatable', [EnquiryController::class, 'datatable'])->name('datatable');
+            Route::get('/{id}', [EnquiryController::class, 'show'])->name('show');
+            Route::patch('/{id}/status', [EnquiryController::class, 'updateStatus'])->name('update-status')->middleware('can:banquet.update');
+            Route::put('/{id}/notes', [EnquiryController::class, 'updateNotes'])->name('update-notes')->middleware('can:banquet.update');
+            Route::post('/{id}/convert', [EnquiryController::class, 'convertToOrder'])->name('convert')->middleware('can:banquet.create');
+            Route::delete('/{id}', [EnquiryController::class, 'destroy'])->name('destroy')->middleware('can:banquet.delete');
+        });
+
+        // ==========================================================
         // 2. ORDER MANAGEMENT
         // ==========================================================
 
@@ -67,8 +83,8 @@ Route::prefix('banquet')
             ->except(['destroy']) // Exclude destroy as we defined it above
             ->middleware([
                 'create' => 'can:banquet.create',
-                'store'  => 'can:banquet.create',
-                'edit'   => 'can:banquet.update',
+                'store' => 'can:banquet.create',
+                'edit' => 'can:banquet.update',
                 'update' => 'can:banquet.update',
             ]);
 
@@ -116,5 +132,31 @@ Route::prefix('banquet')
 
             // View Day Details (Read Access)
             Route::get('days/{day_id}', [BanquetController::class, 'showDay'])->name('event-days.show');
+        });
+
+        // ==========================================================
+        // LEAD EVENTS (Admin-managed event campaigns)
+        // ==========================================================
+        Route::prefix('lead-events')->name('lead-events.')->group(function () {
+            Route::get('/', [LeadEventController::class, 'index'])->name('index');
+            Route::get('/create', [LeadEventController::class, 'create'])->name('create');
+            Route::post('/', [LeadEventController::class, 'store'])->name('store');
+            Route::get('/{id}/edit', [LeadEventController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [LeadEventController::class, 'update'])->name('update');
+            Route::get('/{id}/qrcode', [LeadEventController::class, 'qrcode'])->name('qrcode');
+            Route::delete('/{id}', [LeadEventController::class, 'destroy'])->name('destroy');
+        });
+
+        // ==========================================================
+        // EVENT LEAD MANAGEMENT (Leads submitted via public forms)
+        // ==========================================================
+        Route::prefix('event-leads')->name('event-leads.')->group(function () {
+            Route::get('/', [EventLeadController::class, 'index'])->name('index');
+            Route::get('/datatable', [EventLeadController::class, 'datatable'])->name('datatable');
+            Route::get('/export', [EventLeadController::class, 'export'])->name('export');
+            Route::get('/{id}', [EventLeadController::class, 'show'])->name('show');
+            Route::patch('/{id}/status', [EventLeadController::class, 'updateStatus'])->name('update-status');
+            Route::put('/{id}/notes', [EventLeadController::class, 'updateNotes'])->name('update-notes');
+            Route::delete('/{id}', [EventLeadController::class, 'destroy'])->name('destroy');
         });
     });

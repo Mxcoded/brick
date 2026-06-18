@@ -2,10 +2,10 @@
 
 namespace Modules\Staff\Console; // <-- This namespace is now correct for your module
 
-use Illuminate\Console\Command;
-use Modules\Staff\Models\LeaveRequest;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Console\Command;
+use Modules\Staff\Models\LeaveRequest;
 
 class BackfillLeaveDaysCount extends Command
 {
@@ -35,6 +35,7 @@ class BackfillLeaveDaysCount extends Command
 
         if ($requestsToUpdate->isEmpty()) {
             $this->info('No records needed updating. All leave requests have a days_count.');
+
             return 0;
         }
 

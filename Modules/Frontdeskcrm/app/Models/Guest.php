@@ -2,12 +2,12 @@
 
 namespace Modules\Frontdeskcrm\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Models\User;
 
 class Guest extends Model
 {
@@ -51,6 +51,7 @@ class Guest extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
@@ -75,7 +76,7 @@ class Guest extends Model
             'contact' => $this->contact_number,
             'email' => $this->email,
             'address' => $this->home_address,
-            'emergency' => $this->emergency_name . ' (' . $this->emergency_relationship . ')',
+            'emergency' => $this->emergency_name.' ('.$this->emergency_relationship.')',
             'preferences' => $this->preference?->preferences ?? [],
         ];
     }

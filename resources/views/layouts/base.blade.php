@@ -23,6 +23,8 @@
     <style>
         :root {
             --bs-body-font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
+            --luxury-gold: #C5A572;
+            --luxury-gold-hover: #B8956A;
         }
         
         body {

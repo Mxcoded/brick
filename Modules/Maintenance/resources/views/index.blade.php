@@ -13,8 +13,11 @@
             <a href="{{ route('maintenance.report') }}" class="btn btn-outline-success">
                 <i class="fas fa-chart-bar me-1"></i> Reports
             </a>
+            <button class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#quickReportModal">
+                <i class="fas fa-bolt me-1"></i> Quick Report
+            </button>
             @can('access_maintenance_dashboard')
-                <a href="{{ route('maintenance.create') }}" class="btn btn-gold">
+                <a href="{{ route('maintenance.create') }}" class="btn btn-outline-gold">
                     <i class="fas fa-plus me-1"></i> New Log
                 </a>
             @endcan
@@ -88,14 +91,15 @@
                     <table id="logsTable" class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 60px;">#</th>
+                                <th style="width: 50px;">#</th>
                                 <th>Location</th>
-                                <th style="width: 110px;">Department</th>
+                                <th style="width: 100px;">Department</th>
+                                <th style="width: 70px;">Priority</th>
                                 <th>Complaint</th>
-                                <th style="width: 140px;">Lodged By</th>
-                                <th style="width: 100px;">Status</th>
-                                <th style="width: 100px;">Date</th>
-                                <th style="width: 110px;">Cost (NGN)</th>
+                                <th style="width: 130px;">Lodged By</th>
+                                <th style="width: 90px;">Status</th>
+                                <th style="width: 90px;">Date</th>
+                                <th style="width: 100px;">Cost (NGN)</th>
                                 <th style="width: 110px;">Actions</th>
                             </tr>
                         </thead>
@@ -110,6 +114,15 @@
                                     <td class="text-muted">{{ $log->id }}</td>
                                     <td class="fw-medium">{{ $log->location }}</td>
                                     <td><span class="badge" style="background-color: {{ $deptColor }};">{{ $log->department }}</span></td>
+                                    <td>
+                                        @php
+                                            $priorityColors = ['low' => '#6c757d', 'medium' => '#ffc107', 'high' => '#fd7e14', 'critical' => '#dc3545'];
+                                            $pColor = $priorityColors[$log->priority] ?? '#6c757d';
+                                        @endphp
+                                        <span class="badge rounded-pill" style="background-color: {{ $pColor }}; color: {{ $log->priority === 'medium' ? '#212529' : '#fff' }};">
+                                            {{ ucfirst($log->priority) }}
+                                        </span>
+                                    </td>
                                     <td>
                                         <a href="{{ route('maintenance.show', $log->id) }}" class="text-decoration-none text-dark fw-medium">
                                             {{ Str::limit($log->nature_of_complaint, 50) }}
@@ -183,7 +196,79 @@
             @endif
         </div>
     </div>
-@endsection
+{{-- Quick Report Modal --}}
+<div class="modal fade" id="quickReportModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0" style="background: #C8A165; color: #fff;">
+                <h5 class="modal-title fw-bold"><i class="fas fa-bolt me-2"></i>Quick Report</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ route('maintenance.quick-store') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Your Name <span class="text-danger">*</span></label>
+                        <input type="text" name="lodged_by" class="form-control"
+                               value="{{ old('lodged_by', Auth::user()->name) }}" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-7">
+                            <label class="form-label fw-semibold">Location <span class="text-danger">*</span></label>
+                            <input type="text" name="location" class="form-control" placeholder="e.g. Room 204, Lobby" required>
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label fw-semibold">Department</label>
+                            <select name="department" class="form-select" required>
+                                <option value="">Select</option>
+                                @foreach (\Modules\Maintenance\Models\MaintenanceLog::DEPARTMENTS as $key => $label)
+                                    <option value="{{ $key }}" {{ $key === 'Maintenance' ? 'selected' : '' }}>{{ $key }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Priority</label>
+                        <div class="d-flex gap-2 priority-radio">
+                            @foreach (\Modules\Maintenance\Models\MaintenanceLog::PRIORITIES as $key => $label)
+                                <label class="priority-option {{ $key === 'medium' ? 'selected' : '' }}">
+                                    <input type="radio" name="priority" value="{{ $key }}" {{ $key === 'medium' ? 'checked' : '' }}>
+                                    <span class="badge priority-badge p-2" data-priority="{{ $key }}">{{ $label }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+                        <textarea name="nature_of_complaint" class="form-control" rows="3"
+                                  placeholder="Briefly describe the issue..." required></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Photo <span class="text-muted small fw-normal">(optional)</span></label>
+                        <input type="file" name="image" class="form-control" accept="image/*" capture="environment" data-compress="1200">
+                    </div>
+                    <input type="hidden" name="complaint_datetime" value="{{ now()->format('Y-m-d\TH:i') }}">
+                    <input type="hidden" name="received_by" value="{{ Auth::user()->name }}">
+                    <input type="hidden" name="status" value="new">
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="submit" class="btn btn-gold w-100" id="quickReportSubmit">
+                        <i class="fas fa-paper-plane me-1"></i> Submit Report
+                    </button>
+                </div>
+                <div class="modal-loading d-none" id="quickReportOverlay">
+                    <div class="d-flex align-items-center justify-content-center h-100">
+                        <div class="text-center">
+                            <div class="spinner-border text-light mb-2" style="width: 3rem; height: 3rem;" role="status"></div>
+                            <p class="text-light mb-0 fw-semibold">Submitting report...</p>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endSection
 
 @section('page-scripts')
 <script>
@@ -229,7 +314,7 @@
             language: { search: "Search logs:" },
             dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
             columnDefs: [
-                { targets: [8], orderable: false }
+                { targets: [9], orderable: false }
             ]
         });
 
@@ -268,5 +353,16 @@
     .status-dropdown .dropdown-menu { min-width: 140px; border-radius: 10px; padding: 6px; }
     .status-dropdown .dropdown-item { border-radius: 6px; padding: 6px 10px; font-size: 0.82rem; }
     .status-dropdown .dropdown-item:hover { background-color: #f5f5f5; }
+    .priority-radio { gap: 0.35rem !important; }
+    .priority-option { cursor: pointer; }
+    .priority-option input { display: none; }
+    .priority-badge { transition: all 0.15s; border: 2px solid transparent; font-weight: 500; }
+    .priority-option input:checked + .priority-badge { border-color: #212529; box-shadow: 0 0 0 2px rgba(200,161,101,0.4); }
+    .priority-option:hover .priority-badge { filter: brightness(0.92); }
+    .priority-badge[data-priority="low"] { background-color: #6c757d; color: #fff; }
+    .priority-badge[data-priority="medium"] { background-color: #ffc107; color: #212529; }
+    .priority-badge[data-priority="high"] { background-color: #fd7e14; color: #fff; }
+    .priority-badge[data-priority="critical"] { background-color: #dc3545; color: #fff; }
+    .modal-loading { position: absolute; inset: 0; background: rgba(0,0,0,0.6); border-radius: inherit; z-index: 10; }
 </style>
 @endsection

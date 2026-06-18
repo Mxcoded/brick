@@ -27,6 +27,10 @@
                 class="list-group-item list-group-item-action {{ request()->routeIs('staff.birthdays') ? 'active' : '' }}">
                 <i class="fas fa-birthday-cake fa-fw me-2"></i> Birthdays
             </a>
+            <a href="{{ route('staff.settings') }}"
+                class="list-group-item list-group-item-action {{ request()->routeIs('staff.settings') ? 'active' : '' }}">
+                <i class="fas fa-cog fa-fw me-2"></i> SMS Settings
+            </a>
         @endcan
 
         @can('approve_leaves')

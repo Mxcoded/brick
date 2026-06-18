@@ -418,6 +418,46 @@
         </div>
     </div>
     
+    {{-- Account Status Modal --}}
+    @if (session('account_error'))
+    <div class="modal fade" id="accountStatusModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 text-white" style="background: {{ session('account_status') === 'suspended' ? '#ffc107' : '#dc3545' }};">
+                    <h5 class="modal-title">
+                        <i class="fas {{ session('account_status') === 'suspended' ? 'fa-pause-circle' : 'fa-ban' }} me-2"></i>
+                        Account {{ ucfirst(session('account_status')) }}
+                    </h5>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas {{ session('account_status') === 'suspended' ? 'fa-pause-circle text-warning' : 'fa-times-circle text-danger' }}" style="font-size: 4rem;"></i>
+                    </div>
+                    <h5 class="fw-bold">Hello, {{ session('account_name') }}</h5>
+                    <p class="text-muted mb-1">
+                        Your account has been <strong>{{ session('account_status') }}</strong>.
+                    </p>
+                    <p class="text-muted mb-0">{{ session('account_reason') }}</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pt-0">
+                    <a href="{{ route('website.home') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-home me-1"></i> Go to Website
+                    </a>
+                    <button type="button" class="btn" style="background-color: #C8A165; color: #fff;" onclick="window.location.reload()">
+                        <i class="fas fa-redo me-1"></i> Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modal = new bootstrap.Modal(document.getElementById('accountStatusModal'));
+            modal.show();
+        });
+    </script>
+    @endif
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

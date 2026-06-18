@@ -67,6 +67,6 @@ class GuestPreference extends Model
     // Scope for guests with specific prefs
     public function scopeWithPreference($query, string $key, $value = null)
     {
-        return $query->whereJsonContains('preferences->' . $key, $value);
+        return $query->whereJsonContains('preferences->'.$key, $value);
     }
 }

@@ -1,8 +1,8 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Modules\Tasks\Http\Controllers\TasksController;
-use Illuminate\Support\Facades\Auth;
 
 Route::prefix('tasks')->middleware(['auth', 'can:access_tasks_dashboard'])->group(function () {
     Route::get('/', [TasksController::class, 'index'])->name('tasks.index');
@@ -22,6 +22,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('notifications.index');
     Route::post('/notifications/{id}/read', function ($id) {
         Auth::user()->notifications()->findOrFail($id)->markAsRead();
+
         return response()->json(['success' => true]);
     })->name('notifications.read');
 });

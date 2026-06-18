@@ -1,9 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Staff\Http\Controllers\StaffController;
-use Modules\Staff\Http\Controllers\LeaveController; // Add this line
-use App\Enums\RoleEnum; // Import the Enum
+use Modules\Staff\Http\Controllers\LeaveController;
+use Modules\Staff\Http\Controllers\StaffController; // Add this line
+
+// Import the Enum
 
 /*
 |--------------------------------------------------------------------------
@@ -46,10 +47,8 @@ Route::prefix('staff')
             Route::post('/admin/balances', [LeaveController::class, 'updateBalanceAdmin'])
                 ->name('leaves.admin.balances.update');
 
-
             Route::post('/admin/balances/{id}/reset', [LeaveController::class, 'resetBalance'])
                 ->name('leaves.admin.balances.reset');
-
 
             Route::post('/admin/balances/{id}/delete', [LeaveController::class, 'deleteBalance'])
                 ->name('leaves.admin.balances.delete');
@@ -69,7 +68,6 @@ Route::prefix('staff')
             Route::get('/admin/apply', [LeaveController::class, 'showApplyForOtherForm'])
                 ->name('leaves.admin.apply');
 
-
             Route::post('/admin/apply', [LeaveController::class, 'submitLeaveForOther'])
                 ->name('leaves.admin.submit');
 
@@ -86,8 +84,12 @@ Route::prefix('staff')
                 ->name('reject');
         });
 
-        // ** NEW BIRTHDAY ROUTE **
+        // ** BIRTHDAY ROUTES **
         Route::get('/birthdays', [StaffController::class, 'birthdays'])->name('birthdays');
+
+        // ** SMS SETTINGS ROUTES **
+        Route::get('/settings', [StaffController::class, 'settings'])->name('settings');
+        Route::post('/settings', [StaffController::class, 'updateSettings'])->name('settings.update');
 
         // ** EXPORT ROUTE **
         Route::get('/export', [StaffController::class, 'export'])
@@ -95,28 +97,33 @@ Route::prefix('staff')
             ->middleware('permission:view_employees');
 
         Route::resource('/', StaffController::class)->names([
-            'index'  => 'index',
+            'index' => 'index',
             'create' => 'create',
-            'store'  => 'store',
-            'show'   => 'show', // <--- This was missing!
-            'edit'   => 'edit',
+            'store' => 'store',
+            'show' => 'show', // <--- This was missing!
+            'edit' => 'edit',
             'update' => 'update',
             'destroy' => 'destroy',
         ])->parameters([
-            '' => 'staff' // <--- THIS FIXES THE {} ISSUE
+            '' => 'staff', // <--- THIS FIXES THE {} ISSUE
         ])->middleware([
-            'index'   => 'permission:view_employees',
-            'show'    => 'permission:view_employees',
-            'create'  => 'permission:manage_employees',
-            'store'   => 'permission:manage_employees',
-            'edit'    => 'permission:manage_employees',
-            'update'  => 'permission:manage_employees',
+            'index' => 'permission:view_employees',
+            'show' => 'permission:view_employees',
+            'create' => 'permission:manage_employees',
+            'store' => 'permission:manage_employees',
+            'edit' => 'permission:manage_employees',
+            'update' => 'permission:manage_employees',
             'destroy' => 'permission:manage_employees',
         ]);
     });
 
 // **Public Routes**
 Route::middleware('web')->group(function () {
+    Route::get('/staffqr', [StaffController::class, 'verifyForm'])
+        ->name('staff.verify');
+    Route::post('/staffqr', [StaffController::class, 'verifyLookup'])
+        ->name('staff.verify.lookup');
+
     Route::get('/complete-registration', [StaffController::class, 'showCompleteRegistrationForm'])
         ->name('staff.complete-registration');
     Route::post('/complete-registration', [StaffController::class, 'completeRegistration'])

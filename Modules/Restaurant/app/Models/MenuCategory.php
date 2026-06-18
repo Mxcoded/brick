@@ -2,8 +2,9 @@
 
 namespace Modules\Restaurant\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 // use Modules\Restaurant\Database\Factories\MenuCategoryFactory;
 
 class MenuCategory extends Model
@@ -14,6 +15,7 @@ class MenuCategory extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = ['name', 'parent_id'];
+
     protected $table = 'restaurant_menu_categories';
 
     public function menuItems()
@@ -33,7 +35,7 @@ class MenuCategory extends Model
 
     public function childrenRecursive()
     {
-        return $this->children()->with('menuItems');                
+        return $this->children()->with('menuItems');
     }
 
     // protected static function newFactory(): MenuCategoryFactory
@@ -41,5 +43,3 @@ class MenuCategory extends Model
     //     // return MenuCategoryFactory::new();
     // }
 }
-
-

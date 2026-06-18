@@ -2,45 +2,40 @@
 
 namespace Modules\Staff\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Modules\Staff\Models\Employee;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
-use Modules\Staff\Models\EmploymentHistory;
-use Modules\Staff\Models\EducationalBackground;
-use Modules\Staff\Models\LeaveRequest;
-use Modules\Staff\Models\LeaveBalance;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Request as RequestFacade;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Staff\Exports\StaffExport;
-
-
-
-
+use Modules\Staff\Mail\WelcomeMail;
+use Modules\Staff\Models\Employee;
+use Modules\Staff\Models\LeaveRequest;
+use Modules\Staff\Models\StaffSetting;
 
 class StaffController extends Controller
 {
-
     public function index(Request $request)
     {
         Log::info('Middleware: ', app('router')->getMiddleware());
-        
+
         // Get branch filter from query string
         $branchFilter = $request->query('branch');
-        
+
         // Build query with optional branch filter
         $query = Employee::query();
-        
+
         if ($branchFilter) {
             $query->whereRaw('LOWER(branch_name) = ?', [strtolower($branchFilter)]);
         }
-        
+
         $employees = $query->get();
-        
+
         // Get all employees for stats (unfiltered)
         $allEmployees = Employee::all();
 
@@ -67,17 +62,17 @@ class StaffController extends Controller
 
         // Branch-based staff counts (approved staff only)
         $asokoroStaffCount = $allEmployees->where('status', 'approved')
-            ->filter(fn($e) => strtolower($e->branch_name ?? '') === 'asokoro')
+            ->filter(fn ($e) => strtolower($e->branch_name ?? '') === 'asokoro')
             ->count();
-        
+
         $wuseStaffCount = $allEmployees->where('status', 'approved')
-            ->filter(fn($e) => strtolower($e->branch_name ?? '') === 'wuse')
+            ->filter(fn ($e) => strtolower($e->branch_name ?? '') === 'wuse')
             ->count();
 
         return view('staff::index', compact(
-            'employees', 
-            'totalApprovedStaff', 
-            'staffOnLeaveCount', 
+            'employees',
+            'totalApprovedStaff',
+            'staffOnLeaveCount',
             'staffOnLeave',
             'activeStaffCount',
             'asokoroStaffCount',
@@ -85,6 +80,7 @@ class StaffController extends Controller
             'branchFilter'
         ));
     }
+
     public function dashboard()
     {
         $now = now();
@@ -132,9 +128,9 @@ class StaffController extends Controller
 
         // Branch breakdown
         $asokoroCount = $employees->where('status', 'approved')
-            ->filter(fn($e) => strtolower($e->branch_name ?? '') === 'asokoro')->count();
+            ->filter(fn ($e) => strtolower($e->branch_name ?? '') === 'asokoro')->count();
         $wuseCount = $employees->where('status', 'approved')
-            ->filter(fn($e) => strtolower($e->branch_name ?? '') === 'wuse')->count();
+            ->filter(fn ($e) => strtolower($e->branch_name ?? '') === 'wuse')->count();
         $otherBranchCount = $totalEmployees - $asokoroCount - $wuseCount;
 
         // Gender breakdown
@@ -177,13 +173,16 @@ class StaffController extends Controller
             'userRoles',
         ));
     }
+
     public function create()
     {
         return view('staff::create');
     }
+
     public function edit($id)
     {
         $employee = Employee::findOrFail($id);
+
         return view('staff::edit', ['employee' => $employee]);
     }
     // public function show($id)
@@ -191,12 +190,13 @@ class StaffController extends Controller
     //     $employee = Employee::findOrFail($id);
     //     return view('staff::show', compact('employee'));
     // }
-    
+
     public function show(Employee $staff)
     {
         // $staff is already fetched!
         return view('staff::show', ['employee' => $staff]);
     }
+
     public function store(Request $request)
     {
         // Validate request with new fields
@@ -239,8 +239,8 @@ class StaffController extends Controller
             'leaving_reason' => 'nullable|in:resignation,sack,transfer,absconded', // New: Reason for leaving
             'branch_name' => 'nullable|string|max:255',              // New: Branch name
             'resignation_letter' => 'nullable|file|mimes:pdf,doc,docx|max:5120', // New: Resignation letter upload
-            'nin' => ['nullable', 'digits:11'], //New: National Identification number
-            'bvn' => ['nullable', 'digits:11'], //New: Bank Verification number
+            'nin' => ['nullable', 'digits:11'], // New: National Identification number
+            'bvn' => ['nullable', 'digits:11'], // New: Bank Verification number
         ]);
 
         // Use transaction for data integrity
@@ -269,14 +269,14 @@ class StaffController extends Controller
             ]));
 
             // Save Employment History
-            if (!empty($request->employment_history)) {
+            if (! empty($request->employment_history)) {
                 foreach ($request->employment_history as $history) {
                     $employee->employmentHistories()->create($history);
                 }
             }
 
             // Save Educational Background
-            if (!empty($request->educational_background)) {
+            if (! empty($request->educational_background)) {
                 foreach ($request->educational_background as $education) {
                     $certificatePath = isset($education['certificate_path'])
                         ? $education['certificate_path']->store('certificates', 'public')
@@ -309,7 +309,15 @@ class StaffController extends Controller
             }
         });
 
-        return redirect()->route('staff.index')->with('success', 'Employee created successfully.');
+        $employee = Employee::latest()->first();
+
+        try {
+            Mail::to($employee->email)->queue(new WelcomeMail($employee));
+        } catch (\Exception $e) {
+            Log::warning('Failed to queue welcome email for employee '.$employee->id.': '.$e->getMessage());
+        }
+
+        return redirect()->route('staff.index')->with('success', 'Staff record created successfully. A welcome email has been sent to '.$employee->email.'.');
     }
 
     public function update(Request $request, $id)
@@ -319,7 +327,7 @@ class StaffController extends Controller
         // Validate request with new fields
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:employees,email,' . $employee->id,
+            'email' => 'required|email|unique:employees,email,'.$employee->id,
             'place_of_birth' => 'required|string|max:255',
             'state_of_origin' => 'required|string|max:255',
             'lga' => 'required|string|max:255',
@@ -329,7 +337,7 @@ class StaffController extends Controller
             'marital_status' => 'required|string|in:Single,Married,Divorced,Widowed',
             'blood_group' => 'required|string|max:255',
             'genotype' => 'required|string|max:255',
-            'phone_number' => 'required|string|unique:employees,phone_number,' . $employee->id,
+            'phone_number' => 'required|string|unique:employees,phone_number,'.$employee->id,
             'position' => 'required|string|max:255',
             'department' => 'required|string|max:255',
             'residential_address' => 'required|string',
@@ -356,7 +364,7 @@ class StaffController extends Controller
             'leaving_reason' => 'nullable|in:resignation,sack,transfer,absconded', // New: Reason for leaving
             'branch_name' => 'nullable|string|max:255',              // New: Branch name
             'resignation_letter' => 'nullable|file|mimes:pdf,doc,docx|max:5120', // New: Resignation letter upload
-            'nin' => ['nullable', 'digits:11'], //New: Update National identification Number
+            'nin' => ['nullable', 'digits:11'], // New: Update National identification Number
             'bvn' => ['nullable', 'digits:11'], // New Updat Bank Verification Number
         ]);
 
@@ -393,7 +401,7 @@ class StaffController extends Controller
                 $employee->staff_code = $staffCode;
             }
             // Check if end_date is provided in the request
-            if ($request->has('end_date') && !empty($request->input('end_date'))) {
+            if ($request->has('end_date') && ! empty($request->input('end_date'))) {
                 $validatedData['status'] = 'rejected'; // Or another status like 'terminated'
             } else {
                 $validatedData['status'] = 'draft'; // Revert to 'draft' if end_date is not supplied or is empty
@@ -407,12 +415,12 @@ class StaffController extends Controller
 
             // Update related records
             $employee->employmentHistories()->delete();
-            if (!empty($request->employment_history)) {
+            if (! empty($request->employment_history)) {
                 $employee->employmentHistories()->createMany($request->employment_history);
             }
 
             $employee->educationalBackgrounds()->delete();
-            if (!empty($request->educational_background)) {
+            if (! empty($request->educational_background)) {
                 $employee->educationalBackgrounds()->createMany($request->educational_background);
             }
         });
@@ -443,6 +451,7 @@ class StaffController extends Controller
         return redirect()->route('staff.index')
             ->with('success', 'Employee deleted successfully.');
     }
+
     public function pending()
     {
         return view('staff::pending');
@@ -466,14 +475,14 @@ class StaffController extends Controller
         return redirect()->route('staff.edit', $employee->id);
     }
 
-    //Staff Approval Functions
+    // Staff Approval Functions
     public function approvalIndex(Request $request)
     {
         $query = Employee::where('status', 'draft');
 
         // Filter by name
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->input('search') . '%');
+            $query->where('name', 'like', '%'.$request->input('search').'%');
         }
 
         // Sort
@@ -510,13 +519,14 @@ class StaffController extends Controller
         ]);
 
         // Optional: Log the action
-        Log::info("Employee {$employee->id} rejected by " . Auth::user()->name, [
+        Log::info("Employee {$employee->id} rejected by ".Auth::user()->name, [
             'reason' => $request->input('rejection_reason'),
         ]);
 
         return redirect()->route('staff.approvals.index')
             ->with('success', 'Employee marked as exited successfully.');
     }
+
     public function birthdays(Request $request)
     {
         // 1. Get all active employees
@@ -527,7 +537,7 @@ class StaffController extends Controller
             $dob = Carbon::parse($employee->date_of_birth);
             $nextBirthday = $dob->copy()->year(now()->year);
 
-            if ($nextBirthday->isPast() && !$nextBirthday->isToday()) {
+            if ($nextBirthday->isPast() && ! $nextBirthday->isToday()) {
                 $nextBirthday->addYear();
             }
 
@@ -556,6 +566,26 @@ class StaffController extends Controller
         return view('staff::birthdays', compact('paginatedBirthdays'));
     }
 
+    public function settings()
+    {
+        $message = StaffSetting::get('birthday_sms_message')
+            ?? config('staff.birthday_sms_message');
+
+        return view('staff::settings', compact('message'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $request->validate([
+            'birthday_sms_message' => 'required|string|max:160',
+        ]);
+
+        StaffSetting::set('birthday_sms_message', $request->input('birthday_sms_message'));
+
+        return redirect()->route('staff.settings')
+            ->with('success', 'Birthday SMS message updated successfully.');
+    }
+
     /**
      * Export staff data to Excel.
      */
@@ -567,16 +597,52 @@ class StaffController extends Controller
         // Build filename
         $filename = 'staff-data';
         if ($branchFilter) {
-            $filename .= '-' . strtolower($branchFilter);
+            $filename .= '-'.strtolower($branchFilter);
         }
         if ($statusFilter) {
-            $filename .= '-' . strtolower($statusFilter);
+            $filename .= '-'.strtolower($statusFilter);
         }
-        $filename .= '-' . now()->format('Y-m-d') . '.xlsx';
+        $filename .= '-'.now()->format('Y-m-d').'.xlsx';
 
         return Excel::download(
             new StaffExport($branchFilter, $statusFilter),
             $filename
         );
+    }
+
+    /**
+     * Show the public staff verification form.
+     * Anyone can access this to verify if a staff code is active.
+     */
+    public function verifyForm()
+    {
+        return view('staff::verify');
+    }
+
+    /**
+     * Look up a staff code and return the verification result.
+     */
+    public function verifyLookup(Request $request)
+    {
+        $request->validate([
+            'staff_code' => 'required|string|max:20',
+        ]);
+
+        $employee = Employee::where('staff_code', $request->staff_code)->first();
+
+        if (! $employee) {
+            return back()->with('error', 'No staff record found with that code.')->withInput();
+        }
+
+        $isActive = is_null($employee->end_date) || $employee->end_date > now();
+
+        return back()->with('verified', [
+            'name' => $employee->name,
+            'staff_code' => $employee->staff_code,
+            'department' => $employee->department,
+            'position' => $employee->position,
+            'status' => $isActive ? 'active' : 'inactive',
+            'employed_since' => $employee->created_at->format('F Y'),
+        ]);
     }
 }

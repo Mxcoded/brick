@@ -3,14 +3,12 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use Carbon\Carbon;
+use Modules\Website\Models\Booking;
+use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
-use Modules\Website\Models\Booking;
-use Modules\Website\Models\ContactMessage;
-use Modules\Website\Models\Amenity;
-use Carbon\Carbon;
 
 class WebsiteAdminController extends Controller
 {
@@ -31,7 +29,7 @@ class WebsiteAdminController extends Controller
         $today = Carbon::today();
         $totalUnits = RoomUnit::count();
         $maintenanceUnits = RoomUnit::where('status', 'maintenance')->count();
-        
+
         // Calculate truly available units (not in maintenance AND not booked for today)
         $bookedUnitIds = Booking::whereIn('status', ['confirmed', 'pending', 'checked_in'])
             ->whereDate('check_in_date', '<=', $today)
@@ -39,18 +37,18 @@ class WebsiteAdminController extends Controller
             ->whereNotNull('room_unit_id')
             ->pluck('room_unit_id')
             ->toArray();
-        
+
         // Also count bookings without assigned units (they occupy capacity)
         $unassignedBookings = Booking::whereIn('status', ['confirmed', 'pending', 'checked_in'])
             ->whereDate('check_in_date', '<=', $today)
             ->whereDate('check_out_date', '>', $today)
             ->whereNull('room_unit_id')
             ->count();
-        
+
         $availableUnits = RoomUnit::where('status', 'available')
             ->whereNotIn('id', $bookedUnitIds)
             ->count() - $unassignedBookings;
-        
+
         $rooms = [
             'total' => $totalUnits,
             'available' => max(0, $availableUnits),

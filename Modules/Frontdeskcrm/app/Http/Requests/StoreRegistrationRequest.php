@@ -3,11 +3,9 @@
 namespace Modules\Frontdeskcrm\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 // IMPORT CUSTOM RULES
-use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Frontdeskcrm\Rules\ValidEmail;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 
 class StoreRegistrationRequest extends FormRequest
 {
@@ -29,16 +27,38 @@ class StoreRegistrationRequest extends FormRequest
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'no_of_guests' => 'required|integer|min:1|max:22',
+
+            // Walk-in specific optional fields
+            'title' => 'nullable|string|max:10',
+            'room_type_id' => 'nullable|exists:room_types,id',
+            'room_unit_id' => 'nullable|exists:room_units,id',
+            'room_rate' => 'nullable|numeric|min:0',
+            'billing_type' => 'nullable|string|in:consolidate,split',
+            'payment_method' => 'nullable|string|max:50',
+            'identification_type' => 'nullable|string|max:50',
+            'identification_number' => 'nullable|string|max:50',
+            'birthday' => 'nullable|date',
+            'nationality' => 'nullable|string|max:100',
+            'occupation' => 'nullable|string|max:255',
+            'company_name' => 'nullable|string|max:255',
+            'home_address' => 'nullable|string|max:500',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'zip_code' => 'nullable|string|max:20',
+            'emergency_name' => 'nullable|string|max:255',
+            'emergency_relationship' => 'nullable|string|max:50',
+            'emergency_contact' => 'nullable|string|max:20',
+
             // ✅ CONDITIONAL: Only require specific fields if NOT an agent walk-in
             'is_group_lead' => 'boolean',
             'agreed_to_policies' => $isAgentWalkin ? 'nullable' : 'required|accepted',
             'opt_in_data_save' => 'boolean',
 
-            // ✅ CONDITIONAL: Signature is optional for Agents (Guest can sign later via Kiosk)
+            // Signature is optional for agent walk-ins (guest signs later via kiosk)
             'guest_signature' => $isAgentWalkin ? 'nullable' : [
                 'required',
                 'string',
-                'regex:/^data:image\/(png|jpeg|jpg);base64,[A-Za-z0-9+\/=]+$/i'
+                'regex:/^data:image\/(png|jpeg|jpg);base64,[A-Za-z0-9+\/=]+$/i',
             ],
 
             // Group Members (Apply API Validation here too)
@@ -48,13 +68,13 @@ class StoreRegistrationRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:20',
-                new ValidPhoneNumber // <-- RESTORED
+                new ValidPhoneNumber,
             ],
             'group_members.*.email' => [
                 'nullable',
                 'email',
                 'max:255',
-                new ValidEmail // <-- RESTORED
+                new ValidEmail,
             ],
         ];
 
@@ -83,14 +103,14 @@ class StoreRegistrationRequest extends FormRequest
                 'required',
                 'string',
                 'max:20',
-                new ValidPhoneNumber // <-- RESTORED
+                new ValidPhoneNumber, // <-- RESTORED
             ];
 
             $rules['email'] = [
                 'nullable',
                 'email',
                 'max:255',
-                new ValidEmail // <-- RESTORED
+                new ValidEmail, // <-- RESTORED
             ];
 
             $rules['occupation'] = 'nullable|string|max:255';

@@ -11,13 +11,20 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
+
+    const STATUS_ACTIVE = 'active';
+    const STATUS_SUSPENDED = 'suspended';
+    const STATUS_DEACTIVATED = 'deactivated';
 
     protected $fillable = [
         'name',
         'email',
         'password',
         'type',
+        'status',
+        'suspended_at',
+        'suspension_reason',
     ];
 
     protected $hidden = [
@@ -29,6 +36,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'suspended_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -53,6 +61,21 @@ class User extends Authenticatable
         return $this->type === 'guest';
     }
 
+    public function isActive(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->status === self::STATUS_SUSPENDED;
+    }
+
+    public function isDeactivated(): bool
+    {
+        return $this->status === self::STATUS_DEACTIVATED;
+    }
+
     public function scopeStaff($query)
     {
         return $query->where('type', 'staff');
@@ -61,5 +84,20 @@ class User extends Authenticatable
     public function scopeGuest($query)
     {
         return $query->where('type', 'guest');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    public function scopeSuspended($query)
+    {
+        return $query->where('status', self::STATUS_SUSPENDED);
+    }
+
+    public function scopeDeactivated($query)
+    {
+        return $query->where('status', self::STATUS_DEACTIVATED);
     }
 }

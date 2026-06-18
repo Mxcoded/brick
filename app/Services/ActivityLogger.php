@@ -10,7 +10,7 @@ class ActivityLogger
 {
     public static function log(string $action, ?string $description = null, $model = null): void
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return;
         }
 

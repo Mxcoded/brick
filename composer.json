@@ -14,6 +14,7 @@
         "laravel/ui": "^4.6",
         "maatwebsite/excel": "*",
         "nwidart/laravel-modules": "^11.1",
+        "picqer/php-barcode-generator": "*",
         "spatie/laravel-permission": "^6.16",
         "yajra/laravel-datatables": "^11.0"
     },

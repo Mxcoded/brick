@@ -600,13 +600,33 @@
                             <a class="nav-link {{ request()->routeIs('website.rooms.*', 'website.booking') ? 'active' : '' }}"
                                 href="{{ route('website.rooms.index') }}">Rooms & Suites</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('website.dining') ? 'active' : '' }}"
-                                href="{{ route('website.dining') }}">Dining</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {{ request()->routeIs('website.facilities') || request()->routeIs('website.dining') || request()->routeIs('website.meetings') || request()->routeIs('website.meeting-enquiry*') ? 'active' : '' }}"
+                                href="{{ route('website.facilities') }}" id="facilitiesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Facilities
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="facilitiesDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('website.facilities') }}">
+                                        <i class="fas fa-th-large me-2" style="color: #C8A165;"></i>All Facilities
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('website.dining') }}">
+                                        <i class="fas fa-utensils me-2" style="color: #C8A165;"></i>On-site Restaurant
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('website.meetings') }}">
+                                        <i class="fas fa-users me-2" style="color: #C8A165;"></i>Meeting & Event Spaces
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('website.amenities') ? 'active' : '' }}"
-                                href="{{ route('website.amenities') }}">Amenities</a>
+                            <a class="nav-link {{ request()->routeIs('website.offers') ? 'active' : '' }}"
+                                href="{{ route('website.offers') }}">Offers</a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {{ request()->routeIs('website.location') ? 'active' : '' }}"
@@ -735,8 +755,10 @@
                                 class="text-muted-footer text-decoration-none">Rooms</a></li>
                         {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
                                 class="text-muted-footer text-decoration-none">Rooms</a> --}}
-                        <li class="mb-2"><a href="{{ route('website.amenities') }}"
-                                class="text-muted-footer text-decoration-none">Amenities</a></li>
+                        <li class="mb-2"><a href="{{ route('website.facilities') }}"
+                                class="text-muted-footer text-decoration-none">Facilities</a></li>
+                        <li class="mb-2"><a href="{{ route('website.meetings') }}"
+                                class="text-muted-footer text-decoration-none">Meetings & Events</a></li>
                         <li class="mb-2">
                             <a href="{{ route('website.location') }}" class="text-muted-footer text-decoration-none">Our Hotels</a>
                             <ul class="list-unstyled ps-3 mt-1" style="font-size: 0.85rem;">

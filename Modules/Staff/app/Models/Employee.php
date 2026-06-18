@@ -2,9 +2,9 @@
 
 namespace Modules\Staff\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Tasks\Models\Task;
 
 // use Modules\Staff\Database\Factories\EmployeeFactory;
@@ -47,7 +47,7 @@ class Employee extends Model
         'nin',                 // National identification number
         'bvn',                 // Bank Verification number
         'department',           // Department
-        'staff_code'
+        'staff_code',
 
     ];
 
@@ -76,10 +76,12 @@ class Employee extends Model
     {
         return $this->hasMany(LeaveBalance::class);
     }
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+
     public function tasks()
     {
         return $this->belongsToMany(Task::class, 'task_assignments', 'employee_id', 'task_id');

@@ -1,9 +1,10 @@
 <?php
 
+use App\Http\Controllers\Admin\LoginLogController;
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AdminController;
-use App\Http\Controllers\Admin\LoginLogController;
-use App\Enums\RoleEnum; // Import the Enum
+
+// Import the Enum
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +42,8 @@ Route::prefix('admin')
         Route::get('/users/guest/create', [AdminController::class, 'createGuest'])->name('users.guest.create');
         Route::post('/users/guest', [AdminController::class, 'storeGuest'])->name('users.guest.store');
         Route::patch('/users/{user}/type', [AdminController::class, 'updateType'])->name('users.type.update');
+        Route::post('/users/{user}/toggle-status', [AdminController::class, 'toggleUserStatus'])->name('users.toggle-status');
+        Route::post('/users/{user}/resend-credentials', [AdminController::class, 'resendCredentials'])->name('users.resend-credentials');
 
         Route::get('/employees/create-user', [AdminController::class, 'createUserFromEmployee'])->name('employees.create-user');
         Route::post('/employees/store-user', [AdminController::class, 'storeUserFromEmployee'])->name('employees.store-user');

@@ -2,10 +2,10 @@
 
 namespace Modules\Inventory\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 // use Modules\Inventory\Database\Factories\StoreItemFactory;
 
 /**
@@ -16,7 +16,12 @@ class StoreItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['store_id', 'item_id', 'lot_number', 'quantity', 'total_cost', 'expiry_date'];
+    protected $fillable = ['store_id', 'item_id', 'lot_number', 'quantity', 'total_cost', 'expiry_date', 'location_id'];
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(StoreLocation::class, 'location_id');
+    }
 
     /**
      * Get the store that owns the item stock.

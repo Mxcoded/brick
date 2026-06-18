@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleSeeder extends Seeder
@@ -116,6 +116,29 @@ class RoleSeeder extends Seeder
             'suppliers.delete',
 
             // ──────────────────────────────────────────
+            // INVENTORY – granular action permissions
+            // ──────────────────────────────────────────
+            'inventory.restock',
+            'inventory.transfer',
+            'inventory.usage',
+            'inventory.adjustments',
+            'inventory.reports',
+            'inventory.export',
+            'inventory.scan',
+            'purchase_orders.create',
+            'purchase_orders.approve',
+            'purchase_orders.cancel',
+            'purchase_orders.receive',
+            'stores.create',
+            'stores.read',
+            'stores.update',
+            'stores.delete',
+            'departments.create',
+            'departments.read',
+            'departments.update',
+            'departments.delete',
+
+            // ──────────────────────────────────────────
             // RESTAURANT – legacy
             // ──────────────────────────────────────────
             'take_orders',
@@ -161,7 +184,7 @@ class RoleSeeder extends Seeder
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate([
-                'name'       => $permission,
+                'name' => $permission,
                 'guard_name' => 'web',
             ]);
         }
@@ -248,6 +271,8 @@ class RoleSeeder extends Seeder
                 'orders.delete',
                 'access_inventory_dashboard',
                 'view_inventory',
+                'inventory.reports',
+                'inventory.export',
             ]);
 
         // ──────────────────────────────────────────
@@ -287,6 +312,25 @@ class RoleSeeder extends Seeder
                 'suppliers.read',
                 'suppliers.update',
                 'suppliers.delete',
+                'inventory.restock',
+                'inventory.transfer',
+                'inventory.usage',
+                'inventory.adjustments',
+                'inventory.reports',
+                'inventory.export',
+                'inventory.scan',
+                'purchase_orders.create',
+                'purchase_orders.approve',
+                'purchase_orders.cancel',
+                'purchase_orders.receive',
+                'stores.create',
+                'stores.read',
+                'stores.update',
+                'stores.delete',
+                'departments.create',
+                'departments.read',
+                'departments.update',
+                'departments.delete',
             ]);
 
         // ──────────────────────────────────────────
@@ -302,6 +346,7 @@ class RoleSeeder extends Seeder
                 'tasks.update',
                 'access_inventory_dashboard',
                 'view_inventory',
+                'inventory.reports',
             ]);
 
         // ──────────────────────────────────────────

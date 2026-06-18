@@ -2,10 +2,11 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RoomInventoryBlock extends Model
 {
@@ -54,7 +55,7 @@ class RoomInventoryBlock extends Model
      */
     public function creator()
     {
-        return $this->belongsTo(\App\Models\User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     // ==========================================
@@ -71,7 +72,7 @@ class RoomInventoryBlock extends Model
 
         return $query->where(function ($q) use ($start, $end) {
             $q->where('start_date', '<=', $end)
-              ->where('end_date', '>=', $start);
+                ->where('end_date', '>=', $start);
         });
     }
 
@@ -81,8 +82,9 @@ class RoomInventoryBlock extends Model
     public function scopeForDate($query, $date)
     {
         $date = Carbon::parse($date);
+
         return $query->where('start_date', '<=', $date)
-                     ->where('end_date', '>=', $date);
+            ->where('end_date', '>=', $date);
     }
 
     /**
@@ -119,6 +121,7 @@ class RoomInventoryBlock extends Model
     public function coversDate($date): bool
     {
         $date = Carbon::parse($date);
+
         return $date->between($this->start_date, $this->end_date);
     }
 

@@ -2,10 +2,11 @@
 
 namespace Modules\Tasks\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Modules\Staff\Models\Employee;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Modules\Staff\Models\Employee;
+
 // use Modules\Tasks\Database\Factories\TaskFactory;
 
 class Task extends Model
@@ -54,7 +55,18 @@ class Task extends Model
         return $this->hasMany(TaskUpdate::class, 'task_id');
     }
 
-    public function scopePending($q) { return $q->where('status', 'pending'); }
-    public function scopeInProgress($q) { return $q->where('status', 'in_progress'); }
-    public function scopeCompleted($q) { return $q->where('status', 'completed'); }
+    public function scopePending($q)
+    {
+        return $q->where('status', 'pending');
+    }
+
+    public function scopeInProgress($q)
+    {
+        return $q->where('status', 'in_progress');
+    }
+
+    public function scopeCompleted($q)
+    {
+        return $q->where('status', 'completed');
+    }
 }

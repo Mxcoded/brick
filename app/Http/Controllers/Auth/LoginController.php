@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
-use App\Enums\RoleEnum;
 
 class LoginController extends Controller
 {
@@ -22,10 +21,29 @@ class LoginController extends Controller
 
     /**
      * The user has been authenticated.
-     * We override this method to handle dynamic redirection.
+     * We override this method to handle dynamic redirection and check account status.
      */
     protected function authenticated(Request $request, $user)
     {
+        // Check if account is suspended or deactivated
+        if (! $user->isActive()) {
+            auth()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            $reason = $user->suspension_reason
+                ? "Reason: {$user->suspension_reason}"
+                : 'Please contact the administrator.';
+
+            $statusLabel = $user->status === 'suspended' ? 'suspended' : 'deactivated';
+
+            return redirect()->route('login')
+                ->with('account_error', true)
+                ->with('account_status', $statusLabel)
+                ->with('account_reason', $reason)
+                ->with('account_name', $user->name);
+        }
+
         // 1. Priority: Admin Dashboard
         if ($user->can('access_admin_dashboard')) {
             return redirect()->route('admin.dashboard');

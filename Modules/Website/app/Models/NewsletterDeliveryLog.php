@@ -2,15 +2,17 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class NewsletterDeliveryLog extends Model
 {
     use HasFactory;
 
     const STATUS_PENDING = 'pending';
+
     const STATUS_SENT = 'sent';
+
     const STATUS_FAILED = 'failed';
 
     protected $fillable = [

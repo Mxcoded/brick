@@ -3,12 +3,12 @@
 namespace Modules\Tasks\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Modules\Staff\Models\Employee;
 use Modules\Tasks\Models\Task;
 use Modules\Tasks\Models\TaskAssignment;
-use Modules\Staff\Models\Employee;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class TasksController extends Controller
 {
@@ -62,7 +62,7 @@ class TasksController extends Controller
         $request->validate([
             'description' => 'required|string|max:5000',
             'priority' => 'required|in:high,medium,low',
-            'deadline' => 'required|date|after_or_equal:' . Carbon::today()->toDateString(),
+            'deadline' => 'required|date|after_or_equal:'.Carbon::today()->toDateString(),
             'assignees' => $canAssign ? 'nullable|array' : 'nullable',
             'assignees.*' => $canAssign ? 'exists:employees,id' : '',
         ]);
@@ -81,7 +81,7 @@ class TasksController extends Controller
             'deadline' => $request->deadline,
         ]);
 
-        if ($canAssign && !empty($request->assignees)) {
+        if ($canAssign && ! empty($request->assignees)) {
             foreach ($request->assignees as $employeeId) {
                 TaskAssignment::create([
                     'task_id' => $task->id,
@@ -172,9 +172,9 @@ class TasksController extends Controller
         }
 
         $next = match ($task->status) {
-            'pending'     => 'in_progress',
+            'pending' => 'in_progress',
             'in_progress' => 'completed',
-            'completed'   => 'pending',
+            'completed' => 'pending',
         };
 
         $task->update([
@@ -184,8 +184,8 @@ class TasksController extends Controller
 
         $label = match ($next) {
             'in_progress' => 'Task is now in progress.',
-            'completed'   => 'Task marked complete.',
-            'pending'     => 'Task reset to pending.',
+            'completed' => 'Task marked complete.',
+            'pending' => 'Task reset to pending.',
         };
 
         return redirect()->back()->with('success', $label);

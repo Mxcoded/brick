@@ -1,18 +1,19 @@
 <?php
 
+use App\Http\Middleware\LogUserActivity;
+use App\Http\Middleware\TrackUserActivity;
+use App\Models\UserActivityLog;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
-use Illuminate\Console\Scheduling\Schedule;
-use App\Http\Middleware\TrackUserActivity;
-use App\Http\Middleware\LogUserActivity;
+use Spatie\Permission\Middleware\RoleMiddleware;
 
-return Application::configure(basePath: __DIR__ . '/../')
+return Application::configure(basePath: __DIR__.'/../')
     ->withRouting(
-        web: __DIR__ . '/../routes/web.php',
-        commands: __DIR__ . '/../routes/console.php',
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
@@ -38,7 +39,7 @@ return Application::configure(basePath: __DIR__ . '/../')
 
         // Prune activity logs older than 90 days
         $schedule->call(function () {
-            \App\Models\UserActivityLog::where('created_at', '<', now()->subDays(90))->delete();
+            UserActivityLog::where('created_at', '<', now()->subDays(90))->delete();
         })->dailyAt('03:00');
     })
     // ** END OF ADDED BLOCK **

@@ -27,6 +27,32 @@
         <i class="fas fa-users me-2"></i> Customers
     </a>
 
+    {{-- 4. ENQUIRIES --}}
+    <a href="{{ route('banquet.enquiries.index') }}" 
+       class="list-group-item list-group-item-action {{ request()->routeIs('banquet.enquiries.*') ? 'active' : '' }}">
+        <i class="fas fa-question-circle me-2"></i> Enquiries
+    </a>
+
+    {{-- 5. LEAD EVENTS (Campaign Management) --}}
+    <a href="{{ route('banquet.lead-events.index') }}" 
+       class="list-group-item list-group-item-action {{ request()->routeIs('banquet.lead-events.*') ? 'active' : '' }}">
+        <i class="fas fa-calendar-alt me-2"></i> Lead Events
+    </a>
+
+    {{-- 6. EVENT LEADS --}}
+    <a href="{{ route('banquet.event-leads.index') }}" 
+       class="list-group-item list-group-item-action {{ request()->routeIs('banquet.event-leads.*') ? 'active' : '' }}">
+        <i class="fas fa-users me-2"></i> Event Leads
+    </a>
+
+    {{-- 5. MEETINGS PAGE --}}
+    @can('access_website_dashboard')
+    <a href="{{ route('website.admin.meeting.edit') }}" 
+       class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.meeting.*') ? 'active' : '' }}">
+        <i class="fas fa-building me-2"></i> Meetings Page
+    </a>
+    @endcan
+
     {{-- 4. REPORTS --}}
     <a href="{{ route('banquet.reports.form') }}" 
        class="list-group-item list-group-item-action {{ request()->routeIs('banquet.reports.*') ? 'active' : '' }}">

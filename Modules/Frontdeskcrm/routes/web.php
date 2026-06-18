@@ -1,11 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Frontdeskcrm\Http\Controllers\RegistrationController;
 use Modules\Frontdeskcrm\Http\Controllers\BookingSourceController;
-use Modules\Frontdeskcrm\Http\Controllers\GuestTypeController;
+use Modules\Frontdeskcrm\Http\Controllers\ChannelController;
 use Modules\Frontdeskcrm\Http\Controllers\GuestController;
-use App\Enums\RoleEnum; // Import the Enum
+use Modules\Frontdeskcrm\Http\Controllers\GuestTypeController;
+use Modules\Frontdeskcrm\Http\Controllers\KioskController;
+use Modules\Frontdeskcrm\Http\Controllers\RegistrationController;
+
+// Import the Enum
 
 /*
 |--------------------------------------------------------------------------
@@ -38,7 +41,6 @@ Route::prefix('checkin')->name('frontdesk.registrations.')->group(function () {
     Route::get('/thank-you', [RegistrationController::class, 'thankYou'])->name('thank-you');
 });
 
-
 // =====================================================================
 // 2. AUTHENTICATED AGENT ROUTES (REQUIRES LOGIN)
 // =====================================================================
@@ -56,9 +58,9 @@ Route::prefix('frontdesk')
         // Route to mark a booking as no-show directly
         Route::post('/bookings/{booking}/no-show', [RegistrationController::class, 'markBookingNoShow'])
             ->name('bookings.no-show');
-    //records a payment made against a registration.
-    Route::post('/registrations/{registration}/payment', [RegistrationController::class, 'storePayment'])
-        ->name('registrations.payment.store');
+        // records a payment made against a registration.
+        Route::post('/registrations/{registration}/payment', [RegistrationController::class, 'storePayment'])
+            ->name('registrations.payment.store');
         // --- REGISTRATION MANAGEMENT ---
         Route::prefix('registrations')->name('registrations.')->group(function () {
 
@@ -69,8 +71,6 @@ Route::prefix('frontdesk')
             Route::get('/lookup-guest', [RegistrationController::class, 'lookupGuest'])->name('lookup');
             Route::get('/create-walkin', [RegistrationController::class, 'createWalkin'])->name('createWalkin');
             Route::post('/store-walkin', [RegistrationController::class, 'storeWalkin'])->name('storeWalkin');
-
-
 
             // Shows the form for an agent to finalize a guest's draft.
             Route::get('/{registration}/finalize', [RegistrationController::class, 'showFinalizeForm'])->name('finalize.form');
@@ -83,7 +83,6 @@ Route::prefix('frontdesk')
 
             // Adjusts the stay details (e.g., extending checkout date) for a registration.
             Route::put('/{registration}/adjust-stay', [RegistrationController::class, 'adjustStay'])->name('adjust-stay');
-      
 
             // Retrieves active group members for a group registration.
             Route::get('/{registration}/active-members', [RegistrationController::class, 'getActiveMembers'])->name('active-members');
@@ -103,6 +102,10 @@ Route::prefix('frontdesk')
             Route::delete('/{registration}', [RegistrationController::class, 'destroy'])->name('destroy');
         });
 
+        // --- CHANNEL MANAGER ---
+        Route::resource('channels', ChannelController::class)->except(['show']);
+        Route::get('channels/{channel}', [ChannelController::class, 'show'])->name('channels.show');
+
         // --- MASTER DATA MANAGEMENT ---
 
         // Routes for managing Booking Sources (e.g., Walk-in, Booking.com).
@@ -117,6 +120,8 @@ Route::prefix('frontdesk')
             Route::get('/datatable', [GuestController::class, 'datatable'])->name('datatable');
             Route::get('/create', [GuestController::class, 'create'])->name('create');
             Route::post('/', [GuestController::class, 'store'])->name('store');
+            Route::get('/import', [GuestController::class, 'showImportForm'])->name('import');
+            Route::post('/import', [GuestController::class, 'import'])->name('import.process');
             Route::get('/{guest}', [GuestController::class, 'show'])->name('show');
             Route::get('/{guest}/edit', [GuestController::class, 'edit'])->name('edit');
             Route::put('/{guest}', [GuestController::class, 'update'])->name('update');
@@ -132,9 +137,17 @@ Route::prefix('frontdesk')
         });
     });
 
+// =====================================================================
+// 3. PUBLIC KIOSK ROUTE (Guest Signature Collection)
+// =====================================================================
+Route::prefix('kiosk')->name('frontdesk.kiosk.')->group(function () {
+    Route::get('/sign', [KioskController::class, 'signForm'])->name('sign');
+    Route::post('/sign/lookup', [KioskController::class, 'lookupBooking'])->name('sign.lookup');
+    Route::post('/sign', [KioskController::class, 'submitSignature'])->name('sign.submit');
+});
 
 // =====================================================================
-// 3. FAST TRACK CHECK-IN ROUTES (SIMPLE FLOW FOR GUESTS) 
+// 4. FAST TRACK CHECK-IN ROUTES (SIMPLE FLOW FOR GUESTS)
 // =====================================================================
 Route::prefix('fast-track')->name('frontdesk.fasttrack.')->group(function () {
     // The Landing Page (Scan QR lands here)

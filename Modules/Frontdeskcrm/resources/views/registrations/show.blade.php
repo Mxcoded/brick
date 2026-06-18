@@ -141,10 +141,10 @@ $checkoutConfirmMsg = $isGroupLead
                 <div class="row g-3 align-items-end">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Assign Room</label>
-                        <select name="room_id" class="form-select form-select-lg" required>
+                        <select name="room_unit_id" class="form-select form-select-lg" required>
                             <option value="">Select available room...</option>
-                            @foreach(\Modules\Website\Models\Room::where('status', 'available')->get() as $room)
-                                <option value="{{ $room->id }}">{{ $room->name }} - ₦{{ number_format($room->price) }}</option>
+                            @foreach(\Modules\Website\Models\RoomUnit::whereIn('status', ['available', 'occupied'])->with('roomType')->orderBy('room_number')->get() as $unit)
+                                <option value="{{ $unit->id }}">{{ $unit->room_number }} ({{ $unit->roomType->name ?? 'N/A' }})</option>
                             @endforeach
                         </select>
                     </div>
@@ -647,11 +647,11 @@ $checkoutConfirmMsg = $isGroupLead
                             <ul class="list-unstyled mb-0 mt-2">
                                 <li class="mb-2 d-flex">
                                     <i class="fas fa-user-shield text-muted mt-1 me-3" style="width: 16px;"></i>
-                                    <span>{{ $registration->emergency_name ?? $registration->guest->emergency_name ?? 'N/A' }}</span>
+                                    <span>{{ $registration->emergency_name ?? $registration->guest?->emergency_name ?? 'N/A' }}</span>
                                 </li>
                                 <li class="d-flex">
                                     <i class="fas fa-phone-alt text-muted mt-1 me-3" style="width: 16px;"></i>
-                                    <span>{{ $registration->emergency_contact ?? $registration->guest->emergency_contact ?? 'N/A' }}</span>
+                                    <span>{{ $registration->emergency_contact ?? $registration->guest?->emergency_contact ?? 'N/A' }}</span>
                                 </li>
                             </ul>
                         </div>
@@ -661,10 +661,10 @@ $checkoutConfirmMsg = $isGroupLead
                             <small class="text-muted text-uppercase fw-bold">History</small>
                             <div class="mt-2 d-flex align-items-center">
                                 <i class="fas fa-history text-muted me-3" style="width: 16px;"></i>
-                                <span class="badge {{ ($registration->guest->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }}">
-                                    {{ ($registration->guest->visit_count ?? 1) > 1 ? 'Returning Guest' : 'New Guest' }}
+                                <span class="badge {{ ($registration->guest?->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ ($registration->guest?->visit_count ?? 1) > 1 ? 'Returning Guest' : 'New Guest' }}
                                 </span>
-                                <small class="text-muted ms-2">({{ $registration->guest->visit_count ?? 1 }} visits)</small>
+                                <small class="text-muted ms-2">({{ $registration->guest?->visit_count ?? 1 }} visits)</small>
                             </div>
                         </div>
                     </div>

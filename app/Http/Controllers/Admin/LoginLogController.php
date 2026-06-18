@@ -79,30 +79,36 @@ class LoginLogController extends Controller
                 if ($log->is_active) {
                     return '<span class="badge bg-success"><i class="fas fa-circle fa-xs me-1"></i>Active</span>';
                 }
+
                 return '<span class="badge bg-warning text-dark"><i class="fas fa-clock fa-xs me-1"></i>Idle</span>';
             })
             ->addColumn('last_activity_formatted', function ($log) {
                 $lastActivity = $log->last_activity_at ?? $log->logged_in_at;
+
                 return $lastActivity->diffForHumans();
             })
             ->addColumn('session_duration', function ($log) {
-                if (!$log->logged_out_at) {
+                if (! $log->logged_out_at) {
                     $minutes = $log->logged_in_at->diffInMinutes(now());
-                    return '<span class="text-success">' . $this->formatDuration($minutes) . ' (ongoing)</span>';
+
+                    return '<span class="text-success">'.$this->formatDuration($minutes).' (ongoing)</span>';
                 }
+
                 return $this->formatDuration($log->session_duration);
             })
             ->addColumn('device_info', function ($log) {
-                $icon = match($log->device_type) {
+                $icon = match ($log->device_type) {
                     'mobile' => '<i class="fas fa-mobile-alt text-primary"></i>',
                     'tablet' => '<i class="fas fa-tablet-alt text-info"></i>',
                     default => '<i class="fas fa-desktop text-secondary"></i>',
                 };
-                return $icon . ' ' . ($log->browser ?? 'Unknown') . ' / ' . ($log->platform ?? 'Unknown');
+
+                return $icon.' '.($log->browser ?? 'Unknown').' / '.($log->platform ?? 'Unknown');
             })
             ->addColumn('status_badge', function ($log) {
                 $badgeClass = $log->status === 'success' ? 'bg-success' : 'bg-danger';
-                return '<span class="badge ' . $badgeClass . '">' . ucfirst($log->status) . '</span>';
+
+                return '<span class="badge '.$badgeClass.'">'.ucfirst($log->status).'</span>';
             })
             ->rawColumns(['logged_out_at_formatted', 'session_duration', 'device_info', 'status_badge', 'last_activity_formatted'])
             ->make(true);
@@ -114,7 +120,7 @@ class LoginLogController extends Controller
     public function userHistory($userId)
     {
         $user = User::findOrFail($userId);
-        
+
         $stats = [
             'total_logins' => UserLoginLog::where('user_id', $userId)->successful()->count(),
             'last_login' => UserLoginLog::where('user_id', $userId)->successful()->latest('logged_in_at')->first()?->logged_in_at,
@@ -175,19 +181,19 @@ class LoginLogController extends Controller
         }
 
         $logs = $query->get();
-        $filename = 'login-logs-' . now()->format('Y-m-d-His') . '.csv';
+        $filename = 'login-logs-'.now()->format('Y-m-d-His').'.csv';
 
         $headers = [
-            "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma" => "no-cache",
-            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
-            "Expires" => "0"
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$filename",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
         $callback = function () use ($logs) {
             $file = fopen('php://output', 'w');
-            fputs($file, "\xEF\xBB\xBF"); // UTF-8 BOM
+            fwrite($file, "\xEF\xBB\xBF"); // UTF-8 BOM
 
             // Header row
             fputcsv($file, [
@@ -234,19 +240,19 @@ class LoginLogController extends Controller
         }
 
         if ($minutes < 60) {
-            return $minutes . ' min';
+            return $minutes.' min';
         }
 
         $hours = floor($minutes / 60);
         $mins = $minutes % 60;
 
         if ($hours < 24) {
-            return $hours . 'h ' . $mins . 'm';
+            return $hours.'h '.$mins.'m';
         }
 
         $days = floor($hours / 24);
         $hours = $hours % 24;
 
-        return $days . 'd ' . $hours . 'h';
+        return $days.'d '.$hours.'h';
     }
 }

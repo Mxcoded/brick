@@ -25,7 +25,7 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-body">
-            <form method="POST" action="{{ route('maintenance.store') }}">
+            <form method="POST" action="{{ route('maintenance.store') }}" enctype="multipart/form-data">
                 @csrf
 
                 <div class="row g-3 mb-3">
@@ -41,6 +41,18 @@
                                 <option value="{{ $key }}" {{ old('department') === $key ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Priority</label>
+                    <div class="d-flex gap-2 priority-radio">
+                        @foreach (\Modules\Maintenance\Models\MaintenanceLog::PRIORITIES as $key => $label)
+                            <label class="priority-option {{ $key === 'medium' ? 'selected' : '' }}">
+                                <input type="radio" name="priority" value="{{ $key }}" {{ old('priority', 'medium') === $key ? 'checked' : '' }}>
+                                <span class="badge priority-badge p-2" data-priority="{{ $key }}">{{ $label }}</span>
+                            </label>
+                        @endforeach
                     </div>
                 </div>
 
@@ -63,6 +75,11 @@
                 <div class="mb-3">
                     <label class="form-label">Nature of Complaint <span class="text-danger">*</span></label>
                     <textarea name="nature_of_complaint" class="form-control" rows="4" required>{{ old('nature_of_complaint') }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Photo <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="file" name="image" class="form-control" accept="image/*" capture="environment" data-compress="1200">
                 </div>
 
                 <div class="row g-3 mb-4">
@@ -113,6 +130,16 @@
 .status-toggle .st-btn.active.st-completed { background: #198754; color: #fff; }
 .status-toggle .st-btn.active.st-cancelled { background: #6c757d; color: #fff; }
 .status-toggle .st-btn:not(.active):hover { filter: brightness(0.92); }
+.priority-radio { gap: 0.35rem !important; }
+.priority-option { cursor: pointer; }
+.priority-option input { display: none; }
+.priority-badge { transition: all 0.15s; border: 2px solid transparent; font-weight: 500; }
+.priority-option input:checked + .priority-badge { border-color: #212529; box-shadow: 0 0 0 2px rgba(200,161,101,0.4); }
+.priority-option:hover .priority-badge { filter: brightness(0.92); }
+.priority-badge[data-priority="low"] { background-color: #6c757d; color: #fff; }
+.priority-badge[data-priority="medium"] { background-color: #ffc107; color: #212529; }
+.priority-badge[data-priority="high"] { background-color: #fd7e14; color: #fff; }
+.priority-badge[data-priority="critical"] { background-color: #dc3545; color: #fff; }
 </style>
 @endsection
 

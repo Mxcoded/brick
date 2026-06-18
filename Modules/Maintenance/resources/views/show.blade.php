@@ -54,21 +54,41 @@
                             <label class="text-muted small text-uppercase">Received By</label>
                             <p class="fw-semibold mb-0">{{ $maintenanceLog->received_by ?? '--' }}</p>
                         </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase">Priority</label>
+                            <p class="mb-0">
+                                @php
+                                    $pColors = ['low' => '#6c757d', 'medium' => '#ffc107', 'high' => '#fd7e14', 'critical' => '#dc3545'];
+                                    $pColor = $pColors[$maintenanceLog->priority] ?? '#6c757d';
+                                @endphp
+                                <span class="badge rounded-pill fs-6" style="background-color: {{ $pColor }}; color: {{ $maintenanceLog->priority === 'medium' ? '#212529' : '#fff' }};">
+                                    {{ ucfirst($maintenanceLog->priority) }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase">Created At</label>
+                            <p class="fw-semibold mb-0">{{ $maintenanceLog->created_at->format('M d, Y h:i A') }}</p>
+                        </div>
                         <div class="col-12">
                             <label class="text-muted small text-uppercase">Nature of Complaint</label>
                             <div class="p-3 bg-light rounded-3 mt-1">
                                 <p class="mb-0">{{ $maintenanceLog->nature_of_complaint }}</p>
                             </div>
                         </div>
+                        @if ($maintenanceLog->image_url)
+                        <div class="col-12">
+                            <label class="text-muted small text-uppercase">Photo</label>
+                            <a href="{{ $maintenanceLog->image_url }}" target="_blank" class="d-block mt-1">
+                                <img src="{{ $maintenanceLog->image_url }}" alt="Issue photo" class="rounded-3 img-fluid" style="max-height: 300px; object-fit: contain;">
+                            </a>
+                        </div>
+                        @endif
                         <div class="col-md-6">
                             <label class="text-muted small text-uppercase">Cost of Fixing (NGN)</label>
                             <p class="fw-semibold fs-5 mb-0" style="color: var(--luxury-gold);">
                                 {{ $maintenanceLog->cost_of_fixing ? number_format($maintenanceLog->cost_of_fixing, 2) : '--' }}
                             </p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small text-uppercase">Created At</label>
-                            <p class="fw-semibold mb-0">{{ $maintenanceLog->created_at->format('M d, Y h:i A') }}</p>
                         </div>
                     </div>
                 </div>

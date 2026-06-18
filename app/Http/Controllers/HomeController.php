@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Enums\RoleEnum;
 
 class HomeController extends Controller
 {

@@ -87,7 +87,7 @@ class UserLoginLog extends Model
      */
     public function getSessionDurationAttribute(): ?int
     {
-        if (!$this->logged_out_at) {
+        if (! $this->logged_out_at) {
             return null;
         }
 
@@ -100,7 +100,7 @@ class UserLoginLog extends Model
     public function getIsActiveAttribute(): bool
     {
         // Must be a successful login without explicit logout
-        if ($this->status !== 'success' || !is_null($this->logged_out_at)) {
+        if ($this->status !== 'success' || ! is_null($this->logged_out_at)) {
             return false;
         }
 
@@ -111,6 +111,7 @@ class UserLoginLog extends Model
 
         // Check activity timeout
         $lastActivity = $this->last_activity_at ?? $this->logged_in_at;
+
         return $lastActivity->diffInMinutes(now()) < self::SESSION_TIMEOUT_MINUTES;
     }
 
@@ -119,11 +120,11 @@ class UserLoginLog extends Model
      */
     public function getIsStaleAttribute(): bool
     {
-        if ($this->status !== 'success' || !is_null($this->logged_out_at)) {
+        if ($this->status !== 'success' || ! is_null($this->logged_out_at)) {
             return false;
         }
 
-        return !$this->is_active;
+        return ! $this->is_active;
     }
 
     /**
@@ -139,10 +140,10 @@ class UserLoginLog extends Model
             ->where('logged_in_at', '>=', $maxAge)
             ->where(function ($q) use ($timeout) {
                 $q->where('last_activity_at', '>=', $timeout)
-                  ->orWhere(function ($q2) use ($timeout) {
-                      $q2->whereNull('last_activity_at')
-                         ->where('logged_in_at', '>=', $timeout);
-                  });
+                    ->orWhere(function ($q2) use ($timeout) {
+                        $q2->whereNull('last_activity_at')
+                            ->where('logged_in_at', '>=', $timeout);
+                    });
             });
     }
 
@@ -160,13 +161,13 @@ class UserLoginLog extends Model
                 // Either too old
                 $q->where('logged_in_at', '<', $maxAge)
                   // Or inactive beyond timeout
-                  ->orWhere(function ($q2) use ($timeout) {
-                      $q2->where('last_activity_at', '<', $timeout);
-                  })
-                  ->orWhere(function ($q2) use ($timeout) {
-                      $q2->whereNull('last_activity_at')
-                         ->where('logged_in_at', '<', $timeout);
-                  });
+                    ->orWhere(function ($q2) use ($timeout) {
+                        $q2->where('last_activity_at', '<', $timeout);
+                    })
+                    ->orWhere(function ($q2) use ($timeout) {
+                        $q2->whereNull('last_activity_at')
+                            ->where('logged_in_at', '<', $timeout);
+                    });
             });
     }
 }

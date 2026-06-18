@@ -3,12 +3,11 @@
 namespace Modules\Website\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
-use Modules\Website\Models\Booking;
 use Modules\Frontdeskcrm\Models\Guest;
-use Carbon\Carbon;
+use Modules\Website\Models\Booking;
 
 class GuestController extends Controller
 {
@@ -89,6 +88,7 @@ class GuestController extends Controller
 
         return back()->with('success', 'Booking cancelled successfully.');
     }
+
     /**
      * Show Profile Form
      */
@@ -111,7 +111,7 @@ class GuestController extends Controller
         $validated = $request->validate([
             // Core User
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
 
             // Personal
             'title' => 'nullable|string|max:10',
@@ -179,12 +179,12 @@ class GuestController extends Controller
     protected function syncToCrmGuest($user, $profile)
     {
         // Try to find CRM guest by email or phone
-        \Modules\Frontdeskcrm\Models\Guest::updateOrCreate(
+        Guest::updateOrCreate(
             ['email' => $user->email],
             [
                 'full_name' => $user->name,
                 'contact_number' => $profile->phone ?? 'N/A',
-                'home_address' => $profile->address . ' ' . $profile->city,
+                'home_address' => $profile->address.' '.$profile->city,
                 'nationality' => $profile->country,
                 // Map other fields as needed
             ]

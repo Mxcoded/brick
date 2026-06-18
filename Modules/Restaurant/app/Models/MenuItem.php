@@ -2,8 +2,9 @@
 
 namespace Modules\Restaurant\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 // use Modules\Restaurant\Database\Factories\MenuItemFactory;
 
 class MenuItem extends Model
@@ -13,11 +14,11 @@ class MenuItem extends Model
     /**
      * The attributes that are mass assignable.
      */
-   
-
     protected $fillable = ['restaurant_menu_categories_id', 'name',
-            'image', 'description', 'price'];
+        'image', 'description', 'price'];
+
     protected $table = 'restaurant_menu_items';
+
     public function category()
     {
         return $this->belongsTo(MenuCategory::class, 'restaurant_menu_categories_id');

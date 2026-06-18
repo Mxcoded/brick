@@ -2,9 +2,10 @@
 
 namespace Modules\Restaurant\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Website\Models\Room;
+
 // use Modules\Restaurant\Database\Factories\OrderFactory;
 
 class Order extends Model
@@ -12,7 +13,9 @@ class Order extends Model
     use HasFactory;
 
     const STATUS_PENDING = 'pending';
+
     const STATUS_ACCEPTED = 'accepted';
+
     const STATUS_COMPLETED = 'completed';
 
     protected $fillable = [
@@ -40,6 +43,7 @@ class Order extends Model
         } elseif ($this->type === 'room') {
             return Room::find($this->source_id);
         }
+
         return null;
     }
     // protected static function newFactory(): OrderFactory

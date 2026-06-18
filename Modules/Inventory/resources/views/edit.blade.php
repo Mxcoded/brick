@@ -1,4 +1,4 @@
-@extends('layouts.master')
+﻿@extends('layouts.master')
 
 @section('title', 'Edit Inventory Item')
 
@@ -14,11 +14,15 @@
                     @method('PUT')
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label for="sku" class="form-label">SKU (Barcode)</label>
+                            <input type="text" class="form-control" id="sku" name="sku" value="{{ old('sku', $item->sku) }}" placeholder="e.g., BRK-001">
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label for="description" class="form-label">Item Description</label>
                             <input type="text" class="form-control" id="description" name="description" value="{{ old('description', $item->description) }}" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="category" class="form-label">Category</label>
                             <input type="text" class="form-control" id="category" name="category" value="{{ old('category', $item->category) }}">
                         </div>
@@ -50,6 +54,59 @@
                         <div class="col-md-6 mb-3">
                             <label for="unit_value" class="form-label">Unit Value</label>
                             <input type="number" class="form-control" id="unit_value" name="unit_value" step="0.01" min="0" value="{{ old('unit_value', $item->unit_value) }}" placeholder="e.g., 1 for 1kg, 12 for 12pcs">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="min_stock" class="form-label">Min Stock Level</label>
+                            <input type="number" class="form-control" id="min_stock" name="min_stock" min="0" value="{{ old('min_stock', $item->min_stock) }}" placeholder="e.g., 10">
+                            <div class="form-text">Alert when stock falls below this level</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="max_stock" class="form-label">Max Stock Level</label>
+                            <input type="number" class="form-control" id="max_stock" name="max_stock" min="0" value="{{ old('max_stock', $item->max_stock) }}" placeholder="e.g., 100">
+                        </div>
+                    </div>
+
+                    <h4 class="mt-4 mb-3">Item Photo</h4>
+                    <hr>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div id="photoPreview" class="mb-2">
+                                @if ($item->photo_path)
+                                    <img src="{{ asset('storage/'.$item->photo_path) }}" class="img-thumbnail" style="max-height: 150px;">
+                                @else
+                                    <div class="text-muted p-3 border rounded bg-light text-center">
+                                        <i class="fas fa-camera fa-2x mb-1 d-block"></i>No photo
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" id="uploadPhotoBtn" class="btn btn-sm btn-outline-primary"><i class="fas fa-upload me-1"></i>Upload</button>
+                                @if ($item->photo_path)
+                                    <button type="button" id="removePhotoBtn" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash me-1"></i>Remove</button>
+                                @endif
+                            </div>
+                            <input type="file" id="photoInput" accept="image/*" style="display:none">
+                        </div>
+                    </div>
+
+                    <h4 class="mt-4 mb-3">Unit Conversion (Optional)</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">From Unit</label>
+                            <input type="text" class="form-control" name="conv_from_unit" value="{{ old('conv_from_unit', $item->conversions->first()->from_unit ?? '') }}" placeholder="e.g., Case">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">To Unit</label>
+                            <input type="text" class="form-control" name="conv_to_unit" value="{{ old('conv_to_unit', $item->conversions->first()->to_unit ?? '') }}" placeholder="e.g., Pcs">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Conversion Rate</label>
+                            <input type="number" class="form-control" name="conv_rate" step="0.0001" min="0" value="{{ old('conv_rate', $item->conversions->first()->conversion_rate ?? '') }}" placeholder="e.g., 12">
+                            <div class="form-text">e.g., 1 Case = 12 Pcs</div>
                         </div>
                     </div>
 
@@ -95,6 +152,39 @@
                         errorHtml += '</ul><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
                         alertContainer.html(errorHtml);
                     }
+                });
+            });
+
+            $('#uploadPhotoBtn').on('click', function() { $('#photoInput').click(); });
+
+            $('#photoInput').on('change', function() {
+                const file = this.files[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append('photo', file);
+                formData.append('_token', '{{ csrf_token() }}');
+                $.ajax({
+                    url: '{{ route("inventory.items.photo.upload", $item) }}',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(res) {
+                        $('#photoPreview').html('<img src="' + res.url + '" class="img-thumbnail" style="max-height: 150px;">');
+                        location.reload();
+                    },
+                    error: function() { alert('Upload failed.'); }
+                });
+            });
+
+            $('#removePhotoBtn').on('click', function() {
+                if (!confirm('Remove photo?')) return;
+                $.ajax({
+                    url: '{{ route("inventory.items.photo.remove", $item) }}',
+                    type: 'DELETE',
+                    data: { _token: '{{ csrf_token() }}' },
+                    success: function() { location.reload(); },
+                    error: function() { alert('Failed to remove photo.'); }
                 });
             });
         });

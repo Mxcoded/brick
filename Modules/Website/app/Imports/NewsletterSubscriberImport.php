@@ -2,21 +2,23 @@
 
 namespace Modules\Website\Imports;
 
-use Modules\Website\Models\NewsletterSubscriber;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Concerns\Importable;
+use Maatwebsite\Excel\Concerns\SkipsFailures;
+use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Maatwebsite\Excel\Concerns\Importable;
-use Maatwebsite\Excel\Concerns\SkipsFailures;
-use Illuminate\Support\Str;
+use Modules\Website\Models\NewsletterSubscriber;
 
-class NewsletterSubscriberImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailure
+class NewsletterSubscriberImport implements SkipsOnFailure, ToModel, WithHeadingRow, WithValidation
 {
     use Importable, SkipsFailures;
 
     protected int $imported = 0;
+
     protected int $skipped = 0;
+
     protected int $reactivated = 0;
 
     public function model(array $row)
@@ -27,7 +29,7 @@ class NewsletterSubscriberImport implements ToModel, WithHeadingRow, WithValidat
         $existing = NewsletterSubscriber::where('email', $email)->first();
 
         if ($existing) {
-            if (!$existing->is_active) {
+            if (! $existing->is_active) {
                 $existing->update([
                     'name' => $name ?? $existing->name,
                     'is_active' => true,
@@ -41,6 +43,7 @@ class NewsletterSubscriberImport implements ToModel, WithHeadingRow, WithValidat
                 ]);
                 $this->skipped++;
             }
+
             return null;
         }
 

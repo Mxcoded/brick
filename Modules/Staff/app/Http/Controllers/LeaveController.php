@@ -2,22 +2,20 @@
 
 namespace Modules\Staff\Http\Controllers;
 
-use Illuminate\Contracts\Support\Renderable;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\View\View;
+use Modules\Staff\Emails\LeaveRequestStatusUpdated;
+use Modules\Staff\Emails\LeaveRequestSubmitted;
+// Other 'use' statements...
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveBalance;
 use Modules\Staff\Models\LeaveRequest;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
-use Modules\Staff\Emails\LeaveRequestSubmitted;
-use Modules\Staff\Emails\LeaveRequestStatusUpdated;
-
-// Other 'use' statements...
-use Illuminate\Support\Facades\Mail;
-
 
 class LeaveController extends Controller
 {
@@ -26,7 +24,7 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
         $leaveRequests = $employee->leaveRequests()->latest()->get();
@@ -52,12 +50,14 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
         $leaveBalances = $employee->leaveBalances()->where('year', date('Y'))->get();
+
         return view('staff::leaves.request', compact('employee', 'leaveBalances'));
     }
+
     public function cancelLeaveRequest($id)
     {
         $leaveRequest = LeaveRequest::findOrFail($id);
@@ -80,12 +80,13 @@ class LeaveController extends Controller
 
         return back()->with('success', 'Your leave request has been successfully cancelled.');
     }
+
     /**
      * Allows an Admin to cancel any leave request (pending or approved).
      * If the request was approved, it returns the leave days to the employee's balance.
      *
-     * @param int $id The ID of the leave request.
-     * @return \Illuminate\Http\RedirectResponse
+     * @param  int  $id  The ID of the leave request.
+     * @return RedirectResponse
      */
     public function adminCancelLeaveRequest($id)
     {
@@ -110,12 +111,12 @@ class LeaveController extends Controller
 
         return back()->with('success', 'The leave request has been successfully cancelled.');
     }
-    
 
     // Admin Leave Management
     public function leaveAdminIndex()
     {
         $leaveRequests = LeaveRequest::with('employee')->where('status', 'pending')->latest()->get();
+
         return view('staff::leaves.admin.index', compact('leaveRequests'));
     }
 
@@ -144,6 +145,7 @@ class LeaveController extends Controller
         }
 
         Mail::to($leaveRequest->employee->email)->send(new LeaveRequestStatusUpdated($leaveRequest));
+
         return redirect()->route('staff.leaves.admin')->with('success', 'Leave request approved.');
     }
 
@@ -165,8 +167,8 @@ class LeaveController extends Controller
     public function leaveReport(Request $request)
     {
         $year = $request->input('year', date('Y'));
-        $employees = Employee::with(['leaveRequests' => fn($q) => $q->whereYear('start_date', $year)])
-            ->with(['leaveBalances' => fn($q) => $q->where('year', $year)])
+        $employees = Employee::with(['leaveRequests' => fn ($q) => $q->whereYear('start_date', $year)])
+            ->with(['leaveBalances' => fn ($q) => $q->where('year', $year)])
             ->get();
 
         return view('staff::leaves.admin.report', compact('employees', 'year'));
@@ -177,6 +179,7 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
+
         return view('staff::leaves.admin.balances', compact('employee'));
     }
 
@@ -185,7 +188,7 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
 
@@ -237,20 +240,20 @@ class LeaveController extends Controller
     /**
      * Show the form for an admin to apply leave on behalf of an employee.
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function showApplyForOtherForm()
     {
         // Fetch all active employees to populate the dropdown in the view
         $employees = Employee::where('status', 'approved')->orderBy('name')->get();
+
         return view('staff::leaves.admin.apply', compact('employees'));
     }
 
     /**
      * Let an admin submit a leave request on behalf of another employee.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function submitLeaveForOther(Request $request)
     {
@@ -273,9 +276,7 @@ class LeaveController extends Controller
      * Reusable private method to process a leave request.
      * This avoids code duplication between self-service and admin submissions.
      *
-     * @param array $validatedData
-     * @param Employee $employee
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     private function processLeaveRequest(array $validatedData, Employee $employee)
     {
@@ -313,7 +314,6 @@ class LeaveController extends Controller
 
         // --- END OF NEW LOGIC ---
 
-
         // 2. Check for overlapping leave requests for the same employee
         $overlappingLeave = LeaveRequest::where('employee_id', $employee->id)
             ->where(function ($query) use ($startDate, $endDate) {
@@ -326,7 +326,7 @@ class LeaveController extends Controller
 
         if ($overlappingLeave) {
             return redirect()->back()->withInput()->withErrors([
-                'start_date' => 'This employee already has an overlapping leave request in this date range.'
+                'start_date' => 'This employee already has an overlapping leave request in this date range.',
             ]);
         }
 
@@ -336,7 +336,7 @@ class LeaveController extends Controller
             ->where('year', $year)
             ->first();
 
-        if (!$leaveBalance) {
+        if (! $leaveBalance) {
             return redirect()->back()->withInput()->withErrors(['leave_type' => 'No leave balance is configured for this employee and leave type.']);
         }
 
@@ -359,7 +359,6 @@ class LeaveController extends Controller
         $adminEmail = 'hr@brickspoint.com'; // It's best to store this in a config file this is just for brickspoint.
         Mail::to($adminEmail)->send(new LeaveRequestSubmitted($leaveRequest));
 
-
         // return redirect()->route('staff.leaves.admin')->with('success', "Leave request for {$employee->name} has been submitted successfully.");
         // --- NEW CONDITIONAL REDIRECT LOGIC ---
         // Check if the logged-in user has permission to apply leave for others.
@@ -377,7 +376,7 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
 
@@ -391,11 +390,11 @@ class LeaveController extends Controller
 
         return $this->processLeaveRequest($validated, $employee);
     }
+
     /**
      * Show the admin page for managing all employee leave balances.
      *
-     * @param Request $request
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function showBalancesAdmin(Request $request)
     {
@@ -424,16 +423,15 @@ class LeaveController extends Controller
     /**
      * Handle the submission for creating or updating an employee's leave balance.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function updateBalanceAdmin(Request $request)
     {
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'leave_type'  => 'required|string|max:255',
-            'total_days'  => 'required|numeric|min:0',
-            'year'        => 'required|digits:4',
+            'leave_type' => 'required|string|max:255',
+            'total_days' => 'required|numeric|min:0',
+            'year' => 'required|digits:4',
         ]);
 
         // This command finds a balance matching the criteria or creates a new one,
@@ -441,8 +439,8 @@ class LeaveController extends Controller
         $balance = LeaveBalance::updateOrCreate(
             [
                 'employee_id' => $validated['employee_id'],
-                'leave_type'  => $validated['leave_type'],
-                'year'        => $validated['year'],
+                'leave_type' => $validated['leave_type'],
+                'year' => $validated['year'],
             ],
             [
                 'total_days' => $validated['total_days'],
@@ -453,9 +451,9 @@ class LeaveController extends Controller
         // $balance->remaining_days = $balance->total_days - $balance->used_days;
         // $balance->save();
 
-
         return back()->with('success', 'Leave balance updated successfully.');
     }
+
     public function showLeaveHistory(Request $request)
     {
         // Fetch all employees to populate the filter dropdown

@@ -2,13 +2,15 @@
 
 namespace Modules\Maintenance\Http\Controllers;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 use Modules\Maintenance\Mail\MaintenanceNotification;
 use Modules\Maintenance\Models\MaintenanceLog;
+use Modules\Maintenance\Models\MaintenanceReading;
 
 class MaintenanceController extends Controller
 {
@@ -41,9 +43,22 @@ class MaintenanceController extends Controller
             ->selectRaw('AVG(DATEDIFF(completion_date, DATE(complaint_datetime))) as avg_days')
             ->value('avg_days');
 
+        // Daily Readings
+        $todayReadings = MaintenanceReading::onDate(today())->get()->groupBy(fn ($r) => $r->reading_type.'.'.$r->category);
+        $todayGen = MaintenanceReading::onDate(today())->byType('generator')->get();
+        $todayDiesel = MaintenanceReading::onDate(today())->byType('diesel_reservoir')->first();
+        $todayWater = MaintenanceReading::onDate(today())->byType('water_tank')->first();
+        $todayColdRoom = MaintenanceReading::onDate(today())->byType('cold_room')->get();
+        $recentReadings = MaintenanceReading::with('recorder')->latest('reading_date')->take(5)->get();
+
+        $readingsThisWeek = MaintenanceReading::where('reading_date', '>=', now()->subDays(7))->count();
+        $lastReadingDate = MaintenanceReading::max('reading_date');
+
         return view('maintenance::dashboard', compact(
             'totalLogs', 'openLogs', 'completedLogs', 'cancelledLogs', 'thisMonth',
-            'departmentStats', 'statusStats', 'recentLogs', 'avgCompletionDays'
+            'departmentStats', 'statusStats', 'recentLogs', 'avgCompletionDays',
+            'todayGen', 'todayDiesel', 'todayWater', 'todayColdRoom',
+            'recentReadings', 'readingsThisWeek', 'lastReadingDate'
         ));
     }
 
@@ -64,7 +79,7 @@ class MaintenanceController extends Controller
         }
 
         if ($request->filled('to')) {
-            $query->where('complaint_datetime', '<=', $request->to . ' 23:59:59');
+            $query->where('complaint_datetime', '<=', $request->to.' 23:59:59');
         }
 
         $logs = $query->latest('complaint_datetime')->paginate(25)->withQueryString();
@@ -96,19 +111,21 @@ class MaintenanceController extends Controller
         }
 
         if ($request->filled('to')) {
-            $query->where('complaint_datetime', '<=', $request->to . ' 23:59:59');
+            $query->where('complaint_datetime', '<=', $request->to.' 23:59:59');
         }
 
         $logs = $query->latest('complaint_datetime')->get();
 
         $pdf = Pdf::loadView('maintenance::reports.pdf', compact('logs'));
-        return $pdf->download('maintenance-report-' . now()->format('Y-m-d') . '.pdf');
+
+        return $pdf->download('maintenance-report-'.now()->format('Y-m-d').'.pdf');
     }
 
     public function index()
     {
         $logs = MaintenanceLog::latest('created_at')->get();
         $departments = MaintenanceLog::DEPARTMENTS;
+
         return view('maintenance::index', compact('logs', 'departments'));
     }
 
@@ -121,9 +138,11 @@ class MaintenanceController extends Controller
     {
         $validated = $request->validate([
             'location' => 'required|string|max:100',
-            'department' => 'required|string|in:' . implode(',', array_keys(MaintenanceLog::DEPARTMENTS)),
+            'department' => 'required|string|in:'.implode(',', array_keys(MaintenanceLog::DEPARTMENTS)),
+            'priority' => 'required|in:'.implode(',', array_keys(MaintenanceLog::PRIORITIES)),
             'complaint_datetime' => 'required|date',
             'nature_of_complaint' => 'required|string',
+            'image' => 'nullable|image|max:5120',
             'lodged_by' => 'required|string|max:100',
             'received_by' => 'nullable|string|max:100',
             'cost_of_fixing' => 'nullable|numeric',
@@ -131,9 +150,14 @@ class MaintenanceController extends Controller
             'status' => 'required|in:new,in_progress,completed,cancelled',
         ]);
 
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('maintenance', 'public');
+        }
+
         $validated['received_by'] = $validated['received_by'] ?? auth()->user()->name;
         $log = MaintenanceLog::create($validated);
         $this->sendNotification($log, 'new');
+
         return redirect()->route('maintenance.index')->with('success', 'Log created successfully');
     }
 
@@ -151,15 +175,31 @@ class MaintenanceController extends Controller
     {
         $validated = $request->validate([
             'location' => 'required|string|max:100',
-            'department' => 'required|string|in:' . implode(',', array_keys(MaintenanceLog::DEPARTMENTS)),
+            'department' => 'required|string|in:'.implode(',', array_keys(MaintenanceLog::DEPARTMENTS)),
+            'priority' => 'required|in:'.implode(',', array_keys(MaintenanceLog::PRIORITIES)),
             'complaint_datetime' => 'required|date',
             'nature_of_complaint' => 'required|string',
+            'image' => 'nullable|image|max:5120',
             'lodged_by' => 'required|string|max:100',
             'received_by' => 'nullable|string|max:100',
             'cost_of_fixing' => 'nullable|numeric',
             'completion_date' => 'nullable|date',
             'status' => 'required|in:new,in_progress,completed,cancelled',
         ]);
+
+        if ($request->hasFile('image')) {
+            if ($maintenanceLog->image) {
+                Storage::disk('public')->delete($maintenanceLog->image);
+            }
+            $validated['image'] = $request->file('image')->store('maintenance', 'public');
+        }
+
+        if ($request->boolean('remove_image')) {
+            if ($maintenanceLog->image) {
+                Storage::disk('public')->delete($maintenanceLog->image);
+            }
+            $validated['image'] = null;
+        }
 
         $previousStatus = $maintenanceLog->status;
         $statusChanged = $previousStatus !== $validated['status'];
@@ -187,13 +227,39 @@ class MaintenanceController extends Controller
             return response()->json(['success' => true, 'status' => $maintenanceLog->fresh()->status]);
         }
 
-        return back()->with('success', 'Status updated to ' . str_replace('_', ' ', $request->status) . '.');
+        return back()->with('success', 'Status updated to '.str_replace('_', ' ', $request->status).'.');
     }
 
     public function destroy(MaintenanceLog $maintenanceLog)
     {
         $maintenanceLog->delete();
+
         return redirect()->route('maintenance.index')->with('success', 'Log deleted successfully');
+    }
+
+    public function quickStore(Request $request)
+    {
+        $validated = $request->validate([
+            'location' => 'required|string|max:100',
+            'department' => 'required|string|in:'.implode(',', array_keys(MaintenanceLog::DEPARTMENTS)),
+            'priority' => 'required|in:'.implode(',', array_keys(MaintenanceLog::PRIORITIES)),
+            'nature_of_complaint' => 'required|string',
+            'lodged_by' => 'required|string|max:100',
+            'received_by' => 'nullable|string|max:100',
+            'complaint_datetime' => 'required|date',
+            'image' => 'nullable|image|max:5120',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('maintenance', 'public');
+        }
+
+        $validated['received_by'] = $validated['received_by'] ?? auth()->user()->name;
+        $validated['status'] = 'new';
+        $log = MaintenanceLog::create($validated);
+        $this->sendNotification($log, 'new');
+
+        return redirect()->back()->with('success', 'Issue reported successfully. Thank you!');
     }
 
     public function publicCreate()
@@ -205,23 +271,38 @@ class MaintenanceController extends Controller
     {
         $validated = $request->validate([
             'location' => 'required|string|max:100',
-            'department' => 'required|string|in:' . implode(',', array_keys(MaintenanceLog::DEPARTMENTS)),
+            'department' => 'required|string|in:'.implode(',', array_keys(MaintenanceLog::DEPARTMENTS)),
+            'priority' => 'required|in:'.implode(',', array_keys(MaintenanceLog::PRIORITIES)),
             'nature_of_complaint' => 'required|string',
             'lodged_by' => 'required|string|max:100',
+            'image' => 'nullable|image|max:5120',
         ]);
 
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('maintenance', 'public');
+        }
+
+        $validated['priority'] = $validated['priority'] ?? 'medium';
         $validated['complaint_datetime'] = now();
         $validated['status'] = 'new';
-        MaintenanceLog::create($validated);
+        $log = MaintenanceLog::create($validated);
+        $this->sendNotification($log, 'new');
 
         return redirect()->route('maintenance.public.create')
             ->with('success', 'Your issue has been reported. Thank you!');
     }
 
+    public function qrCode()
+    {
+        $url = route('maintenance.public.create');
+
+        return view('maintenance::qr', compact('url'));
+    }
+
     protected function sendNotification(MaintenanceLog $log, string $type, ?string $previousStatus = null): void
     {
         try {
-            Mail::to($this->notificationRecipients)->send(
+            Mail::to($this->notificationRecipients)->queue(
                 new MaintenanceNotification($log, $type, $previousStatus)
             );
             Log::info('Maintenance notification sent', [

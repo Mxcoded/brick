@@ -3,11 +3,11 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
-use Modules\Website\Models\RoomType;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\Website\Models\RoomInventoryBlock;
+use Modules\Website\Models\RoomType;
 use Modules\Website\Services\RoomCalendarService;
 
 class InventoryCalendarController extends Controller
@@ -25,7 +25,7 @@ class InventoryCalendarController extends Controller
     public function index()
     {
         $roomTypes = RoomType::with('units')->active()->ordered()->get();
-        
+
         return view('website::admin.inventory.calendar', [
             'roomTypes' => $roomTypes,
         ]);
@@ -37,12 +37,12 @@ class InventoryCalendarController extends Controller
     public function getInventoryData(Request $request): JsonResponse
     {
         try {
-            $start = $request->input('start') 
-                ? Carbon::parse($request->input('start')) 
+            $start = $request->input('start')
+                ? Carbon::parse($request->input('start'))
                 : now()->startOfMonth();
-            
-            $end = $request->input('end') 
-                ? Carbon::parse($request->input('end')) 
+
+            $end = $request->input('end')
+                ? Carbon::parse($request->input('end'))
                 : now()->endOfMonth();
 
             // Limit to max 90 days to prevent performance issues
@@ -54,11 +54,12 @@ class InventoryCalendarController extends Controller
 
             return response()->json($data);
         } catch (\Exception $e) {
-            \Log::error('Inventory API Error: ' . $e->getMessage(), [
+            \Log::error('Inventory API Error: '.$e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'error' => true,
                 'message' => $e->getMessage(),
@@ -100,7 +101,7 @@ class InventoryCalendarController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to block rooms: ' . $e->getMessage(),
+                'message' => 'Failed to block rooms: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -124,7 +125,7 @@ class InventoryCalendarController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to remove block: ' . $e->getMessage(),
+                'message' => 'Failed to remove block: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -163,7 +164,7 @@ class InventoryCalendarController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to apply restrictions: ' . $e->getMessage(),
+                'message' => 'Failed to apply restrictions: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -192,13 +193,13 @@ class InventoryCalendarController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => count($results) . ' update(s) applied successfully.',
+                'message' => count($results).' update(s) applied successfully.',
                 'blocks' => $results,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to apply updates: ' . $e->getMessage(),
+                'message' => 'Failed to apply updates: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -248,7 +249,7 @@ class InventoryCalendarController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to open rooms: ' . $e->getMessage(),
+                'message' => 'Failed to open rooms: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -289,7 +290,7 @@ class InventoryCalendarController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to apply stop sell: ' . $e->getMessage(),
+                'message' => 'Failed to apply stop sell: '.$e->getMessage(),
             ], 500);
         }
     }

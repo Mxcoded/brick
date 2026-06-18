@@ -4,10 +4,10 @@ namespace Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 use Modules\Inventory\Models\Department;
 use Modules\Inventory\Models\Store;
-use Illuminate\View\View;
-use Illuminate\Support\Facades\Log;
 
 class DepartmentController extends Controller
 {
@@ -17,6 +17,7 @@ class DepartmentController extends Controller
     public function index(): View
     {
         $departments = Department::with('store')->get();
+
         return view('inventory::departments.index', compact('departments'));
     }
 
@@ -26,6 +27,7 @@ class DepartmentController extends Controller
     public function create(): View
     {
         $stores = Store::all();
+
         return view('inventory::departments.create', compact('stores'));
     }
 
@@ -41,12 +43,14 @@ class DepartmentController extends Controller
 
         try {
             Department::create($validatedData);
+
             return redirect()->route('inventory.departments.index')
                 ->with('success', 'Department added successfully.');
         } catch (\Exception $e) {
-            Log::error('Error adding department: ' . $e->getMessage(), ['exception' => $e]);
+            Log::error('Error adding department: '.$e->getMessage(), ['exception' => $e]);
+
             return redirect()->back()
-                ->with('error', 'Error adding department: ' . $e->getMessage())
+                ->with('error', 'Failed to add department. Please try again.')
                 ->withInput();
         }
     }
@@ -57,6 +61,7 @@ class DepartmentController extends Controller
     public function edit(Department $department): View
     {
         $stores = Store::all();
+
         return view('inventory::departments.edit', compact('department', 'stores'));
     }
 
@@ -66,18 +71,20 @@ class DepartmentController extends Controller
     public function update(Request $request, Department $department)
     {
         $validatedData = $request->validate([
-            'name' => 'required|string|max:255|unique:departments,name,' . $department->id,
+            'name' => 'required|string|max:255|unique:departments,name,'.$department->id,
             'store_id' => 'required|exists:stores,id',
         ]);
 
         try {
             $department->update($validatedData);
+
             return redirect()->route('inventory.departments.index')
                 ->with('success', 'Department updated successfully.');
         } catch (\Exception $e) {
-            Log::error('Error updating department: ' . $e->getMessage());
+            Log::error('Error updating department: '.$e->getMessage());
+
             return redirect()->back()
-                ->with('error', 'Error updating department: ' . $e->getMessage())
+                ->with('error', 'Failed to update department. Please try again.')
                 ->withInput();
         }
     }
@@ -89,12 +96,14 @@ class DepartmentController extends Controller
     {
         try {
             $department->delete();
+
             return redirect()->route('inventory.departments.index')
                 ->with('success', 'Department deleted successfully.');
         } catch (\Exception $e) {
-            Log::error('Error deleting department: ' . $e->getMessage());
+            Log::error('Error deleting department: '.$e->getMessage());
+
             return redirect()->back()
-                ->with('error', 'Error deleting department: ' . $e->getMessage());
+                ->with('error', 'Failed to delete department. Please try again.');
         }
     }
 
@@ -104,6 +113,7 @@ class DepartmentController extends Controller
     public function getDepartmentsByStore(Store $store)
     {
         $departments = $store->departments;
+
         return response()->json($departments);
     }
 }

@@ -98,8 +98,8 @@ class BranchStaffSeeder extends Seeder
         $this->createStaffForBranch($wuseStaff, 'Wuse');
 
         $this->command->info('Branch staff seeded successfully!');
-        $this->command->info('- Asokoro: ' . count($asokoroStaff) . ' staff members');
-        $this->command->info('- Wuse: ' . count($wuseStaff) . ' staff members');
+        $this->command->info('- Asokoro: '.count($asokoroStaff).' staff members');
+        $this->command->info('- Wuse: '.count($wuseStaff).' staff members');
     }
 
     /**
@@ -111,6 +111,7 @@ class BranchStaffSeeder extends Seeder
             // Skip if email already exists
             if (Employee::where('email', $staffData['email'])->exists()) {
                 $this->command->warn("Skipping {$staffData['name']} - email already exists");
+
                 continue;
             }
 
@@ -137,7 +138,7 @@ class BranchStaffSeeder extends Seeder
                 'marital_status' => $this->getRandomMaritalStatus(),
                 'blood_group' => $this->getRandomBloodGroup(),
                 'genotype' => $this->getRandomGenotype(),
-                'residential_address' => "Plot " . rand(1, 500) . ", {$branchName} District, Abuja",
+                'residential_address' => 'Plot '.rand(1, 500).", {$branchName} District, Abuja",
                 'next_of_kin_name' => $this->generateNextOfKinName($staffData['gender']),
                 'next_of_kin_phone' => $this->generatePhoneNumber(),
                 'ice_contact_name' => $this->generateNextOfKinName($staffData['gender']),
@@ -179,7 +180,8 @@ class BranchStaffSeeder extends Seeder
     private function generatePhoneNumber(): string
     {
         $prefixes = ['0803', '0806', '0813', '0816', '0903', '0906', '0913'];
-        return $prefixes[array_rand($prefixes)] . rand(1000000, 9999999);
+
+        return $prefixes[array_rand($prefixes)].rand(1000000, 9999999);
     }
 
     private function generateDOB(): string
@@ -190,24 +192,28 @@ class BranchStaffSeeder extends Seeder
     private function getRandomState(): string
     {
         $states = ['Lagos', 'Kano', 'Kaduna', 'Enugu', 'Rivers', 'Delta', 'Oyo', 'Anambra', 'Borno', 'Plateau', 'FCT'];
+
         return $states[array_rand($states)];
     }
 
     private function getRandomMaritalStatus(): string
     {
         $statuses = ['Single', 'Married', 'Single', 'Married', 'Single']; // Weighted towards single/married
+
         return $statuses[array_rand($statuses)];
     }
 
     private function getRandomBloodGroup(): string
     {
         $groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
         return $groups[array_rand($groups)];
     }
 
     private function getRandomGenotype(): string
     {
         $genotypes = ['AA', 'AS', 'SS', 'AC'];
+
         return $genotypes[array_rand($genotypes)];
     }
 
@@ -218,10 +224,10 @@ class BranchStaffSeeder extends Seeder
         $surnames = ['Okonkwo', 'Ibrahim', 'Adeleke', 'Mohammed', 'Bello', 'Eze', 'Okoro', 'Nwachukwu'];
 
         // Pick opposite gender for variety
-        $firstName = $gender === 'Male' 
-            ? $femaleNames[array_rand($femaleNames)] 
+        $firstName = $gender === 'Male'
+            ? $femaleNames[array_rand($femaleNames)]
             : $maleNames[array_rand($maleNames)];
-        
-        return $firstName . ' ' . $surnames[array_rand($surnames)];
+
+        return $firstName.' '.$surnames[array_rand($surnames)];
     }
 }

@@ -42,7 +42,7 @@ return new class extends Migration
                 'gender',
                 'birthday',
                 'nationality',
-                'emergency_contact'
+                'emergency_contact',
             ]);
         });
     }

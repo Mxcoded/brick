@@ -7,27 +7,27 @@
 </a>
 <div class="collapse {{ request()->routeIs('frontdesk.*') ? 'show' : '' }}" id="frontdeskSubmenu">
 
-    {{-- Check-in Operations --}}
+    {{-- Stay Management --}}
     <a href="{{ route('frontdesk.registrations.dashboard') }}" 
        class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.registrations.dashboard') || request()->routeIs('frontdesk.registrations.index') ? 'active' : '' }}">
-        <i class="fas fa-clipboard-list me-2"></i> Registrations
+        <i class="fas fa-clipboard-list me-2"></i> Stay Management
     </a>
 
     @can('check_in_guest')
     <a href="{{ route('frontdesk.registrations.createWalkin') }}" 
        class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.registrations.createWalkin') || request()->routeIs('frontdesk.registrations.lookup') ? 'active' : '' }}">
-        <i class="fas fa-walking me-2"></i> Walk-In
+        <i class="fas fa-walking me-2"></i> Walk-In Check-In
     </a>
     @endcan
 
     <a href="{{ route('frontdesk.rooms.rack') }}" 
        class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.rooms.rack') ? 'active' : '' }}">
-        <i class="fas fa-th me-2"></i> Room Rack
+        <i class="fas fa-th me-2"></i> Room Status
     </a>
 
     <a href="{{ route('frontdesk.rooms.schedule') }}" 
        class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.rooms.schedule') ? 'active' : '' }}">
-        <i class="fas fa-calendar-alt me-2"></i> Calendar
+        <i class="fas fa-calendar-alt me-2"></i> Booking Calendar
     </a>
 
     <div class="sidebar-divider"></div>
@@ -43,17 +43,30 @@
         <i class="fas fa-user-plus me-2"></i> Add Guest
     </a>
 
+    <a href="{{ route('frontdesk.guests.import') }}" 
+       class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.guests.import') ? 'active' : '' }}">
+        <i class="fas fa-file-import me-2"></i> Import Guests
+    </a>
+
     <div class="sidebar-divider"></div>
-    <small class="sidebar-subheading">Master Data</small>
+    <small class="sidebar-subheading">Channels &amp; Sources</small>
+
+    <a href="{{ route('frontdesk.channels.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.channels.*') ? 'active' : '' }}">
+        <i class="fas fa-globe me-2"></i> Channel Manager
+    </a>
 
     <a href="{{ route('frontdesk.booking-sources.index') }}" 
        class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.booking-sources.*') ? 'active' : '' }}">
         <i class="fas fa-plug me-2"></i> Booking Sources
     </a>
 
+    <div class="sidebar-divider"></div>
+    <small class="sidebar-subheading">Configuration</small>
+
     <a href="{{ route('frontdesk.guest-types.index') }}" 
        class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.guest-types.*') ? 'active' : '' }}">
-        <i class="fas fa-user-tag me-2"></i> Guest Types
+        <i class="fas fa-user-tag me-2"></i> Guest Categories
     </a>
 
 </div>

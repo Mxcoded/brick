@@ -3,10 +3,10 @@
 namespace Modules\Website\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
+use Modules\Website\Models\Amenity;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
-use Modules\Website\Models\Amenity;
-use Illuminate\Support\Str;
 
 class RoomTypeSeeder extends Seeder
 {
@@ -295,7 +295,7 @@ class RoomTypeSeeder extends Seeder
             );
 
             // Attach random amenities (if available)
-            if (!empty($amenityIds)) {
+            if (! empty($amenityIds)) {
                 $randomAmenities = array_slice($amenityIds, 0, rand(4, min(8, count($amenityIds))));
                 $roomType->amenities()->sync($randomAmenities);
             }
@@ -315,7 +315,7 @@ class RoomTypeSeeder extends Seeder
         }
 
         $this->command->info('✅ Room types and units seeded successfully!');
-        $this->command->info('   - ' . RoomType::count() . ' room types created');
-        $this->command->info('   - ' . RoomUnit::count() . ' room units created');
+        $this->command->info('   - '.RoomType::count().' room types created');
+        $this->command->info('   - '.RoomUnit::count().' room units created');
     }
 }

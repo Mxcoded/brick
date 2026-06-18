@@ -3,8 +3,8 @@
 namespace Modules\Website\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Website\Models\Room;
 use Illuminate\Support\Str;
+use Modules\Website\Models\Room;
 
 class RoomSeeder extends Seeder
 {

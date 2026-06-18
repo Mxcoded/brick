@@ -2,8 +2,8 @@
 
 namespace Modules\Banquet\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class BanquetOrderDay extends Model
 {
@@ -22,7 +22,7 @@ class BanquetOrderDay extends Model
         'banquet_setup_style_id', // New Foreign Key
         'start_time',
         'end_time',
-        'duration_minutes'
+        'duration_minutes',
     ];
 
     protected $casts = [

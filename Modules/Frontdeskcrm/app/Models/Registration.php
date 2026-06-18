@@ -2,12 +2,15 @@
 
 namespace Modules\Frontdeskcrm\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
+use Modules\Website\Models\Booking;
 use Modules\Website\Models\Room;
+use Modules\Website\Models\RoomType;
+use Modules\Website\Models\RoomUnit;
 
 class Registration extends Model
 {
@@ -15,6 +18,7 @@ class Registration extends Model
 
     protected $fillable = [
         'guest_id',
+        'reservation_code',
         'booking_id', // ✅ Verified: It's here
         'original_check_in_date',   // Immutable: original booking check-in
         'original_check_out_date',  // Immutable: original booking check-out
@@ -61,7 +65,7 @@ class Registration extends Model
         'review_rating',
         'review_comment',
         'front_desk_agent',
-        'checked_in_at'
+        'checked_in_at',
     ];
 
     protected $casts = [
@@ -73,7 +77,7 @@ class Registration extends Model
         'registration_date' => 'date',
         'actual_checkout_at' => 'datetime',
         'checked_in_at' => 'datetime',
-        'birthdate' => 'date',
+        'birthday' => 'date',
         'bed_breakfast' => 'boolean',
         'is_group_lead' => 'boolean',
     ];
@@ -117,7 +121,7 @@ class Registration extends Model
 
     public function checkedOutBy(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'checked_out_by_agent_id');
+        return $this->belongsTo(User::class, 'checked_out_by_agent_id');
     }
 
     /**
@@ -125,7 +129,7 @@ class Registration extends Model
      */
     public function roomType(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Website\Models\RoomType::class);
+        return $this->belongsTo(RoomType::class);
     }
 
     /**
@@ -133,11 +137,12 @@ class Registration extends Model
      */
     public function roomUnit(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Website\Models\RoomUnit::class);
+        return $this->belongsTo(RoomUnit::class);
     }
 
     /**
      * Legacy: The room (backward compatibility).
+     *
      * @deprecated Use roomType() and roomUnit() instead.
      */
     public function room(): BelongsTo
@@ -147,8 +152,9 @@ class Registration extends Model
 
     public function booking()
     {
-        return $this->belongsTo(\Modules\Website\Models\Booking::class);
+        return $this->belongsTo(Booking::class);
     }
+
     /**
      * Get the payment history for this registration.
      */
@@ -182,7 +188,7 @@ class Registration extends Model
      */
     public function isGroupBooking(): bool
     {
-        return !empty($this->booking_group_id);
+        return ! empty($this->booking_group_id);
     }
 
     /**
@@ -199,8 +205,9 @@ class Registration extends Model
     public function getOriginalDatesAttribute(): ?string
     {
         if ($this->original_check_in_date && $this->original_check_out_date) {
-            return $this->original_check_in_date->format('M d, Y') . ' - ' . $this->original_check_out_date->format('M d, Y');
+            return $this->original_check_in_date->format('M d, Y').' - '.$this->original_check_out_date->format('M d, Y');
         }
+
         return null;
     }
 

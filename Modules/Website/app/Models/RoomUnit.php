@@ -2,11 +2,12 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Frontdeskcrm\Models\Registration;
-use Carbon\Carbon;
+use Modules\Website\Services\RoomAvailabilityService;
 
 class RoomUnit extends Model
 {
@@ -48,6 +49,7 @@ class RoomUnit extends Model
         if (class_exists(Registration::class)) {
             return $this->hasMany(Registration::class);
         }
+
         return $this->hasMany(Booking::class)->whereRaw('1 = 0');
     }
 
@@ -61,6 +63,7 @@ class RoomUnit extends Model
                 ->whereIn('stay_status', ['checked_in', 'draft_by_guest'])
                 ->latest('check_in');
         }
+
         return $this->hasOne(Booking::class)->whereRaw('1 = 0');
     }
 
@@ -101,7 +104,7 @@ class RoomUnit extends Model
      */
     public function getDisplayNameAttribute()
     {
-        return $this->room_number . ' - ' . ($this->roomType->name ?? 'Unknown Type');
+        return $this->room_number.' - '.($this->roomType->name ?? 'Unknown Type');
     }
 
     /**
@@ -112,7 +115,7 @@ class RoomUnit extends Model
         return match ($this->status) {
             'available' => 'success',
             'occupied' => 'danger',
-            'maintenance' => 'warning',
+            'maintenance' => 'secondary',
             'blocked' => 'secondary',
             default => 'light',
         };
@@ -133,7 +136,8 @@ class RoomUnit extends Model
      */
     public function isAvailableForDates($checkIn, $checkOut, $ignoreBookingId = null)
     {
-        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        $service = app(RoomAvailabilityService::class);
+
         return $service->isUnitAvailable($this->id, $checkIn, $checkOut, $ignoreBookingId);
     }
 
@@ -143,7 +147,8 @@ class RoomUnit extends Model
     public function isCurrentlyOccupied()
     {
         $today = Carbon::today();
-        return !$this->isAvailableForDates($today, $today->copy()->addDay());
+
+        return ! $this->isAvailableForDates($today, $today->copy()->addDay());
     }
 
     /**
@@ -152,6 +157,7 @@ class RoomUnit extends Model
     public function getCurrentGuestName()
     {
         $occupant = $this->currentOccupant;
+
         return $occupant ? $occupant->full_name : null;
     }
 
@@ -160,7 +166,8 @@ class RoomUnit extends Model
      */
     public function getCurrentStatusInfo()
     {
-        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        $service = app(RoomAvailabilityService::class);
+
         return $service->getUnitCurrentStatus($this->id);
     }
 }

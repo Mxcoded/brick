@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         // Customers Table
-        if (!Schema::hasTable('customers')) {
+        if (! Schema::hasTable('customers')) {
             Schema::create('customers', function (Blueprint $table) {
                 $table->id();
                 $table->string('name')->nullable(); // Optional full name
@@ -19,8 +19,8 @@ return new class extends Migration
                 $table->timestamps();
             });
         }
-            // Banquet Orders Table
-           if(!Schema::hasTable('banquet_orders')) {
+        // Banquet Orders Table
+        if (! Schema::hasTable('banquet_orders')) {
             Schema::create('banquet_orders', function (Blueprint $table) {
                 $table->id();
                 $table->string('order_id')->unique(); // Example: 0001/2025
@@ -45,8 +45,8 @@ return new class extends Migration
                 $table->timestamps();
             });
         }
-            // Banquet Order Days Table
-            if(!Schema::hasTable('banquet_order_days')) {
+        // Banquet Order Days Table
+        if (! Schema::hasTable('banquet_order_days')) {
             Schema::create('banquet_order_days', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('banquet_order_id')->constrained()->onDelete('cascade');
@@ -65,8 +65,8 @@ return new class extends Migration
                 $table->timestamps();
             });
         }
-            // Banquet Order Menu Items Table
-            if(!Schema::hasTable('banquet_order_menu_items')) {
+        // Banquet Order Menu Items Table
+        if (! Schema::hasTable('banquet_order_menu_items')) {
             Schema::create('banquet_order_menu_items', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('banquet_order_day_id')->constrained()->onDelete('cascade');
@@ -79,7 +79,7 @@ return new class extends Migration
                 $table->timestamps();
             });
         }
-        
+
     }
 
     public function down()

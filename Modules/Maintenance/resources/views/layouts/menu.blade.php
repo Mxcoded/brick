@@ -24,6 +24,8 @@
             class="list-group-item list-group-item-action {{ request()->routeIs('maintenance.create') ? 'active' : '' }}"><i class="fas fa-plus-circle me-2"></i> New Log</a>
         <a href="{{ route('maintenance.report') }}"
             class="list-group-item list-group-item-action {{ request()->routeIs('maintenance.report') ? 'active' : '' }}"><i class="fas fa-chart-bar me-2"></i> Reports</a>
+        <a href="{{ route('maintenance.readings.index') }}"
+            class="list-group-item list-group-item-action {{ request()->routeIs('maintenance.readings.*') ? 'active' : '' }}"><i class="fas fa-clipboard-list me-2"></i> Daily Readings</a>
     @endcan
 
 </div>

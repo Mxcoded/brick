@@ -23,7 +23,7 @@ class LogUserActivity
 
     public function terminate(Request $request, $response): void
     {
-        if (!$request->user()) {
+        if (! $request->user()) {
             return;
         }
 
@@ -43,10 +43,11 @@ class LogUserActivity
                 default => 'create',
             };
             ActivityLogger::log($action, $this->describeRequest($request));
+
             return;
         }
 
-        $cacheKey = 'activity_log_page_' . $request->user()->id;
+        $cacheKey = 'activity_log_page_'.$request->user()->id;
         if (Cache::has($cacheKey)) {
             return;
         }
@@ -59,6 +60,7 @@ class LogUserActivity
     {
         $route = $request->route();
         $name = $route?->getName() ?? $request->path();
+
         return $name;
     }
 }

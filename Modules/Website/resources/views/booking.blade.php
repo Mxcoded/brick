@@ -57,13 +57,13 @@
                                 $reqCheckIn = $useCartFlow ? ($cart['check_in'] ?? '') : old('check_in_date', request('check_in_date', request('check_in')));
                                 $reqCheckOut = $useCartFlow ? ($cart['check_out'] ?? '') : old('check_out_date', request('check_out_date', request('check_out')));
                                 // Determine which guest fields already have stored data (read-only if exists)
-                                $hasPhone = Auth::check() && !empty($guest->contact_number);
-                                $hasGender = Auth::check() && !empty($guest->gender);
-                                $hasAddress = Auth::check() && !empty($guest->home_address);
-                                $hasIdType = Auth::check() && !empty($guest->identification_type);
-                                $hasIdNumber = Auth::check() && !empty($guest->identification_number);
-                                $hasNationality = Auth::check() && !empty($guest->nationality);
-                                $hasDob = Auth::check() && !is_null($guest->birthday);
+                                $hasPhone = Auth::check() && $guest && !empty($guest->contact_number);
+                                $hasGender = Auth::check() && $guest && !empty($guest->gender);
+                                $hasAddress = Auth::check() && $guest && !empty($guest->home_address);
+                                $hasIdType = Auth::check() && $guest && !empty($guest->identification_type);
+                                $hasIdNumber = Auth::check() && $guest && !empty($guest->identification_number);
+                                $hasNationality = Auth::check() && $guest && !empty($guest->nationality);
+                                $hasDob = Auth::check() && $guest && !is_null($guest->birthday);
                             @endphp
 
                             @if($useCartFlow)
@@ -134,8 +134,8 @@
                                     <div class="row g-3">
                                         {{-- Name & Email --}}
                                         @php
-                                            $hasName = Auth::check() && !empty($guest->full_name);
-                                            $hasEmail = Auth::check() && !empty($guest->email);
+                                            $hasName = Auth::check() && $guest && !empty($guest->full_name);
+                                            $hasEmail = Auth::check() && $guest && !empty($guest->email);
                                         @endphp
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Full Name <span
@@ -223,7 +223,7 @@
                                         <div class="col-md-6">
                                             <label class="form-label fw-bold">Date of Birth</label>
                                             <input type="date" name="guest_dob" class="form-control {{ $hasDob ? 'bg-light text-muted' : '' }}"
-                                                value="{{ old('guest_dob', $guest->birthday?->format('Y-m-d') ?? '') }}"
+                                                value="{{ old('guest_dob', ($guest && $guest->birthday) ? $guest->birthday->format('Y-m-d') : '') }}"
                                                 {{ $hasDob ? 'readonly' : '' }}>
                                             <div class="form-text text-muted">Required for age verification.</div>
                                         </div>

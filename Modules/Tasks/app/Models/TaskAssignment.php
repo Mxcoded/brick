@@ -2,9 +2,10 @@
 
 namespace Modules\Tasks\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Staff\Models\Employee;
+
 // use Modules\Tasks\Database\Factories\TaskAssignmentFactory;
 
 class TaskAssignment extends Model

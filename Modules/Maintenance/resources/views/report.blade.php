@@ -47,20 +47,20 @@
                         <i class="fas fa-search me-1"></i> Filter
                     </button>
                     <a href="{{ route('maintenance.report') }}" class="btn btn-outline-secondary">Reset</a>
-                    @if ($logs->count())
-                        <form action="{{ route('maintenance.report.export') }}" method="POST" class="ms-auto">
-                            @csrf
-                            <input type="hidden" name="department" value="{{ request('department') }}">
-                            <input type="hidden" name="status" value="{{ request('status') }}">
-                            <input type="hidden" name="from" value="{{ request('from') }}">
-                            <input type="hidden" name="to" value="{{ request('to') }}">
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-file-pdf me-1"></i> Export PDF
-                            </button>
-                        </form>
-                    @endif
                 </div>
             </form>
+            @if ($logs->count())
+                <form action="{{ route('maintenance.report.export') }}" method="POST" class="mt-3 text-end">
+                    @csrf
+                    <input type="hidden" name="department" value="{{ request('department') }}">
+                    <input type="hidden" name="status" value="{{ request('status') }}">
+                    <input type="hidden" name="from" value="{{ request('from') }}">
+                    <input type="hidden" name="to" value="{{ request('to') }}">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-file-pdf me-1"></i> Export PDF
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
 

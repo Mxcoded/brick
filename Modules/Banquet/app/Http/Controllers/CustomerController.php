@@ -5,7 +5,6 @@ namespace Modules\Banquet\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Banquet\Models\Customer;
-use Modules\Banquet\Models\BanquetOrder;
 use Yajra\DataTables\DataTables;
 
 class CustomerController extends Controller
@@ -46,7 +45,7 @@ class CustomerController extends Controller
                 break;
             case 'new_this_month':
                 $query->whereMonth('created_at', now()->month)
-                      ->whereYear('created_at', now()->year);
+                    ->whereYear('created_at', now()->year);
                 break;
         }
 
@@ -57,9 +56,9 @@ class CustomerController extends Controller
                 if ($search = $request->input('search.value')) {
                     $query->where(function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%")
-                          ->orWhere('email', 'like', "%{$search}%")
-                          ->orWhere('phone', 'like', "%{$search}%")
-                          ->orWhere('organization', 'like', "%{$search}%");
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%")
+                            ->orWhere('organization', 'like', "%{$search}%");
                     });
                 }
             })
@@ -67,7 +66,7 @@ class CustomerController extends Controller
                 return $customer->banquet_orders_count;
             })
             ->addColumn('total_spent', function ($customer) {
-                return '₦' . number_format($customer->banquet_orders_sum_total_revenue ?? 0);
+                return '₦'.number_format($customer->banquet_orders_sum_total_revenue ?? 0);
             })
             ->addColumn('organization_display', function ($customer) {
                 return $customer->organization ?? '<span class="text-muted">Private</span>';
@@ -78,13 +77,13 @@ class CustomerController extends Controller
             ->addColumn('actions', function ($customer) {
                 $showUrl = route('banquet.customers.show', $customer->id);
                 $editUrl = route('banquet.customers.edit', $customer->id);
-                
+
                 return '
                     <div class="btn-group btn-group-sm">
-                        <a href="' . $showUrl . '" class="btn btn-outline-primary" title="View">
+                        <a href="'.$showUrl.'" class="btn btn-outline-primary" title="View">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <a href="' . $editUrl . '" class="btn btn-outline-secondary" title="Edit">
+                        <a href="'.$editUrl.'" class="btn btn-outline-secondary" title="Edit">
                             <i class="fas fa-edit"></i>
                         </a>
                     </div>
@@ -100,7 +99,7 @@ class CustomerController extends Controller
     public function export(Request $request)
     {
         $filter = $request->input('filter', 'all');
-        
+
         $query = Customer::withCount('banquetOrders')
             ->withSum('banquetOrders', 'total_revenue');
 
@@ -116,7 +115,7 @@ class CustomerController extends Controller
                 break;
             case 'new_this_month':
                 $query->whereMonth('created_at', now()->month)
-                      ->whereYear('created_at', now()->year);
+                    ->whereYear('created_at', now()->year);
                 $filterLabel = 'New This Month';
                 break;
             default:
@@ -124,24 +123,24 @@ class CustomerController extends Controller
         }
 
         $customers = $query->latest()->get();
-        
-        $filename = 'banquet-customers-' . ($filter !== 'all' ? $filter . '-' : '') . now()->format('Y-m-d-His') . '.csv';
+
+        $filename = 'banquet-customers-'.($filter !== 'all' ? $filter.'-' : '').now()->format('Y-m-d-His').'.csv';
 
         $headers = [
-            "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            'Content-type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=$filename",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
         ];
 
         $callback = function () use ($customers, $filterLabel) {
             $file = fopen('php://output', 'w');
-            fputs($file, "\xEF\xBB\xBF"); // UTF-8 BOM
+            fwrite($file, "\xEF\xBB\xBF"); // UTF-8 BOM
 
             // Header row
-            fputcsv($file, ['Banquet Customer Export - ' . $filterLabel]);
-            fputcsv($file, ['Generated: ' . now()->format('F d, Y h:i A')]);
+            fputcsv($file, ['Banquet Customer Export - '.$filterLabel]);
+            fputcsv($file, ['Generated: '.now()->format('F d, Y h:i A')]);
             fputcsv($file, []);
 
             // Column headers
@@ -152,7 +151,7 @@ class CustomerController extends Controller
                 'Organization',
                 'Total Orders',
                 'Total Spent (NGN)',
-                'Customer Since'
+                'Customer Since',
             ]);
 
             // Data rows
@@ -164,7 +163,7 @@ class CustomerController extends Controller
                     $customer->organization ?? 'Private',
                     $customer->banquet_orders_count,
                     number_format($customer->banquet_orders_sum_total_revenue ?? 0, 2),
-                    $customer->created_at->format('M d, Y')
+                    $customer->created_at->format('M d, Y'),
                 ]);
             }
 
@@ -172,7 +171,7 @@ class CustomerController extends Controller
             fputcsv($file, []);
             fputcsv($file, ['SUMMARY']);
             fputcsv($file, ['Total Customers', $customers->count()]);
-            fputcsv($file, ['Total Revenue', 'NGN ' . number_format($customers->sum('banquet_orders_sum_total_revenue'), 2)]);
+            fputcsv($file, ['Total Revenue', 'NGN '.number_format($customers->sum('banquet_orders_sum_total_revenue'), 2)]);
 
             fclose($file);
         };
@@ -231,6 +230,7 @@ class CustomerController extends Controller
     public function edit($id)
     {
         $customer = Customer::findOrFail($id);
+
         return view('banquet::customers.edit', compact('customer'));
     }
 
@@ -243,7 +243,7 @@ class CustomerController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:customers,email,' . $id,
+            'email' => 'required|email|unique:customers,email,'.$id,
             'phone' => 'required|string|max:20',
             'organization' => 'nullable|string|max:255',
         ]);

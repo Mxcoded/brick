@@ -272,7 +272,7 @@
                 <thead class="table-dark">
                     <tr>
                         <th>Name <i>(Surname first)</i></th>
-                        <th>Position</th>
+                        <th>Department</th>
                         <th>Phone Number</th>
                         <th>Email</th>
                         <th>Photo</th>
@@ -285,7 +285,7 @@
                     @foreach ($employees as $employee)
                         <tr>
                             <td>{{ Str::upper($employee->name) }}</td>
-                            <td>{{ Str::upper($employee->position) }}</td>
+                            <td>{{ Str::upper($employee->department) }}</td>
                             <td>{{ $employee->phone_number }}</td>
                             <td>{{ $employee->email }}</td>
                             <td>

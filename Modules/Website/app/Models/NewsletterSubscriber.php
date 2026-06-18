@@ -2,8 +2,8 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class NewsletterSubscriber extends Model
@@ -50,6 +50,7 @@ class NewsletterSubscriber extends Model
             $this->unsubscribe_token = Str::random(64);
             $this->save();
         }
+
         return $this;
     }
 

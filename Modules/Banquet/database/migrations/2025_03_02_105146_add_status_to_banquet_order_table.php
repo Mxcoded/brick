@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('banquet_orders', function (Blueprint $table) {
-            if (!Schema::hasColumn('banquet_orders', 'status')) {
+            if (! Schema::hasColumn('banquet_orders', 'status')) {
 
                 $table->string('status')->default('Pending')->after('profit_margin');
             }
@@ -24,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('banquet_order', function (Blueprint $table) {
-            
-        });
+        Schema::table('banquet_order', function (Blueprint $table) {});
     }
 };
