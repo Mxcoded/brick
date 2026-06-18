@@ -28,20 +28,28 @@ body {
     min-height: 100vh;
     width: 260px;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-    transition: margin 0.3s ease;
+    transition: margin 0.3s ease, width 0.3s ease;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* --- Brand --- */
+.sidebar-heading {
+    padding: 1rem 1rem 0.5rem;
+}
+
 .sidebar-heading .brand-wrapper {
     display: inline-block;
     padding: 10px 20px;
-    margin-right: 15px;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid var(--sidebar-divider);
     box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), -4px -4px 15px rgba(255, 255, 255, 0.05);
     transition: all 0.3s ease;
+}
+
+.sidebar-heading .brand-wrapper:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .brand-link {
@@ -66,16 +74,29 @@ body {
     color: var(--sidebar-text);
     border: none !important;
     border-left: 3px solid transparent;
-    padding: 0.85rem 1.5rem;
-    font-size: 0.95rem;
-    transition: all 0.25s ease;
+    padding: 0.8rem 1.25rem;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+#sidebar-wrapper .list-group-item i {
+    width: 1.5rem;
+    text-align: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+#sidebar-wrapper .list-group-item i + span,
+#sidebar-wrapper .list-group-item i + b {
+    margin-left: 0.75rem;
 }
 
 #sidebar-wrapper .list-group-item:hover,
 #sidebar-wrapper .list-group-item:focus-visible {
     background-color: var(--sidebar-item-hover) !important;
     color: var(--sidebar-text-hover) !important;
-    padding-left: 1.75rem;
     border-left-color: var(--sidebar-active-border);
 }
 
@@ -94,41 +115,55 @@ body {
 #sidebar-wrapper .list-group-item[data-bs-toggle="collapse"] {
     color: var(--sidebar-toggle-color);
     cursor: pointer;
+    user-select: none;
 }
 
 #sidebar-wrapper .list-group-item[data-bs-toggle="collapse"]:hover {
     color: var(--sidebar-active-text);
 }
 
-/* --- Chevron rotation --- */
+/* --- Chevron rotation with smooth animation --- */
 #sidebar-wrapper .list-group-item[data-bs-toggle="collapse"] .fa-chevron-down {
     transition: transform 0.3s ease;
+    margin-left: auto;
+    font-size: 0.75rem;
+    opacity: 0.7;
 }
 
 #sidebar-wrapper .list-group-item[data-bs-toggle="collapse"][aria-expanded="true"] .fa-chevron-down {
     transform: rotate(180deg);
+    opacity: 1;
 }
 
-/* --- Submenu collapse container --- */
+/* --- Submenu collapse container with slide animation --- */
 #sidebar-wrapper .collapse:not(.show) {
     display: none;
 }
 
+#sidebar-wrapper .collapsing {
+    transition: height 0.25s ease;
+}
+
 /* --- Submenu items --- */
 #sidebar-wrapper .collapse .list-group-item {
-    padding-left: 3.5rem !important;
-    font-size: 0.87rem;
-    padding-top: 0.7rem;
-    padding-bottom: 0.7rem;
+    padding-left: 3.25rem !important;
+    font-size: 0.85rem;
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
     color: var(--sidebar-submenu-text);
     background-color: rgba(0, 0, 0, 0.15) !important;
     border-left: 3px solid transparent;
 }
 
+#sidebar-wrapper .collapse .list-group-item i {
+    width: 1.25rem;
+    font-size: 0.85rem;
+}
+
 #sidebar-wrapper .collapse .list-group-item:hover {
     color: var(--sidebar-text-hover) !important;
     background-color: var(--sidebar-item-hover) !important;
-    padding-left: 3.75rem !important;
+    padding-left: 3.5rem !important;
 }
 
 #sidebar-wrapper .collapse .list-group-item.active {
@@ -146,18 +181,19 @@ body {
 /* --- Divider inside submenus --- */
 .sidebar-divider {
     border-top: 1px solid var(--sidebar-divider);
-    margin: 0.5rem 1rem;
+    margin: 0.4rem 1rem;
 }
 
 /* --- Section heading inside submenus --- */
 .sidebar-subheading {
     display: block;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     text-transform: uppercase;
     color: var(--sidebar-brand);
     font-weight: 700;
-    padding: 0.5rem 1rem 0.25rem 3.5rem;
+    padding: 0.5rem 1rem 0.25rem 3.25rem;
     letter-spacing: 0.5px;
+    opacity: 0.85;
 }
 
 /* --- Operations section heading in main sidebar --- */
@@ -192,10 +228,16 @@ body {
 /* --- Main content area --- */
 #page-content-wrapper {
     width: 100%;
+    min-width: 0;
+    transition: margin 0.3s ease;
 }
 
 #wrapper.toggled #sidebar-wrapper {
     margin-left: -260px;
+}
+
+#wrapper.toggled #page-content-wrapper {
+    margin-left: 0;
 }
 
 /* --- Responsive --- */
@@ -211,5 +253,24 @@ body {
 
     #wrapper.toggled #sidebar-wrapper {
         margin-left: -260px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #sidebar-wrapper {
+        margin-left: -260px;
+        position: fixed;
+        z-index: 1050;
+        top: 0;
+        left: 0;
+        height: 100vh;
+    }
+
+    #wrapper.toggled #sidebar-wrapper {
+        margin-left: 0;
+    }
+
+    #sidebar-wrapper .sidebar-overlay {
+        display: none;
     }
 }

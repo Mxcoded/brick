@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-lg bg-white shadow-sm border-bottom py-2">
     <div class="container-fluid">
         <!-- Sidebar Toggle -->
-        <button class="btn btn-outline-secondary me-3" id="sidebarToggle">
+        <button class="btn btn-outline-dark me-3 shadow-sm" id="sidebarToggle">
             <i class="fas fa-bars"></i>
         </button>
 

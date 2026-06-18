@@ -1,11 +1,14 @@
 <div class="border-end" id="sidebar-wrapper">
 
-    <div class="sidebar-heading">
+    <div class="sidebar-heading d-flex justify-content-between align-items-center">
         <div class="brand-wrapper">
             <a href="{{ route('home') }}" class="brand-link">
                 BRICKSPOINT<sup>&trade;</sup><sub class="brand-sub">ERP</sub>
             </a>
         </div>
+        <button class="btn btn-sm p-0 text-white border-0 d-md-none" id="sidebarClose" onclick="document.getElementById('wrapper').classList.remove('toggled')">
+            <i class="fas fa-times fa-lg"></i>
+        </button>
     </div>
 
     <div class="list-group list-group-flush">
