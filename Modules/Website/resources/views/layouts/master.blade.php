@@ -475,27 +475,23 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
             padding: 0.5rem;
             margin-top: 0.5rem;
-            display: block;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-6px);
-            transition: all 0.25s ease;
-            pointer-events: none;
         }
 
         .navbar .dropdown-menu.show {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-            pointer-events: all;
+            animation: dropdownIn 0.25s ease;
+        }
+
+        @keyframes dropdownIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @media (min-width: 992px) {
             .navbar .dropdown:hover > .dropdown-menu {
-                opacity: 1;
-                visibility: visible;
-                transform: translateY(0);
-                pointer-events: all;
+                display: block;
+            }
+            .navbar .dropdown:hover > .dropdown-menu:not(.show) {
+                animation: dropdownIn 0.2s ease;
             }
         }
 
@@ -727,13 +723,23 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('website.about') ? 'active' : '' }}"
-                                href="{{ route('website.about') }}">About Us</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('website.contact') ? 'active' : '' }}"
-                                href="{{ route('website.contact') }}">Contact</a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {{ request()->routeIs('website.about') || request()->routeIs('website.contact') ? 'active' : '' }}"
+                                href="{{ route('website.about') }}" id="aboutDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                About
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="aboutDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('website.about') }}">
+                                        <i class="fas fa-info-circle me-2" style="color: #C8A165;"></i>About Us
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('website.contact') }}">
+                                        <i class="fas fa-envelope me-2" style="color: #C8A165;"></i>Contact
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.booking.login') ? 'active' : '' }}"
