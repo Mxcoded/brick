@@ -134,11 +134,11 @@
 .status-toggle .st-btn.st-new { background: #fff8e1; color: #8a6d00; }
 .status-toggle .st-btn.st-in_progress { background: #e3f2fd; color: #0a58ca; }
 .status-toggle .st-btn.st-completed { background: #e8f5e9; color: #146c43; }
-.status-toggle .st-btn.st-cancelled { background: #f5f5f5; color: #6c757d; }
+.status-toggle .st-btn.st-cancelled { background: #fce4e4; color: #c62828; }
 .status-toggle .st-btn.active.st-new { background: #ffc107; color: #212529; }
 .status-toggle .st-btn.active.st-in_progress { background: #0d6efd; color: #fff; }
 .status-toggle .st-btn.active.st-completed { background: #198754; color: #fff; }
-.status-toggle .st-btn.active.st-cancelled { background: #6c757d; color: #fff; }
+.status-toggle .st-btn.active.st-cancelled { background: #dc3545; color: #fff; }
 .status-toggle .st-btn:not(.active):hover { filter: brightness(0.92); }
 .priority-radio { gap: 0.35rem !important; }
 .priority-option { cursor: pointer; }

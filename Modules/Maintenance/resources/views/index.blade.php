@@ -65,9 +65,9 @@
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm bg-secondary bg-opacity-10 h-100">
+            <div class="card border-0 shadow-sm bg-danger bg-opacity-10 h-100">
                 <div class="card-body text-center py-3">
-                    <div class="fs-3 fw-bold text-secondary">{{ $stats['cancelled'] }}</div>
+                    <div class="fs-3 fw-bold text-danger">{{ $stats['cancelled'] }}</div>
                     <div class="small text-muted text-uppercase">Cancelled</div>
                 </div>
             </div>
@@ -106,7 +106,7 @@
                         <tbody>
                             @foreach ($logs as $log)
                                 @php
-                                    $statusBorder = ['new' => '#ffc107', 'in_progress' => '#0d6efd', 'completed' => '#198754', 'cancelled' => '#6c757d'];
+                                    $statusBorder = ['new' => '#ffc107', 'in_progress' => '#0d6efd', 'completed' => '#198754', 'cancelled' => '#dc3545'];
                                     $departmentColors = ['IT' => '#0d6efd', 'Maintenance' => '#198754', 'Housekeeping' => '#dc3545', 'Electrical' => '#ffc107', 'Plumbing' => '#0dcaf0', 'HVAC' => '#6f42c1', 'Security' => '#fd7e14', 'Other' => '#6c757d'];
                                     $deptColor = $departmentColors[$log->department] ?? '#6c757d';
                                 @endphp
@@ -131,7 +131,7 @@
                                     <td class="small">{{ $log->lodged_by }}</td>
                                     <td>
                                         @php
-                                            $statusColors = ['new' => '#ffc107', 'in_progress' => '#0d6efd', 'completed' => '#198754', 'cancelled' => '#6c757d'];
+                                            $statusColors = ['new' => '#ffc107', 'in_progress' => '#0d6efd', 'completed' => '#198754', 'cancelled' => '#dc3545'];
                                             $statusIcons = ['new' => 'fa-exclamation-circle', 'in_progress' => 'fa-sync-alt', 'completed' => 'fa-check-circle', 'cancelled' => 'fa-times-circle'];
                                             $statusLabels = ['new' => 'New', 'in_progress' => 'Doing', 'completed' => 'Done', 'cancelled' => 'Cancel'];
                                         @endphp
@@ -143,7 +143,7 @@
                                                 {{ $statusLabels[$log->status] }}
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                                                @foreach (['new' => ['New', '#ffc107'], 'in_progress' => ['Doing', '#0d6efd'], 'completed' => ['Done', '#198754'], 'cancelled' => ['Cancel', '#6c757d']] as $st => $info)
+                                                @foreach (['new' => ['New', '#ffc107'], 'in_progress' => ['Doing', '#0d6efd'], 'completed' => ['Done', '#198754'], 'cancelled' => ['Cancel', '#dc3545']] as $st => $info)
                                                     <li>
                                                         <form action="{{ route('maintenance.toggle-status', $log->id) }}" method="POST" class="status-toggle-form">
                                                             @csrf
@@ -286,7 +286,7 @@
                 dataType: 'json',
                 success: function (res) {
                     if (res.success) {
-                        var colors = {'new': '#ffc107', 'in_progress': '#0d6efd', 'completed': '#198754', 'cancelled': '#6c757d'};
+                        var colors = {'new': '#ffc107', 'in_progress': '#0d6efd', 'completed': '#198754', 'cancelled': '#dc3545'};
                         var icons = {'new': 'fa-exclamation-circle', 'in_progress': 'fa-sync-alt', 'completed': 'fa-check-circle', 'cancelled': 'fa-times-circle'};
                         var labels = {'new': 'New', 'in_progress': 'Doing', 'completed': 'Done', 'cancelled': 'Cancel'};
                         var s = res.status;

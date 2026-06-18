@@ -15,7 +15,7 @@
         .badge-new { color: #856404; }
         .badge-in_progress { color: #004085; }
         .badge-completed { color: #155724; }
-        .badge-cancelled { color: #6c757d; }
+        .badge-cancelled { color: #dc3545; }
         .footer { text-align: center; color: #999; font-size: 8px; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px; }
         .summary { margin-bottom: 15px; }
         .summary table { width: auto; }

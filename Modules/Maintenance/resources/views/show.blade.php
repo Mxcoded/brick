@@ -104,7 +104,7 @@
                             'new' => ['icon' => 'fa-exclamation-circle', 'color' => '#ffc107', 'text' => 'New Case', 'label' => 'New'],
                             'in_progress' => ['icon' => 'fa-sync-alt', 'color' => '#0d6efd', 'text' => 'In Progress', 'label' => 'Doing'],
                             'completed' => ['icon' => 'fa-check-circle', 'color' => '#198754', 'text' => 'Completed', 'label' => 'Done'],
-                            'cancelled' => ['icon' => 'fa-times-circle', 'color' => '#6c757d', 'text' => 'Cancelled', 'label' => 'Cancel'],
+                            'cancelled' => ['icon' => 'fa-times-circle', 'color' => '#dc3545', 'text' => 'Cancelled', 'label' => 'Cancel'],
                         ];
                         $status = $statusIcons[$maintenanceLog->status] ?? $statusIcons['new'];
                     @endphp
@@ -146,11 +146,11 @@
     .status-toggle .st-btn.st-new { background: #fff8e1; color: #8a6d00; }
     .status-toggle .st-btn.st-in_progress { background: #e3f2fd; color: #0a58ca; }
     .status-toggle .st-btn.st-completed { background: #e8f5e9; color: #146c43; }
-    .status-toggle .st-btn.st-cancelled { background: #f5f5f5; color: #6c757d; }
+    .status-toggle .st-btn.st-cancelled { background: #fce4e4; color: #c62828; }
     .status-toggle .st-btn.active.st-new { background: #ffc107; color: #212529; }
     .status-toggle .st-btn.active.st-in_progress { background: #0d6efd; color: #fff; }
     .status-toggle .st-btn.active.st-completed { background: #198754; color: #fff; }
-    .status-toggle .st-btn.active.st-cancelled { background: #6c757d; color: #fff; }
+    .status-toggle .st-btn.active.st-cancelled { background: #dc3545; color: #fff; }
     .status-toggle .st-btn:not(.active):hover { filter: brightness(0.92); }
 </style>
 @endsection

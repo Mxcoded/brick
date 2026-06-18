@@ -133,7 +133,7 @@
                                     <td>{{ $log->lodged_by }}</td>
                                     <td>
                                         @php
-                                            $badge = ['new' => 'warning', 'in_progress' => 'primary', 'completed' => 'success', 'cancelled' => 'secondary'];
+                                            $badge = ['new' => 'warning', 'in_progress' => 'primary', 'completed' => 'success', 'cancelled' => 'danger'];
                                         @endphp
                                         <span class="badge bg-{{ $badge[$log->status] ?? 'secondary' }}">
                                             {{ ucfirst(str_replace('_', ' ', $log->status)) }}

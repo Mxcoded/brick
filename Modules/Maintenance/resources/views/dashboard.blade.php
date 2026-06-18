@@ -45,7 +45,7 @@
         <div class="col-xl-2 col-lg-4 col-md-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body text-center">
-                    <div class="fs-1 fw-bold text-secondary">{{ $cancelledLogs }}</div>
+                    <div class="fs-1 fw-bold text-danger">{{ $cancelledLogs }}</div>
                     <div class="text-muted small text-uppercase">Cancelled</div>
                 </div>
             </div>
@@ -113,7 +113,7 @@
                     @if ($statusStats->count())
                         @php
                             $statusLabels = ['new' => 'New', 'in_progress' => 'In Progress', 'completed' => 'Completed', 'cancelled' => 'Cancelled'];
-                            $statusColors = ['new' => '#ffc107', 'in_progress' => '#0d6efd', 'completed' => '#198754', 'cancelled' => '#6c757d'];
+                            $statusColors = ['new' => '#ffc107', 'in_progress' => '#0d6efd', 'completed' => '#198754', 'cancelled' => '#dc3545'];
                         @endphp
                         @foreach ($statusStats as $stat)
                             @php
@@ -309,7 +309,7 @@
                                     </td>
                                     <td>
                                         @php
-                                            $badge = ['new' => 'warning', 'in_progress' => 'primary', 'completed' => 'success', 'cancelled' => 'secondary'];
+                                            $badge = ['new' => 'warning', 'in_progress' => 'primary', 'completed' => 'success', 'cancelled' => 'danger'];
                                         @endphp
                                         <span class="badge bg-{{ $badge[$log->status] ?? 'secondary' }}">
                                             {{ ucfirst(str_replace('_', ' ', $log->status)) }}
