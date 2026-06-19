@@ -17,6 +17,7 @@ use Modules\Staff\Mail\WelcomeMail;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveRequest;
 use Modules\Staff\Models\StaffSetting;
+use Modules\Frontdeskcrm\Rules\ValidEmail;
 
 class StaffController extends Controller
 {
@@ -202,7 +203,7 @@ class StaffController extends Controller
         // Validate request with new fields
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:employees,email',
+            'email' => ['required', 'email', 'unique:employees,email', new ValidEmail],
             'place_of_birth' => 'required|string|max:255',
             'state_of_origin' => 'required|string|max:255',
             'lga' => 'required|string|max:255',
@@ -312,9 +313,11 @@ class StaffController extends Controller
         $employee = Employee::latest()->first();
 
         try {
-            Mail::to($employee->email)->queue(new WelcomeMail($employee));
+            Mail::to($employee->email)->send(new WelcomeMail($employee));
         } catch (\Exception $e) {
-            Log::warning('Failed to queue welcome email for employee '.$employee->id.': '.$e->getMessage());
+            Log::error('Failed to send welcome email for employee '.$employee->id.' ('.$employee->email.'): '.$e->getMessage());
+
+            return redirect()->route('staff.index')->with('warning', 'Staff record created successfully, but the welcome email could not be delivered to '.$employee->email.'. Please verify the email address.');
         }
 
         return redirect()->route('staff.index')->with('success', 'Staff record created successfully. A welcome email has been sent to '.$employee->email.'.');

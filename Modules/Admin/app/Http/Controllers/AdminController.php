@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Mail;
 use Modules\Banquet\Models\BanquetEnquiry;
 use Modules\Banquet\Models\BanquetOrder;
 use Modules\Banquet\Models\BanquetPayment;
-use Modules\Frontdeskcrm\Models\BookingSource;
+use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Gym\Models\Membership;
 use Modules\Gym\Models\Payment as GymPayment;
@@ -618,18 +618,16 @@ class AdminController extends Controller
     {
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'email' => 'required|email|unique:users,email',
+            'email' => ['required', 'email', 'unique:users,email', new ValidEmail],
             'password' => 'required|min:8|confirmed',
             'role' => 'required|exists:roles,name',
         ]);
 
         try {
-            DB::beginTransaction(); // Start the transaction
+            DB::beginTransaction();
 
-            // 1. Find the employee first to ensure they exist and get their name
             $employee = Employee::findOrFail($request->employee_id);
 
-            // 2. Create the user
             $user = User::create([
                 'name' => $employee->name ?? $employee->first_name.' '.($employee->last_name ?? ''),
                 'email' => $request->email,
@@ -637,25 +635,27 @@ class AdminController extends Controller
                 'type' => 'staff',
             ]);
 
-            // 3. Link the user to the employee
             $employee->update(['user_id' => $user->id]);
 
-            // 4. Assign the selected role
             $user->assignRole($request->role);
 
-            DB::commit(); // Commit the transaction
+            DB::commit();
 
-            // 5. Send login credentials via email
+            // Send login credentials via email (synchronous to catch failures)
             try {
-                Mail::to($user->email)->queue(new AccountCreated($user, $request->password));
-            } catch (\Exception $e) {
-                \Log::warning('Failed to queue account creation email for user '.$user->id.': '.$e->getMessage());
-            }
+                Mail::to($user->email)->send(new AccountCreated($user, $request->password));
 
-            return redirect()->route('admin.users.index')
-                ->with('success', 'User account created successfully. Login credentials have been sent to '.$user->email.'.');
+                return redirect()->route('admin.users.index')
+                    ->with('success', 'User account created successfully. Login credentials have been sent to '.$user->email.'.');
+            } catch (\Exception $e) {
+                \Log::error('Failed to send account creation email for user '.$user->id.': '.$e->getMessage());
+
+                return redirect()->route('admin.users.index')
+                    ->with('warning', 'User account created successfully, but the credentials email could not be delivered to '.$user->email.'. The user may need to use the "Forgot Password" option or you can resend credentials later.')
+                    ->with('email_failed', true);
+            }
         } catch (\Exception $e) {
-            DB::rollBack(); // Rollback if any step fails
+            DB::rollBack();
 
             return back()
                 ->with('error', 'Error creating user account: '.$e->getMessage())
@@ -698,14 +698,16 @@ class AdminController extends Controller
         $user->update(['password' => bcrypt($tempPassword)]);
 
         try {
-            Mail::to($user->email)->queue(new AccountCreated($user, $tempPassword));
-            $msg = "New login credentials have been sent to {$user->email}.";
-        } catch (\Exception $e) {
-            \Log::warning('Failed to resend credentials for user '.$user->id.': '.$e->getMessage());
-            $msg = 'Failed to send email. Please try again.';
-        }
+            Mail::to($user->email)->send(new AccountCreated($user, $tempPassword));
 
-        return redirect()->route('admin.users.index')->with('success', $msg);
+            return redirect()->route('admin.users.index')
+                ->with('success', "New login credentials have been sent to {$user->email}.");
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend credentials for user '.$user->id.': '.$e->getMessage());
+
+            return back()
+                ->with('error', 'Failed to send credentials email. The mail server may be misconfigured or '.$user->email.' may be invalid. Please verify the email address and try again.');
+        }
     }
 
     public function modules()
