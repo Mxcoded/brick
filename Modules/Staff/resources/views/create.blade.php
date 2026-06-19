@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitSpinner.classList.remove('d-none');
     });
 
-    const hiddenInputs = ['end_date', 'leaving_reason', 'note_for_leaving', 'branch_name'];
+    const hiddenInputs = ['end_date', 'leaving_reason', 'note_for_leaving'];
     hiddenInputs.forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.value) el.disabled = true;
