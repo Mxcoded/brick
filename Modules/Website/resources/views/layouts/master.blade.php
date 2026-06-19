@@ -107,6 +107,44 @@
             color: var(--color-dark-gray);
         }
 
+        /* ===== Scroll Progress Bar ===== */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(to right, #C8A165, #d4b070);
+            z-index: 99999;
+            width: 0%;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 8px rgba(200, 161, 101, 0.4);
+        }
+
+        /* ===== Dropdown Enhancements ===== */
+        .navbar .dropdown-menu {
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        @media (min-width: 992px) {
+            .navbar .dropdown-menu {
+                display: block;
+                opacity: 0;
+                transform: translateY(8px);
+                pointer-events: none;
+            }
+            .navbar .dropdown:hover > .dropdown-menu,
+            .navbar .dropdown-menu.show {
+                opacity: 1;
+                transform: translateY(0);
+                pointer-events: auto;
+            }
+        }
+
+        /* ===== Active Nav Link Glow ===== */
+        .nav-link.active {
+            text-shadow: 0 0 12px rgba(200, 161, 101, 0.3);
+        }
+
         /* ===== Enhanced Navbar ===== */
         .navbar {
             padding-top: 0.75rem;
@@ -128,7 +166,7 @@
         .navbar-brand {
             padding: 0;
             position: relative;
-            z-index: 2;
+            z-index: 1060;
         }
 
         .navbar-brand img {
@@ -144,6 +182,11 @@
 
         .navbar-brand img:hover {
             transform: scale(1.05);
+        }
+
+        .navbar-toggler {
+            z-index: 1060;
+            position: relative;
         }
 
         /* Nav link base */
@@ -291,36 +334,45 @@
             transform: rotate(-45deg);
         }
 
+        /* ===== Desktop nav stack ===== */
+        .navbar-collapse {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== Mobile Menu: prevent body scroll but allow overlay scroll ===== */
         /* ===== Mobile Menu ===== */
         @media (max-width: 991.98px) {
             .navbar {
-                padding-top: 0.5rem;
-                padding-bottom: 0.5rem;
+                padding-top: 0.6rem;
+                padding-bottom: 0.6rem;
             }
 
             .navbar-brand img {
-                height: 50px;
+                height: 55px;
             }
 
             .navbar.navbar-shrink .navbar-brand img {
-                height: 44px;
+                height: 48px;
             }
 
             .navbar-collapse {
-                position: fixed;
-                top: 0;
+                display: none;
+                position: absolute;
+                top: 100%;
                 left: 0;
                 right: 0;
-                bottom: 0;
-                background: rgba(20, 20, 20, 0.98);
-                z-index: 1;
-                padding: 90px 1.5rem 1.5rem;
+                background: linear-gradient(180deg, rgba(15, 15, 15, 0.99) 0%, rgba(25, 25, 25, 0.99) 100%);
+                z-index: 1050;
+                padding: 1rem 1.25rem 1.5rem;
+                max-height: calc(100vh - 100%);
                 overflow-y: auto;
-                display: none;
+                border-top: 1px solid rgba(200, 161, 101, 0.15);
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
             }
 
-            .navbar-collapse.open {
-                display: block;
+            .navbar-collapse.show {
+                display: block !important;
             }
 
             .navbar-nav {
@@ -328,9 +380,13 @@
             }
 
             .navbar-nav .nav-link {
-                font-size: 0.95rem;
-                padding: 0.75rem 0 !important;
+                font-size: 1rem;
+                font-weight: 500;
+                padding: 0.85rem 0 !important;
                 border-bottom: 1px solid rgba(255,255,255,0.06);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
             }
 
             .navbar-nav .nav-link::after {
@@ -339,52 +395,189 @@
 
             .navbar-nav .nav-link.active {
                 color: var(--color-gold) !important;
-                padding-left: 0.75rem !important;
+                padding-left: 1rem !important;
                 border-left: 3px solid var(--color-gold);
+                background: rgba(200, 161, 101, 0.08);
+                border-radius: 0 8px 8px 0;
             }
 
-            /* Mobile auth buttons */
+            .navbar-nav .nav-link:hover:not(.active) {
+                background: rgba(255,255,255,0.03);
+                padding-left: 0.5rem !important;
+            }
+
+            /* Mobile Dropdown Styles */
+            .navbar .dropdown-menu {
+                position: static !important;
+                float: none !important;
+                background: rgba(200, 161, 101, 0.05) !important;
+                border: none !important;
+                border-radius: 10px !important;
+                box-shadow: none !important;
+                padding: 0.5rem !important;
+                margin: 0.25rem 0 0.5rem 0 !important;
+                transform: none !important;
+            }
+
+            .navbar .dropdown-item {
+                font-size: 0.9rem;
+                padding: 0.65rem 1rem;
+                color: rgba(255,255,255,0.8);
+                border-radius: 6px;
+                margin-bottom: 2px;
+            }
+
+            .navbar .dropdown-item:hover,
+            .navbar .dropdown-item:focus {
+                background: rgba(200, 161, 101, 0.15);
+                color: var(--color-gold);
+            }
+
+            .navbar .dropdown-item i {
+                width: 24px;
+            }
+
+            .navbar .dropdown-divider {
+                border-color: rgba(255,255,255,0.08) !important;
+                margin: 0.35rem 0.5rem !important;
+                display: block !important;
+            }
+
+            .navbar .dropdown-toggle::after {
+                transition: transform 0.3s ease;
+            }
+
+            .navbar .dropdown.show .dropdown-toggle::after {
+                transform: rotate(180deg);
+            }
+
+            /* Mobile Auth Section */
             .nav-mobile-auth {
                 display: flex;
                 flex-direction: column;
-                gap: 0.6rem;
-                margin-top: 1.2rem;
-                padding-top: 1.2rem;
-                border-top: 1px solid rgba(255,255,255,0.1);
+                gap: 0.75rem;
+                margin-top: 1.5rem;
+                padding-top: 1.5rem;
+                border-top: 1px solid rgba(200, 161, 101, 0.2);
+            }
+
+            .mobile-auth-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 1.5px;
+                color: rgba(255,255,255,0.4);
+                margin-bottom: 0.25rem;
             }
 
             .nav-mobile-auth .btn {
-                padding: 0.7rem 1rem;
-                font-size: 0.85rem;
+                padding: 0.9rem 1.25rem;
+                font-size: 0.9rem;
                 font-weight: 600;
-                border-radius: 6px;
+                border-radius: 10px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                transition: all 0.25s ease;
             }
 
             .btn-mobile-signin {
                 background: transparent;
-                border: 1px solid rgba(255,255,255,0.25);
+                border: 2px solid rgba(255,255,255,0.2);
                 color: #fff;
             }
 
             .btn-mobile-signin:hover {
                 border-color: var(--color-gold);
                 color: var(--color-gold);
+                background: rgba(200, 161, 101, 0.1);
             }
 
             .btn-mobile-register {
-                background: var(--color-gold);
-                border: 1px solid var(--color-gold);
-                color: #1a1a1a;
+                background: transparent;
+                border: 2px solid var(--color-gold);
+                color: var(--color-gold);
             }
 
             .btn-mobile-register:hover {
-                background: #b08d55;
-                color: #fff;
+                background: var(--color-gold);
+                color: #1a1a1a;
             }
 
-            /* Hide desktop CTA on mobile */
+            .btn-mobile-book {
+                background: linear-gradient(135deg, var(--color-gold) 0%, #b08d55 100%);
+                border: none;
+                color: #1a1a1a;
+                box-shadow: 0 4px 15px rgba(200, 161, 101, 0.3);
+            }
+
+            .btn-mobile-book:hover {
+                background: linear-gradient(135deg, #b08d55 0%, var(--color-gold) 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(200, 161, 101, 0.4);
+                color: #1a1a1a;
+            }
+
+            /* Mobile Contact Info */
+            .mobile-contact-info {
+                margin-top: 1.5rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255,255,255,0.06);
+            }
+
+            .mobile-contact-item {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.5rem 0;
+                color: rgba(255,255,255,0.6);
+                font-size: 0.85rem;
+            }
+
+            .mobile-contact-item i {
+                color: var(--color-gold);
+                width: 20px;
+                text-align: center;
+            }
+
+            .mobile-contact-item a {
+                color: rgba(255,255,255,0.6);
+                text-decoration: none;
+            }
+
+            .mobile-contact-item a:hover {
+                color: var(--color-gold);
+            }
+
+            /* Social Links in Mobile Menu */
+            .mobile-social-links {
+                display: flex;
+                justify-content: center;
+                gap: 1rem;
+                margin-top: 1rem;
+                padding-top: 1rem;
+            }
+
+            .mobile-social-links a {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: rgba(255,255,255,0.08);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: rgba(255,255,255,0.7);
+                transition: all 0.2s ease;
+            }
+
+            .mobile-social-links a:hover {
+                background: var(--color-gold);
+                color: #1a1a1a;
+                transform: translateY(-3px);
+            }
+
             .desktop-cta {
                 display: none !important;
             }
@@ -395,23 +588,114 @@
                 display: none !important;
             }
         }
+        }
 
         @media (max-width: 768px) {
             .navbar-brand img {
-                height: 44px;
+                height: 48px;
             }
             .navbar.navbar-shrink .navbar-brand img {
-                height: 38px;
+                height: 42px;
             }
         }
 
         @media (max-width: 576px) {
+            .navbar {
+                padding-top: 0.5rem;
+                padding-bottom: 0.5rem;
+            }
+
+            .navbar-brand img {
+                height: 44px;
+            }
+
+            .navbar-toggler {
+                width: 32px;
+                height: 32px;
+            }
+
+            .navbar-toggler-icon {
+                width: 24px;
+                height: 16px;
+            }
+
+            .navbar-toggler-icon span:nth-child(2) {
+                top: 7px;
+            }
+            .navbar-toggler-icon span:nth-child(3) {
+                top: 14px;
+            }
+
+            .navbar-collapse {
+                padding: 0.75rem 1rem 1.25rem;
+            }
+
+            .navbar-nav .nav-link {
+                font-size: 0.95rem;
+                padding: 0.75rem 0 !important;
+            }
+
+            .nav-mobile-auth .btn {
+                padding: 0.8rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 400px) {
             .navbar-brand img {
                 height: 38px;
             }
 
+            .navbar-toggler {
+                width: 28px;
+                height: 28px;
+            }
+
+            .navbar-toggler-icon {
+                width: 22px;
+                height: 14px;
+            }
+
+            .navbar-toggler-icon span:nth-child(2) {
+                top: 6px;
+            }
+            .navbar-toggler-icon span:nth-child(3) {
+                top: 12px;
+            }
+
             .navbar-collapse {
-                padding: 80px 1rem 1rem;
+                padding: 0.5rem 0.75rem 1rem;
+            }
+
+            .navbar-nav .nav-link {
+                font-size: 0.88rem;
+                padding: 0.65rem 0 !important;
+            }
+
+            .navbar .dropdown-item {
+                font-size: 0.82rem;
+                padding: 0.55rem 0.85rem;
+            }
+
+            .nav-mobile-auth .btn {
+                padding: 0.7rem 0.85rem;
+                font-size: 0.8rem;
+                min-height: 48px;
+                border-radius: 8px;
+            }
+
+            .mobile-auth-label {
+                font-size: 0.65rem;
+            }
+
+            .mobile-contact-item {
+                font-size: 0.78rem;
+                padding: 0.4rem 0;
+            }
+
+            .mobile-social-links a {
+                width: 36px;
+                height: 36px;
             }
         }
 
@@ -423,6 +707,7 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
             padding: 0.5rem;
             margin-top: 0.5rem;
+            z-index: 9999;
         }
 
         .navbar .dropdown-menu.show {
@@ -432,15 +717,6 @@
         @keyframes dropdownIn {
             from { opacity: 0; transform: translateY(-6px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-
-        @media (min-width: 992px) {
-            .navbar .dropdown:hover > .dropdown-menu {
-                display: block;
-            }
-            .navbar .dropdown:hover > .dropdown-menu:not(.show) {
-                animation: dropdownIn 0.2s ease;
-            }
         }
 
         .navbar .dropdown-item {
@@ -586,6 +862,9 @@
 </head>
 
 <body class="d-flex flex-column min-vh-100">
+    <!-- Scroll Progress Bar -->
+    <div class="scroll-progress" id="scrollProgress"></div>
+
     <!-- Navigation -->
     <header class="sticky-top">
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark" id="siteNavbar">
@@ -603,7 +882,7 @@
                     </span>
                 </button>
 
-                <div class="collapse navbar-collapse" id="navbarMain">
+                <div class="navbar-collapse" id="navbarMain">
                     <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.home') ? 'active' : '' }}"
@@ -718,25 +997,57 @@
 
                     {{-- Mobile Auth Links (inside collapse) --}}
                     @guest
-                        <div class="mobile-auth-links">
+                        <div class="mobile-auth-links d-lg-none">
                             <div class="nav-mobile-auth">
-                                <a href="{{ route('login') }}" class="btn btn-mobile-signin text-center">
-                                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                                <span class="mobile-auth-label">Account</span>
+                                <a href="{{ route('login') }}" class="btn btn-mobile-signin">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                    <span>Sign In</span>
                                 </a>
-                                <a href="{{ route('register') }}" class="btn btn-mobile-register text-center">
-                                    <i class="fas fa-user-plus me-2"></i>Create Account
+                                <a href="{{ route('register') }}" class="btn btn-mobile-register">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>Create Account</span>
                                 </a>
-                                <a href="{{ route('website.book') }}" class="btn btn-nav-gold text-center">
-                                    <i class="fas fa-calendar-check me-2"></i>Book Now
+                                <a href="{{ route('website.book') }}" class="btn btn-mobile-book">
+                                    <i class="fas fa-calendar-check"></i>
+                                    <span>Book Now</span>
                                 </a>
+                            </div>
+
+                            {{-- Mobile Contact Info --}}
+                            <div class="mobile-contact-info">
+                                <div class="mobile-contact-item">
+                                    <i class="fas fa-phone"></i>
+                                    <a href="tel:+2348099999627">+234 809 999 9627</a>
+                                </div>
+                                <div class="mobile-contact-item">
+                                    <i class="fas fa-envelope"></i>
+                                    <a href="mailto:rsv@brickspoint.com">rsv@brickspoint.com</a>
+                                </div>
+                            </div>
+
+                            {{-- Mobile Social Links --}}
+                            <div class="mobile-social-links">
+                                <a href="https://fb.com/bpaparthotel" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                                <a href="https://instagram.com/brickspoint_asokoro" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                                <a href="https://x.com/bpaparthotel" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
                             </div>
                         </div>
                     @else
-                        <div class="mobile-auth-links">
+                        <div class="mobile-auth-links d-lg-none">
                             <div class="nav-mobile-auth">
-                                <a href="{{ route('home') }}" class="btn btn-nav-gold text-center">
-                                    <i class="fas fa-dashboard me-2"></i>Dashboard
+                                <span class="mobile-auth-label">Quick Access</span>
+                                <a href="{{ route('home') }}" class="btn btn-mobile-book">
+                                    <i class="fas fa-gauge-high"></i>
+                                    <span>Dashboard</span>
                                 </a>
+                                <form action="{{ route('logout') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn btn-mobile-signin w-100">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        <span>Sign Out</span>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     @endguest
@@ -934,15 +1245,42 @@
             // Mobile nav toggle
             const toggler = document.getElementById('navToggler');
             const collapse = document.getElementById('navbarMain');
+
             if (toggler && collapse) {
                 toggler.addEventListener('click', function() {
-                    const isOpen = collapse.classList.toggle('open');
-                    toggler.setAttribute('aria-expanded', isOpen);
-                    document.body.style.overflow = isOpen ? 'hidden' : '';
+                    const isOpen = collapse.classList.toggle('show');
+                    toggler.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
                 });
+
+                // Close menu when clicking a nav link (not dropdown toggle)
+                collapse.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'A' && !e.target.closest('.dropdown-toggle')) {
+                        collapse.classList.remove('show');
+                        toggler.setAttribute('aria-expanded', 'false');
+                    }
+                });
+
+                // Close on escape key
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && collapse.classList.contains('show')) {
+                        collapse.classList.remove('show');
+                        toggler.setAttribute('aria-expanded', 'false');
+                    }
+                });
+
+                // Close when resizing to desktop
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth >= 992 && collapse.classList.contains('show')) {
+                        collapse.classList.remove('show');
+                        toggler.setAttribute('aria-expanded', 'false');
+                    }
+                }, { passive: true });
             }
 
-            // Navbar shrink on scroll
+            // Scroll progress bar
+            const progressBar = document.getElementById('scrollProgress');
+
+            // Navbar shrink + scroll progress
             const navbar = document.getElementById('siteNavbar');
             window.addEventListener('scroll', function() {
                 if (window.scrollY > 80) {
@@ -950,6 +1288,12 @@
                 } else {
                     navbar.classList.remove('navbar-shrink');
                 }
+
+                // Update progress bar
+                var scrollTop = window.scrollY;
+                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                var progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+                progressBar.style.width = progress + '%';
             }, { passive: true });
 
             // Footer newsletter form
