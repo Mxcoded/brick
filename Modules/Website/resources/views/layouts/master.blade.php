@@ -967,7 +967,7 @@
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('website.booking.login') ? 'active' : '' }}"
                                 href="{{ route('website.booking.login') }}">
-                                <i class="fas fa-search me-1 small"></i>My Booking
+                                <span><i class="fas fa-search me-1 small"></i>My Booking</span>
                             </a>
                         </li>
                     </ul>
