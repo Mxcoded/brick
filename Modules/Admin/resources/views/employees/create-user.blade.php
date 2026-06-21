@@ -54,7 +54,7 @@
                                 <select name="employee_id" id="employee_id" class="form-select mt-2" required size="6">
                                     <option value="" disabled selected>— Select Employee —</option>
                                     @foreach ($employees as $employee)
-                                        @php $label = $employee->name ?: ($employee->email ?: 'Staff #'.$employee->staff_code); @endphp
+                                        @php $code = $employee->staff_code ? ' ('.$employee->staff_code.')' : ''; $label = $employee->name ? $employee->name.$code : ($employee->email ? $employee->email.$code : 'Staff #'.$employee->id); @endphp
                                         <option value="{{ $employee->id }}"
                                             data-search="{{ strtolower($label.' '.$employee->email.' '.($employee->position ?? '').' '.($employee->department ?? '').' '.($employee->staff_code ?? '')) }}"
                                             data-email="{{ $employee->email }}"
