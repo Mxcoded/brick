@@ -24,6 +24,7 @@ use Modules\Inventory\Models\PurchaseOrder;
 use Modules\Maintenance\Models\MaintenanceLog;
 use Modules\Maintenance\Models\MaintenanceReading;
 use Modules\Restaurant\Models\Order as RestaurantOrder;
+use Modules\Staff\Helpers\DepartmentHelper;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveRequest;
 use Modules\Tasks\Models\Task;
@@ -108,7 +109,10 @@ class AdminController extends Controller
         $totalEmployees = Employee::count();
         $activeEmployees = Employee::whereNull('end_date')->count();
         $pendingLeaves = LeaveRequest::where('status', 'pending')->count();
-        $departments = Employee::whereNotNull('department')->select('department', DB::raw('count(*) as total'))->groupBy('department')->get();
+        $departments = collect(DepartmentHelper::consolidate(
+            Employee::whereNotNull('department')->select('department', DB::raw('count(*) as total'))->groupBy('department')->get(),
+            'total'
+        ));
 
         // ── Banquet ──
         $banquetOrdersTotal = BanquetOrder::count();

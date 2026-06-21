@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Request as RequestFacade;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Staff\Exports\StaffExport;
+use Modules\Staff\Helpers\DepartmentHelper;
 use Modules\Staff\Mail\WelcomeMail;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveRequest;
@@ -121,11 +122,14 @@ class StaffController extends Controller
             ->get();
 
         // Department distribution
-        $departmentStats = Employee::where('status', 'approved')
-            ->select('department', DB::raw('count(*) as count'))
-            ->groupBy('department')
-            ->orderByDesc('count')
-            ->get();
+        $departmentStats = collect(DepartmentHelper::consolidate(
+            Employee::where('status', 'approved')
+                ->whereNotNull('department')
+                ->select('department', DB::raw('count(*) as count'))
+                ->groupBy('department')
+                ->get(),
+            'count'
+        ));
 
         // Branch breakdown
         $asokoroCount = $employees->where('status', 'approved')

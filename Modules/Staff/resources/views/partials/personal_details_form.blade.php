@@ -160,9 +160,12 @@
         <div class="col-md-6">
             <div class="form-group">
                 <label for="position" class="form-label">Department</label>
-                <input type="text" name="department" id="department" class="form-control"
-                    placeholder="e.g. Software Engineer" value="{{ old('department', $employee->department ?? '') }}"
-                    required>
+                <select name="department" id="department" class="form-select" required>
+                    <option value="" disabled {{ old('department', $employee->department ?? '') ? '' : 'selected' }}>Select department</option>
+                    @foreach(\Modules\Staff\Helpers\DepartmentHelper::all() as $dept)
+                        <option value="{{ $dept }}" {{ old('department', $employee->department ?? '') === $dept ? 'selected' : '' }}>{{ $dept }}</option>
+                    @endforeach
+                </select>
                 @error('department')
                     <small class="text-danger">{{ $message }}</small>
                 @enderror

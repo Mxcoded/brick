@@ -229,7 +229,12 @@
                         <label class="form-label fw-semibold small text-muted">Department <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="fas fa-building text-muted"></i></span>
-                            <input type="text" name="department" id="department" class="form-control" placeholder="e.g. Engineering" value="{{ old('department', $employee->department) }}" required>
+                            <select name="department" id="department" class="form-select" required>
+                                <option value="" disabled {{ old('department', $employee->department) ? '' : 'selected' }}>Select department</option>
+                                @foreach(\Modules\Staff\Helpers\DepartmentHelper::all() as $dept)
+                                    <option value="{{ $dept }}" {{ old('department', $employee->department) === $dept ? 'selected' : '' }}>{{ $dept }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="col-md-4">
