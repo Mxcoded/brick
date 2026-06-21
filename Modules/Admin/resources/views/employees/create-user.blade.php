@@ -54,13 +54,15 @@
                                 <select name="employee_id" id="employee_id" class="form-select mt-2" required size="6">
                                     <option value="" disabled selected>— Select Employee —</option>
                                     @foreach ($employees as $employee)
+                                        @php $label = $employee->name ?: ($employee->email ?: 'Staff #'.$employee->staff_code); @endphp
                                         <option value="{{ $employee->id }}"
+                                            data-search="{{ strtolower($label.' '.$employee->email.' '.($employee->position ?? '').' '.($employee->department ?? '').' '.($employee->staff_code ?? '')) }}"
                                             data-email="{{ $employee->email }}"
                                             data-position="{{ $employee->position ?? 'N/A' }}"
                                             data-department="{{ $employee->department ?? 'N/A' }}"
                                             data-phone="{{ $employee->phone_number ?? 'N/A' }}"
                                             {{ old('employee_id') == $employee->id ? 'selected' : '' }}>
-                                            {{ $employee->name }}
+                                            {{ $label }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -209,7 +211,7 @@
         var q = this.value.toLowerCase();
         Array.from(select.options).forEach(function (opt) {
             if (opt.value === '') return;
-            opt.hidden = opt.text.toLowerCase().indexOf(q) === -1;
+            opt.hidden = (opt.dataset.search || opt.text.toLowerCase()).indexOf(q) === -1;
         });
     });
 

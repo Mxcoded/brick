@@ -613,7 +613,11 @@ class AdminController extends Controller
 
     public function createUserFromEmployee()
     {
-        $employees = Employee::doesntHave('user')->get(); // Employees without user accounts
+        $employees = Employee::whereNull('user_id')
+            ->orWhereDoesntHave('user')
+            ->orderBy('name')
+            ->get();
+
         $roles = Role::all();
 
         return view('admin::employees.create-user', compact('employees', 'roles'));
