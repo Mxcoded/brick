@@ -273,16 +273,18 @@ class StaffController extends Controller
                 'status' => 'draft',
             ]));
 
-            // Save Employment History
+            // Save Employment History (skip empty rows)
             if (! empty($request->employment_history)) {
                 foreach ($request->employment_history as $history) {
+                    if (empty($history['employer_name'])) continue;
                     $employee->employmentHistories()->create($history);
                 }
             }
 
-            // Save Educational Background
+            // Save Educational Background (skip empty rows)
             if (! empty($request->educational_background)) {
                 foreach ($request->educational_background as $education) {
+                    if (empty($education['school_name'])) continue;
                     $certificatePath = isset($education['certificate_path'])
                         ? $education['certificate_path']->store('certificates', 'public')
                         : null;
@@ -420,15 +422,21 @@ class StaffController extends Controller
             // Update employee with validated data
             $employee->update($validatedData);
 
-            // Update related records
+            // Update related records (skip empty rows)
             $employee->employmentHistories()->delete();
             if (! empty($request->employment_history)) {
-                $employee->employmentHistories()->createMany($request->employment_history);
+                $validHistory = array_values(array_filter($request->employment_history, fn($h) => ! empty($h['employer_name'])));
+                if (! empty($validHistory)) {
+                    $employee->employmentHistories()->createMany($validHistory);
+                }
             }
 
             $employee->educationalBackgrounds()->delete();
             if (! empty($request->educational_background)) {
-                $employee->educationalBackgrounds()->createMany($request->educational_background);
+                $validEducation = array_values(array_filter($request->educational_background, fn($e) => ! empty($e['school_name'])));
+                if (! empty($validEducation)) {
+                    $employee->educationalBackgrounds()->createMany($validEducation);
+                }
             }
         });
 
