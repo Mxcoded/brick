@@ -110,7 +110,7 @@ class AdminController extends Controller
         $activeEmployees = Employee::whereNull('end_date')->count();
         $pendingLeaves = LeaveRequest::where('status', 'pending')->count();
         $departments = collect(DepartmentHelper::consolidate(
-            Employee::whereNotNull('department')->select('department', DB::raw('count(*) as total'))->groupBy('department')->get(),
+            Employee::whereNull('end_date')->whereNotNull('department')->select('department', DB::raw('count(*) as total'))->groupBy('department')->get(),
             'total'
         ));
 

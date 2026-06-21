@@ -123,7 +123,7 @@ class StaffController extends Controller
 
         // Department distribution
         $departmentStats = collect(DepartmentHelper::consolidate(
-            Employee::where('status', 'approved')
+            Employee::whereNull('end_date')
                 ->whereNotNull('department')
                 ->select('department', DB::raw('count(*) as count'))
                 ->groupBy('department')
