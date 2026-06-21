@@ -13,7 +13,6 @@
                     name="educational_background[{{ $index }}][school_name]" 
                     class="form-control" 
                     value="{{ old("educational_background.$index.school_name", $education->school_name ?? '') }}"
-                    required
                 >
             </div>
         </div>
@@ -25,7 +24,6 @@
                     name="educational_background[{{ $index }}][qualification]" 
                     class="form-control" 
                     value="{{ old("educational_background.$index.qualification", $education->qualification ?? '') }}"
-                    required
                 >
             </div>
         </div>
@@ -39,7 +37,6 @@
                     name="educational_background[{{ $index }}][start_date]" 
                     class="form-control" 
                     value="{{ old("educational_background.$index.start_date", $education->start_date ?? '') }}"
-                    required
                 >
             </div>
         </div>
@@ -51,7 +48,6 @@
                     name="educational_background[{{ $index }}][end_date]" 
                     class="form-control" 
                     value="{{ old("educational_background.$index.end_date", $education->end_date ?? '') }}"
-                    required
                 >
             </div>
         </div>
