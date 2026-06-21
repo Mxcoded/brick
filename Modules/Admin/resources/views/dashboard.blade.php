@@ -106,7 +106,7 @@
                     <div class="flex-fill d-flex flex-column align-items-center">
                         <small class="fw-bold mb-1">₦{{ number_format($total) }}</small>
                         <div class="w-100 d-flex flex-column-reverse" style="height: 160px;">
-                            <div class="w-100 rounded-top" style="height: {{ $pct }}%; background: linear-gradient(to top, #C5A572, #e8d5a3); transition: height 0.3s;">
+                            <div class="w-100 rounded-top" style="height: {{ $pct }}%; background: #e9ecef; transition: height 0.3s;">
                                 <div class="d-flex flex-column-reverse h-100">
                                     @if($wPct > 0)<div style="height: {{ $total > 0 ? round(($monthlyWebsite[$idx]/$total)*$pct) : 0 }}%; background: #20c997; opacity: 0.85;"></div>@endif
                                     @if($gPct > 0)<div style="height: {{ $total > 0 ? round(($monthlyGym[$idx]/$total)*$pct) : 0 }}%; background: #6f42c1; opacity: 0.85;"></div>@endif
