@@ -55,7 +55,7 @@
                     <tr>
                         <th class="ps-4">File</th>
                         <th>Size</th>
-                        <th>Uploaded By</th>
+                        <th>Uploaded</th>
                         <th>Downloads</th>
                         <th>Expires</th>
                         <th class="text-end pe-4">Action</th>
@@ -72,25 +72,33 @@
                                         @if($doc->description)
                                             <small class="text-muted text-truncate" style="max-width: 300px;">{{ $doc->description }}</small>
                                         @endif
+                                        <small class="text-muted" style="font-size:0.7rem;">by {{ $doc->uploader?->name ?? '—' }}</small>
                                     </div>
                                 </div>
                             </td>
                             <td class="text-nowrap">{{ $doc->formattedSize() }}</td>
-                            <td>{{ $doc->uploader?->name ?? '—' }}</td>
+                            <td class="text-nowrap small">{{ $doc->created_at->format('M d, Y') }}<br><span class="text-muted">{{ $doc->created_at->format('g:i a') }}</span></td>
                             <td>{{ $doc->downloads_count }}</td>
                             @php
                                 $expiresAt = $doc->created_at->addDays(7);
-                                $daysLeft = now()->diffInDays($expiresAt, false);
+                                $hoursLeft = now()->diffInHours($expiresAt, false);
+                                $daysLeft = (int) floor($hoursLeft / 24);
+                                $hoursRemainder = $hoursLeft % 24;
                             @endphp
                             <td class="text-nowrap">
-                                @if($daysLeft <= 0)
-                                    <span class="small" style="color: #c0392b;">expired</span>
-                                @elseif($daysLeft <= 2)
-                                    <span class="small" style="color: #e67e22;">{{ $daysLeft }}d</span>
+                                @if($hoursLeft <= 0)
+                                    <span style="color: #c0392b; font-weight: 600;">expired</span>
+                                @elseif($hoursLeft <= 48)
+                                    <div style="color: #e67e22; font-weight: 600; line-height: 1.3;">
+                                        @if($daysLeft > 0){{ $daysLeft }}d @endif{{ $hoursRemainder }}h
+                                        <div style="font-weight:400;font-size:0.7rem;color:#e67e22;">remaining</div>
+                                    </div>
                                 @else
-                                    <span class="small text-muted">{{ $daysLeft }}d</span>
+                                    <div style="line-height: 1.3;">
+                                        <span style="font-weight: 600;">{{ $daysLeft }}d</span>
+                                        <div style="font-weight:400;font-size:0.7rem;color:#7f8c8d;">{{ $expiresAt->format('M d') }}</div>
+                                    </div>
                                 @endif
-                                <small class="text-muted ms-1">{{ $expiresAt->format('M d') }}</small>
                             </td>
                             <td class="text-end pe-4">
                                 <div class="d-flex gap-1 justify-content-end">
