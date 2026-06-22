@@ -38,6 +38,10 @@
             </a>
         @endcan
 
+        <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.documents.*') ? 'active' : '' }}" href="{{ route('staff.documents.index') }}">
+            <i class="fas fa-folder-open fa-fw me-3"></i>Shared Files
+        </a>
+
         @can('users.manage')
             <a class="list-group-item list-group-item-action p-3 justify-content-between d-flex align-items-center" data-bs-toggle="collapse" href="#userSubmenu" role="button" aria-expanded="{{ request()->routeIs('admin.users.*', 'admin.permissions.*', 'admin.roles.*') ? 'true' : 'false' }}" aria-controls="userSubmenu">
                 <span><i class="fas fa-user-shield fa-fw me-3"></i>Manage User</span>

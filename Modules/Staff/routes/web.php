@@ -2,7 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Staff\Http\Controllers\LeaveController;
-use Modules\Staff\Http\Controllers\StaffController; // Add this line
+use Modules\Staff\Http\Controllers\SharedDocumentController;
+use Modules\Staff\Http\Controllers\StaffController;
 
 // Import the Enum
 
@@ -96,6 +97,16 @@ Route::prefix('staff')
             ->name('export')
             ->middleware('permission:view_employees');
 
+        // ** Shared Documents Routes **
+        Route::prefix('documents')->group(function () {
+            Route::get('/', [SharedDocumentController::class, 'index'])->name('documents.index');
+            Route::get('/create', [SharedDocumentController::class, 'create'])->name('documents.create');
+            Route::post('/', [SharedDocumentController::class, 'store'])->name('documents.store');
+            Route::get('/{document}/download', [SharedDocumentController::class, 'download'])->name('documents.download');
+            Route::post('/{document}/regenerate-link', [SharedDocumentController::class, 'regenerateShareLink'])->name('documents.regenerate-link');
+            Route::delete('/{document}', [SharedDocumentController::class, 'destroy'])->name('documents.destroy');
+        });
+
         Route::resource('/', StaffController::class)->names([
             'index' => 'index',
             'create' => 'create',
@@ -128,4 +139,8 @@ Route::middleware('web')->group(function () {
         ->name('staff.complete-registration');
     Route::post('/complete-registration', [StaffController::class, 'completeRegistration'])
         ->name('staff.complete-registration.submit');
+
+    // Public shared document download (no auth required)
+    Route::get('/shared/d/{token}', [SharedDocumentController::class, 'publicDownload'])
+        ->name('shared.documents.download');
 });

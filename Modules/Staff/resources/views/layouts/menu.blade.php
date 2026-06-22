@@ -33,6 +33,12 @@
             </a>
         @endcan
 
+        {{-- All staff access shared files --}}
+        <a href="{{ route('staff.documents.index') }}"
+            class="list-group-item list-group-item-action {{ request()->routeIs('staff.documents.*') ? 'active' : '' }}">
+            <i class="fas fa-folder-open fa-fw me-2"></i> Shared Files
+        </a>
+
         @can('approve_leaves')
             <div class="sidebar-divider"></div>
             <small class="sidebar-subheading">Leave Management</small>
