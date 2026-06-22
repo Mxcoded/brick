@@ -1,0 +1,346 @@
+/* --- Root Variables (Elegant ERP Theme) --- */
+:root {
+    --sidebar-bg: #1e1e2d;
+    --sidebar-bg-alt: #1a1a28;
+    --sidebar-text: #a2a3b7;
+    --sidebar-text-hover: #ffffff;
+    --sidebar-brand: #C8A165;
+    --sidebar-brand-light: #d4b07a;
+    --sidebar-active-bg: rgba(200, 161, 101, 0.12);
+    --sidebar-active-text: #d4b07a;
+    --sidebar-active-border: #C8A165;
+    --sidebar-submenu-text: #9293a8;
+    --sidebar-submenu-bg: rgba(0, 0, 0, 0.25);
+    --sidebar-item-hover: rgba(255, 255, 255, 0.04);
+    --sidebar-divider: rgba(255, 255, 255, 0.06);
+    --sidebar-toggle-color: #c8c9db;
+    --sidebar-radius: 0;
+    --sidebar-transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    background-color: #f0f2f5;
+    font-family: 'Inter', 'Proxima Nova', Arial, Helvetica, sans-serif;
+}
+
+#wrapper {
+    display: flex;
+    overflow-x: hidden;
+}
+
+/* --- Sidebar Container --- */
+#sidebar-wrapper {
+    background-color: var(--sidebar-bg);
+    min-height: 100vh;
+    width: 260px;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.08);
+    transition: margin var(--sidebar-transition), width var(--sidebar-transition);
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 100;
+}
+
+/* --- Brand Section --- */
+.sidebar-heading {
+    padding: 1.25rem 1rem 0.75rem;
+}
+
+.sidebar-heading .brand-wrapper {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--sidebar-divider);
+    transition: background var(--sidebar-transition);
+}
+
+.sidebar-heading .brand-wrapper:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.brand-link {
+    font-weight: 800;
+    font-size: 1.15rem;
+    color: var(--sidebar-brand);
+    text-decoration: none;
+    letter-spacing: -0.3px;
+    line-height: 1;
+}
+
+.brand-sub {
+    font-size: 7pt;
+    color: var(--sidebar-text);
+    margin-left: 4px;
+    font-weight: 600;
+}
+
+/* --- Sidebar Links (Top-level & Toggles) --- */
+#sidebar-wrapper .list-group-item {
+    font-family: inherit;
+    background-color: transparent !important;
+    color: var(--sidebar-text);
+    border: none !important;
+    border-left: 3px solid transparent;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    transition: all var(--sidebar-transition);
+    display: flex;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+}
+
+#sidebar-wrapper .list-group-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background var(--sidebar-transition);
+}
+
+#sidebar-wrapper .list-group-item i:first-child {
+    width: 1.5rem;
+    text-align: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    color: var(--sidebar-text);
+    transition: color var(--sidebar-transition);
+}
+
+#sidebar-wrapper .list-group-item i:first-child + span,
+#sidebar-wrapper .list-group-item i:first-child + b {
+    margin-left: 0.75rem;
+}
+
+#sidebar-wrapper .list-group-item:hover,
+#sidebar-wrapper .list-group-item:focus-visible {
+    background-color: var(--sidebar-item-hover) !important;
+    color: var(--sidebar-text-hover) !important;
+}
+
+#sidebar-wrapper .list-group-item:hover i:first-child,
+#sidebar-wrapper .list-group-item:focus-visible i:first-child {
+    color: var(--sidebar-text-hover);
+}
+
+#sidebar-wrapper .list-group-item:hover::before {
+    background: var(--sidebar-active-border);
+    opacity: 0.3;
+}
+
+/* --- Active State --- */
+#sidebar-wrapper .list-group-item.active {
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--sidebar-active-text) !important;
+    font-weight: 600;
+}
+
+#sidebar-wrapper .list-group-item.active::before {
+    background: var(--sidebar-active-border);
+}
+
+#sidebar-wrapper .list-group-item.active i:first-child {
+    color: var(--sidebar-active-text);
+}
+
+/* --- Toggle Button (Collapsible Section Headers) --- */
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"] {
+    color: var(--sidebar-toggle-color);
+    user-select: none;
+    font-weight: 500;
+}
+
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"]:hover {
+    color: var(--sidebar-active-text);
+}
+
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"]:hover i:first-child {
+    color: var(--sidebar-active-text);
+}
+
+/* --- Chevron Indicator --- */
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"] .fa-chevron-down,
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"] .fa-chevron-right,
+#sidebar-wrapper .list-group-item .toggle-arrow {
+    margin-left: auto;
+    font-size: 0.65rem;
+    opacity: 0.5;
+    transition: transform var(--sidebar-transition), opacity var(--sidebar-transition);
+    flex-shrink: 0;
+}
+
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"][aria-expanded="true"] .fa-chevron-down,
+#sidebar-wrapper .list-group-item[data-bs-toggle="collapse"][aria-expanded="true"] .toggle-arrow {
+    transform: rotate(180deg);
+    opacity: 0.85;
+}
+
+/* --- Collapse Animation --- */
+#sidebar-wrapper .collapse:not(.show) {
+    display: none;
+}
+
+#sidebar-wrapper .collapsing {
+    transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Submenu (Level 1) --- */
+#sidebar-wrapper .collapse .list-group-item {
+    padding-left: 3.25rem !important;
+    font-size: 0.825rem;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+    color: var(--sidebar-submenu-text);
+    background-color: var(--sidebar-submenu-bg) !important;
+}
+
+#sidebar-wrapper .collapse .list-group-item i:first-child {
+    width: 1.15rem;
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+#sidebar-wrapper .collapse .list-group-item:hover {
+    color: var(--sidebar-text-hover) !important;
+    background-color: var(--sidebar-item-hover) !important;
+    padding-left: 3.5rem !important;
+}
+
+#sidebar-wrapper .collapse .list-group-item:hover i:first-child {
+    opacity: 0.9;
+    color: var(--sidebar-text-hover);
+}
+
+#sidebar-wrapper .collapse .list-group-item.active {
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--sidebar-active-text) !important;
+}
+
+/* --- Nested Submenu (Level 2, e.g. Newsletter > Campaigns) --- */
+#sidebar-wrapper .collapse .collapse .list-group-item {
+    padding-left: 4.5rem !important;
+    font-size: 0.8rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.35) !important;
+}
+
+#sidebar-wrapper .collapse .collapse .list-group-item i:first-child {
+    width: 1rem;
+    font-size: 0.75rem;
+}
+
+#sidebar-wrapper .collapse .collapse .list-group-item:hover {
+    padding-left: 4.75rem !important;
+}
+
+/* --- Divider --- */
+.sidebar-divider {
+    border-top: 1px solid var(--sidebar-divider);
+    margin: 0.35rem 1rem;
+}
+
+/* --- Section Heading --- */
+.sidebar-subheading {
+    display: block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--sidebar-brand);
+    font-weight: 700;
+    padding: 0.6rem 1rem 0.2rem 3.25rem;
+    letter-spacing: 0.8px;
+    opacity: 0.7;
+}
+
+.sidebar-subheading i {
+    margin-right: 0.4rem;
+    font-size: 0.6rem;
+    opacity: 0.6;
+}
+
+/* --- Gold Text Utility --- */
+.text-gold {
+    color: var(--sidebar-brand) !important;
+}
+
+/* --- Badge Styling in Sidebar --- */
+#sidebar-wrapper .badge {
+    font-size: 0.65rem;
+    padding: 0.2em 0.55em;
+    font-weight: 600;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* --- Custom Scrollbar (Dark) --- */
+#sidebar-wrapper::-webkit-scrollbar {
+    width: 4px;
+}
+
+#sidebar-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#sidebar-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+}
+
+#sidebar-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* --- Main Content Area --- */
+#page-content-wrapper {
+    width: 100%;
+    min-width: 0;
+    transition: margin var(--sidebar-transition);
+}
+
+/* --- Toggled State --- */
+#wrapper.toggled #sidebar-wrapper {
+    margin-left: -260px;
+}
+
+#wrapper.toggled #page-content-wrapper {
+    margin-left: 0;
+}
+
+/* --- Responsive --- */
+@media (min-width: 768px) {
+    #sidebar-wrapper {
+        margin-left: 0;
+    }
+
+    #page-content-wrapper {
+        min-width: 0;
+        width: 100%;
+    }
+
+    #wrapper.toggled #sidebar-wrapper {
+        margin-left: -260px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #sidebar-wrapper {
+        margin-left: -260px;
+        position: fixed;
+        z-index: 1050;
+        top: 0;
+        left: 0;
+        height: 100vh;
+    }
+
+    #wrapper.toggled #sidebar-wrapper {
+        margin-left: 0;
+    }
+
+    #sidebar-wrapper .sidebar-overlay {
+        display: none;
+    }
+}
