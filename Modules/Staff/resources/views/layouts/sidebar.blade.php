@@ -1,76 +1,69 @@
-<div class="border-end bg-dark" id="sidebar-wrapper">
-    <div class="sidebar-heading">
-        <a href="{{ route('home') }}" style="text-decoration: none; color: #fff;">
-            BRICKSPOINT<sup>&trade;</sup>
-        </a>
-    </div>
-    <div class="list-group list-group-flush">
-        <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.dashboard', 'admin.dashboard') ? 'active' : '' }}" href="{{ route('home') }}">
-            <i class="fas fa-home fa-fw me-3"></i>Home
-        </a>
+<div class="border-end" id="sidebar-wrapper">
 
-        <a class="list-group-item list-group-item-action p-3 justify-content-between d-flex align-items-center" data-bs-toggle="collapse" href="#leavesSubmenu" role="button" aria-expanded="{{ request()->routeIs('staff.leaves.*') ? 'true' : 'false' }}" aria-controls="leavesSubmenu">
-            <span><i class="fas fa-calendar-alt fa-fw me-3"></i>Leaves</span>
-            <i class="fas fa-chevron-down fa-xs"></i>
-        </a>
-        <div class="collapse submenu {{ request()->routeIs('staff.leaves.*') ? 'show' : '' }}" id="leavesSubmenu">
-            <div class="list-group list-group-flush">
-                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.leaves.index') ? 'active' : '' }}" href="{{ route('staff.leaves.index') }}"><i class="fas fa-user-clock fa-fw me-3"></i>My Leaves</a>
-                <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.leaves.request') ? 'active' : '' }}" href="{{ route('staff.leaves.request') }}"><i class="fas fa-plus-circle fa-fw me-3"></i>New Request</a>
-                @can('leaves.apply-for-others')
-                    <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.leaves.admin.apply') ? 'active' : '' }}" href="{{ route('staff.leaves.admin.apply') }}"><i class="fas fa-user-pen fa-fw me-3"></i>Apply for Staff</a>
-                @endcan
-                @can('leaves.manage')
-                    <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.leaves.admin') ? 'active' : '' }}" href="{{ route('staff.leaves.admin') }}"><i class="fas fa-tasks fa-fw me-3"></i>Manage Requests</a>
-                    <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.leaves.admin.balances') ? 'active' : '' }}" href="{{ route('staff.leaves.admin.balances') }}"><i class="fas fa-wallet fa-fw me-3"></i>Manage Balances</a>
-                    <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.leaves.admin.history') ? 'active' : '' }}" href="{{ route('staff.leaves.admin.history') }}"><i class="fas fa-history fa-fw me-3"></i>Leave History</a>
-                @endcan
-            </div>
+    <div class="sidebar-heading d-flex justify-content-between align-items-center">
+        <div class="brand-wrapper">
+            <a href="{{ route('home') }}" class="brand-link">
+                BRICKSPOINT<sup>&trade;</sup><sub class="brand-sub">ERP</sub>
+            </a>
         </div>
+        <button class="btn btn-sm p-0 text-white border-0 d-md-none" id="sidebarClose" onclick="document.getElementById('wrapper').classList.remove('toggled')">
+            <i class="fas fa-times fa-lg"></i>
+        </button>
+    </div>
 
-        <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('tasks.*') ? 'active' : '' }}" href="{{ route('tasks.index') }}">
-            <i class="fa fa-list-alt fa-fw me-3"></i>Tasks
+    <div class="list-group list-group-flush">
+
+        <a href="{{ route('home') }}"
+            class="list-group-item list-group-item-action p-3 {{ request()->routeIs('home') ? 'active' : '' }}">
+            <i class="fas fa-th-large fa-fw me-3"></i> Hub
         </a>
 
-        @can('employees.read')
-            <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.index') ? 'active' : '' }}" href="{{ route('staff.index') }}">
-                <i class="fa fa-users fa-fw me-3"></i>Staff List
-            </a>
+        @can('access_admin_dashboard')
+            @includeIf('admin::layouts.menu')
         @endcan
 
-        <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('staff.documents.*') ? 'active' : '' }}" href="{{ route('staff.documents.index') }}">
-            <i class="fas fa-folder-open fa-fw me-3"></i>Shared Files
-        </a>
-
-        @can('users.manage')
-            <a class="list-group-item list-group-item-action p-3 justify-content-between d-flex align-items-center" data-bs-toggle="collapse" href="#userSubmenu" role="button" aria-expanded="{{ request()->routeIs('admin.users.*', 'admin.permissions.*', 'admin.roles.*') ? 'true' : 'false' }}" aria-controls="userSubmenu">
-                <span><i class="fas fa-user-shield fa-fw me-3"></i>Manage User</span>
-                <i class="fas fa-chevron-down fa-xs"></i>
-            </a>
-            <div class="collapse submenu {{ request()->routeIs('admin.users.*', 'admin.permissions.*', 'admin.roles.*') ? 'show' : '' }}" id="userSubmenu">
-                <div class="list-group list-group-flush">
-                    <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('admin.users.index') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">Users</a>
-                    @can('roles.manage')
-                        <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}" href="{{ route('admin.permissions.index') }}">Permissions</a>
-                        <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('admin.roles.index') ? 'active' : '' }}" href="{{ route('admin.roles.index') }}">Roles</a>
-                    @endcan
-                </div>
-            </div>
+        @can('access_frontdesk_dashboard')
+            @includeIf('frontdeskcrm::layouts.menu')
         @endcan
-        
-        <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('maintenance.*') ? 'active' : '' }}" href="{{ route('maintenance.index') }}">
-            <i class="fa fa-tools fa-fw me-3"></i>Maintenance Log
-        </a>
 
-        <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('banquet.orders.*') ? 'active' : '' }}" href="{{ route('banquet.orders.index') }}">
-            <i class="fa fa-utensils fa-fw me-3"></i>Banquet
-        </a>
-        
-        @can('gym.manage')
-            <a class="list-group-item list-group-item-action p-3 {{ request()->routeIs('gym.*') ? 'active' : '' }}" href="{{ route('gym.index') }}">
-                <i class="fas fa-dumbbell fa-fw me-3"></i>Gym
-            </a>
+        @can('access_website_dashboard')
+            @includeIf('website::layouts.menu')
         @endcan
+
+        @can('access_staff_dashboard')
+            @includeIf('staff::layouts.menu')
+        @endcan
+
+        @can('access_restaurant_dashboard')
+            @includeIf('restaurant::layouts.menu')
+        @endcan
+
+        @can('access_gym_dashboard')
+            @includeIf('gym::layouts.menu')
+        @endcan
+
+        @can('access_inventory_dashboard')
+            @includeIf('inventory::layouts.menu')
+        @endcan
+
+        @if (auth()->user()->can('access_tasks_dashboard') || auth()->user()->can('access_maintenance_dashboard'))
+            <div class="sidebar-heading mt-3 text-uppercase text-gold small fw-bold px-3">Operations</div>
+            @includeIf('tasks::layouts.menu')
+            @includeIf('maintenance::layouts.menu')
+        @endif
+
+        @can('access_banquet_dashboard')
+            @includeIf('banquet::layouts.menu')
+        @endcan
+
+        <a href="{{ route('logout') }}"
+            onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+            class="list-group-item list-group-item-action p-3 text-danger">
+            <i class="fas fa-power-off fa-fw me-3"></i> Logout
+        </a>
+        <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+            @csrf
+        </form>
 
     </div>
 </div>

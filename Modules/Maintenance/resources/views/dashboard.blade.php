@@ -85,8 +85,8 @@
                             @endphp
                             <div class="mb-3">
                                 <div class="d-flex justify-content-between small mb-1">
-                                    <span class="fw-medium">{{ $stat->department }}</span>
-                                    <span class="text-muted">{{ $stat->count }} ({{ $pct }}%)</span>
+                                    <span class="fw-medium text-truncate" title="{{ $stat->department }}" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $stat->department }}</span>
+                                    <span class="text-muted text-nowrap">{{ $stat->count }} ({{ $pct }}%)</span>
                                 </div>
                                 <div class="progress" style="height: 10px; background-color: #e9ecef;">
                                     <div class="progress-bar rounded" role="progressbar"
@@ -301,7 +301,7 @@
                             @foreach ($recentLogs as $log)
                                 <tr>
                                     <td>{{ $log->location }}</td>
-                                    <td><span class="badge bg-secondary">{{ $log->department }}</span></td>
+                                    <td><span class="badge bg-primary text-truncate d-inline-block" title="{{ $log->department }}" style="max-width:150px;">{{ $log->department }}</span></td>
                                     <td>
                                         <a href="{{ route('maintenance.show', $log->id) }}" class="text-decoration-none">
                                             {{ Str::limit($log->nature_of_complaint, 50) }}
