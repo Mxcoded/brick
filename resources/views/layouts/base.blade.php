@@ -7,7 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>Staff Module - {{ config('app.name', 'BRICKSPOINT ERP') }}</title>
+    <title>@yield('title', config('app.name', 'BRICKSPOINT ERP'))</title>
+    <meta name="description" content="@yield('meta_description', config('app.name', 'BRICKSPOINT ERP') . ' — Staff & Administration Portal')">
+    <meta name="author" content="{{ config('app.name') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <!-- Fonts -->
     <link href="https://fonts.cdnfonts.com/css/proxima-nova" rel="stylesheet">

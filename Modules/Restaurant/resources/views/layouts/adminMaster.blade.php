@@ -7,14 +7,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>Gym Module - {{ config('app.name', 'Laravel') }}</title>
+    <title>@yield('title', 'Restaurant') — {{ config('app.name', 'BRICKSPOINT ERP') }}</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
-    <meta name="description" content="{{ $description ?? '' }}">
-    <meta name="keywords" content="{{ $keywords ?? '' }}">
-    <meta name="author" content="{{ $author ?? '' }}">
-
-    <title>Gym Membership Registration</title>
+    <meta name="description" content="@yield('meta_description', config('app.name', 'BRICKSPOINT ERP') . ' — Restaurant Management')">
+    <meta name="author" content="{{ config('app.name') }}">
     <!-- Vite (Bootstrap, Icons, FontAwesome) -->
     @vite(['resources/sass/app.scss'])
     <!-- DataTables CSS -->

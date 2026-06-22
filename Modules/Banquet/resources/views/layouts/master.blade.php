@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>Banquet Event Module - {{ config('app.name', 'Event Management') }}</title>
+    <title>@yield('title', 'Banquet') — {{ config('app.name', 'BRICKSPOINT ERP') }}</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     
     @vite(['resources/sass/app.scss'])

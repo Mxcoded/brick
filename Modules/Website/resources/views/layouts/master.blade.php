@@ -7,11 +7,28 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>{{ config('app.name', 'Brickspoint ApartHotel') }} - @yield('title')</title>
+    <title>{{ config('app.name', 'Brickspoint ApartHotel') }} — @yield('title')</title>
 
-    <meta name="description" content="{{ $description ?? 'Experience unparalleled luxury at our premium apart-hotel' }}">
-    <meta name="keywords" content="{{ $keywords ?? 'hotel, luxury, accommodation, vacation, resort, Abuja' }}">
+    <meta name="description" content="{{ $meta_description ?? $description ?? 'Experience unparalleled luxury at Brickspoint Boutique Aparthotel. Premium short & long stays in Abuja with world-class amenities.' }}">
+    <meta name="keywords" content="{{ $meta_keywords ?? $keywords ?? 'boutique hotel Abuja, apart-hotel, luxury accommodation, short let Abuja, hotel, vacation, resort' }}">
     <meta name="author" content="{{ $author ?? config('app.name') }}">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ config('app.name') }}">
+    <meta property="og:title" content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
+    <meta property="og:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Premium boutique apart-hotel in Abuja.' }}">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" content="{{ $og_image ?? asset('images/og-default.jpg') }}">
+    <meta property="og:locale" content="en_NG">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
+    <meta name="twitter:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Premium boutique apart-hotel in Abuja.' }}">
+    <meta name="twitter:image" content="{{ $og_image ?? asset('images/og-default.jpg') }}">
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">

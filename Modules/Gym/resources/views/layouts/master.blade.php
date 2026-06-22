@@ -7,12 +7,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>Gym Module - {{ config('app.name', 'Laravel') }}</title>
+    <title>@yield('title', 'Gym &amp; Club') — {{ config('app.name', 'BRICKSPOINT ERP') }}</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
-    <meta name="description" content="{{ $description ?? '' }}">
-    <meta name="keywords" content="{{ $keywords ?? '' }}">
-    <meta name="author" content="{{ $author ?? '' }}">
+    <meta name="description" content="@yield('meta_description', config('app.name', 'BRICKSPOINT ERP') . ' — Gym & Club Management')">
+    <meta name="author" content="{{ config('app.name') }}">
 
     <title>Gym Membership Registration</title>
     <!-- Vite (Bootstrap, Icons, FontAwesome) -->
