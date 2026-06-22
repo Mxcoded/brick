@@ -18,8 +18,13 @@ class SharedDocumentController extends Controller
 
         $totalSize = SharedDocument::sum('file_size');
         $totalCount = SharedDocument::count();
-        $diskFree = disk_free_space(storage_path('app/documents'));
-        $diskTotal = disk_total_space(storage_path('app/documents'));
+
+        $docPath = storage_path('app/documents');
+        if (! is_dir($docPath)) {
+            mkdir($docPath, 0755, true);
+        }
+        $diskFree = @disk_free_space($docPath) ?: 0;
+        $diskTotal = @disk_total_space($docPath) ?: 0;
 
         return view('staff::documents.index', compact(
             'documents', 'totalSize', 'totalCount', 'diskFree', 'diskTotal'
