@@ -20,6 +20,7 @@ use Modules\Banquet\Models\EventLead;
 use Modules\Banquet\Models\LeadEvent;
 use Modules\Banquet\Notifications\NewEnquiryNotification;
 use Modules\Frontdeskcrm\Models\Guest;
+use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Website\Emails\BookingConfirmation;
 use Modules\Website\Emails\ContactMessageReceived;
 use Modules\Website\Models\Amenity; // ✅ Import Mail Facade
@@ -293,10 +294,19 @@ class WebsiteController extends Controller
 
         if (! Auth::check() && $request->has('create_account')) {
             $rules['password'] = 'required|string|min:8';
-            $rules['guest_email'] = 'required|email|unique:users,email';
+            $rules['guest_email'] = ['required', 'email', 'unique:users,email', new ValidEmail];
+            $rules['website'] = 'nullable|string|max:0';
+            $rules['register_time'] = 'required|integer';
         }
 
         $validated = $request->validate($rules);
+
+        if ($request->has('create_account')) {
+            $registerTime = (int) $request->input('register_time');
+            if ($registerTime > 0 && time() - $registerTime < 3) {
+                return back()->withErrors(['register_time' => 'Please wait a moment before submitting.'])->withInput();
+            }
+        }
 
         // 2. Validate Availability using unified RoomAvailabilityService
         $availabilityService = app(RoomAvailabilityService::class);

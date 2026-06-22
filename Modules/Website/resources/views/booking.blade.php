@@ -51,6 +51,12 @@
                         <form action="{{ route('website.booking.store') }}" method="POST" id="bookingForm">
                             @csrf
 
+                            <div style="position: absolute; left: -9999px;" aria-hidden="true">
+                                <input type="text" name="website" tabindex="-1" autocomplete="off" value="">
+                            </div>
+                            <input type="hidden" name="register_time" value="{{ time() }}">
+                            
+
                             @php
                                 $useCartFlow = isset($useCart) && $useCart && !empty($cart['items']);
                                 $reqRoomTypeId = old('room_type_id', request('room_type_id', request('room_id', $selectedRoomType->id ?? '')));

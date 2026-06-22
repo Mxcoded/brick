@@ -442,6 +442,12 @@
                                 <div class="tab-pane fade" id="register" role="tabpanel">
                                     <form method="POST" action="{{ route('register') }}">
                                         @csrf
+
+                                        <div style="position: absolute; left: -9999px;" aria-hidden="true">
+                                            <input type="text" name="website" tabindex="-1" autocomplete="off" value="">
+                                        </div>
+                                        <input type="hidden" name="register_time" value="{{ time() }}">
+                                        
                                         <div class="row g-3">
                                             <div class="col-12">
                                                 <label class="form-label fw-semibold" style="color: #333;">Full Name</label>

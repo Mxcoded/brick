@@ -62,7 +62,7 @@ Route::middleware(['web'])->group(function () {
         // Booking Flow: /book (Step 1: Room Selection) -> /booking (Step 2: Guest Details)
         Route::get('/book', 'bookStep1')->name('website.book'); // Step 1: Select rooms with cart
         Route::get('/booking', 'booking')->name('website.booking'); // Step 2: Guest details / checkout
-        Route::post('/booking', 'storeBooking')->name('website.booking.store');
+        Route::post('/booking', 'storeBooking')->name('website.booking.store')->middleware('throttle:5,60');
         Route::get('/payment/callback', 'verifyPayment')->name('website.payment.callback');
         Route::get('/booking/confirmation/{ref?}', 'confirmation')->name('website.booking.confirmation');
 
