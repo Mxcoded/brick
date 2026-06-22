@@ -6,6 +6,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Modules\Staff\Console\BackfillLeaveDaysCount;
+use Modules\Staff\Console\CleanupDocuments;
 use Modules\Staff\Console\SendBirthdaySms;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
@@ -49,6 +50,7 @@ class StaffServiceProvider extends ServiceProvider
         $this->commands([
             BackfillLeaveDaysCount::class,
             SendBirthdaySms::class,
+            CleanupDocuments::class,
         ]);
     }
 
@@ -60,6 +62,7 @@ class StaffServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             $schedule = $this->app->make(Schedule::class);
             $schedule->command('staff:send-birthday-sms')->dailyAt('08:00');
+            $schedule->command('documents:cleanup')->dailyAt('03:00');
         });
     }
 

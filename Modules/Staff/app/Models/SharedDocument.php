@@ -37,7 +37,10 @@ class SharedDocument extends Model
 
     public function shareUrl(): string
     {
-        return route('shared.documents.download', $this->share_token);
+        $slug = preg_replace('/[^\w\-\.]+/', '-', $this->filename);
+        $slug = trim($slug, '-');
+        $slug = $slug ?: 'file';
+        return route('shared.documents.download', [$this->share_token, $slug]);
     }
 
     public function uploader(): BelongsTo

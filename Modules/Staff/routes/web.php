@@ -141,6 +141,7 @@ Route::middleware('web')->group(function () {
         ->name('staff.complete-registration.submit');
 
     // Public shared document download (no auth required)
-    Route::get('/shared/d/{token}', [SharedDocumentController::class, 'publicDownload'])
+    Route::get('/shared/d/{token}/{slug?}', [SharedDocumentController::class, 'publicDownload'])
+        ->where('slug', '[\w\-\.]+')
         ->name('shared.documents.download');
 });

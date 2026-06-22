@@ -31,6 +31,11 @@
         <div class="alert alert-danger alert-dismissible fade show">{{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
     @endif
 
+    <div class="alert alert-light border d-flex align-items-center py-2 px-3 mb-3 small" style="border-radius: 8px; color: #7f8c8d;">
+        <i class="fas fa-info-circle me-2" style="color: #C8A165;"></i>
+        Files are automatically deleted after <strong class="mx-1">7 days</strong> from upload.
+    </div>
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-transparent py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
             <h6 class="section-header mb-0"><i class="fas fa-file-alt me-2" style="color: #C8A165;"></i>All Documents</h6>
@@ -52,7 +57,7 @@
                         <th>Size</th>
                         <th>Uploaded By</th>
                         <th>Downloads</th>
-                        <th>Date</th>
+                        <th>Expires</th>
                         <th class="text-end pe-4">Action</th>
                     </tr>
                 </thead>
@@ -73,12 +78,28 @@
                             <td class="text-nowrap">{{ $doc->formattedSize() }}</td>
                             <td>{{ $doc->uploader?->name ?? '—' }}</td>
                             <td>{{ $doc->downloads_count }}</td>
-                            <td class="text-nowrap">{{ $doc->created_at->format('M d, Y') }}</td>
+                            @php
+                                $expiresAt = $doc->created_at->addDays(7);
+                                $daysLeft = now()->diffInDays($expiresAt, false);
+                            @endphp
+                            <td class="text-nowrap">
+                                @if($daysLeft <= 0)
+                                    <span class="small" style="color: #c0392b;">expired</span>
+                                @elseif($daysLeft <= 2)
+                                    <span class="small" style="color: #e67e22;">{{ $daysLeft }}d</span>
+                                @else
+                                    <span class="small text-muted">{{ $daysLeft }}d</span>
+                                @endif
+                                <small class="text-muted ms-1">{{ $expiresAt->format('M d') }}</small>
+                            </td>
                             <td class="text-end pe-4">
                                 <div class="d-flex gap-1 justify-content-end">
                                     <button type="button" class="btn btn-sm copy-share-link" data-url="{{ $doc->shareUrl() }}" title="Copy share link" style="background: #f0f7ff; color: #2980b9; border: 1px solid #d0e4f5; border-radius: 8px;">
                                         <i class="fas fa-link"></i>
                                     </button>
+                                    <a href="mailto:?subject=Shared%20file%3A%20{{ rawurlencode($doc->filename) }}&body=Hi%2C%0D%0AA%20file%20has%20been%20shared%20with%20you%3A%0D%0A{{ rawurlencode($doc->shareUrl()) }}%0D%0A%0D%0ARegards" class="btn btn-sm" title="Share via email" style="background: #f0f7ff; color: #2980b9; border: 1px solid #d0e4f5; border-radius: 8px;">
+                                        <i class="fas fa-envelope"></i>
+                                    </a>
                                     <a href="{{ route('staff.documents.download', $doc) }}" class="btn btn-sm" style="background: #f8f8f8; color: #2c3e50; border: 1px solid #e0e0e0; border-radius: 8px;">
                                         <i class="fas fa-download"></i>
                                     </a>

@@ -121,7 +121,7 @@ class SharedDocumentController extends Controller
         return Storage::disk('documents')->download($document->file_path, $document->filename);
     }
 
-    public function publicDownload(string $token)
+    public function publicDownload(string $token, ?string $slug = null)
     {
         $document = SharedDocument::where('share_token', $token)->firstOrFail();
 

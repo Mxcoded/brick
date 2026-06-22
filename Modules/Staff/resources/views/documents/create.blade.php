@@ -55,10 +55,10 @@
                                 <i class="fas fa-cloud-upload-alt fa-3x mb-3 d-block" style="color: #C8A165;"></i>
                                 <h6 class="fw-bold mb-1">Drag & drop files here</h6>
                                 <p class="text-muted small mb-3">or click to browse — up to 300 MB per file</p>
-                                <button type="button" class="btn btn-sm px-4 fw-semibold" style="background: #C8A165; color: #fff; border-radius: 8px;" onclick="document.getElementById('fileInput').click();">
+                                <button type="button" class="btn btn-sm px-4 fw-semibold" style="background: #C8A165; color: #fff; border-radius: 8px;" id="browseBtn">
                                     <i class="fas fa-folder-open me-1"></i> Browse Files
                                 </button>
-                                <input type="file" name="files[]" id="fileInput" class="d-none" multiple accept="*">
+                                <input type="file" name="files[]" id="fileInput" style="position:absolute;left:-9999px;opacity:0;width:0;height:0;pointer-events:none;" multiple accept="*">
                             </div>
                         </div>
 
@@ -117,7 +117,8 @@
                         <li class="mb-2">Supported: PDF, Word, Excel, PowerPoint, images, archives</li>
                         <li class="mb-2">Upload multiple files at once</li>
                         <li class="mb-2">All authenticated staff can download shared files</li>
-                        <li class="mb-0">Only admins can delete files</li>
+                        <li class="mb-2">Only admins can delete files</li>
+                        <li class="mb-0 fw-semibold" style="color: #c0392b;"><i class="fas fa-clock me-1"></i> Files auto-delete after <strong>7 days</strong></li>
                     </ul>
                 </div>
             </div>
@@ -183,6 +184,7 @@
 
     fileInput.addEventListener('change', function () {
         updateFileList(this.files);
+        this.value = '';
     });
 
     dropZone.addEventListener('dragover', function (e) {
@@ -196,7 +198,6 @@
         e.preventDefault();
         this.classList.remove('dragover');
         if (e.dataTransfer.files.length) {
-            fileInput.files = e.dataTransfer.files;
             updateFileList(e.dataTransfer.files);
         }
     });
