@@ -1075,7 +1075,11 @@
 
     <!-- Main Content -->
     <main class="flex-grow-1">
-        @yield('content')
+        @hasSection('page-content')
+            @yield('page-content')
+        @else
+            @yield('content')
+        @endif
     </main>
 
     <!-- Footer -->

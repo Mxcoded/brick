@@ -14,7 +14,7 @@
     <!-- Fonts -->
     <link href="https://fonts.cdnfonts.com/css/proxima-nova" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.bunny.net">
-    
+
     <!-- Vite (Bootstrap, Icons, FontAwesome) -->
     @vite(['resources/sass/app.scss'])
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
@@ -25,48 +25,50 @@
             --luxury-gold: #C5A572;
             --luxury-gold-hover: #B8956A;
         }
-        
+
         body {
             font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
             color: #333333;
         }
-        
+
         /* Gold accent color styling */
         .text-gold {
             color: #C8A165 !important;
         }
-        
+
         .bg-gold {
             background-color: #C8A165 !important;
         }
-        
+
         .btn-gold {
             background-color: #C8A165;
             border-color: #C8A165;
             color: white;
         }
-        
+
         .btn-gold:hover {
             background-color: #b08c54;
             border-color: #b08c54;
             color: white;
         }
-        
+
         .btn-outline-gold {
             border-color: #C8A165;
             color: #C8A165;
         }
-        
+
         .btn-outline-gold:hover {
             background-color: #C8A165;
             border-color: #C8A165;
             color: white;
         }
-        
+
         .border-gold {
             border-color: #C8A165 !important;
         }
     </style>
+
+
 
     @yield('styles')
 </head>
@@ -79,10 +81,10 @@
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    
+
     @vite(['resources/js/app.js'])
     @yield('scripts')
-      <script>
+    <script>
         (() => {
             'use strict'
 
@@ -116,7 +118,7 @@
 
             window.addEventListener('DOMContentLoaded', () => {
                 const themeToggler = document.getElementById('theme-toggle');
-                if(themeToggler) {
+                if (themeToggler) {
                     themeToggler.addEventListener('click', () => {
                         const currentTheme = getStoredTheme() || getPreferredTheme();
                         const newTheme = currentTheme === 'light' ? 'dark' : 'light';

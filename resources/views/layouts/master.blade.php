@@ -1,5 +1,4 @@
 @extends('layouts.base')
-
 @section('content')
     <div class="d-flex" id="wrapper">
 
@@ -117,7 +116,10 @@
     .fab-maintenance i { font-size: 1.2rem; }
     .fab-label { font-weight: 600; font-size: 0.85rem; }
     @media (max-width: 576px) { .fab-maintenance { padding: 12px 16px; bottom: 20px; right: 20px; } }
+    
+    
 </style>
+
 @endauth
 
 @section('scripts')

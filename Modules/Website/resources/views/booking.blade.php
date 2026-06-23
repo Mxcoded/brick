@@ -2,7 +2,7 @@
 
 @section('title', 'Complete Your Reservation')
 
-@section('styles')
+@push('styles')
 <style>
     :root {
         --brand-gold: #C8A165;
@@ -179,28 +179,118 @@
         color: #16a34a;
     }
 
+    .booking-cta {
+        background: var(--brand-cream);
+        border: 1px solid #eee;
+        border-radius: 16px;
+        padding: 1.25rem;
+        margin-top: 1.5rem;
+    }
+
+    .booking-cta .total-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px dashed #ddd;
+    }
+
+    .booking-cta .total-label {
+        font-size: 0.85rem;
+        color: #888;
+        font-weight: 500;
+    }
+
+    .booking-cta .total-amount {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: var(--brand-dark);
+    }
+
+    .booking-cta .total-amount .currency {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--brand-gold);
+        margin-right: 0.15rem;
+    }
+
     .btn-brand {
         background: linear-gradient(135deg, var(--brand-gold), var(--brand-gold-dark));
         color: #fff;
         border: none;
         border-radius: 12px;
-        padding: 0.9rem 1.5rem;
+        padding: 1rem 1.5rem;
         font-weight: 700;
         font-size: 1rem;
+        letter-spacing: 0.3px;
         transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-brand::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .btn-brand:hover::before {
+        opacity: 1;
     }
 
     .btn-brand:hover {
-        background: linear-gradient(135deg, var(--brand-gold-dark), #9a7a45);
         color: #fff;
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(200, 161, 101, 0.35);
+        box-shadow: 0 8px 30px rgba(200, 161, 101, 0.4);
+    }
+
+    .btn-brand:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 12px rgba(200, 161, 101, 0.3);
     }
 
     .btn-brand:disabled {
-        opacity: 0.6;
+        opacity: 0.7;
         cursor: not-allowed;
         transform: none;
+        box-shadow: none;
+    }
+
+    .btn-brand:disabled::before {
+        display: none;
+    }
+
+    .btn-brand .lock-icon {
+        animation: lockPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes lockPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    .btn-brand.loading {
+        pointer-events: none;
+    }
+
+    .secure-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        margin-bottom: 0;
+        font-size: 0.78rem;
+        color: #999;
+    }
+
+    .secure-badge i {
+        color: var(--brand-gold);
+        font-size: 0.7rem;
     }
 
     .btn-outline-brand {
@@ -379,7 +469,7 @@
         }
     }
 </style>
-@endsection
+@endpush
 
 @section('content')
 <div class="booking-hero">
@@ -390,7 +480,7 @@
 </div>
 
 <div class="container pb-5">
-    @include('website::partials.booking-progress', ['step' => isset($useCart) && $useCart ? 2 : 3])
+    @include('website::partials.booking-progress', ['step' => 3])
 
     <div class="row g-4">
         <div class="col-lg-8">
@@ -707,14 +797,22 @@
                     </div>
                 </div>
 
-                <button type="submit" id="submitBtn" class="btn btn-brand btn-lg w-100 py-3 shadow-sm">
-                    <span id="btnText"><i class="fas fa-lock me-2"></i>Complete Booking</span>
-                    <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
-                </button>
-                <p class="text-center text-muted small mt-3 mb-0">
-                    <i class="fas fa-shield-alt me-1" style="color: var(--brand-gold);"></i>
-                    Your information is secure and encrypted
-                </p>
+                <div class="booking-cta">
+                    @if(isset($useCart) && $useCart && isset($cart['formatted_total']))
+                    <div class="total-row">
+                        <span class="total-label">Total Amount</span>
+                        <span class="total-amount">{{ $cart['formatted_total'] }}</span>
+                    </div>
+                    @endif
+                    <button type="submit" id="submitBtn" class="btn btn-brand btn-lg w-100">
+                        <span id="btnText"><i class="fas fa-lock me-2 lock-icon"></i>Complete Booking</span>
+                        <span id="btnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+                    </button>
+                    <p class="secure-badge">
+                        <i class="fas fa-shield-alt"></i>
+                        Secured with SSL encryption
+                    </p>
+                </div>
             </form>
         </div>
 
@@ -820,7 +918,7 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const roomSelect = document.getElementById('room_type_id');
@@ -1045,7 +1143,8 @@ document.addEventListener('DOMContentLoaded', function() {
         bookingForm.addEventListener('submit', function() {
             if (!submitBtn.disabled) {
                 submitBtn.disabled = true;
-                btnText.textContent = 'Processing...';
+                submitBtn.classList.add('loading');
+                btnText.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>Processing...';
                 btnSpinner.classList.remove('d-none');
             }
         });
@@ -1067,4 +1166,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endsection
+@endpush
