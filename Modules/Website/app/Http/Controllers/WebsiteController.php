@@ -294,7 +294,24 @@ class WebsiteController extends Controller
             'guest_nationality' => 'required|string|max:100',
             'guest_dob' => 'nullable|date',
             'guest_id_type' => 'required|string|max:50',
-            'guest_id_number' => 'required|string|max:50',
+            'guest_id_number' => [
+                'required', 'string', 'max:50',
+                function ($attribute, $value, $fail) {
+                    $type = request('guest_id_type');
+                    if ($type === 'NIN' && ! preg_match('/^\d{11}$/', $value)) {
+                        $fail('NIN must be exactly 11 digits (e.g., 12345678901).');
+                    }
+                    if ($type === 'International Passport' && ! preg_match('/^[A-Za-z]\d{7,9}$/', $value)) {
+                        $fail('International Passport number must start with a letter followed by 7-9 digits (e.g., A01234567).');
+                    }
+                    if ($type === 'Drivers License' && ! preg_match('/^[A-Za-z]{3}\d{12}[A-Za-z]$/', $value)) {
+                        $fail('Driver\'s License must be 3 letters + 12 digits + 1 letter (e.g., ABC123456789012X).');
+                    }
+                    if ($type === 'Voters Card' && ! preg_match('/^\d{19}$/', $value)) {
+                        $fail('Voter\'s Card number must be 19 digits.');
+                    }
+                },
+            ],
             'adults' => 'required|integer|min:1',
             'children' => 'nullable|integer|min:0',
             'payment_method' => 'required|in:paystack,pay_on_arrival',
