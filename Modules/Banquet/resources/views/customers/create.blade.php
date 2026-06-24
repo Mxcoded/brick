@@ -74,7 +74,7 @@
                     
                     <div class="col-md-6">
                         <div class="form-floating">
-                            <input type="text" name="phone" id="phone" class="form-control @error('phone') is-invalid @enderror" 
+                            <input type="tel" name="phone" id="phone" class="form-control phone-input @error('phone') is-invalid @enderror" 
                                 value="{{ old('phone') }}" required placeholder="Phone">
                             <label for="phone">Phone Number <span class="text-danger">*</span></label>
                             @error('phone')

@@ -463,7 +463,7 @@
                                             </div>
                                             <div class="col-12">
                                                 <label class="form-label fw-semibold" style="color: #333;">Phone Number</label>
-                                                <input type="text" name="contact_number" class="form-control" required
+                                                <input type="tel" name="contact_number" class="form-control phone-input" required
                                                     placeholder="+234 800 000 0000" value="{{ old('contact_number') }}"
                                                     style="border-radius: 8px; border: 1px solid #e0dcd3; padding: 0.65rem 1rem;">
                                             </div>

@@ -38,7 +38,7 @@ class RegisterController extends Controller
                 },
             ],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users', new ValidEmail],
-            'contact_number' => ['required', 'string', 'max:191', 'unique:guests,contact_number'],
+            'contact_number' => ['required', 'string', 'max:191', 'unique:guests,contact_number', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'website' => ['nullable', 'string', 'max:0'],
             'register_time' => ['required', 'integer'],

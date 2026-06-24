@@ -10,11 +10,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Modules\Banquet\Models\BanquetOrder;
 use Modules\Banquet\Models\BanquetOrderDay;
-use Modules\Banquet\Models\BanquetOrderMenuItem;       // Added
-use Modules\Banquet\Models\BanquetPayment;  // Added
+use Modules\Banquet\Models\BanquetOrderMenuItem;
+use Modules\Banquet\Models\BanquetPayment;
 use Modules\Banquet\Models\BanquetSetupStyle;
 use Modules\Banquet\Models\BanquetVenue;
 use Modules\Banquet\Models\Customer;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Yajra\DataTables\DataTables;
 
 class BanquetController extends Controller
@@ -105,7 +106,7 @@ class BanquetController extends Controller
         $validated = $request->validate([
             'preparation_date' => 'required|date',
             'contact_person_name' => 'required|string|max:255',
-            'contact_person_phone' => 'required|string|max:20',
+            'contact_person_phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'contact_person_email' => 'required|email|max:255',
             'organization' => 'nullable|string|max:255',
             'customer_id' => 'nullable',
@@ -113,7 +114,7 @@ class BanquetController extends Controller
             'referred_by' => 'nullable|string|max:255',
             'status' => 'required|in:Pending,Confirmed,Cancelled,Completed',
             'contact_person_name_ii' => 'nullable|string|max:255',
-            'contact_person_phone_ii' => 'nullable|string|max:20',
+            'contact_person_phone_ii' => ['nullable', 'string', 'max:20', new ValidPhoneNumber],
             'contact_person_email_ii' => 'nullable|email|max:255',
             'hall_rental_fees' => 'nullable|numeric|min:0',
             'expenses' => 'nullable|numeric|min:0',
@@ -199,12 +200,12 @@ class BanquetController extends Controller
         $request->validate([
             'preparation_date' => 'required|date',
             'contact_person_name' => 'required|string|max:255',
-            'contact_person_phone' => 'required|string|max:20',
+            'contact_person_phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'contact_person_email' => 'required|email|max:255',
             'department' => 'nullable|string|max:255',
             'referred_by' => 'nullable|string|max:255',
             'contact_person_name_ii' => 'nullable|string|max:255',
-            'contact_person_phone_ii' => 'nullable|string|max:20',
+            'contact_person_phone_ii' => ['nullable', 'string', 'max:20', new ValidPhoneNumber],
             'contact_person_email_ii' => 'nullable|email|max:255',
             'expenses' => 'nullable|numeric|min:0',
             'status' => 'required|in:Pending,Confirmed,Cancelled,Completed',

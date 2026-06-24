@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
 
 
 
@@ -94,8 +95,38 @@
    
     @yield('content')
     </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script><!-- Add your JavaScript files here -->
-    @yield('scripts') <!-- This is where your scripts will be injected -->
-
-
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('.phone-input').each(function () {
+                var input = this;
+                var hidden = $(input).data('hidden');
+                var iti = window.intlTelInput(input, {
+                    initialCountry: 'ng',
+                    separateDialCode: true,
+                    geoIpLookup: false,
+                    utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js',
+                });
+                if (hidden) {
+                    $(input).on('blur change', function () {
+                        $('#' + hidden).val(iti.getNumber());
+                    });
+                }
+                $(input).on('blur', function () {
+                    if (iti.isValidNumber()) {
+                        $(input).removeClass('is-invalid').addClass('is-valid');
+                    } else if ($(input).val().trim() !== '') {
+                        $(input).removeClass('is-valid').addClass('is-invalid');
+                    } else {
+                        $(input).removeClass('is-valid is-invalid');
+                    }
+                });
+                if ($(input).val().trim() !== '') {
+                    $(input).trigger('blur');
+                }
+            });
+        });
+    </script>
+    @yield('scripts')
 </body>

@@ -541,7 +541,7 @@
                         <label class="form-label fw-semibold small text-uppercase text-secondary">Contact Phone</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light"><i class="fas fa-phone text-muted"></i></span>
-                            <input type="text" name="contact_phone" class="form-control" value="{{ old('contact_phone', $page->contact_phone) }}" placeholder="+234 800 000 0000">
+                            <input type="tel" name="contact_phone" class="form-control phone-input" value="{{ old('contact_phone', $page->contact_phone) }}" placeholder="+234 800 000 0000">
                         </div>
                     </div>
                     <div class="col-lg-6 mb-3">

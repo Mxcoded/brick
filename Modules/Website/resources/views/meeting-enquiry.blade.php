@@ -471,7 +471,7 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating-custom">
-                                <input type="tel" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" placeholder=" " required>
+                                <input type="tel" class="form-control phone-input @error('phone') is-invalid @enderror" id="phone" name="phone" value="{{ old('phone') }}" placeholder=" " required>
                                 <label for="phone">Phone Number <span class="text-danger">*</span></label>
                                 @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>

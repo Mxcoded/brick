@@ -18,6 +18,7 @@
     <!-- Vite (Bootstrap, Icons, FontAwesome) -->
     @vite(['resources/sass/app.scss'])
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
 
     <style>
         :root {
@@ -81,6 +82,7 @@
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
 
     @vite(['resources/js/app.js'])
     @yield('scripts')
@@ -128,6 +130,29 @@
                 }
             });
         })()
+    </script>
+    <script>
+        $(document).ready(function() {
+            if (typeof intlTelInput !== 'undefined') {
+                $('input.phone-input').each(function() {
+                    if (!$(this).data('iti')) {
+                        intlTelInput(this, {
+                            initialCountry: 'auto',
+                            geoIpLookup: function(callback) {
+                                $.get('https://ipapi.co/json/', function(data) {}, 'jsonp').always(function(resp) {
+                                    var countryCode = (resp && resp.country) ? resp.country : 'ng';
+                                    callback(countryCode);
+                                });
+                            },
+                            utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js',
+                            separateDialCode: true,
+                            autoPlaceholder: 'aggressive',
+                            nationalMode: true,
+                        });
+                    }
+                });
+            }
+        });
     </script>
 </body>
 

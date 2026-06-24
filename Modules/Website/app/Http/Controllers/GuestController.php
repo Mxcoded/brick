@@ -122,7 +122,7 @@ class GuestController extends Controller
             'company_name' => 'nullable|string|max:100',
 
             // Contact
-            'contact_number' => 'nullable|string|max:20',
+            'contact_number' => ['nullable', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
             'home_address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',

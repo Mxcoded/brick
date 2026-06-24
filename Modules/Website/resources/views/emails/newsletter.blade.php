@@ -15,475 +15,223 @@
     </xml>
     <![endif]-->
     <style>
-        /* Reset & Base */
-        * { box-sizing: border-box; }
-        body, html {
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0;
+            mso-table-rspace: 0;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+        body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.7;
-            color: #2D2D2D;
-            background-color: #F8F6F3;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            width: 100% !important;
+            height: 100% !important;
         }
-        
-        /* Main Wrapper */
-        .email-wrapper {
+        .ExternalClass, .ReadMsgBody {
             width: 100%;
-            background: linear-gradient(180deg, #F8F6F3 0%, #EDE8E1 100%);
-            padding: 40px 20px;
         }
-        
-        .email-container {
-            max-width: 640px;
-            margin: 0 auto;
-            background-color: #FFFFFF;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 8px 40px rgba(45, 45, 45, 0.12);
-        }
-        
-        /* Elegant Header */
-        .email-header {
-            background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 50%, #1A1A1A 100%);
-            padding: 45px 40px 35px;
-            text-align: center;
-            position: relative;
-        }
-        
-        .email-header::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80px;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #C9A962, transparent);
-        }
-        
-        .logo {
-            max-width: 200px;
-            height: auto;
-        }
-        
-        .logo-text {
-            color: #C9A962;
-            font-size: 32px;
-            font-weight: 300;
-            letter-spacing: 6px;
-            margin: 0 0 8px 0;
-            text-transform: uppercase;
-        }
-        
-        .tagline {
-            color: #B8B8B8;
-            font-size: 12px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            margin: 0;
-            font-weight: 400;
-        }
-        
-        /* Preview Banner */
-        .preview-banner {
-            background: linear-gradient(90deg, #C9A962 0%, #D4B978 50%, #C9A962 100%);
-            padding: 16px 40px;
-            text-align: center;
-        }
-        
-        .preview-text {
-            color: #1A1A1A;
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            margin: 0;
-        }
-        
-        /* Content Area */
-        .email-content {
-            padding: 45px 50px;
-            background: #FFFFFF;
-        }
-        
-        .email-content h1 {
-            color: #1A1A1A;
-            font-size: 28px;
-            font-weight: 600;
-            margin: 0 0 20px 0;
-            line-height: 1.3;
-            position: relative;
-            padding-bottom: 15px;
-        }
-        
-        .email-content h1::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 60px;
-            height: 3px;
-            background: linear-gradient(90deg, #C9A962, #D4B978);
-            border-radius: 2px;
-        }
-        
-        .email-content h2 {
-            color: #2D2D2D;
-            font-size: 22px;
-            font-weight: 600;
-            margin: 30px 0 15px 0;
-            line-height: 1.4;
-        }
-        
-        .email-content h3 {
-            color: #3D3D3D;
-            font-size: 18px;
-            font-weight: 600;
-            margin: 25px 0 12px 0;
-        }
-        
-        .email-content p {
-            margin: 0 0 18px 0;
-            color: #4A4A4A;
-            font-size: 16px;
-            line-height: 1.75;
-        }
-        
-        .email-content a {
-            color: #B8942E;
-            text-decoration: none;
-            font-weight: 500;
-            border-bottom: 1px solid #D4B978;
-            transition: all 0.2s ease;
-        }
-        
-        .email-content a:hover {
-            color: #1A1A1A;
-            border-bottom-color: #1A1A1A;
-        }
-        
-        .email-content img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            margin: 20px 0;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-        
-        .email-content ul, 
-        .email-content ol {
-            padding-left: 24px;
-            margin: 20px 0;
-            color: #4A4A4A;
-        }
-        
-        .email-content li {
-            margin-bottom: 12px;
-            font-size: 16px;
-            line-height: 1.6;
-            padding-left: 8px;
-        }
-        
-        .email-content ul li::marker {
-            color: #C9A962;
-        }
-        
-        /* Blockquote */
-        .email-content blockquote {
-            margin: 25px 0;
-            padding: 20px 25px;
-            background: linear-gradient(135deg, #FAF8F5 0%, #F5F2ED 100%);
-            border-left: 4px solid #C9A962;
-            border-radius: 0 8px 8px 0;
-            font-style: italic;
-            color: #555555;
-        }
-        
-        /* Button Styles */
-        .email-content .btn,
-        .email-content .button,
-        .email-content a[href*="button"],
-        .cta-button {
-            display: inline-block;
-            padding: 16px 36px;
-            background: linear-gradient(135deg, #C9A962 0%, #B8942E 100%);
-            color: #FFFFFF !important;
-            text-decoration: none !important;
-            border: none;
-            border-bottom: none !important;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 15px;
-            letter-spacing: 0.5px;
-            margin: 20px 0;
-            text-transform: uppercase;
-            box-shadow: 0 4px 15px rgba(201, 169, 98, 0.35);
-            transition: all 0.3s ease;
-        }
-        
-        .email-content .btn:hover,
-        .email-content .button:hover,
-        .cta-button:hover {
-            background: linear-gradient(135deg, #D4B978 0%, #C9A962 100%);
-            box-shadow: 0 6px 20px rgba(201, 169, 98, 0.45);
-            transform: translateY(-2px);
-        }
-        
-        /* Divider */
-        .divider {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, #E5E0D8, transparent);
-            margin: 35px 0;
-        }
-        
-        /* Feature Box */
-        .feature-box {
-            background: #FAF8F5;
-            border-radius: 12px;
-            padding: 25px;
-            margin: 25px 0;
-            border: 1px solid #EDE8E1;
-        }
-        
-        /* Footer */
-        .email-footer {
-            background: linear-gradient(180deg, #1A1A1A 0%, #0D0D0D 100%);
-            padding: 45px 40px 35px;
-            text-align: center;
-        }
-        
-        .footer-logo {
-            color: #C9A962;
-            font-size: 22px;
-            font-weight: 300;
-            letter-spacing: 4px;
-            margin: 0 0 5px 0;
-        }
-        
-        .footer-tagline {
-            color: #888888;
-            font-size: 11px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin: 0 0 25px 0;
-        }
-        
-        .footer-contact {
-            color: #AAAAAA;
-            font-size: 13px;
-            line-height: 1.8;
-            margin-bottom: 25px;
-        }
-        
-        .footer-contact a {
-            color: #C9A962;
-            text-decoration: none;
-        }
-        
-        .social-links {
-            margin: 25px 0;
-            padding: 20px 0;
-            border-top: 1px solid #333333;
-            border-bottom: 1px solid #333333;
-        }
-        
-        .social-links a {
-            display: inline-block;
-            margin: 0 12px;
-            padding: 8px 16px;
-            color: #C9A962;
-            font-size: 13px;
-            font-weight: 500;
-            letter-spacing: 1px;
-            text-decoration: none;
-            text-transform: uppercase;
-            border: 1px solid #444444;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-        }
-        
-        .social-links a:hover {
-            background: #C9A962;
-            color: #1A1A1A;
-            border-color: #C9A962;
-        }
-        
-        .footer-note {
-            color: #777777;
-            font-size: 12px;
-            line-height: 1.7;
-            margin: 20px 0 0 0;
-        }
-        
-        .unsubscribe-section {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #333333;
-        }
-        
-        .unsubscribe-section p {
-            color: #666666;
-            font-size: 11px;
-            margin: 0 0 8px 0;
-        }
-        
-        .unsubscribe-section a {
-            color: #888888;
-            font-size: 11px;
-            text-decoration: underline;
-        }
-        
-        .unsubscribe-section a:hover {
-            color: #C9A962;
-        }
-        
-        .copyright {
-            color: #555555;
-            font-size: 11px;
-            margin-top: 20px;
-        }
-        
-        /* Responsive */
-        @media only screen and (max-width: 640px) {
-            .email-wrapper {
-                padding: 20px 10px;
-            }
-            
-            .email-container {
-                border-radius: 12px;
-            }
-            
-            .email-header {
-                padding: 35px 25px 30px;
-            }
-            
-            .logo-text {
-                font-size: 26px;
-                letter-spacing: 4px;
-            }
-            
-            .preview-banner {
-                padding: 14px 25px;
-            }
-            
-            .email-content {
-                padding: 30px 25px;
-            }
-            
-            .email-content h1 {
-                font-size: 24px;
-            }
-            
-            .email-content h2 {
-                font-size: 20px;
-            }
-            
-            .email-content p,
-            .email-content li {
-                font-size: 15px;
-            }
-            
-            .email-footer {
-                padding: 35px 25px 30px;
-            }
-            
-            .social-links a {
-                margin: 5px 8px;
-                padding: 6px 12px;
-                font-size: 11px;
-            }
-        }
-        
-        /* Dark Mode Support */
-        @media (prefers-color-scheme: dark) {
-            .email-wrapper {
-                background: linear-gradient(180deg, #1A1A1A 0%, #0D0D0D 100%) !important;
-            }
+        .ExternalClass, .ExternalClass p, .ExternalClass span, .ExternalClass td, .ExternalClass div {
+            line-height: 100%;
         }
     </style>
 </head>
-<body>
-    <div class="email-wrapper">
-        <div class="email-container">
-            <!-- Elegant Header -->
-            <div class="email-header">
-                @if(config('app.logo'))
-                    <img src="{{ config('app.logo') }}" alt="Brickspoint Boutique Aparthotel" class="logo">
-                @else
-                    <h1 class="logo-text">Brickspoint</h1>
-                    <p class="tagline">Boutique Aparthotel</p>
-                @endif
-            </div>
-            
-            <!-- Preview Banner -->
-            @if($newsletter->preview_text)
-            <div class="preview-banner">
-                <p class="preview-text">{{ $newsletter->preview_text }}</p>
-            </div>
-            @endif
-            
-            <!-- Personalized Greeting -->
-            <div style="padding: 24px 40px 0; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 16px; line-height: 1.7; color: #2D2D2D;">
-                @if($subscriber->name)
-                    <p style="margin: 0 0 8px;">Dear <strong>{{ $subscriber->name }}</strong>,</p>
-                @else
-                    <p style="margin: 0 0 8px;">Dear Valued Subscriber,</p>
-                @endif
-            </div>
+<body style="margin:0; padding:0; background-color:#F2EFEA; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F2EFEA; padding:30px 15px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="max-width:640px; width:100%;">
 
-            <!-- Main Content -->
-            <div class="email-content">
-                {!! $newsletter->content !!}
-            </div>
-            
-            <!-- Premium Footer -->
-            <div class="email-footer">
-                <p class="footer-logo">Brickspoint</p>
-                <p class="footer-tagline">Boutique Aparthotel</p>
-                
-                <div class="footer-contact">
-                    @if(config('app.address'))
-                        {{ config('app.address') }}<br>
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color:#1A1A1A; padding:35px 30px; text-align:center;">
+                            <!--[if mso]>
+                            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;">
+                            <v:fill type="gradient" color="#1A1A1A" color2="#2D2D2D" angle="135" />
+                            <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
+                            <![endif]-->
+                            @if(config('app.logo'))
+                                <img src="{{ config('app.logo') }}" alt="Brickspoint Boutique Aparthotel" style="max-width:200px; height:auto; display:block; margin:0 auto;">
+                            @else
+                                <h1 style="color:#C9A962; font-size:28px; font-weight:300; letter-spacing:6px; text-transform:uppercase; margin:0 0 6px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Brickspoint</h1>
+                                <p style="color:#B8B8B8; font-size:11px; letter-spacing:3px; text-transform:uppercase; margin:0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Boutique Aparthotel</p>
+                            @endif
+                            <!--[if mso]>
+                            </v:textbox>
+                            </v:rect>
+                            <![endif]-->
+                        </td>
+                    </tr>
+
+                    <!-- Preview Banner -->
+                    @if($newsletter->preview_text)
+                    <tr>
+                        <td style="background-color:#C9A962; padding:14px 30px; text-align:center;">
+                            <!--[if mso]>
+                            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;">
+                            <v:fill type="gradient" color="#C9A962" color2="#D4B978" angle="0" />
+                            <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
+                            <![endif]-->
+                            <p style="margin:0; color:#1A1A1A; font-size:13px; font-weight:600; letter-spacing:0.5px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">{{ $newsletter->preview_text }}</p>
+                            <!--[if mso]>
+                            </v:textbox>
+                            </v:rect>
+                            <![endif]-->
+                        </td>
+                    </tr>
                     @endif
-                    @if(config('app.phone'))
-                        <a href="tel:{{ config('app.phone') }}">{{ config('app.phone') }}</a><br>
-                    @endif
-                    @if(config('app.email'))
-                        <a href="mailto:{{ config('app.email') }}">{{ config('app.email') }}</a>
-                    @endif
-                </div>
-                
-                <div class="social-links">
-                    @if(config('app.facebook'))
-                        <a href="{{ config('app.facebook') }}">Facebook</a>
-                    @endif
-                    @if(config('app.instagram'))
-                        <a href="{{ config('app.instagram') }}">Instagram</a>
-                    @endif
-                    @if(config('app.twitter'))
-                        <a href="{{ config('app.twitter') }}">Twitter</a>
-                    @endif
-                    @if(config('app.website'))
-                        <a href="{{ config('app.website') }}">Website</a>
-                    @endif
-                </div>
-                
-                <p class="footer-note">
-                    You're receiving this email because you subscribed to our newsletter<br>
-                    for exclusive offers and updates from Brickspoint Boutique Aparthotel.
-                </p>
-                
-                <div class="unsubscribe-section">
-                    <p>No longer wish to receive these emails?</p>
-                    <a href="{{ $unsubscribeUrl }}">Unsubscribe from our mailing list</a>
-                </div>
-                
-                <p class="copyright">
-                    © {{ date('Y') }} Brickspoint Boutique Aparthotel. All rights reserved.
-                </p>
-            </div>
-        </div>
-    </div>
+
+                    <!-- Greeting -->
+                    <tr>
+                        <td style="background-color:#FFFFFF; padding:24px 35px 0 35px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:15px; line-height:1.7; color:#2D2D2D;">
+                            @if($subscriber->name)
+                                <p style="margin:0 0 8px;">Dear <strong>{{ $subscriber->name }}</strong>,</p>
+                            @else
+                                <p style="margin:0 0 8px;">Dear Valued Subscriber,</p>
+                            @endif
+                        </td>
+                    </tr>
+
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="background-color:#FFFFFF; padding:0 35px 25px 35px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:15px; line-height:1.75; color:#4A4A4A;">
+                            {!! $newsletter->content !!}
+                        </td>
+                    </tr>
+
+                    <!-- Divider -->
+                    <tr>
+                        <td style="background-color:#FFFFFF;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="padding:0 35px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="border-top:1px solid #E5E0D8;"></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color:#1A1A1A; padding:35px 30px 30px; text-align:center;">
+                            <!--[if mso]>
+                            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;">
+                            <v:fill type="gradient" color="#1A1A1A" color2="#0D0D0D" angle="180" />
+                            <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
+                            <![endif]-->
+                            <p style="color:#C9A962; font-size:18px; font-weight:300; letter-spacing:4px; margin:0 0 3px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Brickspoint</p>
+                            <p style="color:#888888; font-size:10px; letter-spacing:2px; text-transform:uppercase; margin:0 0 20px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Boutique Aparthotel</p>
+                            <p style="color:#AAAAAA; font-size:12px; line-height:1.8; margin:0 0 20px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+                                @if(config('app.address'))
+                                    {{ config('app.address') }}<br>
+                                @endif
+                                @if(config('app.phone'))
+                                    <a href="tel:{{ config('app.phone') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.phone') }}</a><br>
+                                @endif
+                                @if(config('app.email'))
+                                    <a href="mailto:{{ config('app.email') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.email') }}</a>
+                                @endif
+                            </p>
+
+                            <!-- Social Links -->
+                            @if(config('app.facebook') || config('app.instagram') || config('app.twitter') || config('app.website'))
+                            <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 20px;">
+                                <tr>
+                                    <td style="padding:15px 0; border-top:1px solid #333333; border-bottom:1px solid #333333;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                @if(config('app.facebook'))
+                                                <td style="padding:0 5px;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                                        <tr>
+                                                            <td style="border:1px solid #444444; padding:6px 14px;">
+                                                                <a href="{{ config('app.facebook') }}" style="color:#C9A962; text-decoration:none; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Facebook</a>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                                @endif
+                                                @if(config('app.instagram'))
+                                                <td style="padding:0 5px;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                                        <tr>
+                                                            <td style="border:1px solid #444444; padding:6px 14px;">
+                                                                <a href="{{ config('app.instagram') }}" style="color:#C9A962; text-decoration:none; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Instagram</a>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                                @endif
+                                                @if(config('app.twitter'))
+                                                <td style="padding:0 5px;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                                        <tr>
+                                                            <td style="border:1px solid #444444; padding:6px 14px;">
+                                                                <a href="{{ config('app.twitter') }}" style="color:#C9A962; text-decoration:none; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Twitter</a>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                                @endif
+                                                @if(config('app.website'))
+                                                <td style="padding:0 5px;">
+                                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                                        <tr>
+                                                            <td style="border:1px solid #444444; padding:6px 14px;">
+                                                                <a href="{{ config('app.website') }}" style="color:#C9A962; text-decoration:none; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Website</a>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                                @endif
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            @endif
+
+                            <p style="color:#777777; font-size:11px; line-height:1.7; margin:0 0 20px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+                                You're receiving this email because you subscribed to our newsletter<br>
+                                for exclusive offers and updates from Brickspoint Boutique Aparthotel.
+                            </p>
+
+                            <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 20px; padding-top:15px; border-top:1px solid #333333;">
+                                <tr>
+                                    <td style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+                                        <p style="color:#666666; font-size:10px; margin:0 0 6px 0;">No longer wish to receive these emails?</p>
+                                        <a href="{{ $unsubscribeUrl }}" style="color:#888888; font-size:10px; text-decoration:underline;">Unsubscribe from our mailing list</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="color:#555555; font-size:10px; margin:15px 0 0 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+                                &copy; {{ date('Y') }} Brickspoint Boutique Aparthotel. All rights reserved.
+                            </p>
+                            <!--[if mso]>
+                            </v:textbox>
+                            </v:rect>
+                            <![endif]-->
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

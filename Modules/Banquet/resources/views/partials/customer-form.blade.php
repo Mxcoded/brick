@@ -97,8 +97,8 @@
                                     @enderror
                                 </div>
                                 <div class="form-floating mb-3">
-                                    <input type="text" name="contact_person_phone" id="contact_person_phone"
-                                        class="form-control"
+                                    <input type="tel" name="contact_person_phone" id="contact_person_phone"
+                                        class="form-control phone-input"
                                         value="{{ old('contact_person_phone', $order->contact_person_phone ?? '') }}"
                                         required>
                                     <label for="contact_person_phone" class="text-muted">Phone Number</label>
@@ -175,8 +175,8 @@
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-floating">
-                                            <input type="text" name="contact_person_phone_ii"
-                                                id="contact_person_phone_ii" class="form-control"
+                                            <input type="tel" name="contact_person_phone_ii"
+                                                id="contact_person_phone_ii" class="form-control phone-input"
                                                 value="{{ old('contact_person_phone_ii', $order->contact_person_phone_ii ?? '') }}">
                                             <label for="contact_person_phone_ii" class="text-muted">Phone
                                                 Number</label>

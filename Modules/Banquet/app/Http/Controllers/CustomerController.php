@@ -5,6 +5,7 @@ namespace Modules\Banquet\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Banquet\Models\Customer;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Yajra\DataTables\DataTables;
 
 class CustomerController extends Controller
@@ -195,7 +196,7 @@ class CustomerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:customers,email',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'organization' => 'nullable|string|max:255',
         ]);
 
@@ -244,7 +245,7 @@ class CustomerController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:customers,email,'.$id,
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'organization' => 'nullable|string|max:255',
         ]);
 

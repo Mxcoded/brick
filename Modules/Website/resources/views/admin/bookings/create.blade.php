@@ -55,7 +55,7 @@
                         </div>
                         <div class="col-md-6">
                             <label>Phone Number <span class="text-danger">*</span></label>
-                            <input type="text" name="guest_phone" class="form-control" value="{{ old('guest_phone') }}" required>
+                            <input type="tel" name="guest_phone" class="form-control phone-input" value="{{ old('guest_phone') }}" required>
                         </div>
                         <div class="col-md-12">
                             <label>Email Address <span class="text-danger">*</span></label>

@@ -628,7 +628,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Phone Number <span class="text-danger">*</span></label>
-                                <input type="tel" name="guest_phone" class="form-control {{ $hasPhone ? 'bg-light text-muted' : '' }}"
+                                <input type="tel" name="guest_phone" class="form-control phone-input {{ $hasPhone ? 'bg-light text-muted' : '' }}"
                                     value="{{ old('guest_phone', $guest->contact_number ?? '') }}" required
                                     {{ $hasPhone ? 'readonly' : '' }} placeholder="+234 800 000 0000">
                             </div>

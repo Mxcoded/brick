@@ -175,7 +175,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold small text-uppercase text-secondary">Phone <span class="text-danger">*</span></label>
-                    <input type="text" name="phone" class="form-control form-control-lg" value="{{ old('phone') }}" required>
+                    <input type="tel" name="phone" class="form-control form-control-lg phone-input" value="{{ old('phone') }}" required>
                 </div>
                 <div class="mb-4">
                     <label class="form-label fw-semibold small text-uppercase text-secondary">Company <span class="text-muted small text-lowercase">(optional)</span></label>

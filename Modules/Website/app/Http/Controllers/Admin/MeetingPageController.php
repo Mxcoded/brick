@@ -138,7 +138,7 @@ class MeetingPageController extends Controller
         $page = MeetingPage::firstOrCreate(['id' => 1]);
 
         $validated = $request->validate([
-            'contact_phone' => 'nullable|string|max:30',
+            'contact_phone' => ['nullable', 'string', 'max:30', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
             'contact_email' => 'nullable|email|max:255',
             'seo_title' => 'nullable|string|max:255',
             'seo_description' => 'nullable|string|max:500',

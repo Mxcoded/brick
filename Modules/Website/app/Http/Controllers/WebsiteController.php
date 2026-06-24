@@ -288,7 +288,7 @@ class WebsiteController extends Controller
         $rules = [
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
-            'guest_phone' => 'required|string|max:20',
+            'guest_phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
             'guest_gender' => 'required|in:male,female,other',
             'guest_address' => 'required|string|max:500',
             'guest_nationality' => 'required|string|max:100',
@@ -1901,7 +1901,7 @@ class WebsiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
             'company' => 'nullable|string|max:255',
             'event_type' => 'required|string|in:Meeting,Conference,Wedding,Banquet,Party,Other',
             'event_date' => 'required|date|after_or_equal:today',
@@ -1968,7 +1968,7 @@ class WebsiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
             'company' => 'nullable|string|max:255',
         ]);
 

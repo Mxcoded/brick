@@ -68,7 +68,7 @@ class BookingController extends Controller
         $validated = $request->validate([
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
-            'guest_phone' => 'required|string|max:20',
+            'guest_phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
             'room_id' => 'required|exists:rooms,id',
             'check_in_date' => 'required|date|after_or_equal:today',
             'check_out_date' => 'required|date|after:check_in_date',
