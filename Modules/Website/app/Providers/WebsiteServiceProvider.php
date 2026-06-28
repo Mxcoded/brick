@@ -2,7 +2,9 @@
 
 namespace Modules\Website\Providers;
 
+use App\Models\Property;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Modules\Website\Console\Commands\CleanupOrphanedBookings;
 use Modules\Website\Console\Commands\FixConfirmedBookingBalances;
@@ -30,6 +32,12 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        View::composer('website::*', function ($view) {
+            $view->with('currentProperty', Property::current());
+            $view->with('allProperties', Property::active()->get());
+            $view->with('cities', Property::active()->whereNotNull('city')->distinct()->pluck('city')->sort()->values());
+        });
     }
 
     /**

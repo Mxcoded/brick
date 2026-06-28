@@ -3,7 +3,7 @@
 namespace Modules\Restaurant\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use Modules\Restaurant\Models\MenuCategory;
 
 class CategorySeeder extends Seeder
 {
@@ -12,11 +12,13 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('restaurant_menu_categories')->insert([
-            ['name' => 'Appetizers', 'parent_id' => null, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Main Courses', 'parent_id' => null, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Desserts', 'parent_id' => null, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Beverages', 'parent_id' => null, 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        $categories = ['Appetizers', 'Main Courses', 'Desserts', 'Beverages'];
+
+        foreach ($categories as $name) {
+            MenuCategory::updateOrCreate(
+                ['name' => $name],
+                ['parent_id' => null]
+            );
+        }
     }
 }

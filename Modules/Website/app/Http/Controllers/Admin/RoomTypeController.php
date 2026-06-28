@@ -3,6 +3,9 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Property;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,9 +16,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Models\Amenity;
 use Modules\Website\Models\Booking;
-use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomTypeImage;
-use Modules\Website\Models\RoomUnit;
 
 class RoomTypeController extends Controller
 {
@@ -58,7 +59,10 @@ class RoomTypeController extends Controller
     {
         try {
             $validated = $request->validate([
-                'name' => 'required|string|max:255|unique:room_types,name',
+                'name' => [
+                    'required', 'string', 'max:255',
+                    Rule::unique('room_types', 'name')->where('property_id', Property::current()?->id),
+                ],
                 'price' => 'required|numeric|min:0',
                 'capacity' => 'required|integer|min:1',
                 'size' => 'nullable|string',
@@ -190,7 +194,12 @@ class RoomTypeController extends Controller
             $roomType = RoomType::findOrFail($id);
 
             $validated = $request->validate([
-                'name' => 'required|string|max:255|unique:room_types,name,'.$id,
+                'name' => [
+                    'required', 'string', 'max:255',
+                    Rule::unique('room_types', 'name')
+                        ->where('property_id', Property::current()?->id)
+                        ->ignore($id),
+                ],
                 'price' => 'required|numeric|min:0',
                 'capacity' => 'required|integer|min:1',
                 'size' => 'nullable|string',

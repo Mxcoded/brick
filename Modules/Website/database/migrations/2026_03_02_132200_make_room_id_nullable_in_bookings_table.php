@@ -62,19 +62,26 @@ return new class extends Migration
     /**
      * Check if a foreign key exists on a table.
      */
-    private function foreignKeyExists(string $table, string $foreignKey): bool
+    private function foreignKeyExists(string $table, string $foreignKey, string $column = 'room_id'): bool
     {
-        $database = config('database.connections.mysql.database');
+        if (DB::connection()->getDriverName() === 'mysql') {
+            $database = config('database.connections.mysql.database');
 
-        $result = DB::select("
-            SELECT COUNT(*) as count 
-            FROM information_schema.TABLE_CONSTRAINTS 
-            WHERE CONSTRAINT_SCHEMA = ? 
-            AND TABLE_NAME = ? 
-            AND CONSTRAINT_NAME = ? 
-            AND CONSTRAINT_TYPE = 'FOREIGN KEY'
-        ", [$database, $table, $foreignKey]);
+            $result = DB::select("
+                SELECT COUNT(*) as count 
+                FROM information_schema.TABLE_CONSTRAINTS 
+                WHERE CONSTRAINT_SCHEMA = ? 
+                AND TABLE_NAME = ? 
+                AND CONSTRAINT_NAME = ? 
+                AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+            ", [$database, $table, $foreignKey]);
 
-        return $result[0]->count > 0;
+            return $result[0]->count > 0;
+        }
+
+        // SQLite: check via PRAGMA
+        $keys = DB::select("PRAGMA foreign_key_list($table)");
+
+        return collect($keys)->pluck('from')->contains($column);
     }
 };

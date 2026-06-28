@@ -8,6 +8,10 @@
             <p class="text-muted mb-0">{{ \Modules\Frontdeskcrm\Models\Channel::PROVIDERS[$channel->provider] ?? $channel->provider ?: 'No provider' }}</p>
         </div>
         <div class="d-flex gap-2">
+            <form action="{{ route('frontdesk.channels.sync', $channel->id) }}" method="POST" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-success"><i class="fas fa-sync me-1"></i> Sync Now</button>
+            </form>
             <a href="{{ route('frontdesk.channels.edit', $channel->id) }}" class="btn btn-primary"><i class="fas fa-edit me-1"></i> Edit</a>
             <a href="{{ route('frontdesk.channels.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back</a>
         </div>
@@ -39,7 +43,12 @@
                         </tr>
                         <tr>
                             <td class="text-muted">Webhook URL</td>
-                            <td><code class="small">{{ $channel->webhook_url ?: '—' }}</code></td>
+                            <td>
+                                <code class="small">{{ $channel->webhook_url ?: '—' }}</code>
+                                @if($channel->id)
+                                <br><small class="text-muted">In-Platform: <code>{{ url('/api/webhooks/channel/'.$channel->id) }}</code></small>
+                                @endif
+                            </td>
                         </tr>
                         <tr>
                             <td class="text-muted">Last Sync</td>

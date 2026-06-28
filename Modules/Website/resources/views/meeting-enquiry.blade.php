@@ -172,6 +172,11 @@
         font-size: 0.78rem;
         margin-top: 0.3rem;
     }
+    /* Show feedback when intl-tel-input wraps the input */
+    .form-floating-custom:has(.iti .is-invalid) .invalid-feedback,
+    .form-floating-custom:has(.iti input:invalid) .invalid-feedback,
+    .iti:has(.is-invalid) ~ .invalid-feedback,
+    .was-validated .iti:has(input:invalid) ~ .invalid-feedback { display: block; }
 
     /* ─── Submit Button ─── */
     .btn-submit {

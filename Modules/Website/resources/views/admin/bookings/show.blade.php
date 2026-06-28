@@ -935,7 +935,7 @@
                             <select name="room_type_id" id="newRoomTypeSelect" class="form-select" required>
                                 <option value="">-- Select Room Type --</option>
                                 @php
-                                    $allRoomTypes = \Modules\Website\Models\RoomType::active()->ordered()->get();
+                                    $allRoomTypes = \App\Models\RoomType::active()->ordered()->get();
                                     $nights = $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1;
                                 @endphp
                                 @foreach($allRoomTypes as $type)

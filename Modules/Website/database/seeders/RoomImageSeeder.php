@@ -2,8 +2,8 @@
 
 namespace Modules\Website\Database\Seeders;
 
+use App\Models\Room;
 use Illuminate\Database\Seeder;
-use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomImage;
 
 class RoomImageSeeder extends Seeder

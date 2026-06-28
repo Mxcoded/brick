@@ -8,6 +8,7 @@ use Modules\Staff\Models\SharedDocument;
 class CleanupDocuments extends Command
 {
     protected $signature = 'documents:cleanup {--days=7 : Delete documents older than this many days}';
+
     protected $description = 'Delete shared documents older than the specified retention period';
 
     public function handle(): int

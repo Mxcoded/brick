@@ -239,19 +239,19 @@
     {{-- Structured Data for SEO --}}
     <script type="application/ld+json">
     {
-        "@context": "https://schema.org",
-        "@type": "Hotel",
+        "@@context": "https://schema.org",
+        "@@type": "Hotel",
         "name": "Brickspoint Aparthotel",
         "description": "Luxury apartment hotel offering premium accommodations with personalized service",
         "url": "{{ url('/') }}",
         "logo": "{{ asset('images/logo.png') }}",
         "address": {
-            "@type": "PostalAddress",
+            "@@type": "PostalAddress",
             "addressLocality": "Abuja",
             "addressCountry": "Nigeria"
         },
         "contactPoint": {
-            "@type": "ContactPoint",
+            "@@type": "ContactPoint",
             "telephone": "+2348099999620",
             "contactType": "customer service"
         }

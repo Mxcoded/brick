@@ -2,10 +2,9 @@
 
 namespace Modules\Website\Models;
 
+use App\Models\Room;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
-// use Modules\Website\Database\Factories\RoomImageFactory;
 
 class RoomImage extends Model
 {

@@ -35,7 +35,7 @@ Route::post('/paystack/webhook', [WebsiteController::class, 'paystackWebhook'])
     ->name('website.paystack.webhook')
     ->withoutMiddleware(['web', 'csrf']);
 
-Route::middleware(['web'])->group(function () {
+Route::middleware(['web', 'website.property'])->group(function () {
 
     // =========================================================================
     // 1. PUBLIC WEBSITE ROUTES
@@ -275,4 +275,32 @@ Route::middleware(['web'])->group(function () {
             Route::post('/bookings/{id}/change-room-type', [AdminBookingController::class, 'changeRoomType'])->name('bookings.change-room-type');
             Route::post('/bookings/{id}/move', [AdminBookingController::class, 'moveRoom'])->name('bookings.move');
         });
-});
+
+        // =========================================================================
+        // 3. GUEST PRE-ARRIVAL CHECK-IN
+        // =========================================================================
+        Route::prefix('guest')->name('guest.')->group(function () {
+            Route::get('/pre-arrival', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'index'])
+                ->name('pre-arrival');
+            Route::post('/pre-arrival/lookup', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'lookup'])
+                ->name('pre-arrival.lookup');
+            Route::get('/pre-arrival/token/{token}', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'token'])
+                ->name('pre-arrival.token');
+            Route::get('/pre-arrival/{registration}/details', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'details'])
+                ->name('pre-arrival.details');
+            Route::put('/pre-arrival/{registration}/details', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'updateDetails'])
+                ->name('pre-arrival.update-details');
+            Route::get('/pre-arrival/{registration}/documents', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'documents'])
+                ->name('pre-arrival.documents');
+            Route::post('/pre-arrival/{registration}/documents/upload', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'uploadDocument'])
+                ->name('pre-arrival.upload-document');
+            Route::delete('/pre-arrival/{registration}/documents/{document}', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'deleteDocument'])
+                ->name('pre-arrival.delete-document');
+            Route::get('/pre-arrival/{registration}/signature', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'signature'])
+                ->name('pre-arrival.signature');
+            Route::post('/pre-arrival/{registration}/signature', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'submitSignature'])
+                ->name('pre-arrival.submit-signature');
+            Route::get('/pre-arrival/{registration}/confirmation', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'confirmation'])
+                ->name('pre-arrival.confirmation');
+        });
+    });

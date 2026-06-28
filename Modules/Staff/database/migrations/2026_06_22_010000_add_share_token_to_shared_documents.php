@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Modules\Staff\Models\SharedDocument;
 
 return new class extends Migration
 {
@@ -14,7 +15,7 @@ return new class extends Migration
         });
 
         // Backfill tokens for existing records
-        \Modules\Staff\Models\SharedDocument::whereNull('share_token')->each(function ($doc) {
+        SharedDocument::whereNull('share_token')->each(function ($doc) {
             $doc->update(['share_token' => (string) Str::uuid()]);
         });
     }

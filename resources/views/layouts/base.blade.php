@@ -27,6 +27,62 @@
             --luxury-gold-hover: #B8956A;
         }
 
+        /* ─── intl-tel-input Overrides ─── */
+        .iti { width: 100%; }
+
+        /* Fix left padding for separate dial code (flag + code is wider than 52px) */
+        .iti--separate-dial-code input,
+        .iti--separate-dial-code input[type=text],
+        .iti--separate-dial-code input[type=tel] {
+            padding-left: 90px !important;
+        }
+
+        .iti__flag-container { z-index: 2; }
+
+        .iti__selected-flag {
+            background: transparent !important;
+            border-right: 1px solid #dee2e6;
+        }
+        .iti__selected-flag:hover { background-color: rgba(0,0,0,0.03) !important; }
+
+        .iti__selected-dial-code { font-size: 0.875rem; color: #6c757d; }
+
+        .iti__country-list {
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            margin-top: 4px !important;
+            z-index: 9999;
+        }
+        .iti__country.iti__highlight { background-color: #f3f4f6; }
+
+        /* Dark mode */
+        [data-bs-theme="dark"] .iti__selected-flag { border-color: #495057; }
+        [data-bs-theme="dark"] .iti__selected-flag:hover { background-color: rgba(255,255,255,0.05) !important; }
+        [data-bs-theme="dark"] .iti__selected-dial-code { color: #adb5bd; }
+        [data-bs-theme="dark"] .iti__country-list { background-color: #343a40; border-color: #495057; }
+        [data-bs-theme="dark"] .iti__country { color: #fff; }
+        [data-bs-theme="dark"] .iti__country:hover { background-color: rgba(255,255,255,0.08); }
+        [data-bs-theme="dark"] .iti__country.iti__highlight { background-color: rgba(255,255,255,0.15); }
+
+        /* Readonly - prevent interaction */
+        .iti:has(.phone-input[readonly]) { pointer-events: none; opacity: 0.7; }
+        /* Show validation feedback when intl-tel-input wraps the input */
+        .iti:has(.is-invalid) ~ .invalid-feedback,
+        .was-validated .iti:has(input:invalid) ~ .invalid-feedback { display: block; }
+        /* Floating label fix for intl-tel-input */
+        .form-floating:has(.iti) > label {
+            left: 90px !important;
+            width: calc(100% - 90px) !important;
+        }
+        .form-floating .iti:focus-within ~ label,
+        .form-floating.has-focus .iti ~ label,
+        .form-floating.has-value .iti ~ label,
+        .form-floating-custom.has-focus .iti ~ label {
+            opacity: .65;
+            transform: scale(.85) translateY(-0.5rem) translateX(.15rem);
+        }
+
         body {
             font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
             color: #333333;
@@ -135,20 +191,42 @@
         $(document).ready(function() {
             if (typeof intlTelInput !== 'undefined') {
                 $('input.phone-input').each(function() {
-                    if (!$(this).data('iti')) {
-                        intlTelInput(this, {
-                            initialCountry: 'auto',
-                            geoIpLookup: function(callback) {
-                                $.get('https://ipapi.co/json/', function(data) {}, 'jsonp').always(function(resp) {
-                                    var countryCode = (resp && resp.country) ? resp.country : 'ng';
-                                    callback(countryCode);
-                                });
-                            },
-                            utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js',
-                            separateDialCode: true,
-                            autoPlaceholder: 'aggressive',
-                            nationalMode: true,
-                        });
+                    var input = this;
+                    if ($(input).data('iti')) return;
+                    var iti = window.intlTelInput(input, {
+                        initialCountry: 'auto',
+                        geoIpLookup: function(callback) {
+                            $.get('https://ipapi.co/json/', function(data) {}, 'jsonp').always(function(resp) {
+                                var countryCode = (resp && resp.country) ? resp.country : 'ng';
+                                callback(countryCode);
+                            });
+                        },
+                        utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js',
+                        separateDialCode: true,
+                        autoPlaceholder: 'aggressive',
+                        nationalMode: true,
+                    });
+                    $(input).on('input', function () {
+                        var val = $(this).val().trim();
+                        $(this).closest('.form-floating, .form-floating-custom').toggleClass('has-value', val !== '');
+                    });
+                    $(input).on('focusin focusout', function (e) {
+                        $(this).closest('.form-floating, .form-floating-custom').toggleClass('has-focus', e.type === 'focusin');
+                    });
+                    $(input).on('blur', function () {
+                        var val = $(this).val().trim();
+                        if (iti.isValidNumber()) {
+                            $(input).removeClass('is-invalid').addClass('is-valid');
+                        } else if (val !== '') {
+                            $(input).removeClass('is-valid').addClass('is-invalid');
+                        } else {
+                            $(input).removeClass('is-valid is-invalid');
+                        }
+                    });
+                    if ($(input).val().trim() !== '') {
+                        var $floating = $(input).closest('.form-floating, .form-floating-custom');
+                        $floating.addClass('has-value');
+                        $(input).trigger('blur');
                     }
                 });
             }

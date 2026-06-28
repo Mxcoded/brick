@@ -2,11 +2,11 @@
 
 namespace Modules\Website\Console\Commands;
 
+use App\Models\RoomType;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Modules\Website\Models\Booking;
-use Modules\Website\Models\RoomType;
 
 class CleanupOrphanedBookings extends Command
 {

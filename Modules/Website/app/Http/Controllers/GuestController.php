@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Modules\Frontdeskcrm\Models\Guest;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Models\Booking;
 
 class GuestController extends Controller
@@ -122,7 +123,7 @@ class GuestController extends Controller
             'company_name' => 'nullable|string|max:100',
 
             // Contact
-            'contact_number' => ['nullable', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
+            'contact_number' => ['nullable', 'string', 'max:20', new ValidPhoneNumber],
             'home_address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',

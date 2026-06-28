@@ -14,6 +14,8 @@ class RegistrationPayment extends Model
         'registration_id',
         'amount',
         'payment_method',
+        'payment_type',
+        'payment_category',
         'reference',
         'notes',
         'received_by',

@@ -5,6 +5,7 @@ namespace Modules\Staff\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Modules\Staff\Models\SharedDocument;
 
 class SharedDocumentController extends Controller
@@ -99,6 +100,7 @@ class SharedDocumentController extends Controller
 
         if ($request->ajax() || $request->wantsJson()) {
             session()->flash($type, $message);
+
             return response()->json([
                 'success' => empty($errors),
                 'message' => $message,
@@ -136,7 +138,7 @@ class SharedDocumentController extends Controller
 
     public function regenerateShareLink(SharedDocument $document)
     {
-        $document->update(['share_token' => (string) \Illuminate\Support\Str::uuid()]);
+        $document->update(['share_token' => (string) Str::uuid()]);
 
         return back()->with('success', 'Share link regenerated successfully.');
     }

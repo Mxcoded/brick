@@ -829,6 +829,50 @@
                                 </div>
                             </div>
 
+                            {{-- Discount & Deposit --}}
+                            <div class="row g-3 mt-3">
+                                <div class="col-12"><hr class="my-1"></div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-dark"><i class="fas fa-tag text-gold me-1"></i> Discount Type</label>
+                                    <select class="form-select" name="discount_type">
+                                        <option value="">No Discount</option>
+                                        <option value="percentage" @selected(old('discount_type', $registration->discount_type) == 'percentage')>Percentage (%)</option>
+                                        <option value="fixed" @selected(old('discount_type', $registration->discount_type) == 'fixed')>Fixed Amount (₦)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold text-dark">Discount Value</label>
+                                    <input type="number" class="form-control" name="discount_value" value="{{ old('discount_value', $registration->discount_value) }}" min="0" step="0.01" placeholder="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold text-dark">Discount %</label>
+                                    <input type="number" class="form-control" name="discount_percent" value="{{ old('discount_percent', $registration->discount_percent) }}" min="0" max="100" step="0.01" placeholder="0%">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-dark">Reason</label>
+                                    <input type="text" class="form-control" name="discount_reason" value="{{ old('discount_reason', $registration->discount_reason) }}" placeholder="e.g. Corporate rate">
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-3">
+                                    <div class="form-check pt-2">
+                                        <input class="form-check-input" type="checkbox" name="deposit_required" value="1" id="depositRequiredFinalize" @checked(old('deposit_required', $registration->deposit_required))>
+                                        <label class="form-check-label fw-semibold text-dark" for="depositRequiredFinalize">
+                                            <i class="fas fa-hand-holding-usd text-gold me-1"></i> Deposit Required
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-dark">Deposit Amount (₦)</label>
+                                    <input type="number" class="form-control" name="deposit_amount" value="{{ old('deposit_amount', $registration->deposit_amount) }}" min="0" step="100" placeholder="0.00">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold text-dark">Deposit Deadline</label>
+                                    <input type="date" class="form-control" name="deposit_deadline" value="{{ old('deposit_deadline', $registration->deposit_deadline ? $registration->deposit_deadline->format('Y-m-d') : '') }}">
+                                </div>
+                            </div>
+
                             {{-- Action Buttons --}}
                             <div class="d-flex justify-content-between align-items-center pt-4 border-top">
                                 {{-- Left Side: No-Show Button --}}

@@ -126,6 +126,64 @@
                 </div>
             </div>
             @endif
+
+            {{-- Loyalty Card --}}
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-header text-white py-3" style="background: {{ $guest->loyaltyTier?->color ?? '#CD7F32' }}">
+                    <h6 class="card-title mb-0 d-flex align-items-center gap-2">
+                        <i class="fas fa-trophy me-2"></i>{{ $guest->loyaltyTier?->name ?? 'Bronze' }} Member
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <span class="h4 fw-bold mb-0">{{ number_format($guest->total_points) }}</span>
+                            <small class="text-muted d-block">Available Points</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="h4 fw-bold mb-0">{{ number_format($guest->lifetime_points) }}</span>
+                            <small class="text-muted d-block">Lifetime Points</small>
+                        </div>
+                    </div>
+                    @if($nextTier)
+                    <div class="progress" style="height: 6px;">
+                        @php
+                            $prevMin = \Modules\Frontdeskcrm\Models\LoyaltyTier::where('min_points', '<', $nextTier->min_points)
+                                ->where('is_active', true)->orderByDesc('min_points')->first()?->min_points ?? 0;
+                            $progress = $nextTier->min_points > $prevMin
+                                ? min(100, (($guest->lifetime_points - $prevMin) / ($nextTier->min_points - $prevMin)) * 100)
+                                : 0;
+                        @endphp
+                        <div class="progress-bar" role="progressbar"
+                            style="width: {{ $progress }}%; background: {{ $nextTier->color }}"
+                            aria-valuenow="{{ $progress }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                    <small class="text-muted mt-1 d-block">
+                        {{ number_format($nextTier->min_points - $guest->lifetime_points) }} more points to {{ $nextTier->name }}
+                    </small>
+                    @endif
+                    @if($guest->loyaltyPoints->isNotEmpty())
+                    <hr>
+                    <small class="text-muted fw-bold d-block mb-2">Recent Activity</small>
+                    <div class="list-group list-group-flush small">
+                        @foreach($guest->loyaltyPoints->take(5) as $pt)
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0 border-0">
+                            <span>
+                                @if($pt->type === 'earned')<i class="fas fa-plus-circle text-success me-1"></i>
+                                @elseif($pt->type === 'redeemed')<i class="fas fa-minus-circle text-danger me-1"></i>
+                                @else<i class="fas fa-adjust text-warning me-1"></i>@endif
+                                {{ $pt->description ? Str::limit($pt->description, 30) : ucfirst($pt->type) }}
+                            </span>
+                            <span class="fw-bold {{ $pt->type === 'earned' ? 'text-success' : ($pt->type === 'redeemed' ? 'text-danger' : 'text-warning') }}">
+                                {{ $pt->type === 'earned' ? '+' : ($pt->type === 'redeemed' ? '-' : '') }}{{ number_format($pt->points) }}
+                            </span>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
+                </div>
+            </div>
         </div>
 
         {{-- Statistics & Stay History --}}

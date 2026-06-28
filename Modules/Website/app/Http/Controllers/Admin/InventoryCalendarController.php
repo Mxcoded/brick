@@ -3,12 +3,12 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\RoomInventoryBlock;
+use App\Models\RoomType;
+use App\Services\RoomCalendarService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Modules\Website\Models\RoomInventoryBlock;
-use Modules\Website\Models\RoomType;
-use Modules\Website\Services\RoomCalendarService;
 
 class InventoryCalendarController extends Controller
 {

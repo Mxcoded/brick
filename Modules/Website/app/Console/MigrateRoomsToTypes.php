@@ -2,15 +2,15 @@
 
 namespace Modules\Website\Console;
 
+use App\Models\Room;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Models\Booking;
-use Modules\Website\Models\Room;
-use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomTypeImage;
-use Modules\Website\Models\RoomUnit;
 
 class MigrateRoomsToTypes extends Command
 {

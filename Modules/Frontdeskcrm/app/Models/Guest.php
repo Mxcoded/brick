@@ -18,8 +18,8 @@ class Guest extends Model
         'title',
         'full_name',
         'nationality',
-        'zip_code',       // ✅ Added
-        'identification_type',   // ✅ Added
+        'zip_code',
+        'identification_type',
         'identification_number',
         'contact_number',
         'birthday',
@@ -28,7 +28,7 @@ class Guest extends Model
         'occupation',
         'company_name',
         'home_address',
-        'city',           // ✅ Added
+        'city',
         'state',
         'emergency_name',
         'emergency_relationship',
@@ -36,6 +36,9 @@ class Guest extends Model
         'last_visit_at',
         'visit_count',
         'opt_in_data_save',
+        'loyalty_tier_id',
+        'total_points',
+        'lifetime_points',
     ];
 
     protected $casts = [
@@ -43,6 +46,8 @@ class Guest extends Model
         'last_visit_at' => 'datetime',
         'opt_in_data_save' => 'boolean',
         'visit_count' => 'integer',
+        'total_points' => 'integer',
+        'lifetime_points' => 'integer',
     ];
 
     // Relationships
@@ -60,6 +65,28 @@ class Guest extends Model
     public function preference(): HasOne
     {
         return $this->hasOne(GuestPreference::class);
+    }
+
+    public function loyaltyTier(): BelongsTo
+    {
+        return $this->belongsTo(LoyaltyTier::class, 'loyalty_tier_id');
+    }
+
+    public function loyaltyPoints(): HasMany
+    {
+        return $this->hasMany(LoyaltyPoint::class);
+    }
+
+    public function recalculateTier(): void
+    {
+        $tier = LoyaltyTier::where('is_active', true)
+            ->where('min_points', '<=', $this->lifetime_points)
+            ->orderByDesc('min_points')
+            ->first();
+
+        if ($tier && $tier->id !== $this->loyalty_tier_id) {
+            $this->update(['loyalty_tier_id' => $tier->id]);
+        }
     }
 
     // Scopes

@@ -2,6 +2,7 @@
 
 namespace Modules\Frontdeskcrm\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Channel extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     protected $fillable = [
         'name',

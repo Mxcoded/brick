@@ -29,12 +29,21 @@
             {{-- Date & Guest Selection Bar --}}
             <div class="search-bar bg-white p-4 rounded-3 shadow-sm mb-4">
                 <form id="searchForm" class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold small text-muted">LOCATION</label>
+                        <select id="city" name="city" class="form-select form-select-lg">
+                            <option value="">All Locations</option>
+                            @foreach ($cities as $city)
+                                <option value="{{ $city }}" {{ request('city') == $city ? 'selected' : '' }}>{{ $city }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label fw-bold small text-muted">CHECK-IN</label>
                         <input type="date" id="checkIn" name="check_in" class="form-control form-control-lg" 
                                value="{{ $checkIn }}" min="{{ date('Y-m-d') }}" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label fw-bold small text-muted">CHECK-OUT</label>
                         <input type="date" id="checkOut" name="check_out" class="form-control form-control-lg" 
                                value="{{ $checkOut }}" min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
@@ -99,15 +108,23 @@
                                     <div class="col-md-8">
                                         <div class="card-body p-4">
                                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div>
-                                                    <h4 class="card-title fw-bold mb-1">{{ $roomType->name }}</h4>
-                                                    <div class="text-muted small mb-2">
-                                                        <span class="me-3"><i class="fas fa-user-friends me-1"></i> Max {{ $roomType->capacity }} Guests</span>
-                                                        @if($roomType->bed_type)
-                                                            <span><i class="fas fa-bed me-1"></i> {{ $roomType->bed_type }}</span>
-                                                        @endif
+                                                    <div>
+                                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                                            <h4 class="card-title fw-bold mb-0">{{ $roomType->name }}</h4>
+                                                            @php $__prop = $allProperties->firstWhere('id', $roomType->property_id); @endphp
+                                                            @if ($__prop)
+                                                            <span class="badge bg-soft-neutral text-dark border" style="font-size: 0.7rem;">
+                                                                <i class="fas fa-location-dot me-1 text-primary"></i>{{ $__prop->name }}
+                                                            </span>
+                                                            @endif
+                                                        </div>
+                                                        <div class="text-muted small mb-2">
+                                                            <span class="me-3"><i class="fas fa-user-friends me-1"></i> Max {{ $roomType->capacity }} Guests</span>
+                                                            @if($roomType->bed_type)
+                                                                <span><i class="fas fa-bed me-1"></i> {{ $roomType->bed_type }}</span>
+                                                            @endif
+                                                        </div>
                                                     </div>
-                                                </div>
                                                 <div class="text-end">
                                                     <div class="h4 text-success fw-bold mb-0">₦{{ number_format($roomType->price, 2) }}</div>
                                                     <small class="text-muted">per night</small>
@@ -594,7 +611,10 @@
                 const children = document.getElementById('children').value;
 
                 // Clear cart if dates change (cart service handles this, but also update URL)
-                window.location.href = `{{ route('website.book') }}?check_in=${checkIn}&check_out=${checkOut}&adults=${adults}&children=${children}`;
+                const city = document.getElementById('city').value;
+                const params = new URLSearchParams({ check_in: checkIn, check_out: checkOut, adults, children });
+                if (city) params.set('city', city);
+                window.location.href = `{{ route('website.book') }}?${params.toString()}`;
             });
 
             // Update check-out min date when check-in changes

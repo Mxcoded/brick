@@ -2,19 +2,20 @@
 
 namespace Modules\Frontdeskcrm\Models;
 
+use App\Models\Room;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Website\Models\Booking;
-use Modules\Website\Models\Room;
-use Modules\Website\Models\RoomType;
-use Modules\Website\Models\RoomUnit;
 
 class Registration extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     protected $fillable = [
         'guest_id',
@@ -66,6 +67,24 @@ class Registration extends Model
         'review_comment',
         'front_desk_agent',
         'checked_in_at',
+        // New deposit, security deposit, pre-auth, discount fields
+        'deposit_required',
+        'deposit_amount',
+        'deposit_deadline',
+        'security_deposit_amount',
+        'security_deposit_collected_at',
+        'security_deposit_refunded_at',
+        'security_deposit_status',
+        'pre_authorization_amount',
+        'pre_authorization_reference',
+        'pre_authorization_status',
+        'pre_authorization_expires_at',
+        'discount_type',
+        'discount_value',
+        'discount_percent',
+        'discount_reason',
+        'corporate_account_id',
+        'billing_to_account',
     ];
 
     protected $casts = [
@@ -80,6 +99,11 @@ class Registration extends Model
         'birthday' => 'date',
         'bed_breakfast' => 'boolean',
         'is_group_lead' => 'boolean',
+        'deposit_required' => 'boolean',
+        'deposit_deadline' => 'datetime',
+        'security_deposit_collected_at' => 'datetime',
+        'security_deposit_refunded_at' => 'datetime',
+        'pre_authorization_expires_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -94,6 +118,16 @@ class Registration extends Model
     }
 
     // Relationships
+    public function documents(): HasMany
+    {
+        return $this->hasMany(GuestDocument::class);
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(GuestMessage::class);
+    }
+
     public function guest(): BelongsTo
     {
         return $this->belongsTo(Guest::class);
@@ -164,6 +198,24 @@ class Registration extends Model
     }
 
     /**
+     * Get the folio charges for this registration.
+     */
+    public function folioCharges(): HasMany
+    {
+        return $this->hasMany(FolioCharge::class);
+    }
+
+    public function loyaltyPoints(): HasMany
+    {
+        return $this->hasMany(LoyaltyPoint::class);
+    }
+
+    public function corporateAccount(): BelongsTo
+    {
+        return $this->belongsTo(CorporateAccount::class);
+    }
+
+    /**
      * Helper to get total paid amount from the new table
      */
     public function getTotalPaidAttribute()
@@ -173,6 +225,65 @@ class Registration extends Model
         $onlineTotal = $this->booking ? $this->booking->amount_paid : 0;
 
         return $localTotal + $onlineTotal;
+    }
+
+    /**
+     * Helper to get total charges on the folio.
+     */
+    public function getTotalChargesAttribute()
+    {
+        return $this->folioCharges()->sum('amount');
+    }
+
+    /**
+     * Helper to get outstanding balance (total charges - total paid).
+     */
+    public function getBalanceAttribute()
+    {
+        return $this->total_charges - $this->total_paid;
+    }
+
+    /**
+     * Total discount applied to this registration.
+     */
+    public function getTotalDiscountAttribute()
+    {
+        if ($this->discount_type === 'percentage' && $this->discount_percent) {
+            return round(($this->room_rate ?? 0) * ($this->discount_percent / 100), 2);
+        }
+        if ($this->discount_type === 'fixed' && $this->discount_value) {
+            return $this->discount_value;
+        }
+        // Fallback to GuestType discount_rate if no per-registration discount set
+        if ($this->guestType && $this->guestType->discount_rate > 0) {
+            return round(($this->room_rate ?? 0) * ($this->guestType->discount_rate / 100), 2);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Room rate after discount per night.
+     */
+    public function getDiscountedRateAttribute()
+    {
+        return max(0, ($this->room_rate ?? 0) - $this->total_discount);
+    }
+
+    /**
+     * Total deposit paid (payments with payment_type=deposit).
+     */
+    public function getTotalDepositPaidAttribute()
+    {
+        return (float) $this->payments()->where('payment_type', 'deposit')->sum('amount');
+    }
+
+    /**
+     * Total security deposit collected.
+     */
+    public function getSecurityDepositCollectedAttribute()
+    {
+        return (float) $this->payments()->where('payment_type', 'security_deposit')->sum('amount');
     }
 
     /**

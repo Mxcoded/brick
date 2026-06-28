@@ -3,10 +3,19 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Frontdeskcrm\Http\Controllers\BookingSourceController;
 use Modules\Frontdeskcrm\Http\Controllers\ChannelController;
+use Modules\Frontdeskcrm\Http\Controllers\ChargeTypeController;
+use Modules\Frontdeskcrm\Http\Controllers\CityLedgerController;
+use Modules\Frontdeskcrm\Http\Controllers\GroupController;
 use Modules\Frontdeskcrm\Http\Controllers\GuestController;
 use Modules\Frontdeskcrm\Http\Controllers\GuestTypeController;
 use Modules\Frontdeskcrm\Http\Controllers\KioskController;
+use Modules\Frontdeskcrm\Http\Controllers\NightAuditController;
+use Modules\Frontdeskcrm\Http\Controllers\PropertyController;
+use Modules\Frontdeskcrm\Http\Controllers\PreArrivalDashboardController;
+use Modules\Frontdeskcrm\Http\Controllers\RateCalendarController;
+use Modules\Frontdeskcrm\Http\Controllers\RateCodeController;
 use Modules\Frontdeskcrm\Http\Controllers\RegistrationController;
+use Modules\Frontdeskcrm\Http\Controllers\ReportController;
 
 // Import the Enum
 
@@ -100,11 +109,32 @@ Route::prefix('frontdesk')
 
             // --- NEW "DELETE DRAFT" ROUTE (Feature) ---
             Route::delete('/{registration}', [RegistrationController::class, 'destroy'])->name('destroy');
+
+            // --- SECURITY DEPOSIT & PRE-AUTH ---
+            Route::post('/{registration}/security-deposit/refund', [RegistrationController::class, 'refundSecurityDeposit'])->name('security-deposit.refund');
+            Route::post('/{registration}/security-deposit/forfeit', [RegistrationController::class, 'forfeitSecurityDeposit'])->name('security-deposit.forfeit');
+            Route::post('/{registration}/pre-auth/{action}', [RegistrationController::class, 'updatePreAuthStatus'])->name('pre-auth.update');
+
+            // --- ROOM UPGRADE ---
+            Route::get('/{registration}/upgrade-options', [RegistrationController::class, 'getUpgradeOptions'])->name('upgrade-options');
+            Route::post('/{registration}/upgrade', [RegistrationController::class, 'processUpgrade'])->name('upgrade');
+        });
+
+        // --- PRE-ARRIVAL DASHBOARD (Digital Guest Journey) ---
+        Route::prefix('pre-arrivals')->name('pre-arrivals.')->group(function () {
+            Route::get('/', [PreArrivalDashboardController::class, 'index'])->name('index');
+            Route::get('/datatable', [PreArrivalDashboardController::class, 'datatable'])->name('datatable');
+            Route::get('{registration}', [PreArrivalDashboardController::class, 'show'])->name('show');
+            Route::post('{registration}/documents/{document}/verify', [PreArrivalDashboardController::class, 'verifyDocument'])->name('documents.verify');
+            Route::post('{registration}/documents/{document}/reject', [PreArrivalDashboardController::class, 'rejectDocument'])->name('documents.reject');
+            Route::post('{registration}/approve', [PreArrivalDashboardController::class, 'approve'])->name('approve');
+            Route::post('{registration}/send-reminder', [PreArrivalDashboardController::class, 'sendReminder'])->name('send-reminder');
         });
 
         // --- CHANNEL MANAGER ---
         Route::resource('channels', ChannelController::class)->except(['show']);
         Route::get('channels/{channel}', [ChannelController::class, 'show'])->name('channels.show');
+        Route::post('channels/{channel}/sync', [ChannelController::class, 'sync'])->name('channels.sync');
 
         // --- MASTER DATA MANAGEMENT ---
 
@@ -134,6 +164,84 @@ Route::prefix('frontdesk')
 
             // 2. The Calendar View (Timeline)
             Route::get('/schedule', [RegistrationController::class, 'schedule'])->name('schedule');
+        });
+
+        // --- RATE CODE MANAGEMENT ---
+        Route::resource('rate-codes', RateCodeController::class);
+
+        // --- RATE CALENDAR ---
+        Route::prefix('rate-calendar')->name('rate-calendar.')->group(function () {
+            Route::get('/', [RateCalendarController::class, 'index'])->name('index');
+            Route::post('/update', [RateCalendarController::class, 'update'])->name('update');
+            Route::post('/bulk-update', [RateCalendarController::class, 'bulkUpdate'])->name('bulk-update');
+            Route::get('/day', [RateCalendarController::class, 'getDay'])->name('day');
+        });
+
+        // --- CHARGE TYPES ---
+        Route::resource('charge-types', ChargeTypeController::class)->except(['show']);
+
+        // --- FOLIO (charges posted to a registration) ---
+        Route::prefix('registrations/{registration}/charges')->name('registrations.charges.')->group(function () {
+            Route::post('/', [RegistrationController::class, 'storeCharge'])->name('store');
+        });
+
+        // --- INVOICE ---
+        Route::get('registrations/{registration}/invoice', [RegistrationController::class, 'invoice'])->name('registrations.invoice');
+
+        // --- NIGHT AUDIT ---
+        Route::prefix('audit')->name('audit.')->group(function () {
+            Route::get('/', [NightAuditController::class, 'index'])->name('index');
+            Route::get('/create', [NightAuditController::class, 'create'])->name('create');
+            Route::post('/', [NightAuditController::class, 'store'])->name('store');
+            Route::get('/{audit}', [NightAuditController::class, 'show'])->name('show');
+            Route::post('/{audit}/rollback', [NightAuditController::class, 'rollback'])->name('rollback');
+        });
+
+        // --- REPORTS ---
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [ReportController::class, 'index'])->name('index');
+            Route::get('/occupancy', [ReportController::class, 'occupancy'])->name('occupancy');
+            Route::get('/revenue', [ReportController::class, 'revenue'])->name('revenue');
+            Route::get('/forecast', [ReportController::class, 'forecast'])->name('forecast');
+            Route::get('/sources', [ReportController::class, 'sources'])->name('sources');
+            Route::get('/demographics', [ReportController::class, 'demographics'])->name('demographics');
+        });
+
+        // --- PROPERTIES (Multi-Property) ---
+        Route::prefix('properties')->name('properties.')->group(function () {
+            Route::get('/', [PropertyController::class, 'index'])->name('index');
+            Route::get('/create', [PropertyController::class, 'create'])->name('create');
+            Route::post('/', [PropertyController::class, 'store'])->name('store');
+            Route::get('/{property}', [PropertyController::class, 'show'])->name('show');
+            Route::get('/{property}/edit', [PropertyController::class, 'edit'])->name('edit');
+            Route::put('/{property}', [PropertyController::class, 'update'])->name('update');
+            Route::delete('/{property}', [PropertyController::class, 'destroy'])->name('destroy');
+            Route::post('/{property}/switch', [PropertyController::class, 'switch'])->name('switch');
+            Route::get('/{property}/users', [PropertyController::class, 'manageUsers'])->name('users');
+            Route::post('/{property}/users', [PropertyController::class, 'assignUser'])->name('assignUser');
+            Route::delete('/{property}/users/{user}', [PropertyController::class, 'removeUser'])->name('removeUser');
+        });
+
+        // --- CITY LEDGER (Corporate Accounts) ---
+        Route::prefix('city-ledger')->name('city-ledger.')->group(function () {
+            Route::get('/', [CityLedgerController::class, 'index'])->name('index');
+            Route::get('/create', [CityLedgerController::class, 'create'])->name('create');
+            Route::post('/', [CityLedgerController::class, 'store'])->name('store');
+            Route::get('/{corporateAccount}', [CityLedgerController::class, 'show'])->name('show');
+            Route::get('/{corporateAccount}/edit', [CityLedgerController::class, 'edit'])->name('edit');
+            Route::put('/{corporateAccount}', [CityLedgerController::class, 'update'])->name('update');
+            Route::post('/{corporateAccount}/payment', [CityLedgerController::class, 'recordPayment'])->name('payment');
+            Route::post('/{corporateAccount}/charge', [CityLedgerController::class, 'chargeRegistration'])->name('charge');
+            Route::get('/{corporateAccount}/transactions', [CityLedgerController::class, 'transactions'])->name('transactions');
+        });
+
+        // --- GROUP BOOKINGS MANAGEMENT ---
+        Route::prefix('groups')->name('groups.')->group(function () {
+            Route::get('/', [GroupController::class, 'index'])->name('index');
+            Route::get('/{registration}', [GroupController::class, 'show'])->name('show');
+            Route::post('/{registration}/bulk-checkin', [GroupController::class, 'bulkCheckin'])->name('bulk-checkin');
+            Route::post('/{registration}/bulk-checkout', [GroupController::class, 'bulkCheckout'])->name('bulk-checkout');
+            Route::delete('/{registration}', [GroupController::class, 'destroy'])->name('destroy');
         });
     });
 

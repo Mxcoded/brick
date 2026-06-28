@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\LogUserActivity;
+use App\Http\Middleware\SetPropertyContext;
 use App\Http\Middleware\TrackUserActivity;
 use App\Models\UserActivityLog;
 use Illuminate\Console\Scheduling\Schedule;
@@ -21,6 +22,7 @@ return Application::configure(basePath: __DIR__.'/../')
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
+            'website.property' => \App\Http\Middleware\DetectWebsiteProperty::class,
         ]);
 
         // Track user activity for login session monitoring
@@ -28,6 +30,9 @@ return Application::configure(basePath: __DIR__.'/../')
 
         // Log page views and write actions (throttled)
         $middleware->appendToGroup('web', LogUserActivity::class);
+
+        // Set the current property context from session/query parameter
+        $middleware->appendToGroup('web', SetPropertyContext::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
@@ -36,6 +41,15 @@ return Application::configure(basePath: __DIR__.'/../')
     ->withSchedule(function (Schedule $schedule) {
         // Run the overstay process every day at 1:00 PM (13:00).
         $schedule->command('hotel:process-overstays')->dailyAt('18:00');
+
+        // Send pre-arrival reminders at 9:00 AM daily
+        $schedule->command('hotel:send-pre-arrival-reminders')->dailyAt('09:00');
+
+        // Send review requests at 10:00 AM daily
+        $schedule->command('hotel:send-review-requests')->dailyAt('10:00');
+
+        // Run re-engagement campaign every Monday at 11:00 AM
+        $schedule->command('hotel:re-engagement-campaign')->weeklyOn(1, '11:00');
 
         // Prune activity logs older than 90 days
         $schedule->call(function () {

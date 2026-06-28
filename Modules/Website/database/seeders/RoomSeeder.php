@@ -2,9 +2,9 @@
 
 namespace Modules\Website\Database\Seeders;
 
+use App\Models\Room;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use Modules\Website\Models\Room;
 
 class RoomSeeder extends Seeder
 {

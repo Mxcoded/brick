@@ -2,9 +2,9 @@
 
 namespace Modules\Restaurant\Models;
 
+use App\Models\Room;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Modules\Website\Models\Room;
 
 // use Modules\Restaurant\Database\Factories\OrderFactory;
 

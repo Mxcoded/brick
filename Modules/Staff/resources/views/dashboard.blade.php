@@ -83,7 +83,7 @@
         </div>
 
         <div class="col-xl-2 col-lg-4 col-md-6">
-            <div class="card bg-secondary text-white shadow-sm h-100">
+            <div class="card bg-danger text-white shadow-sm h-100">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
                         <span class="small text-white-50 text-uppercase">Exited</span>

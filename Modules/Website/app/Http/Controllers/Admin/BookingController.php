@@ -3,16 +3,17 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Room;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Emails\BookingConfirmation;
 use Modules\Website\Models\Booking;
-use Modules\Website\Models\Room;
-use Modules\Website\Models\RoomType;
-use Modules\Website\Models\RoomUnit;
 
 class BookingController extends Controller
 {
@@ -68,7 +69,7 @@ class BookingController extends Controller
         $validated = $request->validate([
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
-            'guest_phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
+            'guest_phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'room_id' => 'required|exists:rooms,id',
             'check_in_date' => 'required|date|after_or_equal:today',
             'check_out_date' => 'required|date|after:check_in_date',

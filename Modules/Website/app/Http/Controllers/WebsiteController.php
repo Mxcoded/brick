@@ -3,15 +3,21 @@
 namespace Modules\Website\Http\Controllers;
 
 use App\Enums\RoleEnum;
+use App\Models\Property;
+use App\Models\Room;
+use App\Services\BookingEngine;
+use App\Values\BookingEngineRequest;
+use App\Models\RoomType;
 use App\Models\User;
+use App\Services\RoomAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+// use Modules\Website\Models\GuestProfile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-// use Modules\Website\Models\GuestProfile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -20,29 +26,32 @@ use Modules\Banquet\Models\EventLead;
 use Modules\Banquet\Models\LeadEvent;
 use Modules\Banquet\Notifications\NewEnquiryNotification;
 use Modules\Frontdeskcrm\Models\Guest;
-use Modules\Frontdeskcrm\Rules\ValidEmail;
-use Modules\Website\Emails\BookingConfirmation;
+use Modules\Frontdeskcrm\Rules\ValidEmail; // ✅ Import Mail Facade
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Website\Emails\BookingConfirmation; // ✅ Import Booking Mail
 use Modules\Website\Emails\ContactMessageReceived;
-use Modules\Website\Models\Amenity; // ✅ Import Mail Facade
-use Modules\Website\Models\Booking;
-use Modules\Website\Models\ContactMessage; // ✅ Import Booking Mail
+use Modules\Website\Models\Amenity;
+use Modules\Website\Models\Booking; // ✅ Import Contact Mail
+use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\Dining;
 use Modules\Website\Models\FacilitiesPage;
-use Modules\Website\Models\MeetingPage; // ✅ Import Contact Mail
+use Modules\Website\Models\MeetingPage;
 use Modules\Website\Models\NewsletterSubscriber;
 use Modules\Website\Models\OffersPage;
-use Modules\Website\Models\Room;
-use Modules\Website\Models\RoomType;
 use Modules\Website\Models\Settings;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Services\BookingCartService;
-use Modules\Website\Services\RoomAvailabilityService;
 
 class WebsiteController extends Controller
 {
     public function index()
     {
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $currentProperty = Property::current();
+        $propertyName = $currentProperty?->name ?? config('app.name');
+
+        $globalSettings = Settings::pluck('value', 'key')->toArray();
+        $propertySettings = $currentProperty?->getWebsiteSettings() ?? [];
+        $settings = array_merge($globalSettings, $propertySettings);
 
         $featuredRooms = RoomType::where('is_featured', true)
             ->where('is_active', true)
@@ -57,9 +66,9 @@ class WebsiteController extends Controller
 
         $dining = Dining::all();
 
-        $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays in Abuja, Nigeria. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
-        $meta_keywords = 'boutique hotel Abuja, apart-hotel Abuja, luxury accommodation Abuja, short let Abuja, best hotel Abuja, Brickspoint, apart-hotel Nigeria';
-        $og_title = config('app.name', 'Brickspoint Boutique Aparthotel') . ' — Luxury Short & Long Stays in Abuja';
+        $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
+        $meta_keywords = 'boutique hotel, apart-hotel, luxury accommodation, short let, best hotel, Brickspoint, apart-hotel Nigeria';
+        $og_title = $propertyName . ' — Luxury Short & Long Stays';
 
         return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -69,12 +78,10 @@ class WebsiteController extends Controller
      */
     public function rooms(Request $request)
     {
-        // 1. Base Query - Room Types (not individual rooms)
         $query = RoomType::where('is_active', true)
             ->withCount('units')
             ->with(['amenities', 'units']);
 
-        // 2. Search (Name/Description)
         $query->when($request->filled('search'), function ($q) use ($request) {
             $q->where(function ($sub) use ($request) {
                 $sub->where('name', 'like', '%'.$request->search.'%')
@@ -82,22 +89,27 @@ class WebsiteController extends Controller
             });
         });
 
-        // 3. Filter by Min Price
         $query->when($request->filled('min_price'), function ($q) use ($request) {
             $q->where('price', '>=', $request->min_price);
         });
 
-        // 4. Filter by Max Price
         $query->when($request->filled('max_price'), function ($q) use ($request) {
             $q->where('price', '<=', $request->max_price);
         });
 
-        // 5. Filter by Guests
         $query->when($request->filled('guests'), function ($q) use ($request) {
             $q->where('capacity', '>=', $request->guests);
         });
 
-        // 6. Sorting
+        $query->when($request->filled('city'), function ($q) use ($request) {
+            $propertyIds = Property::where('city', $request->city)
+                ->where('is_active', true)
+                ->pluck('id');
+            if ($propertyIds->isNotEmpty()) {
+                $q->whereIn('property_id', $propertyIds);
+            }
+        });
+
         if ($request->filled('sort')) {
             switch ($request->sort) {
                 case 'price_asc':
@@ -114,18 +126,20 @@ class WebsiteController extends Controller
             $query->ordered();
         }
 
-        // 7. Pagination
         $roomTypes = $query->paginate(10)->withQueryString();
 
-        // 8. If dates provided, calculate availability for each type
         $checkIn = $request->check_in;
         $checkOut = $request->check_out;
 
-        $meta_description = 'Browse our premium room types and suites at Brickspoint Boutique Aparthotel. Find the perfect accommodation for your stay in Abuja.';
-        $meta_keywords = 'rooms Abuja, suites Abuja, apart-hotel rooms, luxury accommodation Abuja, Brickspoint rooms';
-        $og_title = 'Rooms & Suites — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $selectedCity = $request->city;
 
-        return view('website::rooms', compact('roomTypes', 'checkIn', 'checkOut', 'meta_description', 'meta_keywords', 'og_title'));
+        $currentProperty = Property::current();
+        $propName = $currentProperty?->name ?? config('app.name');
+        $meta_description = "Browse our premium room types and suites. Find the perfect accommodation for your stay.";
+        $meta_keywords = 'rooms, suites, apart-hotel rooms, luxury accommodation, Brickspoint rooms';
+        $og_title = "Rooms & Suites — {$propName}";
+
+        return view('website::rooms', compact('roomTypes', 'checkIn', 'checkOut', 'selectedCity', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     /**
@@ -144,9 +158,10 @@ class WebsiteController extends Controller
             ->take(3)
             ->get();
 
-        $meta_description = strip_tags($roomType->short_description ?? $roomType->description ?? '') . ' — Book the ' . $roomType->name . ' at Brickspoint Boutique Aparthotel, Abuja.';
-        $meta_keywords = strtolower($roomType->name) . ', ' . ($roomType->amenities->pluck('name')->implode(', ') ?? 'luxury rooms Abuja');
-        $og_title = $roomType->name . ' — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $propName = optional(Property::find($roomType->property_id))->name ?? config('app.name');
+        $meta_description = strip_tags($roomType->short_description ?? $roomType->description ?? '').' — Book the '.$roomType->name.'.';
+        $meta_keywords = strtolower($roomType->name).', '.($roomType->amenities->pluck('name')->implode(', ') ?? 'luxury rooms');
+        $og_title = $roomType->name.' — '.$propName;
         $og_image = $roomType->images->first()?->url ?? asset('images/og-default.jpg');
 
         return view('website::room-details', compact('roomType', 'relatedRooms', 'meta_description', 'meta_keywords', 'og_title', 'og_image'));
@@ -165,14 +180,16 @@ class WebsiteController extends Controller
         // Fetch existing guest profile for logged-in users
         $guest = null;
         if (Auth::check()) {
-            $guest = Guest::where('user_id', Auth::id())->first() ?? new Guest();
+            $guest = Guest::where('user_id', Auth::id())->first() ?? new Guest;
         }
 
         $viewData = compact('guest');
 
-        $meta_description = 'Complete your booking at Brickspoint Boutique Aparthotel. Secure your room with our easy online reservation system.';
+        $currentProperty = Property::current();
+        $propName = $currentProperty?->name ?? config('app.name');
+        $meta_description = "Complete your booking at {$propName}. Secure your room with our easy online reservation system.";
         $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking';
-        $og_title = 'Book Your Stay — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = "Book Your Stay — {$propName}";
         $viewData['meta_description'] = $meta_description;
         $viewData['meta_keywords'] = $meta_keywords;
         $viewData['og_title'] = $og_title;
@@ -288,7 +305,7 @@ class WebsiteController extends Controller
         $rules = [
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
-            'guest_phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
+            'guest_phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'guest_gender' => 'required|in:male,female,other',
             'guest_address' => 'required|string|max:500',
             'guest_nationality' => 'required|string|max:100',
@@ -341,213 +358,104 @@ class WebsiteController extends Controller
             }
         }
 
-        // 2. Validate Availability using unified RoomAvailabilityService
-        $availabilityService = app(RoomAvailabilityService::class);
-
-        if ($useCart) {
-            // Cart-based: Check each room type in cart
-            foreach ($cart['items'] as $item) {
-                $result = $availabilityService->checkRoomTypeAvailability(
-                    $item['room_type_id'],
-                    $cart['check_in'],
-                    $cart['check_out'],
-                    $item['quantity']
-                );
-
-                if (! $result['available']) {
-                    return back()->with('error', $item['room_type_name'].': '.$result['message'])->withInput();
-                }
-            }
-        } else {
-            // Legacy: Check single room availability with comprehensive checks
-            $result = $availabilityService->checkRoomTypeAvailability(
-                $validated['room_type_id'],
-                $validated['check_in_date'],
-                $validated['check_out_date']
-            );
-
-            if (! $result['available']) {
-                return back()->with('error', $result['message'])->withInput();
-            }
-
-            // If specific unit selected, verify it's in the available list
-            $selectedUnitId = $request->filled('room_unit_id') ? $validated['room_unit_id'] : null;
-            if ($selectedUnitId && ! $result['units']->contains('id', $selectedUnitId)) {
-                return back()->with('error', 'The selected room is no longer available. Please choose another.')->withInput();
-            }
-        }
-
         try {
-            $result = DB::transaction(function () use ($validated, $request, $cart, $useCart, $cartService) {
+            // 2. Build room requests for the engine
+            $rooms = [];
 
-                // ====================================================
-                // SMART GUEST HANDLING
-                // ====================================================
-                $userId = Auth::id();
-
-                // Handle "Create Account" Request
-                if (! $userId && $request->has('create_account')) {
-                    $newUser = User::create([
-                        'name' => $validated['guest_name'],
-                        'email' => $validated['guest_email'],
-                        'password' => Hash::make($request->password),
-                        'type' => 'guest',
-                    ]);
-                    $newUser->assignRole('guest');
-                    $userId = $newUser->id;
-                    Auth::login($newUser);
-                }
-
-                // Find or Create the Guest Profile
-                $guest = Guest::where('email', $validated['guest_email'])
-                    ->orWhere('contact_number', $validated['guest_phone'])
-                    ->first();
-
-                if ($guest) {
-                    $guest->update([
-                        'full_name' => $validated['guest_name'],
-                        'gender' => $validated['guest_gender'],
-                        'home_address' => $validated['guest_address'],
-                        'nationality' => $validated['guest_nationality'],
-                        'birthday' => $validated['guest_dob'],
-                        'identification_type' => $validated['guest_id_type'],
-                        'identification_number' => $validated['guest_id_number'],
-                        'user_id' => $userId ?? $guest->user_id,
-                    ]);
-                } else {
-                    $guest = Guest::create([
-                        'user_id' => $userId,
-                        'full_name' => $validated['guest_name'],
-                        'email' => $validated['guest_email'],
-                        'contact_number' => $validated['guest_phone'],
-                        'gender' => $validated['guest_gender'],
-                        'home_address' => $validated['guest_address'],
-                        'nationality' => $validated['guest_nationality'],
-                        'birthday' => $validated['guest_dob'],
-                        'identification_type' => $validated['guest_id_type'],
-                        'identification_number' => $validated['guest_id_number'],
-                    ]);
-                }
-
-                // ====================================================
-                // CREATE BOOKING(S)
-                // ====================================================
-                $bookings = [];
-                $bookingGroupId = null;
-                $totalAmount = 0;
-
-                if ($useCart) {
-                    // CART-BASED BOOKING: Create bookings from cart
-                    // Calculate total rooms across all cart items
-                    $totalRoomsInCart = array_sum(array_column($cart['items'], 'quantity'));
-
-                    // Only generate group ID if booking more than 1 room
-                    if ($totalRoomsInCart > 1) {
-                        $bookingGroupId = 'GRP'.date('y').strtoupper(Str::random(6));
-                    }
-
-                    foreach ($cart['items'] as $item) {
-                        // Create one booking per room quantity
-                        for ($i = 0; $i < $item['quantity']; $i++) {
-                            do {
-                                $reference = 'BK'.date('y').strtoupper(Str::random(4));
-                            } while (Booking::where('booking_reference', $reference)->exists());
-
-                            $booking = Booking::create([
-                                'booking_reference' => $reference,
-                                'booking_group_id' => $bookingGroupId, // null for single room
-                                'user_id' => $userId,
-                                'guest_profile_id' => $guest->id,
-                                'room_type_id' => $item['room_type_id'],
-                                'room_unit_id' => null, // Assigned at check-in
-                                'guest_name' => $validated['guest_name'],
-                                'guest_email' => $validated['guest_email'],
-                                'guest_phone' => $validated['guest_phone'],
-                                'check_in_date' => $cart['check_in'],
-                                'check_out_date' => $cart['check_out'],
-                                'adults' => $validated['adults'],
-                                'children' => $validated['children'] ?? 0,
-                                'total_amount' => $item['price_per_night'] * $item['nights'],
-                                'payment_status' => 'pending',
-                                'status' => 'pending',
-                                'payment_method' => $validated['payment_method'],
-                                'special_requests' => $validated['special_requests'] ?? null,
-                            ]);
-
-                            $bookings[] = $booking;
-                            $totalAmount += $booking->total_amount;
-                        }
-                    }
-
-                    // Clear cart after successful booking
-                    $cartService->clear();
-                } else {
-                    // SINGLE-ROOM: Legacy booking flow
-                    $roomType = RoomType::findOrFail($validated['room_type_id']);
-                    $selectedUnitId = $request->filled('room_unit_id') ? $validated['room_unit_id'] : null;
-
-                    do {
-                        $reference = 'BK'.date('y').strtoupper(Str::random(4));
-                    } while (Booking::where('booking_reference', $reference)->exists());
-
-                    $days = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']) ?: 1;
-                    $totalAmount = $roomType->price * $days;
-
-                    $booking = Booking::create([
-                        'booking_reference' => $reference,
-                        'user_id' => $userId,
-                        'guest_profile_id' => $guest->id,
-                        'room_type_id' => $roomType->id,
-                        'room_unit_id' => $selectedUnitId,
-                        'guest_name' => $validated['guest_name'],
-                        'guest_email' => $validated['guest_email'],
-                        'guest_phone' => $validated['guest_phone'],
-                        'check_in_date' => $validated['check_in_date'],
-                        'check_out_date' => $validated['check_out_date'],
+            if ($useCart) {
+                foreach ($cart['items'] as $item) {
+                    $rooms[] = [
+                        'room_type_id' => $item['room_type_id'],
+                        'check_in' => $cart['check_in'],
+                        'check_out' => $cart['check_out'],
                         'adults' => $validated['adults'],
                         'children' => $validated['children'] ?? 0,
-                        'total_amount' => $totalAmount,
-                        'payment_status' => 'pending',
-                        'status' => 'pending',
-                        'payment_method' => $validated['payment_method'],
-                        'special_requests' => $validated['special_requests'] ?? null,
-                    ]);
-
-                    $bookings[] = $booking;
+                        'quantity' => $item['quantity'],
+                        'price_per_night' => $item['price_per_night'],
+                    ];
                 }
-
-                return [
-                    'bookings' => $bookings,
-                    'group_id' => $bookingGroupId,
-                    'total_amount' => $totalAmount,
-                    'primary_booking' => $bookings[0], // First booking for payment/email
+            } else {
+                $rooms[] = [
+                    'room_type_id' => $validated['room_type_id'],
+                    'check_in' => $validated['check_in_date'],
+                    'check_out' => $validated['check_out_date'],
+                    'adults' => $validated['adults'],
+                    'children' => $validated['children'] ?? 0,
+                    'quantity' => 1,
+                    'room_unit_id' => $request->filled('room_unit_id') ? $validated['room_unit_id'] : null,
                 ];
-            });
+            }
 
-            $primaryBooking = $result['primary_booking'];
+            // 3. Handle Create Account
+            $userId = Auth::id();
+            if (! $userId && $request->has('create_account')) {
+                $newUser = User::create([
+                    'name' => $validated['guest_name'],
+                    'email' => $validated['guest_email'],
+                    'password' => Hash::make($request->password),
+                    'type' => 'guest',
+                ]);
+                $newUser->assignRole('guest');
+                $userId = $newUser->id;
+                Auth::login($newUser);
+            }
 
-            // Payment or Confirmation
+            // Derive property_id from the first room type being booked
+            $firstRoomTypeId = $rooms[0]['room_type_id'] ?? null;
+            $propertyId = $firstRoomTypeId ? RoomType::where('id', $firstRoomTypeId)->value('property_id') : null;
+
+            $engineRequest = new BookingEngineRequest([
+                'property_id' => $propertyId,
+                'guest_name' => $validated['guest_name'],
+                'guest_email' => $validated['guest_email'],
+                'guest_phone' => $validated['guest_phone'],
+                'guest_gender' => $validated['guest_gender'],
+                'guest_address' => $validated['guest_address'],
+                'guest_nationality' => $validated['guest_nationality'],
+                'guest_dob' => $validated['guest_dob'] ?? null,
+                'guest_id_type' => $validated['guest_id_type'],
+                'guest_id_number' => $validated['guest_id_number'],
+                'user_id' => $userId,
+                'payment_method' => $validated['payment_method'],
+                'special_requests' => $validated['special_requests'] ?? null,
+                'rooms' => $rooms,
+            ]);
+
+            $engineResult = app(BookingEngine::class)->createBooking($engineRequest);
+
+            if (! $engineResult->success) {
+                return back()->with('error', $engineResult->error)->withInput();
+            }
+
+            // Clear cart after successful booking
+            if ($useCart) {
+                $cartService->clear();
+            }
+
+            $primaryBooking = $engineResult->primaryBooking();
+
+            // 5. Payment or Confirmation
             if ($validated['payment_method'] === 'paystack') {
-                // For multi-room, we'll charge the total and update all bookings
-                if ($result['group_id']) {
-                    session()->put('booking_group_id', $result['group_id']);
+                if ($engineResult->bookingGroupId) {
+                    session()->put('booking_group_id', $engineResult->bookingGroupId);
                 }
 
-                return $this->initializePaystackGrouped($result['bookings'], $result['total_amount']);
+                return $this->initializePaystackGrouped(
+                    $engineResult->bookings->all(),
+                    $engineResult->totalAmount
+                );
             }
 
             // Send confirmation emails
-            foreach ($result['bookings'] as $booking) {
+            foreach ($engineResult->bookings as $booking) {
                 $this->sendConfirmationEmail($booking);
             }
 
-            // Store reference or group ID for confirmation page
-            if ($result['group_id']) {
-                session()->put('just_booked_group', $result['group_id']);
-                session()->put('just_booked_ref', $primaryBooking->booking_reference);
-            } else {
-                session()->put('just_booked_ref', $primaryBooking->booking_reference);
+            // Store reference for confirmation page
+            if ($engineResult->bookingGroupId) {
+                session()->put('just_booked_group', $engineResult->bookingGroupId);
             }
+            session()->put('just_booked_ref', $primaryBooking->booking_reference);
 
             return redirect()->route('website.booking.confirmation', $primaryBooking->booking_reference)
                 ->with('success', 'Booking Reserved! Please pay upon arrival.');
@@ -661,7 +569,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Visit Brickspoint Boutique Aparthotel in Abuja, Nigeria. Find directions, map, and information about our prime location.';
         $meta_keywords = 'Brickspoint location Abuja, apart-hotel Abuja address, map Abuja hotel, Abuja Nigeria hotel location';
-        $og_title = 'Our Location — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Our Location — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::location', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -672,7 +580,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Get in touch with Brickspoint Boutique Aparthotel. Contact us for reservations, enquiries, or special requests. We are here to help.';
         $meta_keywords = 'contact Brickspoint, Abuja hotel contact, apart-hotel enquiries, book hotel Abuja, Brickspoint address';
-        $og_title = 'Contact Us — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Contact Us — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::contact', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1025,7 +933,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Explore dining at Brickspoint Boutique Aparthotel. Enjoy exquisite cuisine at our on-site restaurant, bar, and dining venues in Abuja.';
         $meta_keywords = 'dining Abuja, restaurant Abuja, Brickspoint restaurant, fine dining Abuja, apart-hotel dining';
-        $og_title = 'Dining — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Dining — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::dining', compact('settings', 'diningOptions', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1034,9 +942,9 @@ class WebsiteController extends Controller
     {
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        $meta_description = 'View the menu for ' . $dining->name . ' at Brickspoint Boutique Aparthotel.';
-        $meta_keywords = $dining->name . ' menu, dining Abuja, restaurant menu';
-        $og_title = $dining->name . ' Menu — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'View the menu for '.$dining->name.' at Brickspoint Boutique Aparthotel.';
+        $meta_keywords = $dining->name.' menu, dining Abuja, restaurant menu';
+        $og_title = $dining->name.' Menu — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::menu', compact('settings', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1059,7 +967,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Discover exclusive offers and special packages at Brickspoint Boutique Aparthotel. Save on your next stay in Abuja.';
         $meta_keywords = 'hotel deals Abuja, apart-hotel offers, Brickspoint promotions, Abuja hotel packages';
-        $og_title = 'Offers & Deals — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Offers & Deals — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::offers', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1082,7 +990,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Explore the premium facilities at Brickspoint Boutique Aparthotel — gym, restaurant, meeting rooms, and more in Abuja.';
         $meta_keywords = 'hotel facilities Abuja, apart-hotel amenities, Brickspoint gym, meeting rooms Abuja, Abuja hotel services';
-        $og_title = 'Facilities — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Facilities — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::facilities', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1309,8 +1217,9 @@ class WebsiteController extends Controller
                 // Check if this is a group payment (reference starts with GRP)
                 $isGroupPayment = str_starts_with($reference, 'GRP');
 
+                $engine = app(BookingEngine::class);
+
                 if ($isGroupPayment) {
-                    // Update all bookings in the group
                     $bookings = Booking::where('booking_group_id', $reference)->get();
 
                     if ($bookings->isEmpty()) {
@@ -1318,11 +1227,7 @@ class WebsiteController extends Controller
                     }
 
                     foreach ($bookings as $booking) {
-                        $booking->update([
-                            'payment_status' => 'paid',
-                            'amount_paid' => $booking->total_amount,
-                            'status' => 'confirmed',
-                        ]);
+                        $engine->confirmBooking($booking);
                         $this->sendConfirmationEmail($booking);
                     }
 
@@ -1333,16 +1238,10 @@ class WebsiteController extends Controller
                     return redirect()->route('website.booking.confirmation', $primaryBooking->booking_reference)
                         ->with('success', 'Payment successful! All '.$bookings->count().' rooms are confirmed.');
                 } else {
-                    // Single booking payment
                     $booking = Booking::where('booking_reference', $reference)->first();
 
                     if ($booking) {
-                        $booking->update([
-                            'payment_status' => 'paid',
-                            'amount_paid' => $booking->total_amount,
-                            'status' => 'confirmed',
-                        ]);
-
+                        $engine->confirmBooking($booking);
                         $this->sendConfirmationEmail($booking);
                         session()->put('just_booked_ref', $booking->booking_reference);
 
@@ -1393,23 +1292,17 @@ class WebsiteController extends Controller
             $channel = $data['channel'] ?? 'unknown'; // card, bank_transfer, ussd, etc.
 
             if ($reference && $status === 'success') {
-                // Check if this is a group payment
+                $engine = app(BookingEngine::class);
                 $isGroupPayment = str_starts_with($reference, 'GRP');
 
                 if ($isGroupPayment) {
-                    // Update all bookings in the group
                     $bookings = Booking::where('booking_group_id', $reference)
-                        ->where('payment_status', '!=', 'paid') // Only update if not already paid
+                        ->where('payment_status', '!=', 'paid')
                         ->get();
 
                     if ($bookings->isNotEmpty()) {
                         foreach ($bookings as $booking) {
-                            $booking->update([
-                                'payment_status' => 'paid',
-                                'amount_paid' => $booking->total_amount,
-                                'payment_method' => $channel,
-                                'status' => 'confirmed',
-                            ]);
+                            $engine->confirmBooking($booking);
                             $this->sendConfirmationEmail($booking);
                         }
 
@@ -1420,19 +1313,12 @@ class WebsiteController extends Controller
                         ]);
                     }
                 } else {
-                    // Single booking payment
                     $booking = Booking::where('booking_reference', $reference)
-                        ->where('payment_status', '!=', 'paid') // Only update if not already paid
+                        ->where('payment_status', '!=', 'paid')
                         ->first();
 
                     if ($booking) {
-                        $booking->update([
-                            'payment_status' => 'paid',
-                            'amount_paid' => $booking->total_amount,
-                            'payment_method' => $channel,
-                            'status' => 'confirmed',
-                        ]);
-
+                        $engine->confirmBooking($booking);
                         $this->sendConfirmationEmail($booking);
 
                         Log::info('Paystack webhook: Payment confirmed via '.$channel, [
@@ -1588,11 +1474,20 @@ class WebsiteController extends Controller
         }
 
         // Get all active room types with comprehensive availability info
-        $roomTypes = RoomType::where('is_active', true)
+        $roomTypesQuery = RoomType::where('is_active', true)
             ->with(['amenities', 'units'])
-            ->withCount('units')
-            ->ordered()
-            ->get()
+            ->withCount('units');
+
+        $roomTypesQuery->when($request->filled('city'), function ($q) use ($request) {
+            $propertyIds = Property::where('city', $request->city)
+                ->where('is_active', true)
+                ->pluck('id');
+            if ($propertyIds->isNotEmpty()) {
+                $q->whereIn('property_id', $propertyIds);
+            }
+        });
+
+        $roomTypes = $roomTypesQuery->ordered()->get()
             ->map(function ($roomType) use ($checkIn, $checkOut, $availabilityService) {
                 $availability = $availabilityService->checkRoomTypeAvailability($roomType->id, $checkIn, $checkOut);
                 $roomType->available_count = $availability['available_count'] ?? 0;
@@ -1621,11 +1516,20 @@ class WebsiteController extends Controller
 
         $availabilityService = app(RoomAvailabilityService::class);
 
-        $roomTypes = RoomType::where('is_active', true)
+        $query = RoomType::where('is_active', true)
             ->with('amenities')
-            ->withCount('units')
-            ->ordered()
-            ->get()
+            ->withCount('units');
+
+        $query->when($request->filled('city'), function ($q) use ($request) {
+            $propertyIds = Property::where('city', $request->city)
+                ->where('is_active', true)
+                ->pluck('id');
+            if ($propertyIds->isNotEmpty()) {
+                $q->whereIn('property_id', $propertyIds);
+            }
+        });
+
+        $roomTypes = $query->ordered()->get()
             ->map(function ($roomType) use ($validated, $availabilityService) {
                 $availability = $availabilityService->checkRoomTypeAvailability(
                     $roomType->id,
@@ -1901,7 +1805,7 @@ class WebsiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
+            'phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'company' => 'nullable|string|max:255',
             'event_type' => 'required|string|in:Meeting,Conference,Wedding,Banquet,Party,Other',
             'event_date' => 'required|date|after_or_equal:today',
@@ -1968,7 +1872,7 @@ class WebsiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
+            'phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'company' => 'nullable|string|max:255',
         ]);
 

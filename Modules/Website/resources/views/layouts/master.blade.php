@@ -876,6 +876,50 @@
         }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
+    <style>
+        /* ─── intl-tel-input Overrides ─── */
+        .iti { width: 100%; }
+
+        .iti--separate-dial-code input,
+        .iti--separate-dial-code input[type=text],
+        .iti--separate-dial-code input[type=tel] {
+            padding-left: 90px !important;
+        }
+
+        .iti__selected-flag {
+            background: transparent !important;
+            border-right: 1px solid #dee2e6;
+        }
+        .iti__selected-flag:hover { background-color: rgba(0,0,0,0.03) !important; }
+        .iti__selected-dial-code { font-size: 0.875rem; color: #6c757d; }
+
+        .iti__country-list {
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            margin-top: 4px !important;
+            z-index: 9999;
+        }
+        .iti__country.iti__highlight { background-color: #f3f4f6; }
+        .iti:has(.phone-input[readonly]) { pointer-events: none; opacity: 0.7; }
+        .iti:has(.is-invalid) ~ .invalid-feedback,
+        .was-validated .iti:has(input:invalid) ~ .invalid-feedback { display: block; }
+        .form-floating-custom:has(.iti) label { left: 90px; }
+        .form-floating-custom.has-value label,
+        .form-floating-custom.has-focus label,
+        .form-floating-custom .iti:focus-within ~ label {
+            top: -0.5rem;
+            left: 90px;
+            font-size: 0.7rem;
+            color: #C8A165;
+        }
+        @media (max-width: 575.98px) {
+            .form-floating-custom:has(.iti) label { left: 90px; }
+            .form-floating-custom.has-value label,
+            .form-floating-custom.has-focus label,
+            .form-floating-custom .iti:focus-within ~ label { left: 90px; }
+        }
+    </style>
     @stack('styles')
 </head>
 
@@ -938,6 +982,7 @@
                             <a class="nav-link {{ request()->routeIs('website.offers') ? 'active' : '' }}"
                                 href="{{ route('website.offers') }}">Offers</a>
                         </li>
+                        @php $allProperties = \App\Models\Property::active()->get(); @endphp
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {{ request()->routeIs('website.location') ? 'active' : '' }}"
                                 href="#" id="ourHotelsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -950,18 +995,16 @@
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
+                                @foreach ($allProperties as $p)
                                 <li>
-                                    <a class="dropdown-item" href="{{ route('website.location') }}#asokoro">
-                                        <i class="fas fa-location-dot me-2" style="color: #28a745;"></i>Brickspoint Asokoro
-                                        <small class="d-block ps-4" style="color: rgba(255,255,255,0.5);">24 Jose Marti Crescent</small>
+                                    <a class="dropdown-item" href="https://{{ $p->domain ? $p->domain . '.' . request()->getHost() : route('website.home') . '?property_id=' . $p->id }}">
+                                        <i class="fas fa-location-dot me-2" style="color: {{ $p->is_headquarters ? '#28a745' : '#17a2b8' }};"></i>{{ $p->name }}
+                                        @if ($p->address)
+                                        <small class="d-block ps-4" style="color: rgba(255,255,255,0.5);">{{ $p->address }}</small>
+                                        @endif
                                     </a>
                                 </li>
-                                <li>
-                                    <a class="dropdown-item" href="https://brickspoint.ng" target="_blank" rel="noopener noreferrer">
-                                        <i class="fas fa-location-dot me-2" style="color: #17a2b8;"></i>Brickspoint Wuse II
-                                        <small class="d-block ps-4" style="color: rgba(255,255,255,0.5);">11 Adzope Crescent <i class="fas fa-external-link-alt ms-1 small"></i></small>
-                                    </a>
-                                </li>
+                                @endforeach
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -1085,19 +1128,28 @@
 
     <!-- Footer -->
     <footer class="bg-dark text-white pt-5 pb-4">
+        @php
+            $property = $currentProperty ?? null;
+            $propName = $property?->name ?? 'Brickspoint ApartHotel';
+            $propAddress = $property?->address ?? '';
+            $propCity = $property?->city ?? 'Abuja';
+            $propPhone = $property?->contact_phone ?? '+234 (809) 999-9627';
+            $propEmail = $property?->contact_email ?? 'rsv@brickspoint.com';
+            $facebook = $settings['social_facebook'] ?? 'https://fb.com/bpaparthotel';
+            $twitter = $settings['social_twitter'] ?? 'https://x.com/bpaparthotel';
+            $instagram = $settings['social_instagram'] ?? 'https://instagram.com/brickspoint_asokoro';
+            $allProperties = \App\Models\Property::active()->get();
+        @endphp
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-4">
                     <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
-                        alt="Brickspoint Logo" class="footer-logo">
-                    <p class="text-muted-footer">Experience the pinnacle of luxury and comfort in the heart of Abuja
-                        city.</p>
+                        alt="{{ $propName }} Logo" class="footer-logo">
+                    <p class="text-muted-footer">{{ $settings['footer_tagline'] ?? 'Experience the pinnacle of luxury and comfort in the heart of Abuja city.' }}</p>
                     <div class="mt-4">
-                        <a href="https://fb.com/bpaparthotel" class="text-white me-3"><i
-                                class="fab fa-facebook-f"></i></a>
-                        <a href="https://x.com/bpaparthotel" class="text-white me-3"><i class="fab fa-x"></i></a>
-                        <a href="https://instagram.com/brickspoint_asokoro" class="text-white me-3"><i
-                                class="fab fa-instagram"></i></a>
+                        <a href="{{ $facebook }}" class="text-white me-3" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>
+                        <a href="{{ $twitter }}" class="text-white me-3" target="_blank" rel="noopener"><i class="fab fa-x"></i></a>
+                        <a href="{{ $instagram }}" class="text-white me-3" target="_blank" rel="noopener"><i class="fab fa-instagram"></i></a>
                         <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>
                     </div>
                 </div>
@@ -1109,26 +1161,24 @@
                                 class="text-muted-footer text-decoration-none">Home</a></li>
                         <li class="mb-2"> <a href="{{ route('website.rooms.index') }}"
                                 class="text-muted-footer text-decoration-none">Rooms</a></li>
-                        {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}"
-                                class="text-muted-footer text-decoration-none">Rooms</a> --}}
                         <li class="mb-2"><a href="{{ route('website.facilities') }}"
                                 class="text-muted-footer text-decoration-none">Facilities</a></li>
                         <li class="mb-2"><a href="{{ route('website.meetings') }}"
                                 class="text-muted-footer text-decoration-none">Meetings & Events</a></li>
                         <li class="mb-2">
                             <a href="{{ route('website.location') }}" class="text-muted-footer text-decoration-none">Our Hotels</a>
+                            @if ($allProperties->count() > 1)
                             <ul class="list-unstyled ps-3 mt-1" style="font-size: 0.85rem;">
+                                @foreach ($allProperties as $p)
                                 <li class="mb-1">
-                                    <a href="{{ route('website.location') }}#asokoro" class="text-muted-footer text-decoration-none">
-                                        <i class="fas fa-location-dot me-1 small text-success"></i>Asokoro
+                                    <a href="https://{{ $p->domain ? $p->domain . '.' . request()->getHost() : route('website.home') . '?property_id=' . $p->id }}"
+                                        class="text-muted-footer text-decoration-none">
+                                        <i class="fas fa-location-dot me-1 small {{ $p->is_headquarters ? 'text-success' : 'text-info' }}"></i>{{ $p->name }}
                                     </a>
                                 </li>
-                                <li>
-                                    <a href="https://brickspoint.ng" target="_blank" rel="noopener noreferrer" class="text-muted-footer text-decoration-none">
-                                        <i class="fas fa-location-dot me-1 small text-info"></i>Wuse II <i class="fas fa-external-link-alt ms-1" style="font-size: 0.65rem;"></i>
-                                    </a>
-                                </li>
+                                @endforeach
                             </ul>
+                            @endif
                         </li>
                         <li class="mb-2"><a href="{{ route('website.about') }}"
                                 class="text-muted-footer text-decoration-none">About Us</a></li>
@@ -1140,20 +1190,13 @@
                 <div class="col-lg-3 col-md-4">
                     <h4 class="h5 mb-4">Contact Info</h4>
                     <ul class="list-unstyled text-muted-footer">
-                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2 text-primary"></i> 24 Jose Marti
-                            Crescent,
-                            Asokoro, Abuja</li>
-                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2 text-primary"></i> 11 Adzope Crescent,
-                            Wuse II, Abuja</li>
-                        <li class="mb-2"><i class="fas fa-phone me-2 text-primary"></i> +234 (809) 999-9627 <br>
-                            +234 (809) 999-9620</li>
-                        <li class="mb-2"><a href="mailto:rsv@brickspoint.com"
+                        @if ($propAddress)
+                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2 text-primary"></i> {{ $propAddress }}, {{ $propCity }}</li>
+                        @endif
+                        <li class="mb-2"><i class="fas fa-phone me-2 text-primary"></i> {{ $propPhone }}</li>
+                        <li class="mb-2"><a href="mailto:{{ $propEmail }}"
                                 class="text-muted-footer text-decoration-none">
-                                <i class="fas fa-envelope me-2 text-primary"></i> rsv@brickspoint.com(Asokoro)
-                            </a></li>
-                        <li class="mb-2"><a href="mailto:rsv@brickspoint.ng"
-                                class="text-muted-footer text-decoration-none">
-                                <i class="fas fa-envelope me-2 text-primary"></i> rsv@brickspoint.ng(Wuse)
+                                <i class="fas fa-envelope me-2 text-primary"></i> {{ $propEmail }}
                             </a></li>
                     </ul>
                 </div>
@@ -1183,7 +1226,7 @@
 
             <div class="row align-items-center">
                 <div class="col-md-6 text-center text-md-start">
-                    <p class="mb-0 text-muted-footer">&copy; {{ date('Y') }} Brickspoint ApartHotel. All rights
+                    <p class="mb-0 text-muted-footer">&copy; {{ date('Y') }} {{ $propName }}. All rights
                         reserved.</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
@@ -1475,20 +1518,42 @@
         $(document).ready(function() {
             if (typeof intlTelInput !== 'undefined') {
                 $('input.phone-input').each(function() {
-                    if (!$(this).data('iti')) {
-                        intlTelInput(this, {
-                            initialCountry: 'auto',
-                            geoIpLookup: function(callback) {
-                                $.get('https://ipapi.co/json/', function(data) {}, 'jsonp').always(function(resp) {
-                                    var countryCode = (resp && resp.country) ? resp.country : 'ng';
-                                    callback(countryCode);
-                                });
-                            },
-                            utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js',
-                            separateDialCode: true,
-                            autoPlaceholder: 'aggressive',
-                            nationalMode: true,
-                        });
+                    var input = this;
+                    if ($(input).data('iti')) return;
+                    var iti = window.intlTelInput(input, {
+                        initialCountry: 'auto',
+                        geoIpLookup: function(callback) {
+                            $.get('https://ipapi.co/json/', function(data) {}, 'jsonp').always(function(resp) {
+                                var countryCode = (resp && resp.country) ? resp.country : 'ng';
+                                callback(countryCode);
+                            });
+                        },
+                        utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js',
+                        separateDialCode: true,
+                        autoPlaceholder: 'aggressive',
+                        nationalMode: true,
+                    });
+                    $(input).on('input', function () {
+                        var val = $(this).val().trim();
+                        $(this).closest('.form-floating-custom').toggleClass('has-value', val !== '');
+                    });
+                    $(input).on('focusin focusout', function (e) {
+                        $(this).closest('.form-floating-custom').toggleClass('has-focus', e.type === 'focusin');
+                    });
+                    $(input).on('blur', function () {
+                        var val = $(this).val().trim();
+                        if (iti.isValidNumber()) {
+                            $(input).removeClass('is-invalid').addClass('is-valid');
+                        } else if (val !== '') {
+                            $(input).removeClass('is-valid').addClass('is-invalid');
+                        } else {
+                            $(input).removeClass('is-valid is-invalid');
+                        }
+                    });
+                    if ($(input).val().trim() !== '') {
+                        var $floating = $(input).closest('.form-floating-custom');
+                        $floating.addClass('has-value');
+                        $(input).trigger('blur');
                     }
                 });
             }

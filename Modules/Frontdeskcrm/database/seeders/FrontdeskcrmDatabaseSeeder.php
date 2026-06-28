@@ -15,6 +15,7 @@ class FrontdeskcrmDatabaseSeeder extends Seeder
             BookingSourcesSeeder::class,
             GuestTypesSeeder::class,
             GuestsSeeder::class,
+            LoyaltyTierSeeder::class,
         ]);
     }
 }

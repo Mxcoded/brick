@@ -2,9 +2,10 @@
 
 namespace Modules\Website\Services;
 
+use App\Models\RoomType;
+use App\Services\RoomAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
-use Modules\Website\Models\RoomType;
 
 class BookingCartService
 {
@@ -26,6 +27,17 @@ class BookingCartService
         if (! empty($cart['items']) && ($cart['check_in'] !== $checkIn || $cart['check_out'] !== $checkOut)) {
             $this->clear();
             $cart = $this->getCart();
+        }
+
+        // Enforce single-property cart: reject if adding room from a different property
+        if (! empty($cart['items'])) {
+            $firstItem = reset($cart['items']);
+            if ($firstItem['property_id'] !== $roomType->property_id) {
+                return [
+                    'success' => false,
+                    'message' => 'Rooms from different properties cannot be booked together. Please complete or clear your current cart first.',
+                ];
+            }
         }
 
         // Set dates if not set
@@ -53,6 +65,7 @@ class BookingCartService
         $cart['items'][$roomTypeId] = [
             'room_type_id' => $roomTypeId,
             'room_type_name' => $roomType->name,
+            'property_id' => $roomType->property_id,
             'quantity' => $quantity,
             'price_per_night' => (float) $roomType->price,
             'capacity' => $roomType->capacity,

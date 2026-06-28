@@ -7,6 +7,7 @@ use Illuminate\Routing\Controller;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Frontdeskcrm\Exports\GuestsImport;
 use Modules\Frontdeskcrm\Models\Guest;
+use Modules\Frontdeskcrm\Models\LoyaltyTier;
 use Yajra\DataTables\DataTables;
 
 class GuestController extends Controller
@@ -123,18 +124,30 @@ class GuestController extends Controller
      */
     public function show($id)
     {
-        $guest = Guest::with(['registrations' => function ($query) {
-            $query->latest('check_in')->limit(10);
-        }, 'preference'])->findOrFail($id);
+        $guest = Guest::with([
+            'registrations' => function ($query) {
+                $query->latest('check_in')->limit(10);
+            },
+            'preference',
+            'loyaltyTier',
+            'loyaltyPoints' => function ($query) {
+                $query->latest()->limit(20);
+            },
+        ])->findOrFail($id);
 
         $stats = [
             'total_stays' => $guest->registrations()->count(),
-            'total_nights' => $guest->registrations()->sum('total_nights') ?? 0,
+            'total_nights' => $guest->registrations()->sum('no_of_nights') ?? 0,
             'last_visit' => $guest->last_visit_at,
             'first_visit' => $guest->registrations()->oldest('check_in')->first()?->check_in,
         ];
 
-        return view('frontdeskcrm::guests.show', compact('guest', 'stats'));
+        $nextTier = LoyaltyTier::where('min_points', '>', $guest->lifetime_points)
+            ->where('is_active', true)
+            ->orderBy('min_points')
+            ->first();
+
+        return view('frontdeskcrm::guests.show', compact('guest', 'stats', 'nextTier'));
     }
 
     /**

@@ -27,6 +27,10 @@
             @includeIf('frontdeskcrm::layouts.menu')
         @endcan
 
+        @can('access_frontdesk_dashboard')
+            @includeIf('housekeeping::layouts.menu')
+        @endcan
+
         @can('access_website_dashboard')
             @includeIf('website::layouts.menu')
         @endcan

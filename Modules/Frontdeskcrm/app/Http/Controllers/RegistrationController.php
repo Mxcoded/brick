@@ -2,6 +2,11 @@
 
 namespace Modules\Frontdeskcrm\Http\Controllers;
 
+use App\Models\Room;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
+use App\Services\PropertyService;
+use App\Services\RoomAvailabilityService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -12,19 +17,18 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Modules\Frontdeskcrm\Emails\CheckoutReceiptMail;
 use Modules\Frontdeskcrm\Emails\RegistrationStatusMail;
 use Modules\Frontdeskcrm\Http\Requests\FinalizeRegistrationRequest;
 use Modules\Frontdeskcrm\Http\Requests\StoreRegistrationRequest;
 use Modules\Frontdeskcrm\Models\BookingSource;
+use Modules\Frontdeskcrm\Models\ChargeType;
+use Modules\Frontdeskcrm\Models\CorporateAccount;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\GuestType;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Models\Booking;
-use Modules\Website\Models\Room;
-use Modules\Website\Models\RoomType;
-use Modules\Website\Models\RoomUnit;
-use Modules\Website\Services\RoomAvailabilityService;
 
 class RegistrationController extends Controller
 {
@@ -817,131 +821,43 @@ class RegistrationController extends Controller
      */
     public function storeWalkin(StoreRegistrationRequest $request)
     {
-        // 1. Create or Find Guest
-        $guest = Guest::firstOrCreate(
-            ['contact_number' => $request->contact_number],
-            [
-                'title' => $request->title ?? null,
-                'full_name' => $request->full_name,
-                'email' => $request->email,
-                'gender' => $request->gender ?? null,
-                'home_address' => $request->home_address ?? null,
-                'identification_number' => $request->identification_number ?? null,
-                'nationality' => $request->nationality ?? null,
-                'zip_code' => $request->zip_code ?? null,
-                'identification_type' => $request->identification_type ?? null,
-                'birthday' => $request->birthday ?? null,
-                'occupation' => $request->occupation ?? null,
-                'company_name' => $request->company_name ?? null,
-                'city' => $request->city ?? null,
-                'state' => $request->state ?? null,
-                'emergency_name' => $request->emergency_name ?? null,
-                'emergency_relationship' => $request->emergency_relationship ?? null,
-                'emergency_contact' => $request->emergency_contact ?? null,
-                'opt_in_data_save' => $request->boolean('opt_in_data_save', true),
-
-            ]
-        );
-
-        // 2. CHECK DATES & DETERMINE FLOW
-        $checkInDate = Carbon::parse($request->check_in);
-        $isFuture = $checkInDate->startOfDay()->gt(now()->startOfDay());
-
-        // 3. AVAILABILITY CHECK (If Room or Room Unit is Selected)
+        // 1. Resolve room_unit_id from legacy room_id (if applicable)
         $resolvedRoomUnitId = $request->filled('room_unit_id') ? $request->room_unit_id : null;
         $resolvedRoomId = $request->filled('room_id') ? $request->room_id : null;
-        $roomName = null;
 
-        if ($resolvedRoomUnitId) {
-            $selUnit = RoomUnit::find($resolvedRoomUnitId);
-            if ($selUnit && in_array($selUnit->status, ['maintenance', 'blocked'])) {
-                return back()->withInput()->withErrors(['room_unit_id' => 'The selected room unit is currently unavailable.']);
-            }
-            $availabilityService = app(RoomAvailabilityService::class);
-            if ($selUnit && ! $availabilityService->isUnitAvailable($selUnit->id, $request->check_in, $request->check_out)) {
-                return back()->withInput()->withErrors(['room_unit_id' => 'This room is not available for the selected dates.']);
-            }
-            $roomName = 'Room '.$selUnit->room_number;
-        } elseif ($resolvedRoomId) {
-            $room = Room::find($resolvedRoomId);
-            if ($room && $room->status === 'maintenance') {
-                return back()->withInput()->withErrors(['room_id' => 'The selected room is under maintenance and cannot be assigned.']);
-            }
-            $isOccupied = Registration::where('room_id', $resolvedRoomId)
-                ->where('stay_status', 'checked_in')
-                ->where(function ($query) use ($request) {
-                    $query->whereBetween('check_in', [$request->check_in, $request->check_out])
-                        ->orWhereBetween('check_out', [$request->check_in, $request->check_out])
-                        ->orWhere(function ($q) use ($request) {
-                            $q->where('check_in', '<=', $request->check_in)
-                                ->where('check_out', '>=', $request->check_out);
-                        });
-                })->exists();
-            if ($isOccupied) {
-                return back()->withInput()->withErrors(['room_id' => 'The selected room is occupied for these dates.']);
-            }
-            $selRoomUnit = RoomUnit::where('room_number', $room->name)->first();
-            if ($selRoomUnit) {
-                $availabilityService = app(RoomAvailabilityService::class);
-                if (! $availabilityService->isUnitAvailable($selRoomUnit->id, $request->check_in, $request->check_out)) {
-                    return back()->withInput()->withErrors(['room_id' => 'Room not available (stop sell, maintenance, or blocked).']);
-                }
-                $resolvedRoomUnitId = $selRoomUnit->id;
-            }
-            $roomName = $room->name;
+        if (! $resolvedRoomUnitId && $resolvedRoomId) {
+            $selRoomUnit = RoomUnit::where('room_number', Room::find($resolvedRoomId)?->name)->first();
+            $resolvedRoomUnitId = $selRoomUnit?->id;
         }
 
-        // 4. Generate Reservation Code (similar to booking code format)
-        do {
-            $reservationCode = 'FD'.date('y').strtoupper(Str::random(4));
-        } while (Registration::where('reservation_code', $reservationCode)->exists());
-
-        // 5. Create Registration
-        $registration = Registration::create([
-            'guest_id' => $guest->id,
-            'reservation_code' => $reservationCode,
-
-            // Snapshot Fields
-            'full_name' => $guest->full_name,
-            'contact_number' => $guest->contact_number,
-            'email' => $guest->email,
-            'gender' => $request->gender,
-
-            // Stay Details
-            'check_in' => $request->check_in,
-            'check_out' => $request->check_out,
-            'no_of_guests' => $request->no_of_guests,
-
-            // Room Assignment
-            'room_id' => $resolvedRoomId,
-            'room_unit_id' => $resolvedRoomUnitId,
-            'room_type_id' => $request->room_type_id,
-            'room_allocation' => $roomName,
-            'room_rate' => $request->room_rate,
-
-            // Billing & Options
-            'billing_type' => $request->billing_type ?? 'consolidate',
-            'payment_method' => $request->payment_method,
-            'bed_breakfast' => $request->boolean('bed_breakfast'),
-
-            // Agent Audit
-            'front_desk_agent' => Auth::user()->name,
-
-            // Dynamic Status
-            'stay_status' => $isFuture ? 'reserved' : 'draft_by_guest',
-            'registration_date' => now(),
-        ]);
+        // 2. Delegate registration creation to the BookingEngine
+        try {
+            $bookingEngine = app(\App\Services\BookingEngine::class);
+            $registration = $bookingEngine->createRegistration(array_merge($request->validated(), [
+                'room_unit_id' => $resolvedRoomUnitId,
+                'room_id' => $resolvedRoomId,
+                'front_desk_agent' => Auth::user()->name,
+                'bed_breakfast' => $request->boolean('bed_breakfast'),
+                'deposit_required' => $request->boolean('deposit_required'),
+            ]));
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
+        }
 
         $this->sendNotification($registration);
 
-        // 6. DYNAMIC REDIRECT with reservation code in message
+        // 3. DYNAMIC REDIRECT with reservation code in message
+        $reservationCode = $registration->reservation_code;
+        $checkInDate = Carbon::parse($request->check_in);
+        $isFuture = $checkInDate->startOfDay()->gt(now()->startOfDay());
+
         if ($isFuture) {
             return redirect()->route('frontdesk.registrations.index')
-                ->with('success', "Reservation [{$reservationCode}] created! Guest can sign at the kiosk (" . route('frontdesk.kiosk.sign') . ") using this code.");
-        } else {
-            return redirect()->route('frontdesk.registrations.finalize.form', $registration)
-                ->with('success', "Walk-in [{$reservationCode}] created. Ask guest to sign at the kiosk (" . route('frontdesk.kiosk.sign') . ") using this code.");
+                ->with('success', "Reservation [{$reservationCode}] created! Guest can sign at the kiosk (".route('frontdesk.kiosk.sign').') using this code.');
         }
+
+        return redirect()->route('frontdesk.registrations.finalize.form', $registration)
+            ->with('success', "Walk-in [{$reservationCode}] created. Ask guest to sign at the kiosk (".route('frontdesk.kiosk.sign').') using this code.');
     }
 
     /**
@@ -1205,6 +1121,14 @@ class RegistrationController extends Controller
                     'total_amount' => $finalLeadTotal,
                     'finalized_by_agent_id' => Auth::id(),
                     'checked_in_at' => now(),
+                    // Discount & Deposit
+                    'discount_type' => $request->discount_type,
+                    'discount_value' => $request->discount_value,
+                    'discount_percent' => $request->discount_percent,
+                    'discount_reason' => $request->discount_reason,
+                    'deposit_required' => $request->boolean('deposit_required'),
+                    'deposit_amount' => $request->deposit_amount,
+                    'deposit_deadline' => $request->deposit_deadline,
                 ]);
 
                 // =========================================================
@@ -1481,7 +1405,7 @@ class RegistrationController extends Controller
      * Manually check a guest out (works for both lead and members).
      * Now handles Early Departure (Truncating dates) and Audit Trail.
      */
-    public function checkout(Registration $registration)
+    public function checkout(Request $request, Registration $registration)
     {
         if ($registration->stay_status !== 'checked_in') {
             return back()->with('error', 'This guest is not currently checked-in.');
@@ -1496,7 +1420,6 @@ class RegistrationController extends Controller
         ];
 
         // 2. HANDLE EARLY CHECKOUT (Truncate stay)
-        // Use startOfDay() to compare dates without the interference of current time
         if ($now->startOfDay()->lt($registration->check_out->startOfDay())) {
             $newCheckOutDate = $now;
             $nights = $registration->check_in->diffInDays($newCheckOutDate);
@@ -1509,30 +1432,81 @@ class RegistrationController extends Controller
             $updates['total_amount'] = $registration->room_rate * $nights;
         }
 
-        // 3. HANDLE LATE CHECKOUT / OVERSTAY (Extend stay)
-        // If today is AFTER the planned check_out date, extend to today
+        // 3. HANDLE LATE CHECKOUT / OVERSTAY
         elseif ($now->startOfDay()->gt($registration->check_out->startOfDay())) {
             $newCheckOutDate = $now;
-
-            // Calculate total nights from original check-in to today
             $totalNights = $registration->check_in->diffInDays($newCheckOutDate);
 
             $updates['check_out'] = $newCheckOutDate;
             $updates['no_of_nights'] = $totalNights;
-
-            // Recalculate bill to include the extra nights overstayed
             $updates['total_amount'] = $registration->room_rate * $totalNights;
         }
 
         // 4. Apply Updates
         $registration->update($updates);
 
-        // 5. Release Room Unit
-        if ($registration->room_unit_id) {
-            RoomUnit::where('id', $registration->room_unit_id)->update(['status' => 'available']);
+        // 5. Handle Optional Final Payment (from checkout modal)
+        $billingToAccount = $request->boolean('billing_to_account');
+        $checkoutBalance = max(0, ($registration->total_amount ?? 0) - $registration->total_paid);
+        if ($billingToAccount && $registration->corporate_account_id) {
+            $account = CorporateAccount::find($registration->corporate_account_id);
+            if ($account) {
+                $balanceBefore = $account->current_balance;
+                $balanceAfter = $balanceBefore + $checkoutBalance;
+                if ($balanceAfter > $account->credit_limit) {
+                    return back()->with('error', 'Cannot bill to account — charge of ₦'.number_format($checkoutBalance, 2).' exceeds credit limit of ₦'.number_format($account->credit_limit, 2));
+                }
+                $account->transactions()->create([
+                    'type' => 'charge',
+                    'registration_id' => $registration->id,
+                    'amount' => $checkoutBalance,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $balanceAfter,
+                    'description' => "Checkout billing: {$registration->reservation_code} ({$registration->check_in->format('M d')} - {$registration->check_out->format('M d')})",
+                    'created_by' => Auth::id(),
+                ]);
+                $account->increment('current_balance', $checkoutBalance);
+                $registration->update(['billing_to_account' => $now]);
+            }
+        } elseif ($request->filled('payment_amount') && (float) $request->payment_amount > 0) {
+            $registration->payments()->create([
+                'amount' => $request->payment_amount,
+                'payment_method' => $request->payment_method ?? 'Cash',
+                'payment_date' => $now,
+                'reference' => $request->payment_reference,
+                'notes' => 'Final payment at checkout',
+                'received_by' => Auth::id(),
+            ]);
         }
 
-        // 6. Update Guest History
+        // 5b. Handle Security Deposit at checkout
+        if ($request->filled('security_deposit_action') && $registration->security_deposit_status === 'collected') {
+            $action = $request->security_deposit_action;
+            if ($action === 'refund') {
+                $registration->payments()->create([
+                    'amount' => $registration->security_deposit_amount,
+                    'payment_method' => 'Refund',
+                    'payment_type' => 'refund',
+                    'payment_date' => $now,
+                    'reference' => 'SD-REFUND-'.$registration->id.'-'.$now->timestamp,
+                    'notes' => 'Security deposit refund at checkout',
+                    'received_by' => Auth::id(),
+                ]);
+                $registration->update([
+                    'security_deposit_refunded_at' => $now,
+                    'security_deposit_status' => 'refunded',
+                ]);
+            } elseif ($action === 'forfeit') {
+                $registration->update(['security_deposit_status' => 'forfeited']);
+            }
+        }
+
+        // 6. Release Room Unit
+        if ($registration->room_unit_id) {
+            RoomUnit::where('id', $registration->room_unit_id)->update(['status' => 'available', 'cleaning_status' => 'dirty']);
+        }
+
+        // 7. Update Guest History
         $guest = $registration->guest;
         if ($guest) {
             $guest->increment('visit_count');
@@ -1540,7 +1514,7 @@ class RegistrationController extends Controller
             $guest->save();
         }
 
-        // 6. Handle Group Children (Sync dates)
+        // 8. Handle Group Children
         if ($registration->is_group_lead) {
             foreach ($registration->children as $child) {
                 if ($child->stay_status === 'checked_in') {
@@ -1548,20 +1522,50 @@ class RegistrationController extends Controller
                         'stay_status' => 'checked_out',
                         'actual_checkout_at' => $now,
                         'checked_out_by_agent_id' => Auth::id(),
-                        // Sync the check_out date for children to match the lead's final date
                         'check_out' => $updates['check_out'] ?? $child->check_out,
                         'no_of_nights' => $updates['no_of_nights'] ?? $child->no_of_nights,
                         'total_amount' => isset($updates['no_of_nights']) ? ($child->room_rate * $updates['no_of_nights']) : $child->total_amount,
                     ]);
 
                     if ($child->room_unit_id) {
-                        RoomUnit::where('id', $child->room_unit_id)->update(['status' => 'available']);
+                        RoomUnit::where('id', $child->room_unit_id)->update(['status' => 'available', 'cleaning_status' => 'dirty']);
                     }
                 }
             }
         }
 
-        // 7. Success Message Customization
+        // 9. Generate PDF Invoice
+        $taxRate = app(PropertyService::class)->taxRate();
+        $folioCharges = $registration->folioCharges()->sum('amount');
+        $roomCharge = ($registration->discounted_rate ?? $registration->room_rate ?? 0) * ($registration->no_of_nights ?? 1);
+        $totalCharges = $roomCharge + $folioCharges;
+        $taxAmount = round($totalCharges * $taxRate / 100, 2);
+        $grandTotal = $totalCharges + $taxAmount;
+        $discountAmount = $registration->total_discount * ($registration->no_of_nights ?? 1);
+
+        try {
+            $invoicePdf = Pdf::loadView('frontdeskcrm::registrations.invoice-pdf', compact(
+                'registration', 'roomCharge', 'folioCharges', 'totalCharges',
+                'taxRate', 'taxAmount', 'grandTotal', 'discountAmount'
+            ));
+        } catch (\Exception $e) {
+            Log::warning('PDF generation failed at checkout: '.$e->getMessage());
+            $invoicePdf = null;
+        }
+
+        // 10. Email Receipt with PDF Attachment
+        $recipientEmail = $registration->email ?? $registration->guest?->email;
+        if ($request->boolean('email_receipt') && $recipientEmail && $invoicePdf) {
+            try {
+                Mail::to($recipientEmail)->send(new CheckoutReceiptMail(
+                    $registration, $invoicePdf->output()
+                ));
+            } catch (\Exception $e) {
+                Log::error('Failed to email checkout receipt: '.$e->getMessage());
+            }
+        }
+
+        // 11. Build success message
         $message = "Guest {$registration->full_name} checked out successfully.";
         if ($now->startOfDay()->lt($registration->check_out->startOfDay())) {
             $message .= ' Bill adjusted for early departure.';
@@ -1569,19 +1573,151 @@ class RegistrationController extends Controller
             $message .= ' Stay extended and bill updated for overstay.';
         }
 
-        // Sync booking status back to Website module
+        // Sync booking status
         $this->syncBookingStatus($registration);
 
-        // Redirect logic
-        if ($registration->parent_registration_id) {
-            return redirect()->route('frontdesk.registrations.show', $registration->parent_registration_id)
-                ->with('success', $message);
+        // 12. Award Loyalty Points
+        if ($guest) {
+            $earnBase = (int) floor($grandTotal);
+            $multiplier = $guest->loyaltyTier?->multiplier ?? 1.0;
+            $points = (int) floor($earnBase * $multiplier);
+
+            if ($points > 0) {
+                $registration->loyaltyPoints()->create([
+                    'guest_id' => $guest->id,
+                    'points' => $points,
+                    'type' => 'earned',
+                    'description' => "Stay: {$registration->reservation_code} ({$registration->check_in->format('M d')} - {$registration->check_out->format('M d')})",
+                    'spend_amount' => $grandTotal,
+                ]);
+
+                $guest->increment('total_points', $points);
+                $guest->increment('lifetime_points', $points);
+                $guest->recalculateTier();
+            }
         }
 
-        $this->sendNotification($registration);
+        // 13. Redirect with optional print flag
+        $redirect = $registration->parent_registration_id
+            ? redirect()->route('frontdesk.registrations.show', $registration->parent_registration_id)
+            : redirect()->route('frontdesk.registrations.index');
 
-        return redirect()->route('frontdesk.registrations.index')
-            ->with('success', $message);
+        $redirect->with('success', $message);
+
+        if ($request->boolean('print_receipt')) {
+            $redirect->with('printInvoice', route('frontdesk.registrations.invoice', $registration));
+        }
+
+        return $redirect;
+    }
+
+    public function getUpgradeOptions(Registration $registration)
+    {
+        if (! in_array($registration->stay_status, ['checked_in', 'reserved'])) {
+            return response()->json(['error' => 'Registration cannot be upgraded in its current status.'], 422);
+        }
+
+        $availabilityService = app(RoomAvailabilityService::class);
+        $currentRoomTypeId = $registration->room_type_id;
+        $currentRate = $registration->room_rate ?? 0;
+        $checkIn = $registration->check_in->format('Y-m-d');
+        $checkOut = $registration->check_out->format('Y-m-d');
+
+        $roomTypes = RoomType::where('is_active', true)
+            ->where('price', '>', $currentRate)
+            ->orderBy('price')
+            ->get();
+
+        $options = [];
+        foreach ($roomTypes as $roomType) {
+            $availableUnits = $availabilityService->getAvailableUnits($roomType->id, $checkIn, $checkOut);
+            if ($availableUnits->isEmpty()) {
+                continue;
+            }
+            $priceDiff = ($roomType->price - $currentRate) * ($registration->no_of_nights ?? 1);
+            $options[] = [
+                'room_type' => [
+                    'id' => $roomType->id,
+                    'name' => $roomType->name,
+                    'price' => $roomType->price,
+                    'description' => $roomType->description,
+                    'size' => $roomType->size,
+                    'bed_type' => $roomType->bed_type,
+                    'capacity' => $roomType->capacity,
+                ],
+                'available_units' => $availableUnits->map(fn ($u) => [
+                    'id' => $u->id,
+                    'room_number' => $u->room_number,
+                    'floor' => $u->floor,
+                ]),
+                'price_difference' => $priceDiff,
+                'price_difference_per_night' => $roomType->price - $currentRate,
+            ];
+        }
+
+        return response()->json(['upgrades' => $options, 'current_rate' => $currentRate]);
+    }
+
+    public function processUpgrade(Request $request, Registration $registration)
+    {
+        if (! in_array($registration->stay_status, ['checked_in', 'reserved'])) {
+            return back()->with('error', 'Registration cannot be upgraded in its current status.');
+        }
+
+        $validated = $request->validate([
+            'room_unit_id' => 'required|exists:room_units,id',
+        ]);
+
+        $newUnit = RoomUnit::with('roomType')->findOrFail($validated['room_unit_id']);
+        $oldUnit = $registration->roomUnit;
+        $oldRate = $registration->room_rate ?? 0;
+        $newRate = $newUnit->roomType->price;
+
+        $nights = $registration->no_of_nights ?? 1;
+        $priceDiff = ($newRate - $oldRate) * $nights;
+
+        if ($priceDiff <= 0) {
+            return back()->with('error', 'The selected room does not cost more than the current room.');
+        }
+
+        $charge = $registration->folioCharges()->create([
+            'charge_type_id' => $this->getOrCreateUpgradeChargeType()->id,
+            'description' => 'Room upgrade: '.($oldUnit?->room_number ?? 'N/A').' → '.$newUnit->room_number.' ('.number_format($newRate - $oldRate, 2).'/night × '.$nights.' nights)',
+            'quantity' => 1,
+            'unit_price' => $priceDiff,
+            'amount' => $priceDiff,
+            'posted_by' => Auth::id(),
+        ]);
+
+        $oldRoomNumber = $oldUnit?->room_number ?? 'N/A';
+
+        $registration->update([
+            'room_unit_id' => $newUnit->id,
+            'room_type_id' => $newUnit->room_type_id,
+            'room_allocation' => $newUnit->room_number.' ('.$newUnit->roomType->name.')',
+            'room_rate' => $newRate,
+            'total_amount' => ($registration->total_amount ?? 0) + $priceDiff,
+        ]);
+
+        if ($oldUnit) {
+            $oldUnit->update(['status' => 'available', 'cleaning_status' => 'dirty']);
+        }
+        $newUnit->update(['status' => 'occupied']);
+
+        return back()->with('success', "Room upgraded from {$oldRoomNumber} to {$newUnit->room_number}. Upgrade charge of ₦".number_format($priceDiff, 2).' posted to folio.');
+    }
+
+    protected function getOrCreateUpgradeChargeType()
+    {
+        return ChargeType::firstOrCreate(
+            ['code' => 'room_upgrade'],
+            [
+                'name' => 'Room Upgrade',
+                'code' => 'room_upgrade',
+                'icon' => 'arrow-up',
+                'is_active' => true,
+            ]
+        );
     }
 
     public function getActiveMembers(Registration $registration)
@@ -1990,22 +2126,81 @@ class RegistrationController extends Controller
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
             'payment_method' => 'required|string',
+            'payment_type' => 'nullable|string|in:payment,deposit,advance,security_deposit,pre_authorization,refund',
+            'payment_category' => 'nullable|string|max:50',
             'payment_date' => 'required|date',
             'reference' => 'nullable|string|max:50',
             'notes' => 'nullable|string|max:255',
         ]);
 
-        // Create Payment Record
-        $registration->payments()->create([
+        $payment = $registration->payments()->create([
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'],
+            'payment_type' => $validated['payment_type'] ?? 'payment',
+            'payment_category' => $validated['payment_category'],
             'payment_date' => $validated['payment_date'],
             'reference' => $validated['reference'],
             'notes' => $validated['notes'],
             'received_by' => Auth::id(),
         ]);
 
+        // Update registration state based on payment type
+        if ($validated['payment_type'] === 'security_deposit') {
+            $registration->update([
+                'security_deposit_amount' => $registration->security_deposit_collected,
+                'security_deposit_collected_at' => now(),
+                'security_deposit_status' => 'collected',
+            ]);
+        } elseif ($validated['payment_type'] === 'pre_authorization') {
+            $registration->update([
+                'pre_authorization_amount' => $validated['amount'],
+                'pre_authorization_reference' => $validated['reference'],
+                'pre_authorization_status' => 'approved',
+            ]);
+        } elseif ($validated['payment_type'] === 'deposit') {
+            if ($registration->total_deposit_paid >= ($registration->deposit_amount ?? 0)) {
+                $registration->update(['deposit_required' => false]);
+            }
+        } elseif ($validated['payment_type'] === 'refund') {
+            if ($registration->security_deposit_status === 'collected') {
+                $registration->update([
+                    'security_deposit_refunded_at' => now(),
+                    'security_deposit_status' => 'refunded',
+                ]);
+            }
+        }
+
         return back()->with('success', 'Payment recorded successfully.');
+    }
+
+    public function storeCharge(Request $request, Registration $registration)
+    {
+        $validated = $request->validate([
+            'charge_type_id' => 'required|exists:charge_types,id',
+            'description' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:1|max:999',
+            'unit_price' => 'required|numeric|min:0|max:999999.99',
+        ]);
+
+        $amount = $validated['quantity'] * $validated['unit_price'];
+
+        $registration->folioCharges()->create([
+            'charge_type_id' => $validated['charge_type_id'],
+            'description' => $validated['description'],
+            'quantity' => $validated['quantity'],
+            'unit_price' => $validated['unit_price'],
+            'amount' => $amount,
+            'posted_by' => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Charge posted to folio.');
+    }
+
+    public function invoice(Registration $registration)
+    {
+        $registration->load(['guest', 'roomType', 'roomUnit', 'payments', 'folioCharges.chargeType', 'booking']);
+
+        return view('frontdeskcrm::registrations.invoice', compact('registration'));
     }
 
     /**
@@ -2021,5 +2216,56 @@ class RegistrationController extends Controller
         Log::info("Booking {$booking->booking_reference} marked as no-show by agent.");
 
         return back()->with('success', "Booking {$booking->booking_reference} marked as no-show.");
+    }
+
+    public function refundSecurityDeposit(Registration $registration)
+    {
+        if ($registration->security_deposit_status !== 'collected') {
+            return back()->with('error', 'No collected security deposit to refund.');
+        }
+
+        $registration->payments()->create([
+            'amount' => $registration->security_deposit_amount,
+            'payment_method' => 'Refund',
+            'payment_type' => 'refund',
+            'payment_date' => now(),
+            'reference' => 'SD-REFUND-'.$registration->id.'-'.now()->timestamp,
+            'notes' => 'Security deposit refund at checkout',
+            'received_by' => Auth::id(),
+        ]);
+
+        $registration->update([
+            'security_deposit_refunded_at' => now(),
+            'security_deposit_status' => 'refunded',
+        ]);
+
+        return back()->with('success', 'Security deposit refunded successfully.');
+    }
+
+    public function forfeitSecurityDeposit(Registration $registration)
+    {
+        if ($registration->security_deposit_status !== 'collected') {
+            return back()->with('error', 'No collected security deposit to forfeit.');
+        }
+
+        $registration->update(['security_deposit_status' => 'forfeited']);
+
+        return back()->with('success', 'Security deposit forfeited.');
+    }
+
+    public function updatePreAuthStatus(Request $request, Registration $registration, string $action)
+    {
+        if (! $registration->pre_authorization_amount) {
+            return back()->with('error', 'No pre-authorization recorded for this registration.');
+        }
+
+        $validActions = ['capture', 'void', 'expire'];
+        if (! in_array($action, $validActions)) {
+            return back()->with('error', 'Invalid pre-authorization action.');
+        }
+
+        $registration->update(['pre_authorization_status' => $action === 'capture' ? 'captured' : $action.'d']);
+
+        return back()->with('success', 'Pre-authorization '.$action.'d successfully.');
     }
 }

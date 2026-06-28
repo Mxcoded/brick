@@ -4,6 +4,7 @@ namespace Modules\Admin\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Mail\AccountCreated;
+use App\Models\RoomUnit;
 use App\Models\User;
 use App\Models\UserActivityLog;
 use App\Models\UserLoginLog;
@@ -30,7 +31,6 @@ use Modules\Staff\Models\LeaveRequest;
 use Modules\Tasks\Models\Task;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\ContactMessage;
-use Modules\Website\Models\RoomUnit;
 use Nwidart\Modules\Facades\Module;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -614,7 +614,7 @@ class AdminController extends Controller
     public function createUserFromEmployee()
     {
         $employees = Employee::whereNull('end_date')
-            ->where(fn($q) => $q->whereNull('user_id')->orWhereDoesntHave('user'))
+            ->where(fn ($q) => $q->whereNull('user_id')->orWhereDoesntHave('user'))
             ->orderBy('name')
             ->get();
 

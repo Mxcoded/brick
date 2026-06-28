@@ -86,7 +86,7 @@
 
                                 {{-- Option B: Other Available Rooms --}}
                                 <optgroup label="Available Rooms">
-                                    @foreach (\Modules\Website\Models\Room::whereIn('status', ['available', 'booked'])->where('id', '!=', $booking->room_id)->get() as $room)
+                                    @foreach (\App\Models\Room::whereIn('status', ['available', 'booked'])->where('id', '!=', $booking->room_id)->get() as $room)
                                         @php
                                             $isOccupied = \Modules\Frontdeskcrm\Models\Registration::where(
                                                 'room_id',

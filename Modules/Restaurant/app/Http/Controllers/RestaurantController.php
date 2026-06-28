@@ -3,6 +3,7 @@
 namespace Modules\Restaurant\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Room;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
@@ -12,7 +13,6 @@ use Modules\Restaurant\Models\MenuItem;
 use Modules\Restaurant\Models\Order;
 use Modules\Restaurant\Models\OrderItem;
 use Modules\Restaurant\Models\Table;
-use Modules\Website\Models\Room;
 
 class RestaurantController extends Controller
 {

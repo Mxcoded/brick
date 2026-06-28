@@ -35,6 +35,39 @@
                 </button>
             </li>
 
+            @auth
+            @php
+                $currentProperty = app(\App\Services\PropertyService::class)->current();
+                $userProperties = Auth::user()->properties()->active()->get();
+            @endphp
+            @if($userProperties->count() > 0)
+            <li class="nav-item dropdown me-3">
+                <a class="nav-link dropdown-toggle fw-semibold" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: #333;">
+                    <i class="fas fa-building me-1"></i>
+                    {{ $currentProperty?->name ?? 'Select Property' }}
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    @foreach($userProperties as $property)
+                    <li>
+                        <form action="{{ route('frontdesk.properties.switch', $property) }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="dropdown-item {{ $currentProperty?->id === $property->id ? 'active' : '' }}">
+                                <i class="fas fa-check-circle me-2 {{ $currentProperty?->id === $property->id ? '' : 'invisible' }}"></i>
+                                {{ $property->name }}
+                                @if($property->code)<small class="text-muted ms-1">({{ $property->code }})</small>@endif
+                            </button>
+                        </form>
+                    </li>
+                    @endforeach
+                    @can('access_frontdesk_dashboard')
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ route('frontdesk.properties.index') }}"><i class="fas fa-cog me-2"></i>Manage Properties</a></li>
+                    @endcan
+                </ul>
+            </li>
+            @endif
+            @endauth
+
             <!-- Live Clock -->
             <li id="liveClock" class="nav-item me-3 text-dark fw-semibold" style="font-family: 'Courier New', monospace; color: #333333;">
                 --

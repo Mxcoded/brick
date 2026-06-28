@@ -2,6 +2,10 @@
 
 namespace Modules\Website\Models;
 
+use App\Models\Room;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,9 +15,10 @@ use Modules\Frontdeskcrm\Models\Registration;
 
 class Booking extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     protected $fillable = [
+        'property_id',
         'booking_reference',
         'booking_group_id',   // NEW: Links multiple bookings from a single cart transaction
         'room_id',            // Legacy: will be deprecated

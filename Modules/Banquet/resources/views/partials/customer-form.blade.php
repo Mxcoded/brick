@@ -98,7 +98,7 @@
                                 </div>
                                 <div class="form-floating mb-3">
                                     <input type="tel" name="contact_person_phone" id="contact_person_phone"
-                                        class="form-control phone-input"
+                                        class="form-control phone-input @error('contact_person_phone') is-invalid @enderror"
                                         value="{{ old('contact_person_phone', $order->contact_person_phone ?? '') }}"
                                         required>
                                     <label for="contact_person_phone" class="text-muted">Phone Number</label>
@@ -176,7 +176,7 @@
                                     <div class="col-md-4">
                                         <div class="form-floating">
                                             <input type="tel" name="contact_person_phone_ii"
-                                                id="contact_person_phone_ii" class="form-control phone-input"
+                                                id="contact_person_phone_ii" class="form-control phone-input @error('contact_person_phone_ii') is-invalid @enderror"
                                                 value="{{ old('contact_person_phone_ii', $order->contact_person_phone_ii ?? '') }}">
                                             <label for="contact_person_phone_ii" class="text-muted">Phone
                                                 Number</label>
@@ -262,12 +262,13 @@
 
                 if (!isNewCustomer) {
                     $('#contact_person_name').val(selected.data('name') || '');
-                    $('#contact_person_phone').val(selected.data('phone') || '');
+                    $('#contact_person_phone').val(selected.data('phone') || '').trigger('change');
                     $('#contact_person_email').val(selected.data('email') || '');
                     $('#organization').val(selected.data('org') || '');
                 } else {
                     if(document.activeElement.id === 'customer_id') {
                         $('#contact_person_name, #contact_person_phone, #contact_person_email, #organization').val('');
+                        $('#contact_person_phone').trigger('change');
                     }
                 }
             }

@@ -2,10 +2,11 @@
 
 namespace Modules\Frontdeskcrm\Http\Controllers;
 
+use App\Models\RoomUnit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Frontdeskcrm\Models\Channel;
-use Modules\Website\Models\RoomUnit;
+use Modules\Frontdeskcrm\Services\ChannelSyncService;
 
 class ChannelController extends Controller
 {
@@ -114,5 +115,27 @@ class ChannelController extends Controller
 
         return redirect()->route('frontdesk.channels.index')
             ->with('success', 'Channel deleted.');
+    }
+
+    public function sync($id)
+    {
+        $channel = Channel::with('roomMappings')->findOrFail($id);
+
+        $service = app(ChannelSyncService::class);
+        $results = $service->sync($channel);
+
+        if (! empty($results['errors'])) {
+            return back()->with('error', 'Sync completed with errors: '.implode('; ', $results['errors']));
+        }
+
+        $parts = [];
+        if ($results['availability_pushed']) {
+            $parts[] = 'availability pushed';
+        }
+        if ($results['bookings_pulled'] > 0) {
+            $parts[] = "{$results['bookings_pulled']} booking(s) pulled";
+        }
+
+        return back()->with('success', 'Sync successful ('.implode(', ', $parts).').');
     }
 }

@@ -18,7 +18,7 @@
                 
                 {{-- Export Dropdown --}}
                 <div class="dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-outline-gold dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-file-excel me-1"></i> Export
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">

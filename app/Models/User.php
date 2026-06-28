@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Modules\Staff\Models\Employee;
@@ -14,7 +15,9 @@ class User extends Authenticatable
     use HasFactory, HasRoles, Notifiable;
 
     const STATUS_ACTIVE = 'active';
+
     const STATUS_SUSPENDED = 'suspended';
+
     const STATUS_DEACTIVATED = 'deactivated';
 
     protected $fillable = [
@@ -49,6 +52,11 @@ class User extends Authenticatable
     public function guestProfile()
     {
         return $this->hasOne(GuestProfile::class);
+    }
+
+    public function properties(): BelongsToMany
+    {
+        return $this->belongsToMany(Property::class, 'property_user')->withPivot('is_default')->withTimestamps();
     }
 
     public function isStaff(): bool
