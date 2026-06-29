@@ -14,12 +14,6 @@ use Modules\Maintenance\Models\MaintenanceReading;
 
 class MaintenanceController extends Controller
 {
-    protected array $notificationRecipients = [
-        'gm@brickspoint.com',
-        'fm@brickspoint.com',
-        'it@brickspoint.com',
-    ];
-
     public function dashboard()
     {
         $totalLogs = MaintenanceLog::count();
@@ -300,16 +294,29 @@ class MaintenanceController extends Controller
         return view('maintenance::qr', compact('url'));
     }
 
+    protected function notificationRecipients(): array
+    {
+        return array_filter(array_map('trim', config('mail.maintenance_recipients', [])), fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL));
+    }
+
     protected function sendNotification(MaintenanceLog $log, string $type, ?string $previousStatus = null): void
     {
+        $recipients = $this->notificationRecipients();
+
+        if (empty($recipients)) {
+            Log::warning('No valid maintenance notification recipients configured', ['log_id' => $log->id, 'type' => $type]);
+
+            return;
+        }
+
         try {
-            Mail::to($this->notificationRecipients)->queue(
+            Mail::to($recipients)->queue(
                 new MaintenanceNotification($log, $type, $previousStatus)
             );
-            Log::info('Maintenance notification sent', [
+            Log::info('Maintenance notification queued', [
                 'log_id' => $log->id,
                 'type' => $type,
-                'recipients' => $this->notificationRecipients,
+                'recipients' => $recipients,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send maintenance notification', [
