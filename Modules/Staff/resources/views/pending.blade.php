@@ -12,7 +12,7 @@
                         Your staff account has been created but no roles have been assigned yet.
                         Please contact your administrator to set up your permissions.
                     </p>
-                    <a href="{{ route('logout') }}" class="btn btn-outline-secondary px-4"
+                    <a href="{{ route('logout') }}" class="btn btn-outline-primary px-4"
                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                         <i class="fas fa-sign-out-alt me-2"></i>Sign Out
                     </a>

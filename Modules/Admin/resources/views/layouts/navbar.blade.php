@@ -6,9 +6,14 @@
 
         <ul class="navbar-nav ms-auto mt-2 mt-lg-0 align-items-center">
             <li class="nav-item me-2">
-                <button class="btn btn-outline-secondary" id="theme-toggle" type="button">
-                    <i class="fas fa-sun" id="theme-icon-sun"></i>
-                    <i class="fas fa-moon d-none" id="theme-icon-moon"></i>
+                <button class="btn theme-toggle d-inline-flex align-items-center gap-2 border-0" id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+                    <span class="theme-toggle-track">
+                        <span class="theme-toggle-thumb d-flex align-items-center justify-content-center">
+                            <i class="fas fa-sun" id="theme-icon-sun"></i>
+                            <i class="fas fa-moon d-none" id="theme-icon-moon"></i>
+                        </span>
+                    </span>
+                    <span class="theme-toggle-label small fw-semibold" id="theme-label">Light</span>
                 </button>
             </li>
             <li id="liveClock" class="nav-item me-3" style="font-weight: bold; font-family: 'Courier New', monospace;">

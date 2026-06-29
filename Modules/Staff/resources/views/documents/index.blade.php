@@ -8,7 +8,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="h3 fw-bold mb-1" style="color: #1a1a2e;"><i class="fas fa-folder-open me-2" style="color: #C8A165;"></i>Shared Files</h1>
-            <p class="text-secondary small mb-0">
+            <p class="text-muted small mb-0">
                 {{ $totalCount }} file(s) &middot;
                 {{ $totalSize > 0 ? round($totalSize / 1073741824, 2) : 0 }} GB used
                 @if($diskTotal > 0)
@@ -45,7 +45,7 @@
                     <input type="text" name="search" class="form-control border-start-0" placeholder="Search files..." value="{{ request('search') }}">
                 </div>
                 @if(request('search'))
-                    <a href="{{ route('staff.documents.index') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                    <a href="{{ route('staff.documents.index') }}" class="btn btn-sm btn-outline-primary">Clear</a>
                 @endif
             </form>
         </div>
@@ -124,7 +124,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-secondary">
+                            <td colspan="6" class="text-center py-5 text-muted">
                                 <i class="fas fa-folder-open fa-2x mb-2 d-block"></i>
                                 @if(request('search'))
                                     No files match your search.

@@ -5,7 +5,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white">
+                <div class="card-header bg-dark text-white">
                     <h5 class="mb-0">Apply Leave on Behalf of an Employee</h5>
                 </div>
                 <div class="card-body">

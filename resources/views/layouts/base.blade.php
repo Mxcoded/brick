@@ -66,6 +66,63 @@
         .border-gold {
             border-color: #C8A165 !important;
         }
+
+        /* Theme toggle pill switch */
+        .theme-toggle {
+            background: transparent;
+            cursor: pointer;
+            padding: 4px 10px 4px 4px;
+            border-radius: 50px;
+            transition: background 0.3s ease;
+        }
+        .theme-toggle:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        [data-bs-theme="dark"] .theme-toggle:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .theme-toggle-track {
+            width: 40px;
+            height: 22px;
+            background: #e9ecef;
+            border-radius: 50px;
+            position: relative;
+            transition: background 0.3s ease;
+            flex-shrink: 0;
+        }
+        [data-bs-theme="dark"] .theme-toggle-track {
+            background: #495057;
+        }
+        .theme-toggle-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            color: #f39c12;
+        }
+        [data-bs-theme="dark"] .theme-toggle-thumb {
+            transform: translateX(18px);
+            color: #6c757d;
+        }
+        .theme-toggle-thumb i {
+            transition: transform 0.4s ease;
+            font-size: 10px;
+        }
+        [data-bs-theme="dark"] .theme-toggle-thumb i {
+            transform: rotate(360deg);
+        }
+        .theme-toggle-label {
+            color: #6c757d;
+            transition: color 0.3s ease;
+        }
+        [data-bs-theme="dark"] .theme-toggle-label {
+            color: #adb5bd;
+        }
     </style>
 
 
@@ -103,6 +160,7 @@
                 document.documentElement.setAttribute('data-bs-theme', theme)
                 const sunIcon = document.getElementById('theme-icon-sun');
                 const moonIcon = document.getElementById('theme-icon-moon');
+                const themeLabel = document.getElementById('theme-label');
                 if (sunIcon && moonIcon) {
                     if (theme === 'dark') {
                         sunIcon.classList.add('d-none');
@@ -111,6 +169,9 @@
                         sunIcon.classList.remove('d-none');
                         moonIcon.classList.add('d-none');
                     }
+                }
+                if (themeLabel) {
+                    themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
                 }
             }
 
