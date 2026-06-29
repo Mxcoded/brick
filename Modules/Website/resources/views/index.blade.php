@@ -688,6 +688,11 @@
                 overflow: hidden;
             }
 
+            .room-card.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
+            }
+
             .room-card:hover {
                 transform: translateY(-12px);
                 box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12) !important;
@@ -785,6 +790,11 @@
                 transition: all 0.3s ease;
                 border-radius: 12px !important;
                 overflow: hidden;
+            }
+
+            .dining-card.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             .dining-card:hover {
@@ -903,6 +913,11 @@
                 transition: transform 0.3s ease, box-shadow 0.3s ease;
                 background: rgba(255,255,255,0.04) !important;
                 border: 1px solid rgba(255,255,255,0.06);
+            }
+
+            .testimonial-card.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             .testimonial-card::before {

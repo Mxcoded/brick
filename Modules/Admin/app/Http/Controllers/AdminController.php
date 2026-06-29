@@ -148,9 +148,15 @@ class AdminController extends Controller
         $highPriorityTasks = Task::where('priority', 'high')->whereIn('status', ['pending', 'in_progress'])->count();
 
         // ── Restaurant ──
-        $restaurantOrdersToday = RestaurantOrder::whereDate('created_at', today())->count();
-        $restaurantOrdersPending = RestaurantOrder::where('status', 'pending')->count();
-        $restaurantOrdersMonth = RestaurantOrder::whereMonth('created_at', now()->month)->count();
+        if (Module::has('Restaurant') && Module::find('Restaurant')->isEnabled()) {
+            $restaurantOrdersToday = RestaurantOrder::whereDate('created_at', today())->count();
+            $restaurantOrdersPending = RestaurantOrder::where('status', 'pending')->count();
+            $restaurantOrdersMonth = RestaurantOrder::whereMonth('created_at', now()->month)->count();
+        } else {
+            $restaurantOrdersToday = 0;
+            $restaurantOrdersPending = 0;
+            $restaurantOrdersMonth = 0;
+        }
 
         // ── Gym ──
         $activeMemberships = Membership::count();

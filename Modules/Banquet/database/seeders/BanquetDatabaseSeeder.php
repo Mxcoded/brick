@@ -14,6 +14,7 @@ class BanquetDatabaseSeeder extends Seeder
         $this->call([
             BanquetVenueSeeder::class,
             BanquetSetupStyleSeeder::class,
+            EventLeadPageSeeder::class,
         ]);
     }
 }
