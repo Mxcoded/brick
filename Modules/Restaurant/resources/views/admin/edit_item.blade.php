@@ -1,4 +1,4 @@
-@extends('restaurant::layouts.master')
+@extends('restaurant::layouts.adminMaster')
 @section('title', 'Edit Menu Item')
 
 @section('content')
@@ -45,7 +45,7 @@
                             </div>
                         </div>
                         <div class="d-flex justify-content-end mt-4">
-                            <a href="{{ route('dashboard') }}" class="btn btn-secondary btn-lg me-2">Cancel</a>
+                            <a href="{{ route('restaurant.admin.dashboard') }}" class="btn btn-secondary btn-lg me-2">Cancel</a>
                             <button type="submit" class="btn button btn-lg fw-bold">Update Item</button>
                         </div>
                     </form>

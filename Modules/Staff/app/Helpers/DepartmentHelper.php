@@ -59,6 +59,7 @@ class DepartmentHelper
             return 'Unassigned';
         }
         $key = strtolower($department);
+
         return self::$map[$key] ?? $department;
     }
 
@@ -98,7 +99,8 @@ class DepartmentHelper
             }
         }
         arsort($grouped);
-        return array_map(fn($name, $total) => (object)[
+
+        return array_map(fn ($name, $total) => (object) [
             'department' => $name,
             $countField => $total,
         ], array_keys($grouped), $grouped);

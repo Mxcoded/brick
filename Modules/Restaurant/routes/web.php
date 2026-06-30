@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Modules\Restaurant\Http\Controllers\RestaurantController;
+use Modules\Restaurant\Http\Controllers\WaiterAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,12 +73,37 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
     Route::match(['get', 'post'], '/online/orders', [RestaurantController::class, 'viewOrderHistory'])->name('restaurant.online.orders');
 });
 
-Route::prefix('restaurant-waiter')->middleware(['web', 'auth', 'can:access_restaurant_dashboard'])->group(function () {
+// Waiter login (no auth)
+Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
+    Route::get('/login', [WaiterAuthController::class, 'showLoginForm'])->name('restaurant.waiter.login');
+    Route::post('/login', [WaiterAuthController::class, 'login']);
+    Route::post('/logout', [WaiterAuthController::class, 'logout'])->name('restaurant.waiter.logout');
+});
+
+Route::prefix('restaurant-waiter')->middleware(['web', 'waiter-auth', 'can:access_restaurant_dashboard'])->group(function () {
     Route::get('/dashboard', [RestaurantController::class, 'waiterDashboard'])->name('restaurant.waiter.dashboard');
     Route::post('/order/{order}/accept', [RestaurantController::class, 'acceptOrder'])->name('restaurant.waiter.accept');
     Route::post('/order/{order}/update-status', [RestaurantController::class, 'updateOrderStatus'])->name('restaurant.waiter.update-status');
     Route::post('/order/{order}/reject', [RestaurantController::class, 'rejectOrder'])->name('restaurant.waiter.reject');
     Route::post('/order/{order}/void', [RestaurantController::class, 'voidOrder'])->name('restaurant.waiter.void');
+
+    // POS routes
+    Route::post('/pos/cart/add', [RestaurantController::class, 'posAddToCart'])->name('restaurant.waiter.pos.cart.add');
+    Route::post('/pos/cart/update', [RestaurantController::class, 'posUpdateCart'])->name('restaurant.waiter.pos.cart.update');
+    Route::post('/pos/cart/remove', [RestaurantController::class, 'posRemoveFromCart'])->name('restaurant.waiter.pos.cart.remove');
+    Route::get('/pos/cart', [RestaurantController::class, 'posGetCart'])->name('restaurant.waiter.pos.cart.get');
+    Route::post('/pos/order/submit', [RestaurantController::class, 'posSubmitOrder'])->name('restaurant.waiter.pos.order.submit');
+
+    // Shift routes
+    Route::get('/shift/current', [RestaurantController::class, 'currentShift'])->name('restaurant.waiter.shift.current');
+    Route::post('/shift/start', [RestaurantController::class, 'startShift'])->name('restaurant.waiter.shift.start');
+    Route::post('/shift/end', [RestaurantController::class, 'endShift'])->name('restaurant.waiter.shift.end');
+
+    // POS settings
+    Route::get('/pos/settings', [RestaurantController::class, 'posSettings'])->name('restaurant.waiter.pos.settings');
+
+    // Receipt print
+    Route::get('/order/{order}/receipt', [RestaurantController::class, 'printReceipt'])->name('restaurant.waiter.receipt');
 });
 
 Route::prefix('restaurant-admin')->middleware(['web', 'auth', 'can:access_restaurant_dashboard'])->group(function () {
@@ -96,6 +122,15 @@ Route::prefix('restaurant-admin')->middleware(['web', 'auth', 'can:access_restau
     Route::post('/dashboard/item/{item}/update', [RestaurantController::class, 'updateMenuItem'])->name('restaurant.admin.update-item');
     Route::post('/dashboard/item/{item}/delete', [RestaurantController::class, 'deleteMenuItem'])->name('restaurant.admin.delete-item');
 
+    // Restore soft-deleted items
+    Route::post('/dashboard/trashed/category/{id}/restore', [RestaurantController::class, 'restoreMenuCategory'])->name('restaurant.admin.restore-category');
+    Route::post('/dashboard/trashed/item/{id}/restore', [RestaurantController::class, 'restoreMenuItem'])->name('restaurant.admin.restore-item');
+
     // Order Management
+    Route::get('/order/{order}', [RestaurantController::class, 'showOrder'])->name('restaurant.admin.order.show');
     Route::post('/order/{order}/update', [RestaurantController::class, 'updateOrder'])->name('restaurant.admin.order.update');
+
+    // Settings
+    Route::get('/settings', [RestaurantController::class, 'adminSettings'])->name('restaurant.admin.settings');
+    Route::post('/settings/update', [RestaurantController::class, 'updateSettings'])->name('restaurant.admin.settings.update');
 });

@@ -14,7 +14,9 @@ class User extends Authenticatable
     use HasFactory, HasRoles, Notifiable;
 
     const STATUS_ACTIVE = 'active';
+
     const STATUS_SUSPENDED = 'suspended';
+
     const STATUS_DEACTIVATED = 'deactivated';
 
     protected $fillable = [

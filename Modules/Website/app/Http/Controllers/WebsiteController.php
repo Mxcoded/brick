@@ -59,7 +59,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays in Abuja, Nigeria. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
         $meta_keywords = 'boutique hotel Abuja, apart-hotel Abuja, luxury accommodation Abuja, short let Abuja, best hotel Abuja, Brickspoint, apart-hotel Nigeria';
-        $og_title = config('app.name', 'Brickspoint Boutique Aparthotel') . ' — Luxury Short & Long Stays in Abuja';
+        $og_title = config('app.name', 'Brickspoint Boutique Aparthotel').' — Luxury Short & Long Stays in Abuja';
 
         return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -123,7 +123,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Browse our premium room types and suites at Brickspoint Boutique Aparthotel. Find the perfect accommodation for your stay in Abuja.';
         $meta_keywords = 'rooms Abuja, suites Abuja, apart-hotel rooms, luxury accommodation Abuja, Brickspoint rooms';
-        $og_title = 'Rooms & Suites — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Rooms & Suites — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::rooms', compact('roomTypes', 'checkIn', 'checkOut', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -144,9 +144,9 @@ class WebsiteController extends Controller
             ->take(3)
             ->get();
 
-        $meta_description = strip_tags($roomType->short_description ?? $roomType->description ?? '') . ' — Book the ' . $roomType->name . ' at Brickspoint Boutique Aparthotel, Abuja.';
-        $meta_keywords = strtolower($roomType->name) . ', ' . ($roomType->amenities->pluck('name')->implode(', ') ?? 'luxury rooms Abuja');
-        $og_title = $roomType->name . ' — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = strip_tags($roomType->short_description ?? $roomType->description ?? '').' — Book the '.$roomType->name.' at Brickspoint Boutique Aparthotel, Abuja.';
+        $meta_keywords = strtolower($roomType->name).', '.($roomType->amenities->pluck('name')->implode(', ') ?? 'luxury rooms Abuja');
+        $og_title = $roomType->name.' — '.config('app.name', 'Brickspoint Boutique Aparthotel');
         $og_image = $roomType->images->first()?->url ?? asset('images/og-default.jpg');
 
         return view('website::room-details', compact('roomType', 'relatedRooms', 'meta_description', 'meta_keywords', 'og_title', 'og_image'));
@@ -165,14 +165,14 @@ class WebsiteController extends Controller
         // Fetch existing guest profile for logged-in users
         $guest = null;
         if (Auth::check()) {
-            $guest = Guest::where('user_id', Auth::id())->first() ?? new Guest();
+            $guest = Guest::where('user_id', Auth::id())->first() ?? new Guest;
         }
 
         $viewData = compact('guest');
 
         $meta_description = 'Complete your booking at Brickspoint Boutique Aparthotel. Secure your room with our easy online reservation system.';
         $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking';
-        $og_title = 'Book Your Stay — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Book Your Stay — '.config('app.name', 'Brickspoint Boutique Aparthotel');
         $viewData['meta_description'] = $meta_description;
         $viewData['meta_keywords'] = $meta_keywords;
         $viewData['og_title'] = $og_title;
@@ -661,7 +661,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Visit Brickspoint Boutique Aparthotel in Abuja, Nigeria. Find directions, map, and information about our prime location.';
         $meta_keywords = 'Brickspoint location Abuja, apart-hotel Abuja address, map Abuja hotel, Abuja Nigeria hotel location';
-        $og_title = 'Our Location — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Our Location — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::location', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -672,7 +672,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Get in touch with Brickspoint Boutique Aparthotel. Contact us for reservations, enquiries, or special requests. We are here to help.';
         $meta_keywords = 'contact Brickspoint, Abuja hotel contact, apart-hotel enquiries, book hotel Abuja, Brickspoint address';
-        $og_title = 'Contact Us — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Contact Us — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::contact', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1025,7 +1025,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Explore dining at Brickspoint Boutique Aparthotel. Enjoy exquisite cuisine at our on-site restaurant, bar, and dining venues in Abuja.';
         $meta_keywords = 'dining Abuja, restaurant Abuja, Brickspoint restaurant, fine dining Abuja, apart-hotel dining';
-        $og_title = 'Dining — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Dining — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::dining', compact('settings', 'diningOptions', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1034,9 +1034,9 @@ class WebsiteController extends Controller
     {
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        $meta_description = 'View the menu for ' . $dining->name . ' at Brickspoint Boutique Aparthotel.';
-        $meta_keywords = $dining->name . ' menu, dining Abuja, restaurant menu';
-        $og_title = $dining->name . ' Menu — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'View the menu for '.$dining->name.' at Brickspoint Boutique Aparthotel.';
+        $meta_keywords = $dining->name.' menu, dining Abuja, restaurant menu';
+        $og_title = $dining->name.' Menu — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::menu', compact('settings', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1059,7 +1059,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Discover exclusive offers and special packages at Brickspoint Boutique Aparthotel. Save on your next stay in Abuja.';
         $meta_keywords = 'hotel deals Abuja, apart-hotel offers, Brickspoint promotions, Abuja hotel packages';
-        $og_title = 'Offers & Deals — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Offers & Deals — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::offers', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1082,7 +1082,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Explore the premium facilities at Brickspoint Boutique Aparthotel — gym, restaurant, meeting rooms, and more in Abuja.';
         $meta_keywords = 'hotel facilities Abuja, apart-hotel amenities, Brickspoint gym, meeting rooms Abuja, Abuja hotel services';
-        $og_title = 'Facilities — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Facilities — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::facilities', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }

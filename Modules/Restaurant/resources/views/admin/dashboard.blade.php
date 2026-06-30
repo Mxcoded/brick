@@ -1,10 +1,13 @@
-@extends('restaurant::layouts.master')
+@extends('restaurant::layouts.adminMaster')
 @section('title', 'Admin Dashboard')
 @section('content')
     <div class="container-fluid">
         <div class="text-center mb-5 mt-4">
             <h1 class="display-4 fw-bold text-dark">Admin Dashboard</h1>
             <p class="lead text-muted">Manage your restaurant's menu, items, and orders seamlessly.</p>
+            <a href="{{ route('restaurant.admin.settings') }}" class="btn btn-outline-secondary rounded-pill mt-2">
+                <i class="bi bi-gear me-1"></i> Settings
+            </a>
         </div>
 
         @if (session('success'))
@@ -100,7 +103,7 @@
                                     <h5 class="card-title fw-bold">{{ $item->name }}</h5>
                                     <p class="card-text text-muted small">{{ Str::limit($item->description, 50) }}</p>
                                     <p class="fw-bold h5 text-primary mb-2">₦{{ number_format($item->price, 2) }}</p>
-                                    <span class="badge bg-secondary"><i class="bi bi-tag me-1"></i>{{ $item->category->name ?? 'Uncategorized' }}</span>
+                                    <span class="badge bg-dark"><i class="bi bi-tag me-1"></i>{{ $item->category->name ?? 'Uncategorized' }}</span>
                                 </div>
                                 <div class="card-footer bg-white border-0 p-3">
                                     <div class="d-flex justify-content-end">
@@ -154,8 +157,117 @@
             </div>
         </div>
 
+        @if($trashedItems->count() || $trashedCategories->count())
         <div class="row mb-5">
-           </div>
+            <div class="col-12">
+                <h2 class="fw-bold mb-4 text-danger"><i class="bi bi-trash3 me-2"></i>Trash</h2>
+                <div class="card shadow-sm border-0 rounded-4 border-danger border-opacity-25">
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Name</th>
+                                    <th>Deleted</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($trashedCategories as $cat)
+                                <tr>
+                                    <td><span class="badge bg-secondary">Category</span></td>
+                                    <td>{{ $cat->name }}</td>
+                                    <td class="small text-muted">{{ $cat->deleted_at->diffForHumans() }}</td>
+                                    <td class="text-end">
+                                        <form action="{{ route('restaurant.admin.restore-category', $cat->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button class="btn btn-sm btn-outline-success" title="Restore"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                @endforeach
+                                @foreach($trashedItems as $item)
+                                <tr>
+                                    <td><span class="badge bg-dark">Item</span></td>
+                                    <td>{{ $item->name }} <span class="text-muted small">({{ $item->category?->name ?? 'Uncategorized' }})</span></td>
+                                    <td class="small text-muted">{{ $item->deleted_at->diffForHumans() }}</td>
+                                    <td class="text-end">
+                                        <form action="{{ route('restaurant.admin.restore-item', $item->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button class="btn btn-sm btn-outline-success" title="Restore"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        <div class="row mb-5">
+            <div class="col-12">
+                <h2 class="fw-bold mb-4">Recent Orders</h2>
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Source</th>
+                                        <th>Items</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th>Tracking</th>
+                                        <th>Date</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse ($orders as $order)
+                                    <tr>
+                                        <td class="fw-bold">{{ $order->id }}</td>
+                                        <td>{{ $order->type === 'walk_in' ? ($order->customer_name ?: 'Walk-in') : ($order->type === 'table' ? 'Table ' . $order->source_id : 'Room ' . $order->source_id) }}</td>
+                                        <td>{{ $order->orderItems->count() }} item(s)</td>
+                                        <td class="fw-bold">₦{{ number_format($order->grand_total) }}</td>
+                                        <td>
+                                            @php
+                                                $statusBadge = match($order->status) {
+                                                    'pending' => 'bg-warning text-dark',
+                                                    'accepted' => 'bg-info',
+                                                    'completed' => 'bg-success',
+                                                    'rejected' => 'bg-danger',
+                                                    'void' => 'bg-dark',
+                                                    default => 'bg-light text-dark',
+                                                };
+                                            @endphp
+                                            <span class="badge {{ $statusBadge }}">{{ ucfirst($order->status) }}</span>
+                                        </td>
+                                        <td>
+                                            @if($order->tracking_status)
+                                                <span class="badge bg-dark">{{ ucfirst($order->tracking_status) }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-muted small">{{ $order->created_at->format('d/m/Y H:i') }}</td>
+                                        <td>
+                                            <a href="{{ route('restaurant.admin.order.show', $order->id) }}" class="btn btn-sm btn-outline-primary rounded-pill">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr><td colspan="8" class="text-center text-muted py-4">No orders yet.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">

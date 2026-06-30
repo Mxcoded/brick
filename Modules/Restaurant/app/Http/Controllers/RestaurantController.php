@@ -11,7 +11,9 @@ use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
 use Modules\Restaurant\Models\Order;
 use Modules\Restaurant\Models\OrderItem;
+use Modules\Restaurant\Models\RestaurantSetting;
 use Modules\Restaurant\Models\Table;
+use Modules\Restaurant\Models\WaiterShift;
 use Modules\Website\Models\Room;
 
 class RestaurantController extends Controller
@@ -465,19 +467,289 @@ class RestaurantController extends Controller
     /** Waiter Dashboard and Order Management start */
     public function waiterDashboard()
     {
-        // Separate orders into pending and active for the new tabs
         $pendingOrders = Order::where('status', 'pending')
-            ->whereIn('type', ['table', 'room'])
+            ->whereIn('type', ['table', 'room', 'walk_in'])
             ->with('orderItems.menuItem')
             ->get();
 
         $activeOrders = Order::where('status', 'accepted')
             ->whereIn('tracking_status', ['preparing', 'ready', 'served'])
-            ->whereIn('type', ['table', 'room'])
+            ->whereIn('type', ['table', 'room', 'walk_in'])
             ->with('orderItems.menuItem')
             ->get();
 
-        return view('restaurant::waiter.dashboard', compact('pendingOrders', 'activeOrders'));
+        $paidOrders = Order::where('status', 'completed')
+            ->where('tracking_status', 'paid')
+            ->whereIn('type', ['table', 'room', 'walk_in'])
+            ->with('orderItems.menuItem')
+            ->latest()
+            ->limit(50)
+            ->get();
+
+        $categories = MenuCategory::with(['menuItems', 'childrenRecursive.menuItems'])
+            ->whereNull('parent_id')
+            ->get();
+
+        $tables = Table::all();
+
+        return view('restaurant::waiter.dashboard', compact('pendingOrders', 'activeOrders', 'paidOrders', 'categories', 'tables'));
+    }
+
+    public function posAddToCart(Request $request)
+    {
+        $validated = $request->validate([
+            'item_id' => 'required|exists:restaurant_menu_items,id',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $cart = session()->get('pos_cart', []);
+
+        $existing = null;
+        foreach ($cart as $i => $item) {
+            if ($item['item_id'] == $validated['item_id']) {
+                $existing = $i;
+                break;
+            }
+        }
+
+        if ($existing !== null) {
+            $cart[$existing]['quantity'] += $validated['quantity'];
+        } else {
+            $menuItem = MenuItem::find($validated['item_id']);
+            $cart[] = [
+                'item_id' => $menuItem->id,
+                'name' => $menuItem->name,
+                'price' => (float) $menuItem->price,
+                'quantity' => $validated['quantity'],
+            ];
+        }
+
+        session()->put('pos_cart', $cart);
+
+        return response()->json(['success' => true, 'cart' => $cart]);
+    }
+
+    public function posUpdateCart(Request $request)
+    {
+        $validated = $request->validate([
+            'index' => 'required|integer|min:0',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $cart = session()->get('pos_cart', []);
+        if (isset($cart[$validated['index']])) {
+            $cart[$validated['index']]['quantity'] = $validated['quantity'];
+            session()->put('pos_cart', $cart);
+        }
+
+        return response()->json(['success' => true, 'cart' => array_values($cart)]);
+    }
+
+    public function posRemoveFromCart(Request $request)
+    {
+        $validated = $request->validate([
+            'index' => 'required|integer',
+        ]);
+
+        $cart = session()->get('pos_cart', []);
+
+        if ($validated['index'] === -1) {
+            $cart = [];
+        } elseif (isset($cart[$validated['index']])) {
+            unset($cart[$validated['index']]);
+            $cart = array_values($cart);
+        }
+
+        session()->put('pos_cart', $cart);
+
+        return response()->json(['success' => true, 'cart' => $cart]);
+    }
+
+    public function posGetCart()
+    {
+        $cart = session()->get('pos_cart', []);
+        $total = array_reduce($cart, fn ($sum, $item) => $sum + ($item['price'] * $item['quantity']), 0);
+
+        return response()->json(['success' => true, 'cart' => $cart, 'total' => $total]);
+    }
+
+    public function posSubmitOrder(Request $request)
+    {
+        $validated = $request->validate([
+            'source_type' => 'required|in:table,walk_in',
+            'source_id' => 'required_if:source_type,table|nullable|integer',
+            'customer_name' => 'nullable|string|max:255',
+            'discount' => 'nullable|numeric|min:0',
+            'discount_type' => 'nullable|in:percentage,fixed',
+        ]);
+
+        $cart = session()->get('pos_cart', []);
+        if (empty($cart)) {
+            return response()->json(['success' => false, 'message' => 'Cart is empty.'], 422);
+        }
+
+        $itemIds = array_column($cart, 'item_id');
+        $validItems = MenuItem::whereIn('id', $itemIds)->pluck('id')->toArray();
+        $invalidItems = array_diff($itemIds, $validItems);
+        if (! empty($invalidItems)) {
+            return response()->json(['success' => false, 'message' => 'Some items are no longer available.'], 422);
+        }
+
+        $subtotal = collect($cart)->sum(fn ($i) => $i['price'] * $i['quantity']);
+
+        $discount = (float) ($validated['discount'] ?? 0);
+        $discountType = $validated['discount_type'] ?? null;
+        $discountAmount = $discountType === 'percentage' ? $subtotal * $discount / 100 : $discount;
+
+        $vatRate = (float) (RestaurantSetting::getValue('vat_rate', '7.5'));
+        $vat = ($subtotal - $discountAmount) * $vatRate / 100;
+
+        $grandTotal = $subtotal - $discountAmount + $vat;
+
+        $shift = WaiterShift::where('user_id', auth()->id())->where('status', 'open')->first();
+
+        $orderData = [
+            'type' => $validated['source_type'],
+            'source_id' => $validated['source_type'] === 'table' ? $validated['source_id'] : null,
+            'status' => 'pending',
+            'tracking_status' => 'pending',
+            'customer_name' => $validated['customer_name'] ?? ($validated['source_type'] === 'table' ? 'Table '.Table::find($validated['source_id'])?->number : 'Walk-in'),
+            'shift_id' => $shift?->id,
+            'subtotal' => $subtotal,
+            'discount' => $discountAmount,
+            'discount_type' => $discountType,
+            'vat' => $vat,
+            'vat_rate' => $vatRate,
+            'grand_total' => $grandTotal,
+        ];
+
+        $order = Order::create($orderData);
+
+        foreach ($cart as $item) {
+            OrderItem::create([
+                'restaurant_order_id' => $order->id,
+                'restaurant_menu_item_id' => $item['item_id'],
+                'quantity' => $item['quantity'],
+                'instructions' => null,
+            ]);
+        }
+
+        if ($shift) {
+            $shift->total_sales = $shift->total_sales + $grandTotal;
+            $shift->save();
+        }
+
+        session()->forget('pos_cart');
+
+        return response()->json(['success' => true, 'order_id' => $order->id]);
+    }
+
+    public function currentShift()
+    {
+        $shift = WaiterShift::where('user_id', auth()->id())
+            ->where('status', 'open')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'shift' => $shift ? [
+                'id' => $shift->id,
+                'clock_in' => $shift->clock_in->format('Y-m-d H:i:s'),
+                'starting_cash' => $shift->starting_cash,
+                'total_sales' => $shift->total_sales,
+                'status' => $shift->status,
+            ] : null,
+        ]);
+    }
+
+    public function startShift(Request $request)
+    {
+        $validated = $request->validate([
+            'starting_cash' => 'nullable|numeric|min:0',
+        ]);
+
+        $existing = WaiterShift::where('user_id', auth()->id())
+            ->where('status', 'open')
+            ->first();
+
+        if ($existing) {
+            return response()->json(['success' => false, 'message' => 'You already have an open shift.'], 422);
+        }
+
+        $shift = WaiterShift::create([
+            'user_id' => auth()->id(),
+            'clock_in' => now(),
+            'starting_cash' => $validated['starting_cash'] ?? 0,
+            'status' => 'open',
+        ]);
+
+        return response()->json(['success' => true, 'shift' => [
+            'id' => $shift->id,
+            'clock_in' => $shift->clock_in->format('Y-m-d H:i:s'),
+            'starting_cash' => $shift->starting_cash,
+        ]]);
+    }
+
+    public function endShift(Request $request)
+    {
+        $validated = $request->validate([
+            'ending_cash' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $shift = WaiterShift::where('user_id', auth()->id())
+            ->where('status', 'open')
+            ->first();
+
+        if (! $shift) {
+            return response()->json(['success' => false, 'message' => 'No open shift found.'], 404);
+        }
+
+        $shift->clock_out = now();
+        $shift->ending_cash = $validated['ending_cash'];
+        $shift->notes = $validated['notes'] ?? null;
+        $shift->status = 'closed';
+        $shift->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function posSettings()
+    {
+        return response()->json([
+            'success' => true,
+            'settings' => [
+                'vat_rate' => RestaurantSetting::getValue('vat_rate', '7.5'),
+                'service_charge_rate' => RestaurantSetting::getValue('service_charge_rate', '0'),
+                'discount_limit' => RestaurantSetting::getValue('discount_limit', '10000'),
+            ],
+        ]);
+    }
+
+    public function adminSettings()
+    {
+        $settings = [
+            'vat_rate' => RestaurantSetting::getValue('vat_rate', '7.5'),
+            'service_charge_rate' => RestaurantSetting::getValue('service_charge_rate', '0'),
+            'discount_limit' => RestaurantSetting::getValue('discount_limit', '10000'),
+        ];
+
+        return view('restaurant::admin.settings', compact('settings'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'vat_rate' => 'required|numeric|min:0|max:100',
+            'service_charge_rate' => 'required|numeric|min:0|max:100',
+            'discount_limit' => 'required|numeric|min:0',
+        ]);
+
+        RestaurantSetting::setValue('vat_rate', $validated['vat_rate']);
+        RestaurantSetting::setValue('service_charge_rate', $validated['service_charge_rate']);
+        RestaurantSetting::setValue('discount_limit', $validated['discount_limit']);
+
+        return redirect()->route('restaurant.admin.settings')->with('success', 'Settings updated successfully.');
     }
 
     // method to handle accepted orders
@@ -545,6 +817,13 @@ class RestaurantController extends Controller
         return redirect()->route('restaurant.waiter.dashboard')->with('success', "Order #{$order->id} has been voided.");
     }
 
+    public function printReceipt(Order $order)
+    {
+        $order->load('orderItems.menuItem', 'shift.user');
+
+        return view('restaurant::waiter.receipt', compact('order'));
+    }
+
     /**
      * Admin function starting the dashboard
      */
@@ -554,8 +833,10 @@ class RestaurantController extends Controller
         $parent_categories = $categories->whereNull('parent_id');
         $menuItems = MenuItem::with('category')->get();
         $orders = Order::with('orderItems.menuItem')->latest()->get();
+        $trashedItems = MenuItem::onlyTrashed()->with('category')->get();
+        $trashedCategories = MenuCategory::onlyTrashed()->withCount('menuItems')->get();
 
-        return view('restaurant::admin.dashboard', compact('categories', 'parent_categories', 'menuItems', 'orders'));
+        return view('restaurant::admin.dashboard', compact('categories', 'parent_categories', 'menuItems', 'orders', 'trashedItems', 'trashedCategories'));
     }
 
     public function addMenuCategory(Request $request)
@@ -570,7 +851,7 @@ class RestaurantController extends Controller
             'parent_id' => $request->input('parent_category'),
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Menu category added successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu category added successfully!');
     }
 
     // New Method
@@ -596,20 +877,22 @@ class RestaurantController extends Controller
 
         $category->update($request->all());
 
-        return redirect()->route('dashboard')->with('success', 'Menu category updated successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu category updated successfully!');
     }
 
-    // New Method
     public function deleteMenuCategory(MenuCategory $category)
     {
-        // Prevent deletion if the category has items or subcategories
-        if ($category->menuItems()->count() > 0 || $category->children()->count() > 0) {
-            return redirect()->route('dashboard')->with('error', 'Cannot delete category. It contains items or subcategories.');
-        }
-
         $category->delete();
 
-        return redirect()->route('dashboard')->with('success', 'Menu category deleted successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu category deleted successfully!');
+    }
+
+    public function restoreMenuCategory($id)
+    {
+        $category = MenuCategory::withTrashed()->findOrFail($id);
+        $category->restore();
+
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu category restored successfully!');
     }
 
     // New Method
@@ -646,7 +929,7 @@ class RestaurantController extends Controller
 
     public function editMenuItem(MenuItem $item)
     {
-        $categories = MenuCategory::all();
+        $categories = MenuCategory::withTrashed()->get();
 
         return view('restaurant::admin.edit_item', compact('item', 'categories'));
     }
@@ -677,18 +960,22 @@ class RestaurantController extends Controller
 
         $item->save();
 
-        return redirect()->route('dashboard')->with('success', 'Menu item updated successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu item updated successfully!');
     }
 
-    // New Method
     public function deleteMenuItem(MenuItem $item)
     {
-        if ($item->image) {
-            Storage::disk('public')->delete($item->image);
-        }
         $item->delete();
 
-        return redirect()->route('dashboard')->with('success', 'Menu item deleted successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu item deleted successfully!');
+    }
+
+    public function restoreMenuItem($id)
+    {
+        $item = MenuItem::withTrashed()->findOrFail($id);
+        $item->restore();
+
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu item restored successfully!');
     }
 
     public function updateOrder(Request $request, $order)
@@ -706,5 +993,13 @@ class RestaurantController extends Controller
         $order->save();
 
         return redirect()->back()->with('success', 'Order updated successfully!');
+    }
+
+    public function showOrder(Order $order)
+    {
+        $order->load('orderItems.menuItem', 'shift');
+        $statuses = ['pending', 'accepted', 'completed', 'rejected', 'void'];
+
+        return view('restaurant::admin.order_detail', compact('order', 'statuses'));
     }
 }

@@ -4,12 +4,11 @@ namespace Modules\Restaurant\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
-// use Modules\Restaurant\Database\Factories\MenuItemFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MenuItem extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -21,11 +20,6 @@ class MenuItem extends Model
 
     public function category()
     {
-        return $this->belongsTo(MenuCategory::class, 'restaurant_menu_categories_id');
+        return $this->belongsTo(MenuCategory::class, 'restaurant_menu_categories_id')->withTrashed();
     }
-
-    // protected static function newFactory(): MenuItemFactory
-    // {
-    //     // return MenuItemFactory::new();
-    // }
 }

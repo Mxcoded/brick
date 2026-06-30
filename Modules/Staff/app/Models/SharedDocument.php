@@ -40,6 +40,7 @@ class SharedDocument extends Model
         $slug = preg_replace('/[^\w\-\.]+/', '-', $this->filename);
         $slug = trim($slug, '-');
         $slug = $slug ?: 'file';
+
         return route('shared.documents.download', [$this->share_token, $slug]);
     }
 
@@ -60,6 +61,7 @@ class SharedDocument extends Model
         if ($bytes >= 1024) {
             return number_format($bytes / 1024, 0).' KB';
         }
+
         return $bytes.' B';
     }
 
@@ -84,10 +86,9 @@ class SharedDocument extends Model
         if ($term) {
             $query->where(function ($q) use ($term) {
                 $q->where('filename', 'like', "%{$term}%")
-                  ->orWhere('description', 'like', "%{$term}%")
-                  ->orWhere('extension', 'like', "%{$term}%");
+                    ->orWhere('description', 'like', "%{$term}%")
+                    ->orWhere('extension', 'like', "%{$term}%");
             });
         }
     }
-
 }

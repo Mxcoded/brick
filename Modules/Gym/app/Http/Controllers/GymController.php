@@ -847,7 +847,7 @@ class GymController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return redirect()->route('trainers.index')->with('error', 'An error occurred while deleting the trainer. Please try again.');
+            return redirect()->route('gym.trainers.index')->with('error', 'An error occurred while deleting the trainer. Please try again.');
         }
     }
 

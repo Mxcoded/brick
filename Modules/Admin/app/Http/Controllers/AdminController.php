@@ -620,7 +620,7 @@ class AdminController extends Controller
     public function createUserFromEmployee()
     {
         $employees = Employee::whereNull('end_date')
-            ->where(fn($q) => $q->whereNull('user_id')->orWhereDoesntHave('user'))
+            ->where(fn ($q) => $q->whereNull('user_id')->orWhereDoesntHave('user'))
             ->orderBy('name')
             ->get();
 

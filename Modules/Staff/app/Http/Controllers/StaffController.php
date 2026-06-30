@@ -12,13 +12,13 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Request as RequestFacade;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
+use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Staff\Exports\StaffExport;
 use Modules\Staff\Helpers\DepartmentHelper;
 use Modules\Staff\Mail\WelcomeMail;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveRequest;
 use Modules\Staff\Models\StaffSetting;
-use Modules\Frontdeskcrm\Rules\ValidEmail;
 
 class StaffController extends Controller
 {
@@ -276,7 +276,9 @@ class StaffController extends Controller
             // Save Employment History (skip empty rows)
             if (! empty($request->employment_history)) {
                 foreach ($request->employment_history as $history) {
-                    if (empty($history['employer_name'])) continue;
+                    if (empty($history['employer_name'])) {
+                        continue;
+                    }
                     $employee->employmentHistories()->create($history);
                 }
             }
@@ -284,7 +286,9 @@ class StaffController extends Controller
             // Save Educational Background (skip empty rows)
             if (! empty($request->educational_background)) {
                 foreach ($request->educational_background as $education) {
-                    if (empty($education['school_name'])) continue;
+                    if (empty($education['school_name'])) {
+                        continue;
+                    }
                     $certificatePath = isset($education['certificate_path'])
                         ? $education['certificate_path']->store('certificates', 'public')
                         : null;
@@ -425,7 +429,7 @@ class StaffController extends Controller
             // Update related records (skip empty rows)
             $employee->employmentHistories()->delete();
             if (! empty($request->employment_history)) {
-                $validHistory = array_values(array_filter($request->employment_history, fn($h) => ! empty($h['employer_name'])));
+                $validHistory = array_values(array_filter($request->employment_history, fn ($h) => ! empty($h['employer_name'])));
                 if (! empty($validHistory)) {
                     $employee->employmentHistories()->createMany($validHistory);
                 }
@@ -433,7 +437,7 @@ class StaffController extends Controller
 
             $employee->educationalBackgrounds()->delete();
             if (! empty($request->educational_background)) {
-                $validEducation = array_values(array_filter($request->educational_background, fn($e) => ! empty($e['school_name'])));
+                $validEducation = array_values(array_filter($request->educational_background, fn ($e) => ! empty($e['school_name'])));
                 if (! empty($validEducation)) {
                     $employee->educationalBackgrounds()->createMany($validEducation);
                 }
