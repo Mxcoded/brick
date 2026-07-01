@@ -8,13 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('restaurant_menu_items', function (Blueprint $table) {
-            $table->softDeletes();
-        });
+        if (!Schema::hasColumn('restaurant_menu_items', 'deleted_at')) {
+            Schema::table('restaurant_menu_items', function (Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
 
-        Schema::table('restaurant_menu_categories', function (Blueprint $table) {
-            $table->softDeletes();
-        });
+        if (!Schema::hasColumn('restaurant_menu_categories', 'deleted_at')) {
+            Schema::table('restaurant_menu_categories', function (Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
 
         Schema::table('restaurant_menu_items', function (Blueprint $table) {
             $table->dropForeign(['restaurant_menu_categories_id']);
@@ -52,12 +56,16 @@ return new class extends Migration
                 ->onDelete('cascade');
         });
 
-        Schema::table('restaurant_menu_items', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-        });
+        if (Schema::hasColumn('restaurant_menu_items', 'deleted_at')) {
+            Schema::table('restaurant_menu_items', function (Blueprint $table) {
+                $table->dropSoftDeletes();
+            });
+        }
 
-        Schema::table('restaurant_menu_categories', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-        });
+        if (Schema::hasColumn('restaurant_menu_categories', 'deleted_at')) {
+            Schema::table('restaurant_menu_categories', function (Blueprint $table) {
+                $table->dropSoftDeletes();
+            });
+        }
     }
 };

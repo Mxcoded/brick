@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('restaurant_orders', 'reason')) {
+            return;
+        }
+
         Schema::table('restaurant_orders', function (Blueprint $table) {
             $table->string('reason')->nullable()->after('status');
         });

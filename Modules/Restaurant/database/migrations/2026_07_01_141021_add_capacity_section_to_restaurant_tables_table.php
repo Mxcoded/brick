@@ -12,15 +12,28 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('restaurant_tables', function (Blueprint $table) {
-            $table->integer('capacity')->nullable()->after('number');
-            $table->string('section')->nullable()->after('capacity');
+            if (!Schema::hasColumn('restaurant_tables', 'capacity')) {
+                $table->integer('capacity')->nullable()->after('number');
+            }
+            if (!Schema::hasColumn('restaurant_tables', 'section')) {
+                $table->string('section')->nullable()->after('capacity');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('restaurant_tables', function (Blueprint $table) {
-            $table->dropColumn(['capacity', 'section']);
+            $columnsToDrop = [];
+            if (Schema::hasColumn('restaurant_tables', 'capacity')) {
+                $columnsToDrop[] = 'capacity';
+            }
+            if (Schema::hasColumn('restaurant_tables', 'section')) {
+                $columnsToDrop[] = 'section';
+            }
+            if (!empty($columnsToDrop)) {
+                $table->dropColumn($columnsToDrop);
+            }
         });
     }
 };

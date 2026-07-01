@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('waiter_shifts')) {
+            return;
+        }
+
         Schema::create('waiter_shifts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained();

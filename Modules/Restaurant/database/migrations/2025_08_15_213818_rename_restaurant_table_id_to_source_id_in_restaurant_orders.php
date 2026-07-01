@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasColumn('restaurant_orders', 'restaurant_table_id') || Schema::hasColumn('restaurant_orders', 'source_id')) {
+            return;
+        }
+
         Schema::table('restaurant_orders', function (Blueprint $table) {
             $table->renameColumn('restaurant_table_id', 'source_id');
         });
@@ -21,9 +25,12 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasColumn('restaurant_orders', 'source_id') || Schema::hasColumn('restaurant_orders', 'restaurant_table_id')) {
+            return;
+        }
+
         Schema::table('restaurant_orders', function (Blueprint $table) {
             $table->renameColumn('source_id', 'restaurant_table_id');
-            $table->foreign('restaurant_table_id')->references('id')->on('restaurant_tables')->cascadeOnDelete();
         });
     }
 };
