@@ -48,6 +48,11 @@ class Order extends Model
         return $this->belongsTo(WaiterShift::class, 'shift_id');
     }
 
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'restaurant_order_id');
+    }
+
     public function getSourceAttribute()
     {
         if ($this->type === 'table') {

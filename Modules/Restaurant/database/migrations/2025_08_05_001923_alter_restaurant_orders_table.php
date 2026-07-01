@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('restaurant_orders', function (Blueprint $table) {
+            $table->dropForeign(['restaurant_table_id']);
             $table->foreignId('restaurant_table_id')->nullable()->change(); // Make nullable for online orders
             $table->string('type')->default('table')->after('restaurant_table_id'); // 'table' or 'online'
             $table->string('customer_name')->nullable()->after('type');

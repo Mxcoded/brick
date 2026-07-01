@@ -28,5 +28,32 @@
     </a>
     @endcan
 
+    @can('access_restaurant_dashboard')
+    <a href="{{ route('restaurant.admin.tables') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('restaurant.admin.tables') ? 'active' : '' }}">
+        <i class="fas fa-table fa-fw me-2"></i> Tables
+    </a>
+
+    <a href="{{ route('restaurant.admin.kitchen') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('restaurant.admin.kitchen') ? 'active' : '' }}">
+        <i class="fas fa-tv fa-fw me-2"></i> Kitchen Display
+    </a>
+
+    <a href="{{ route('restaurant.admin.reports.sales') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('restaurant.admin.reports*') ? 'active' : '' }}">
+        <i class="fas fa-chart-bar fa-fw me-2"></i> Reports
+    </a>
+
+    <a href="{{ route('restaurant.admin.stock.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('restaurant.admin.stock*') ? 'active' : '' }}">
+        <i class="fas fa-boxes fa-fw me-2"></i> Stock
+    </a>
+
+    <a href="{{ route('restaurant.admin.customers') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('restaurant.admin.customer*') ? 'active' : '' }}">
+        <i class="fas fa-users fa-fw me-2"></i> Customers
+    </a>
+    @endcan
+
 </div>
 @endcan

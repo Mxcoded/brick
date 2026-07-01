@@ -63,6 +63,9 @@
             @if($order->shift && $order->shift->user)
             <tr><td>Cashier</td><td class="right">{{ $order->shift->user->name }}</td></tr>
             @endif
+            @if($order->relationLoaded('payments') && $order->payments->isNotEmpty())
+            <tr><td>Payment</td><td class="right">{{ ucfirst(str_replace('_', ' ', $order->payments->first()->method)) }}</td></tr>
+            @endif
         </table>
     </div>
 
@@ -96,7 +99,7 @@
         </tr>
         @if($order->discount > 0)
         <tr>
-            <td class="label">Discount{{ $order->discount_type === 'percentage' ? ' (' . $order->discount_type . ')' : '' }}</td>
+            <td class="label">Discount{{ $order->discount_type === 'percentage' ? ' (%)' : '' }}</td>
             <td class="value">-₦{{ number_format($order->discount) }}</td>
         </tr>
         @endif

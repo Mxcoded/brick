@@ -1,27 +1,18 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>@yield('title', 'Restaurant') — {{ config('app.name') }}</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    @vite(['resources/sass/app.scss'])
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+@extends('layouts.base')
+
+@section('styles')
     <style>
-        body {
-            background: #f5f7fa;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
         :root {
             --primary-color: #d4af37;
             --primary-hover: #bfa133;
             --border-radius: 14px;
             --box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
             --transition: all 0.25s ease-in-out;
+        }
+        body {
+            background: #f5f7fa;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .button {
             background-color: var(--primary-color);
@@ -44,6 +35,8 @@
             align-items: center;
             justify-content: space-between;
             color: #fff;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
         }
         .admin-header h5 { margin: 0; font-weight: 700; }
         .admin-header .nav-links { display: flex; gap: 0.5rem; align-items: center; }
@@ -57,39 +50,52 @@
         }
         .admin-header .nav-links a:hover { color: #fff; background: rgba(255,255,255,0.1); }
         .admin-header .nav-links a.active { color: #fff; background: rgba(255,255,255,0.15); }
-        .admin-content { padding: 1.5rem; }
+        .admin-content { padding: 1rem 0; }
     </style>
-    @yield('head')
-</head>
-<body>
-    <div class="admin-header">
-        <div class="d-flex align-items-center gap-3">
-            <h5><i class="bi bi-egg-fried me-2"></i>Restaurant Management</h5>
-        </div>
-        <div class="nav-links">
-            <a href="{{ route('restaurant.admin.dashboard') }}" class="{{ request()->routeIs('restaurant.admin.dashboard') ? 'active' : '' }}">
-                <i class="bi bi-speedometer2 me-1"></i>Dashboard
-            </a>
-            <a href="{{ route('restaurant.admin.settings') }}" class="{{ request()->routeIs('restaurant.admin.settings') ? 'active' : '' }}">
-                <i class="bi bi-gear me-1"></i>Settings
-            </a>
-            <a href="{{ route('restaurant.waiter.dashboard') }}" target="_blank">
-                <i class="bi bi-calculator me-1"></i>POS
-            </a>
-            <span class="text-white-50">|</span>
-            <a href="{{ route('website.home') }}">
-                <i class="bi bi-house me-1"></i>Home
-            </a>
+@endsection
+
+@section('content')
+    <div class="d-flex" id="wrapper">
+        @include('layouts.sidebar')
+        <div id="page-content-wrapper" class="d-flex flex-column min-vh-100">
+            @include('layouts.navbar')
+            <div class="container-fluid p-4 flex-grow-1">
+                <div class="admin-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <h5><i class="bi bi-egg-fried me-2"></i>Restaurant Management</h5>
+                    </div>
+                    <div class="nav-links">
+                        <a href="{{ route('restaurant.admin.dashboard') }}" class="{{ request()->routeIs('restaurant.admin.dashboard') ? 'active' : '' }}">
+                            <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                        </a>
+                        <a href="{{ route('restaurant.admin.tables') }}" class="{{ request()->routeIs('restaurant.admin.tables') ? 'active' : '' }}">
+                            <i class="bi bi-table me-1"></i>Tables
+                        </a>
+                        <a href="{{ route('restaurant.admin.settings') }}" class="{{ request()->routeIs('restaurant.admin.settings') ? 'active' : '' }}">
+                            <i class="bi bi-gear me-1"></i>Settings
+                        </a>
+                        <a href="{{ route('restaurant.waiter.dashboard') }}" target="_blank">
+                            <i class="bi bi-calculator me-1"></i>POS
+                        </a>
+                        <span class="text-white-50">|</span>
+                        <a href="{{ route('website.home') }}">
+                            <i class="bi bi-house me-1"></i>Home
+                        </a>
+                    </div>
+                </div>
+                <main class="admin-content">
+                    @yield('admin-content')
+                </main>
+            </div>
+            <footer class="bg-light p-3 mt-auto border-top">
+                <div class="container-fluid text-center">
+                    <p class="mb-0 text-muted">&copy; {{ date('Y') }} BRICKSPOINT<sup>&trade;</sup>ERP. All rights reserved.</p>
+                </div>
+            </footer>
         </div>
     </div>
-    <main class="admin-content">
-        @yield('content')
-    </main>
-    @vite(['resources/js/app.js'])
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    @yield('scripts')
-    @stack('scripts')
-</body>
-</html>
+@endsection
+
+@section('scripts')
+    @yield('admin-scripts')
+@endsection

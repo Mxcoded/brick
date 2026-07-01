@@ -104,6 +104,9 @@ Route::prefix('restaurant-waiter')->middleware(['web', 'waiter-auth', 'can:acces
 
     // Receipt print
     Route::get('/order/{order}/receipt', [RestaurantController::class, 'printReceipt'])->name('restaurant.waiter.receipt');
+
+    // Payment
+    Route::post('/order/{order}/pay', [RestaurantController::class, 'processPayment'])->name('restaurant.waiter.order.pay');
 });
 
 Route::prefix('restaurant-admin')->middleware(['web', 'auth', 'can:access_restaurant_dashboard'])->group(function () {
@@ -133,4 +136,38 @@ Route::prefix('restaurant-admin')->middleware(['web', 'auth', 'can:access_restau
     // Settings
     Route::get('/settings', [RestaurantController::class, 'adminSettings'])->name('restaurant.admin.settings');
     Route::post('/settings/update', [RestaurantController::class, 'updateSettings'])->name('restaurant.admin.settings.update');
+
+    // Reports
+    Route::get('/reports/sales', [RestaurantController::class, 'reportSales'])->name('restaurant.admin.reports.sales');
+    Route::get('/reports/sales/data', [RestaurantController::class, 'salesReport'])->name('restaurant.admin.reports.sales.data');
+    Route::get('/reports/sales/export', [RestaurantController::class, 'exportSalesCsv'])->name('restaurant.admin.reports.sales.export');
+    Route::get('/reports/popular-items', [RestaurantController::class, 'popularItems'])->name('restaurant.admin.reports.popular');
+    Route::get('/reports/popular-items/export', [RestaurantController::class, 'exportPopularCsv'])->name('restaurant.admin.reports.popular.export');
+    Route::get('/reports/waiter-performance', [RestaurantController::class, 'waiterPerformance'])->name('restaurant.admin.reports.waiter');
+    Route::get('/reports/shift/{shift}', [RestaurantController::class, 'shiftReport'])->name('restaurant.admin.reports.shift');
+
+    // Kitchen Display
+    Route::get('/kitchen', [RestaurantController::class, 'kdsOrders'])->name('restaurant.admin.kitchen');
+    Route::get('/kitchen/data', [RestaurantController::class, 'kdsData'])->name('restaurant.admin.kitchen.data');
+    Route::post('/kitchen/order/{order}/accept', [RestaurantController::class, 'kdsAcceptOrder'])->name('restaurant.admin.kitchen.accept');
+
+    // Table Management
+    Route::get('/tables', [RestaurantController::class, 'tableIndex'])->name('restaurant.admin.tables');
+    Route::post('/tables/store', [RestaurantController::class, 'tableStore'])->name('restaurant.admin.tables.store');
+    Route::post('/tables/{table}/update', [RestaurantController::class, 'tableUpdate'])->name('restaurant.admin.tables.update');
+    Route::post('/tables/{table}/delete', [RestaurantController::class, 'tableDestroy'])->name('restaurant.admin.tables.delete');
+
+    // Stock / Inventory
+    Route::get('/stock', [RestaurantController::class, 'stockIndex'])->name('restaurant.admin.stock.index');
+    Route::post('/stock/store', [RestaurantController::class, 'stockStore'])->name('restaurant.admin.stock.store');
+    Route::post('/stock/{stock_item}/update', [RestaurantController::class, 'stockUpdate'])->name('restaurant.admin.stock.update');
+    Route::post('/stock/{stock_item}/delete', [RestaurantController::class, 'stockDestroy'])->name('restaurant.admin.stock.destroy');
+    Route::post('/stock/movement', [RestaurantController::class, 'stockMovementStore'])->name('restaurant.admin.stock.movement');
+    Route::post('/menu-item/{menu_item}/recipe', [RestaurantController::class, 'recipeStore'])->name('restaurant.admin.recipe.store');
+    Route::post('/recipe/{recipe_item}/delete', [RestaurantController::class, 'recipeDestroy'])->name('restaurant.admin.recipe.destroy');
+
+    // Customers
+    Route::get('/customers', [RestaurantController::class, 'customerIndex'])->name('restaurant.admin.customers');
+    Route::get('/customers/{customer}', [RestaurantController::class, 'customerShow'])->name('restaurant.admin.customer.show');
+    Route::post('/customers/store', [RestaurantController::class, 'customerStore'])->name('restaurant.admin.customer.store');
 });

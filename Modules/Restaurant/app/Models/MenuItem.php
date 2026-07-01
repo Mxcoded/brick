@@ -14,12 +14,17 @@ class MenuItem extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = ['restaurant_menu_categories_id', 'name',
-        'image', 'description', 'price'];
+        'image', 'description', 'price', 'is_available'];
 
     protected $table = 'restaurant_menu_items';
 
     public function category()
     {
         return $this->belongsTo(MenuCategory::class, 'restaurant_menu_categories_id')->withTrashed();
+    }
+
+    public function recipeItems()
+    {
+        return $this->hasMany(RecipeItem::class, 'restaurant_menu_item_id');
     }
 }

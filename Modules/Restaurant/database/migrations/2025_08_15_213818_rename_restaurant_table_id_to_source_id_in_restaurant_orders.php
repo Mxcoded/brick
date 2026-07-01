@@ -23,6 +23,7 @@ return new class extends Migration
     {
         Schema::table('restaurant_orders', function (Blueprint $table) {
             $table->renameColumn('source_id', 'restaurant_table_id');
+            $table->foreign('restaurant_table_id')->references('id')->on('restaurant_tables')->cascadeOnDelete();
         });
     }
 };

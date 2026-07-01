@@ -12,18 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('restaurant_menu_items', function (Blueprint $table) {
-            $table->foreignId('restaurant_menu_categories_id')->constrained('restaurant_menu_categories')->onDelete('cascade');
+            $table->boolean('is_available')->default(true)->after('price');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('restaurant_menu_items', function (Blueprint $table) {
-            $table->dropForeign(['restaurant_menu_categories_id']);
-            $table->dropColumn('restaurant_menu_categories_id');
+            $table->dropColumn('is_available');
         });
     }
 };

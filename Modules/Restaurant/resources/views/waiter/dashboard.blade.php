@@ -3,6 +3,7 @@
 @section('hideNav', true)
 
 @section('head')
+<script src="https://js.paystack.co/v1/inline.js"></script>
 <style>
 :root {
     --pos-header: #1a1d23;
@@ -88,54 +89,96 @@ body.dark-mode .shift-card {
     color: #e0e0e0;
 }
 
-.table-strip {
+.floor-plan {
     padding: 0.6rem 1.25rem;
     background: var(--pos-card-bg);
     border-bottom: 1px solid rgba(0,0,0,0.06);
-    display: flex;
-    gap: 0.4rem;
-    overflow-x: auto;
     flex-shrink: 0;
+    overflow-x: auto;
 }
 
-.table-strip {
-    padding: 0.6rem 1.25rem;
-    background: var(--pos-card-bg);
-    border-bottom: 1px solid rgba(0,0,0,0.08);
+.floor-plan .section-group {
     display: flex;
-    gap: 0.4rem;
-    overflow-x: auto;
-    flex-shrink: 0;
+    gap: 1.25rem;
+    align-items: flex-start;
+}
+
+.floor-plan .section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.floor-plan .section-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #adb5bd;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.floor-plan .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(0,0,0,0.06);
+}
+
+.floor-plan .tables-row {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
 }
 
 .table-btn {
-    border-radius: 20px;
-    font-size: 0.8rem;
-    padding: 0.25rem 0.75rem;
-    white-space: nowrap;
-    border: 1px solid #dee2e6;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    border: 2px solid #dee2e6;
     background: #fff;
-    color: #495057;
-    transition: all 0.15s;
+    font-size: 0.7rem;
+    font-weight: 700;
     cursor: pointer;
-    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    position: relative;
+    color: #495057;
 }
-
-.table-btn:hover { background: #e9ecef; border-color: #ced4da; }
+.table-btn .table-icon { font-size: 0.75rem; line-height: 1; }
+.table-btn .table-label { font-size: 0.55rem; line-height: 1; opacity: 0.6; }
+.table-btn:hover { border-color: #adb5bd; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 .table-btn:active { transform: scale(0.95); }
 .table-btn.active { background: #1a1d23; color: #fff; border-color: #1a1d23; }
-.table-btn.walk-in { border-color: #198754; color: #198754; }
+.table-btn.occupied { border-color: #dc3545; background: #fff5f5; color: #dc3545; }
+.table-btn.occupied.active { background: #dc3545; color: #fff; border-color: #dc3545; }
+.table-btn.occupied::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 7px;
+    height: 7px;
+    background: #dc3545;
+    border-radius: 50%;
+}
+.table-btn.walk-in { border-color: #198754; color: #198754; width: auto; height: auto; padding: 0.35rem 0.85rem; flex-direction: row; gap: 0.35rem; border-radius: 20px; font-size: 0.75rem; }
 .table-btn.walk-in:hover { background: #d1e7dd; }
 .table-btn.walk-in.active { background: #198754; color: #fff; border-color: #198754; }
 
 body.dark-mode .table-btn {
-    background: var(--pos-card-bg);
+    background: #2a2b30;
     color: #e0e0e0;
-    border-color: rgba(255,255,255,0.15);
+    border-color: #3a3b40;
 }
-
 body.dark-mode .table-btn:hover { background: rgba(255,255,255,0.1); }
-body.dark-mode .table-btn.active { background: #fff; color: #1a1d23; border-color: #fff; }
+body.dark-mode .table-btn.occupied { border-color: #dc3545; background: rgba(220,53,69,0.15); color: #f08a8a; }
+body.dark-mode .table-btn.occupied.active { background: #dc3545; color: #fff; }
 body.dark-mode .table-btn.walk-in { border-color: #198754; color: #75b798; }
 body.dark-mode .table-btn.walk-in:hover { background: rgba(25,135,84,0.15); }
 body.dark-mode .table-btn.walk-in.active { background: #198754; color: #fff; }
@@ -529,19 +572,35 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
 
     <div class="d-flex flex-grow-1 overflow-hidden">
         <div class="col-lg-7 col-12 d-flex flex-column overflow-hidden" style="min-width: 0;">
-            <div class="table-strip">
-                <template x-for="table in tables" :key="table.id">
-                    <button class="table-btn"
-                        :class="{ active: selectedTable === table.id }"
-                        @click="selectTable(table.id, table.number)">
-                        <i class="bi bi-table me-1"></i><span x-text="table.number"></span>
-                    </button>
-                </template>
-                <button class="table-btn walk-in"
-                    :class="{ active: selectedWalkIn }"
-                    @click="selectWalkIn">
-                    <i class="bi bi-person-plus me-1"></i>Walk-in
-                </button>
+            <div class="floor-plan">
+                <div class="section-group">
+                    <template x-for="(group, section) in sectionedTables" :key="section">
+                        <div class="section">
+                            <div class="section-label"><span x-text="section"></span></div>
+                            <div class="tables-row">
+                                <template x-for="table in group" :key="table.id">
+                                    <button class="table-btn"
+                                        :class="{
+                                            active: selectedTable === table.id,
+                                            occupied: occupiedTableIds.includes(table.id) && selectedTable !== table.id
+                                        }"
+                                        @click="selectTable(table.id, table.number)">
+                                        <span class="table-icon">🍽</span>
+                                        <span class="table-label" x-text="table.number"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="section">
+                        <div class="section-label">Quick</div>
+                        <button class="table-btn walk-in"
+                            :class="{ active: selectedWalkIn }"
+                            @click="selectWalkIn">
+                            <i class="bi bi-person-plus me-1"></i>Walk-in
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="px-3 pt-1 pb-0 d-flex align-items-center gap-2" x-show="selectedTable || selectedWalkIn">
@@ -645,13 +704,18 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                     <span class="text-muted">Discount</span>
                     <div class="d-flex align-items-center gap-1">
                         <input type="number" class="form-control form-control-sm text-end"
-                            style="width: 68px;" x-model="discountValue" min="0" step="100"
+                            style="width: 68px;" x-model="discountValue" min="0"
+                            :step="discountType === 'percentage' ? 1 : 100"
                             @input.debounce="validateDiscount">
                         <select class="form-select form-select-sm" style="width: 72px;" x-model="discountType">
                             <option value="fixed">₦</option>
                             <option value="percentage">%</option>
                         </select>
                     </div>
+                </div>
+                <div class="breakdown-row" x-show="discountAmount > 0">
+                    <span class="text-muted small">Discount Amount</span>
+                    <span class="text-danger fw-medium">-₦<span x-text="discountAmount.toLocaleString()"></span></span>
                 </div>
                 <div class="breakdown-row">
                     <span class="text-muted">VAT (<span x-text="vatRate"></span>%)</span>
@@ -794,8 +858,8 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                                 <button class="btn btn-outline-primary btn-sm" type="submit">Update</button>
                             </form>
                         </div>
-                        <button class="btn btn-success w-100 btn-sm fw-bold" @click="markPaid(order)">
-                            <i class="bi bi-credit-card me-1"></i>Mark Paid
+                        <button class="btn btn-success w-100 btn-sm fw-bold" @click="openPayment(order)">
+                            <i class="bi bi-credit-card me-1"></i>Collect Payment
                         </button>
                         <button class="btn btn-outline-primary btn-sm w-100 mt-1 fw-bold"
                             @click="reprintReceipt(order)">
@@ -877,6 +941,54 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                         <button type="submit" class="btn btn-sm" id="modalSubmitButton">Confirm</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-credit-card me-1"></i>Payment - Order #<span x-text="paymentOrder?.id"></span></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <div class="text-muted small">Amount Due</div>
+                        <div class="fs-3 fw-bold" x-text="'₦' + Number(paymentOrder?.grand_total || 0).toLocaleString()"></div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-medium">Payment Method</label>
+                        <select class="form-select" x-model="paymentMethod">
+                            <option value="cash">Cash</option>
+                            <option value="card">Card</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="transfer">Transfer</option>
+                        </select>
+                    </div>
+                    <div class="mb-2" x-show="paymentMethod === 'cash'">
+                        <label class="form-label small fw-medium">Amount Tendered (₦)</label>
+                        <input type="number" class="form-control" x-model="amountTendered" min="0" step="100">
+                    </div>
+                    <div class="mb-2" x-show="paymentMethod === 'card'">
+                        <p class="small text-muted mb-1">Customer will be redirected to Paystack to complete payment.</p>
+                    </div>
+                    <div class="mb-2" x-show="paymentMethod === 'mobile_money' || paymentMethod === 'transfer'">
+                        <label class="form-label small fw-medium">Reference (optional)</label>
+                        <input type="text" class="form-control" x-model="paymentReference" placeholder="Transaction ID">
+                    </div>
+                    <div x-show="changeDue > 0" class="alert alert-success py-2 mb-0 text-center">
+                        <small>Change Due:</small>
+                        <strong x-text="'₦' + Number(changeDue).toLocaleString()"></strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success btn-sm fw-bold" @click="submitPayment" :disabled="paymentLoading || !amountTendered || amountTendered < (paymentOrder?.grand_total || 0)">
+                        <span x-show="!paymentLoading"><i class="bi bi-check-circle me-1"></i>Complete Payment</span>
+                        <span x-show="paymentLoading"><span class="spinner-border spinner-border-sm me-1"></span>Processing...</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -974,6 +1086,7 @@ document.addEventListener('alpine:init', function () {
 
     Alpine.data('posState', () => ({
         tables: tablesData,
+        occupiedTableIds: @json($occupiedTableIds),
         categories: categoriesData,
         pendingOrders: pendingOrdersData,
         activeOrders: activeOrdersData,
@@ -1003,6 +1116,13 @@ document.addEventListener('alpine:init', function () {
         discountValue: 0,
         discountType: 'fixed',
 
+        paymentOrder: null,
+        paymentMethod: 'cash',
+        amountTendered: 0,
+        paymentReference: '',
+        paymentLoading: false,
+        paystackKey: '',
+
         init() {
             this.checkShift();
             this.loadSettings();
@@ -1011,6 +1131,20 @@ document.addEventListener('alpine:init', function () {
         get pendingCount() { return this.pendingOrders.length; },
         get activeCount() { return this.activeOrders.length; },
         get paidCount() { return this.paidOrders.length; },
+
+        get sectionedTables() {
+            const groups = {};
+            this.tables.forEach(t => {
+                const section = t.section || 'Other';
+                if (!groups[section]) groups[section] = [];
+                groups[section].push(t);
+            });
+            const order = ['Window', 'Center', 'Patio', 'VIP', 'Other'];
+            const sorted = {};
+            order.forEach(s => { if (groups[s]) sorted[s] = groups[s]; });
+            Object.keys(groups).filter(s => !order.includes(s)).forEach(s => { sorted[s] = groups[s]; });
+            return sorted;
+        },
 
         get shiftTime() {
             if (!this.shiftData) return '';
@@ -1037,6 +1171,11 @@ document.addEventListener('alpine:init', function () {
 
         get grandTotal() {
             return Math.max(0, this.subtotal - this.discountAmount + this.vatAmount);
+        },
+
+        get changeDue() {
+            if (!this.paymentOrder || this.paymentMethod !== 'cash') return 0;
+            return Math.max(0, (parseFloat(this.amountTendered) || 0) - this.paymentOrder.grand_total);
         },
 
         validateDiscount() {
@@ -1101,6 +1240,7 @@ document.addEventListener('alpine:init', function () {
                 if (data.success) {
                     this.vatRate = parseFloat(data.settings.vat_rate) || 0;
                     this.discountLimit = parseFloat(data.settings.discount_limit) || 0;
+                    this.paystackKey = data.settings.paystack_public_key || '';
                 }
             } catch (e) {
                 console.error('load settings error', e);
@@ -1275,25 +1415,85 @@ document.addEventListener('alpine:init', function () {
             }
         },
 
-        async markPaid(order) {
+        openPayment(order) {
+            this.paymentOrder = order;
+            this.paymentMethod = 'cash';
+            this.amountTendered = order.grand_total;
+            this.paymentReference = '';
+            new bootstrap.Modal(document.getElementById('paymentModal')).show();
+        },
+
+        async submitPayment() {
+            if (!this.paymentOrder) return;
+            if (this.paymentMethod === 'cash' && this.amountTendered < this.paymentOrder.grand_total) return;
+
+            if (this.paymentMethod === 'card') {
+                await this.payWithPaystack();
+                return;
+            }
+
+            await this.recordPayment();
+        },
+
+        async payWithPaystack() {
+            if (!this.paystackKey) {
+                this.showToast('warning', 'Paystack not configured. Ask admin to set Paystack key.');
+                return;
+            }
+            this.paymentLoading = true;
             try {
-                const res = await fetch('/restaurant-waiter/order/' + order.id + '/update-status', {
+                const ref = 'POS-' + this.paymentOrder.id + '-' + Date.now();
+                const handler = PaystackPop.setup({
+                    key: this.paystackKey,
+                    email: this.paymentOrder.customer_name + '@brick.pos' || 'pos@restaurant.local',
+                    amount: Math.round(this.paymentOrder.grand_total * 100),
+                    ref: ref,
+                    currency: 'NGN',
+                    callback: async (response) => {
+                        this.paymentReference = response.reference;
+                        await this.recordPayment();
+                    },
+                    onClose: () => {
+                        this.paymentLoading = false;
+                        this.showToast('info', 'Payment cancelled');
+                    }
+                });
+                handler.openIframe();
+            } catch (e) {
+                this.paymentLoading = false;
+                this.showToast('danger', 'Paystack error');
+            }
+        },
+
+        async recordPayment() {
+            this.paymentLoading = true;
+            try {
+                const res = await fetch('/restaurant-waiter/order/' + this.paymentOrder.id + '/pay', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrfToken },
-                    body: JSON.stringify({ tracking_status: 'paid', status: 'completed' })
+                    body: JSON.stringify({
+                        amount_tendered: this.amountTendered || this.paymentOrder.grand_total,
+                        method: this.paymentMethod,
+                        reference: this.paymentReference,
+                    })
                 });
-                if (res.ok) {
-                    this.activeOrders = this.activeOrders.filter(o => o.id !== order.id);
-                    order.status = 'completed';
-                    order.tracking_status = 'paid';
-                    this.paidOrders.unshift(order);
-                    this.showToast('success', 'Order #' + order.id + ' marked as paid');
-                    this.reprintReceipt(order);
+                const data = await res.json();
+                if (data.success) {
+                    this.activeOrders = this.activeOrders.filter(o => o.id !== this.paymentOrder.id);
+                    this.paymentOrder.status = 'completed';
+                    this.paymentOrder.tracking_status = 'paid';
+                    this.paidOrders.unshift({...this.paymentOrder});
+                    bootstrap.Modal.getInstance(document.getElementById('paymentModal'))?.hide();
+                    this.showToast('success', 'Order #' + this.paymentOrder.id + ' paid (' + this.paymentMethod + ')');
+                    this.reprintReceipt(this.paymentOrder);
+                    this.paymentOrder = null;
                 } else {
-                    this.showToast('danger', 'Failed to mark order as paid');
+                    this.showToast('danger', data.message || 'Payment failed');
                 }
             } catch (e) {
-                this.showToast('danger', 'An error occurred');
+                this.showToast('danger', 'Payment failed');
+            } finally {
+                this.paymentLoading = false;
             }
         },
 

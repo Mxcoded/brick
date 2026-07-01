@@ -1,6 +1,6 @@
 @extends('restaurant::layouts.adminMaster')
 @section('title', 'Restaurant Settings')
-@section('content')
+@section('admin-content')
 <div class="container py-5">
     <div class="mb-4">
         <a href="{{ route('restaurant.admin.dashboard') }}" class="btn btn-outline-secondary btn-sm rounded-pill">
@@ -39,6 +39,22 @@
                     <input type="number" name="discount_limit" id="discount_limit" class="form-control form-control-lg"
                         value="{{ $settings['discount_limit'] }}" step="100" min="0" required>
                     <div class="form-text">Maximum discount allowed per order in Naira.</div>
+                </div>
+                <hr class="my-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-clock me-2"></i>Shift Hours</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label for="shift_start_time" class="form-label fw-medium">Shift Start Time</label>
+                        <input type="time" name="shift_start_time" id="shift_start_time" class="form-control form-control-lg"
+                            value="{{ $settings['shift_start_time'] }}" required>
+                        <div class="form-text">Earliest time staff can start a shift.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="shift_end_time" class="form-label fw-medium">Shift End Time</label>
+                        <input type="time" name="shift_end_time" id="shift_end_time" class="form-control form-control-lg"
+                            value="{{ $settings['shift_end_time'] }}" required>
+                        <div class="form-text">Latest time staff can start a shift.</div>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold rounded-pill">
                     <i class="bi bi-save me-2"></i>Save Settings

@@ -1,6 +1,6 @@
 @extends('restaurant::layouts.adminMaster')
 @section('title', "Order #{$order->id}")
-@section('content')
+@section('admin-content')
     <div class="container-fluid">
         <div class="mb-4">
             <a href="{{ route('restaurant.admin.dashboard') }}" class="btn btn-outline-secondary rounded-pill btn-sm">
@@ -92,7 +92,11 @@
                             @if($order->shift)
                             <div class="col-md-6">
                                 <small class="text-muted d-block">Shift</small>
-                                <strong>{{ $order->shift->start_time ? $order->shift->start_time->format('d M Y, H:i') : 'N/A' }}</strong>
+                                <strong>{{ $order->shift->clock_in ? $order->shift->clock_in->format('d M Y, H:i') : 'N/A' }}</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Cashier</small>
+                                <strong>{{ $order->shift->user?->name ?? 'N/A' }}</strong>
                             </div>
                             @endif
                         </div>
@@ -138,16 +142,11 @@
                                         <td>
                                             Discount
                                             @if($order->discount_type === 'percentage')
-                                                ({{ $order->discount }}%)
+                                                <span class="text-muted">(%)</span>
                                             @endif
                                         </td>
                                         <td class="text-end text-danger">
-                                            -₦{{ number_format(
-                                                $order->discount_type === 'percentage'
-                                                    ? ($order->subtotal * $order->discount / 100)
-                                                    : $order->discount,
-                                                2
-                                            ) }}
+                                            -₦{{ number_format($order->discount, 2) }}
                                         </td>
                                     </tr>
                                     @endif
@@ -161,6 +160,12 @@
                                         <th class="fw-bold">Grand Total</th>
                                         <th class="text-end fw-bold fs-5">₦{{ number_format($order->grand_total, 2) }}</th>
                                     </tr>
+                                    @if($order->relationLoaded('payments') && $order->payments->isNotEmpty())
+                                    <tr>
+                                        <td>Paid via</td>
+                                        <td class="text-end">{{ ucfirst(str_replace('_', ' ', $order->payments->first()->method)) }}</td>
+                                    </tr>
+                                    @endif
                                 </table>
                             </div>
                         </div>

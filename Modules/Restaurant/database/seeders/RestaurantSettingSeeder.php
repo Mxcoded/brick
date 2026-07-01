@@ -13,6 +13,8 @@ class RestaurantSettingSeeder extends Seeder
             'vat_rate' => '7.5',
             'service_charge_rate' => '0',
             'discount_limit' => '10000',
+            'shift_start_time' => '06:00',
+            'shift_end_time' => '22:00',
         ];
 
         foreach ($defaults as $key => $value) {
