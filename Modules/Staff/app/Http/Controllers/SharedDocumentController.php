@@ -17,7 +17,7 @@ class SharedDocumentController extends Controller
             ->latest()
             ->paginate(20);
 
-        $totalSize = SharedDocument::sum('file_size');
+        $totalSize = SharedDocument::whereNotNull('file_path')->sum('file_size');
         $totalCount = SharedDocument::count();
 
         $docPath = storage_path('app/documents');
@@ -114,7 +114,7 @@ class SharedDocumentController extends Controller
 
     public function download(SharedDocument $document)
     {
-        if (! Storage::disk('documents')->exists($document->file_path)) {
+        if ($document->isArchived() || ! Storage::disk('documents')->exists($document->file_path)) {
             return back()->with('error', 'File not found on disk.');
         }
 
@@ -127,7 +127,7 @@ class SharedDocumentController extends Controller
     {
         $document = SharedDocument::where('share_token', $token)->firstOrFail();
 
-        if (! Storage::disk('documents')->exists($document->file_path)) {
+        if ($document->isArchived() || ! Storage::disk('documents')->exists($document->file_path)) {
             abort(404, 'File not found on disk.');
         }
 
