@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -20,9 +21,13 @@ return new class extends Migration
             });
         }
 
-        Schema::table('restaurant_menu_items', function (Blueprint $table) {
-            $table->dropForeign(['restaurant_menu_categories_id']);
-        });
+        try {
+            Schema::table('restaurant_menu_items', function (Blueprint $table) {
+                $table->dropForeign(['restaurant_menu_categories_id']);
+            });
+        } catch (\Exception $e) {
+            // FK may have already been dropped
+        }
 
         Schema::table('restaurant_menu_items', function (Blueprint $table) {
             $table->foreignId('restaurant_menu_categories_id')
@@ -40,9 +45,13 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('restaurant_menu_items', function (Blueprint $table) {
-            $table->dropForeign(['restaurant_menu_categories_id']);
-        });
+        try {
+            Schema::table('restaurant_menu_items', function (Blueprint $table) {
+                $table->dropForeign(['restaurant_menu_categories_id']);
+            });
+        } catch (\Exception $e) {
+            // FK may have already been dropped
+        }
 
         Schema::table('restaurant_menu_items', function (Blueprint $table) {
             $table->foreignId('restaurant_menu_categories_id')
