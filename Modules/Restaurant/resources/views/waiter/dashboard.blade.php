@@ -543,7 +543,7 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                 <i class="bi bi-clock-history"></i>
                 <span x-text="'Since ' + shiftTime"></span>
                 <span class="badge bg-light text-dark ms-1" x-text="'₦' + Number(shiftData.total_sales).toLocaleString()"></span>
-                <button class="btn btn-sm btn-outline-light rounded-pill ms-1 py-0 px-2" @click="showEndShiftModal = true">
+                <button class="btn btn-sm btn-outline-light rounded-pill ms-1 py-0 px-2" data-bs-toggle="modal" data-bs-target="#endShiftModal">
                     <i class="bi bi-box-arrow-right"></i>
                 </button>
             </div>
