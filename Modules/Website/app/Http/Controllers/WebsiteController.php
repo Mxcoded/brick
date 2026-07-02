@@ -1782,7 +1782,7 @@ class WebsiteController extends Controller
             'subscribed_at' => now(),
         ]);
 
-        $greeting = $validated['name'] ? "Thank you, {$validated['name']}!" : 'Thank you for subscribing to our newsletter!';
+        $greeting = ! empty($validated['name']) ? "Thank you, {$validated['name']}!" : 'Thank you for subscribing to our newsletter!';
 
         return response()->json([
             'success' => true,
