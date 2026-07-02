@@ -513,7 +513,7 @@
             </div>
 
             <div class="row g-4">
-                @foreach ($testimonials as $testimonial)
+                @forelse ($testimonials->take(6) as $testimonial)
                     <div class="col-md-4">
                         <div class="testimonial-card bg-gray-800 p-4 h-100 rounded">
                             <div class="rating mb-3 text-warning">
@@ -521,21 +521,101 @@
                                     <i class="fas fa-star{{ $i < $testimonial->rating ? '' : '-empty' }}"></i>
                                 @endfor
                             </div>
-                            <p class="mb-4">"{{ $testimonial->comment }}"</p>
+                            <p class="mb-4">"{{ $testimonial->text }}"</p>
                             <div class="d-flex align-items-center">
-                                <img src="{{ $testimonial->guest_image }}" class="rounded-circle me-3" width="50"
+                                <img src="{{ $testimonial->guest_image ?? asset('images/default-avatar.png') }}" class="rounded-circle me-3" width="50"
                                     height="50" alt="{{ $testimonial->guest_name }}">
                                 <div>
                                     <h5 class="mb-0">{{ $testimonial->guest_name }}</h5>
-                                    <small class="text-muted">{{ $testimonial->guest_type }}</small>
+                                    <small class="text-muted">{{ $testimonial->stay_type ?? 'Guest' }}</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                @endforeach
+                @empty
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-comment-dots fa-3x mb-3 opacity-50"></i>
+                        <p class="text-muted mb-0">Testimonials coming soon.</p>
+                    </div>
+                @endforelse
             </div>
         </div>
     </section>
+
+    @php
+        $googlePlaceId = $settings['google_place_id'] ?? null;
+        $googleReviewLink = $googlePlaceId ? 'https://search.google.com/local/writereview?placeid=' . $googlePlaceId : null;
+        $gr = $googleReviewsData ?? [];
+        $grRating = $gr['rating'] ?? null;
+        $grCount = $gr['count'] ?? 0;
+        $grReviews = $gr['reviews'] ?? [];
+    @endphp
+    @if ($googlePlaceId)
+    <!-- Google Reviews Section -->
+    <section class="py-5 py-lg-7 bg-light">
+        <div class="container">
+            <div class="section-header text-center mb-5 reveal">
+                <h2 class="display-5 fw-bold mb-3">Google Reviews</h2>
+                <div class="section-accent"></div>
+                <p class="text-muted mx-auto" style="max-width: 700px;">See what our guests are saying on Google.</p>
+            </div>
+
+            @if ($grRating)
+            <div class="text-center mb-5">
+                <div class="mb-2">
+                    @for ($i = 0; $i < 5; $i++)
+                        <i class="fas fa-star{{ $i < round($grRating) ? '' : '-empty' }} text-warning fa-lg"></i>
+                    @endfor
+                </div>
+                <p class="h3 mb-0">{{ number_format($grRating, 1) }} out of 5</p>
+                <p class="text-muted">Based on {{ $grCount }} Google reviews</p>
+                @if ($googleReviewLink)
+                <a href="{{ $googleReviewLink }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark">
+                    <i class="fab fa-google me-2"></i> Write a Review
+                </a>
+                @endif
+            </div>
+            @endif
+
+            @if (count($grReviews) > 0)
+            <div class="row g-4">
+                @foreach (array_slice($grReviews, 0, 6) as $review)
+                <div class="col-md-4 d-flex">
+                    <div class="bg-white p-4 rounded shadow-sm d-flex flex-column w-100">
+                        <div class="mb-2">
+                            @for ($i = 0; $i < 5; $i++)
+                                <i class="fas fa-star{{ $i < $review['rating'] ? '' : '-empty' }} text-warning" style="font-size:0.85rem"></i>
+                            @endfor
+                        </div>
+                        <div class="review-text flex-grow-1">
+                            <p class="mb-0 review-text-clamp">"{{ $review['text'] }}"</p>
+                            @if (strlen($review['text']) > 150)
+                            <button class="btn btn-sm btn-link p-0 review-toggle" onclick="toggleReview(this)">Read more</button>
+                            @endif
+                        </div>
+                        <div class="d-flex align-items-center mt-3 pt-2 border-top">
+                            @if ($review['photo'])
+                            <img src="{{ $review['photo'] }}" class="rounded-circle me-2" width="36" height="36" alt="{{ $review['author'] }}">
+                            @else
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width:36px;height:36px;">
+                                <i class="fas fa-user text-white small"></i>
+                            </div>
+                            @endif
+                            <div>
+                                <small class="fw-semibold d-block">{{ $review['author'] }}</small>
+                                @if ($review['time'])
+                                <small class="text-muted">{{ $review['time'] }}</small>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            @endif
+        </div>
+    </section>
+    @endif
 
     <!-- Call to Action Section -->
     <section class="py-5 py-lg-7 cta-section text-white">
@@ -955,6 +1035,17 @@
                 object-fit: cover;
             }
 
+            /* ===== GOOGLE REVIEWS ===== */
+            .review-text-clamp {
+                display: -webkit-box;
+                -webkit-line-clamp: 4;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .review-text-clamp.expanded {
+                -webkit-line-clamp: unset;
+            }
+
             /* ===== CTA SECTION ===== */
             .cta-section {
                 background: linear-gradient(135deg, #C8A165 0%, #a8853d 100%) !important;
@@ -1226,6 +1317,18 @@
                 if (video) {
                     video.play().catch(() => {});
                 }
+
+                // Read more toggles
+                window.toggleReview = function(btn) {
+                    const text = btn.closest('.review-text').querySelector('.review-text-clamp');
+                    if (text.classList.contains('expanded')) {
+                        text.classList.remove('expanded');
+                        btn.textContent = 'Read more';
+                    } else {
+                        text.classList.add('expanded');
+                        btn.textContent = 'Show less';
+                    }
+                };
             });
         </script>
     @endpush

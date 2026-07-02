@@ -36,11 +36,12 @@ use Modules\Website\Models\RoomType;
 use Modules\Website\Models\Settings;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Services\BookingCartService;
+use Modules\Website\Services\GoogleReviewsService;
 use Modules\Website\Services\RoomAvailabilityService;
 
 class WebsiteController extends Controller
 {
-    public function index()
+    public function index(GoogleReviewsService $googleReviews)
     {
         $settings = Settings::pluck('value', 'key')->toArray();
 
@@ -57,11 +58,15 @@ class WebsiteController extends Controller
 
         $dining = Dining::all();
 
+        $googleReviewsData = $googleReviews->fetch();
+        $averageRating = round($testimonials->avg('rating'), 1);
+        $reviewCount = $testimonials->count();
+
         $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays in Abuja, Nigeria. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
         $meta_keywords = 'boutique hotel Abuja, apart-hotel Abuja, luxury accommodation Abuja, short let Abuja, best hotel Abuja, Brickspoint, apart-hotel Nigeria';
         $og_title = config('app.name', 'Brickspoint Boutique Aparthotel').' — Luxury Short & Long Stays in Abuja';
 
-        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
+        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'googleReviewsData', 'averageRating', 'reviewCount', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     /**
@@ -460,6 +465,7 @@ class WebsiteController extends Controller
                                 'guest_profile_id' => $guest->id,
                                 'room_type_id' => $item['room_type_id'],
                                 'room_unit_id' => null, // Assigned at check-in
+                                'source' => 'website',
                                 'guest_name' => $validated['guest_name'],
                                 'guest_email' => $validated['guest_email'],
                                 'guest_phone' => $validated['guest_phone'],
@@ -499,6 +505,7 @@ class WebsiteController extends Controller
                         'guest_profile_id' => $guest->id,
                         'room_type_id' => $roomType->id,
                         'room_unit_id' => $selectedUnitId,
+                        'source' => 'website',
                         'guest_name' => $validated['guest_name'],
                         'guest_email' => $validated['guest_email'],
                         'guest_phone' => $validated['guest_phone'],
@@ -779,6 +786,7 @@ class WebsiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|regex:/^[\pL\s\-\']+$/u',
             'email' => 'required|email:rfc,dns|max:255',
+            'subject' => 'nullable|string|max:255',
             'message' => 'required|string|min:10|max:2000',
         ], [
             'name.regex' => 'Please enter a valid name.',
@@ -811,6 +819,7 @@ class WebsiteController extends Controller
         ContactMessage::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'subject' => $validated['subject'] ?? null,
             'message' => $validated['message'],
             'status' => 'unread',
         ]);
@@ -1984,5 +1993,43 @@ class WebsiteController extends Controller
 
         return redirect()->route('website.event-lead', $slug)
             ->with('success', $event->getThankYouMessageOrDefault());
+    }
+
+    public function sitemap()
+    {
+        $pages = [
+            ['loc' => route('website.home'), 'priority' => '1.0', 'changefreq' => 'weekly'],
+            ['loc' => route('website.rooms.index'), 'priority' => '0.9', 'changefreq' => 'weekly'],
+            ['loc' => route('website.about'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.contact'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.location'), 'priority' => '0.7', 'changefreq' => 'monthly'],
+            ['loc' => route('website.dining'), 'priority' => '0.8', 'changefreq' => 'weekly'],
+            ['loc' => route('website.amenities'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.facilities'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.offers'), 'priority' => '0.8', 'changefreq' => 'weekly'],
+            ['loc' => route('website.meetings'), 'priority' => '0.7', 'changefreq' => 'monthly'],
+        ];
+
+        $roomTypes = RoomType::where('is_active', true)->get();
+        foreach ($roomTypes as $room) {
+            $pages[] = [
+                'loc' => route('website.rooms.show', $room->slug ?? $room->id),
+                'priority' => '0.7',
+                'changefreq' => 'weekly',
+            ];
+        }
+
+        $diningItems = Dining::all();
+        foreach ($diningItems as $item) {
+            $pages[] = [
+                'loc' => route('website.dining.menu', $item),
+                'priority' => '0.6',
+                'changefreq' => 'monthly',
+            ];
+        }
+
+        return response()
+            ->view('website::sitemap', compact('pages'))
+            ->header('Content-Type', 'application/xml');
     }
 }

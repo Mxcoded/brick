@@ -27,7 +27,7 @@
             @includeIf('frontdeskcrm::layouts.menu')
         @endcan
 
-        @canany(['access_website_dashboard', 'website.dashboard', 'website.bookings', 'website.contact-messages', 'website.facilities', 'website.offers', 'website.meeting', 'website.dining', 'website.room-types', 'website.inventory', 'website.amenities', 'website.newsletter', 'website.settings'])
+        @canany(['access_website_dashboard', 'website.dashboard', 'website.bookings', 'website.contact-messages', 'website.facilities', 'website.offers', 'website.meeting', 'website.dining', 'website.room-types', 'website.inventory', 'website.amenities', 'website.testimonials', 'website.newsletter', 'website.settings'])
             @includeIf('website::layouts.menu')
         @endcanany
 

@@ -44,6 +44,8 @@ class Booking extends Model
         'confirmation_token',
         'special_requests',
         'admin_notes',
+        'source',
+        'follow_up_sent_at',
     ];
 
     protected $casts = [
@@ -51,6 +53,7 @@ class Booking extends Model
         'check_out_date' => 'date',
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
+        'follow_up_sent_at' => 'datetime',
     ];
 
     /**

@@ -15,6 +15,7 @@ use Modules\Website\Http\Controllers\Admin\OffersPageController;
 use Modules\Website\Http\Controllers\Admin\RoomController as AdminRoomController;
 use Modules\Website\Http\Controllers\Admin\RoomTypeController;
 use Modules\Website\Http\Controllers\Admin\SettingController;
+use Modules\Website\Http\Controllers\Admin\TestimonialController;
 use Modules\Website\Http\Controllers\Admin\WebsiteAdminController;
 use Modules\Website\Http\Controllers\GuestController;
 use Modules\Website\Http\Controllers\WebsiteController;
@@ -97,6 +98,9 @@ Route::middleware(['web'])->group(function () {
         Route::post('/my-booking/find', 'findBooking')->name('website.booking.find');
     });
 
+    // Sitemap
+    Route::get('/sitemap.xml', [WebsiteController::class, 'sitemap'])->name('website.sitemap');
+
     // Public Newsletter Routes (No Auth Required)
     Route::get('/newsletter/unsubscribe/{token}', [NewsletterController::class, 'unsubscribe'])
         ->name('website.newsletter.unsubscribe');
@@ -140,6 +144,7 @@ Route::middleware(['web'])->group(function () {
 
             // Bookings Management
             Route::resource('bookings', AdminBookingController::class)->middleware('permission:access_website_dashboard|website.bookings');
+            Route::resource('testimonials', TestimonialController::class)->middleware('permission:access_website_dashboard|website.testimonials');
             Route::resource('amenities', AmenityController::class)->middleware('permission:access_website_dashboard|website.amenities');
             Route::resource('settings', SettingController::class)->middleware('permission:access_website_dashboard|website.settings');
             Route::resource('dining', DiningController::class)->middleware('permission:access_website_dashboard|website.dining');

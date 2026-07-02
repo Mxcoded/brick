@@ -404,6 +404,20 @@ class RoleSeeder extends Seeder
                 'access_website_dashboard',
                 'manage_settings',
                 'settings.update',
+                'website.dashboard',
+                'website.bookings',
+                'website.room-types',
+                'website.amenities',
+                'website.settings',
+                'website.dining',
+                'website.meeting',
+                'website.facilities',
+                'website.offers',
+                'website.inventory',
+                'website.contact-messages',
+                'website.newsletter',
+                'website.subscribers',
+                'website.testimonials',
             ]);
     }
 }

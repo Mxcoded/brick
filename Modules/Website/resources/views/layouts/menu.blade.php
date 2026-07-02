@@ -1,4 +1,4 @@
-@canany(['access_website_dashboard', 'website.dashboard', 'website.bookings', 'website.contact-messages', 'website.facilities', 'website.offers', 'website.meeting', 'website.dining', 'website.room-types', 'website.inventory', 'website.amenities', 'website.newsletter', 'website.settings'])
+@canany(['access_website_dashboard', 'website.dashboard', 'website.bookings', 'website.contact-messages', 'website.facilities', 'website.offers', 'website.meeting', 'website.dining', 'website.room-types', 'website.inventory', 'website.amenities', 'website.testimonials', 'website.newsletter', 'website.settings'])
 <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#websiteAdminSubmenu" role="button"
    aria-expanded="{{ request()->routeIs('website.admin.*') ? 'true' : 'false' }}" aria-controls="websiteAdminSubmenu">
     <i class="fas fa-globe fa-fw"></i>
@@ -98,6 +98,13 @@
     <a href="{{ route('website.admin.amenities.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.amenities.*') ? 'active' : '' }}">
         <i class="fas fa-wifi fa-fw me-2"></i> Amenities
+    </a>
+    @endcanany
+
+    @canany(['access_website_dashboard', 'website.testimonials'])
+    <a href="{{ route('website.admin.testimonials.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.testimonials.*') ? 'active' : '' }}">
+        <i class="fas fa-star fa-fw me-2"></i> Testimonials
     </a>
     @endcanany
 
