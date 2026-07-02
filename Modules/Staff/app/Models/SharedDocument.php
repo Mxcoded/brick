@@ -56,6 +56,16 @@ class SharedDocument extends Model
         return is_null($this->file_path);
     }
 
+    public function isExpired(): bool
+    {
+        return $this->created_at->addDays(7)->isPast();
+    }
+
+    public function isAvailable(): bool
+    {
+        return ! $this->isArchived() && ! $this->isExpired();
+    }
+
     public function formattedSize(): string
     {
         $bytes = $this->file_size;

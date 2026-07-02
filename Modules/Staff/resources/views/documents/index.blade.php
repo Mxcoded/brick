@@ -88,7 +88,7 @@
                             <td class="text-nowrap">
                                 @if($doc->isArchived())
                                     <span style="color: #7f8c8d; font-weight: 600;">removed</span>
-                                @elseif($hoursLeft <= 0)
+                                @elseif($doc->isExpired())
                                     <span style="color: #c0392b; font-weight: 600;">expired</span>
                                 @elseif($hoursLeft <= 48)
                                     <div style="color: #e67e22; font-weight: 600; line-height: 1.3;">
@@ -106,7 +106,11 @@
                                 <div class="d-flex gap-1 justify-content-end">
                                     @if($doc->isArchived())
                                         <span class="badge bg-secondary bg-opacity-10 text-muted px-3 py-2" style="font-weight: 500; border-radius: 8px; font-size: 0.75rem;">
-                                            <i class="fas fa-archive me-1"></i> Archived
+                                            <i class="fas fa-archive me-1"></i> File has been removed
+                                        </span>
+                                    @elseif($doc->isExpired())
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2" style="font-weight: 500; border-radius: 8px; font-size: 0.75rem;">
+                                            <i class="fas fa-clock me-1"></i> File has been removed
                                         </span>
                                     @else
                                         <button type="button" class="btn btn-sm copy-share-link" data-url="{{ $doc->shareUrl() }}" title="Copy share link" style="background: #f0f7ff; color: #2980b9; border: 1px solid #d0e4f5; border-radius: 8px;">

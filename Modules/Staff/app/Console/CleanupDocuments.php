@@ -17,21 +17,36 @@ class CleanupDocuments extends Command
         $days = (int) $this->option('days');
         $cutoff = now()->subDays($days);
 
-        $documents = SharedDocument::where('created_at', '<', $cutoff)
+        $expiredCount = 0;
+        $orphanCount = 0;
+
+        // 1. Clean up expired documents
+        SharedDocument::where('created_at', '<', $cutoff)
             ->whereNotNull('file_path')
-            ->get();
+            ->chunkById(100, function ($documents) use (&$expiredCount) {
+                foreach ($documents as $document) {
+                    Storage::disk('documents')->delete($document->file_path);
+                    $document->update(['file_path' => null]);
+                    $expiredCount++;
+                }
+            });
 
-        $count = 0;
+        // 2. Fix orphaned records — files deleted manually from disk
+        SharedDocument::whereNotNull('file_path')
+            ->chunkById(100, function ($documents) use (&$orphanCount) {
+                foreach ($documents as $document) {
+                    if (! Storage::disk('documents')->exists($document->file_path)) {
+                        $document->update(['file_path' => null]);
+                        $orphanCount++;
+                    }
+                }
+            });
 
-        foreach ($documents as $document) {
-            Storage::disk('documents')->delete($document->file_path);
-
-            $document->update(['file_path' => null]);
-
-            $count++;
+        $this->line("Expired: {$expiredCount} file(s) cleaned up.");
+        if ($orphanCount > 0) {
+            $this->warn("Orphaned: {$orphanCount} record(s) had missing files on disk — file_path set to null.");
         }
-
-        $this->info("Cleaned up physical files for {$count} shared document(s) older than {$days} days. Records kept for reporting.");
+        $this->info("Done.");
 
         return Command::SUCCESS;
     }

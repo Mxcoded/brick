@@ -114,8 +114,14 @@ class SharedDocumentController extends Controller
 
     public function download(SharedDocument $document)
     {
-        if ($document->isArchived() || ! Storage::disk('documents')->exists($document->file_path)) {
-            return back()->with('error', 'File not found on disk.');
+        if (! $document->isAvailable()) {
+            return back()->with('error', 'This file has expired or been removed.');
+        }
+
+        if (! Storage::disk('documents')->exists($document->file_path)) {
+            $document->update(['file_path' => null]);
+
+            return back()->with('error', 'This file has been removed.');
         }
 
         $document->increment('downloads_count');
@@ -127,8 +133,13 @@ class SharedDocumentController extends Controller
     {
         $document = SharedDocument::where('share_token', $token)->firstOrFail();
 
-        if ($document->isArchived() || ! Storage::disk('documents')->exists($document->file_path)) {
-            abort(404, 'File not found on disk.');
+        if (! $document->isAvailable()) {
+            abort(404, 'File has expired or been removed.');
+        }
+
+        if (! Storage::disk('documents')->exists($document->file_path)) {
+            $document->update(['file_path' => null]);
+            abort(404, 'File has been removed from storage.');
         }
 
         $document->increment('downloads_count');
