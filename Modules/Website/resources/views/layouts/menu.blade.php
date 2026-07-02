@@ -1,4 +1,4 @@
-@can('access_website_dashboard')
+@canany(['access_website_dashboard', 'website.dashboard', 'website.bookings', 'website.contact-messages', 'website.facilities', 'website.offers', 'website.meeting', 'website.dining', 'website.room-types', 'website.inventory', 'website.amenities', 'website.newsletter', 'website.settings'])
 <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#websiteAdminSubmenu" role="button"
    aria-expanded="{{ request()->routeIs('website.admin.*') ? 'true' : 'false' }}" aria-controls="websiteAdminSubmenu">
     <i class="fas fa-globe fa-fw"></i>
@@ -7,14 +7,17 @@
 </a>
 <div class="collapse {{ request()->routeIs('website.admin.*') ? 'show' : '' }}" id="websiteAdminSubmenu">
 
+    @canany(['access_website_dashboard', 'website.dashboard'])
     <a href="{{ route('website.admin.dashboard') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.dashboard') ? 'active' : '' }}">
         <i class="fas fa-tachometer-alt fa-fw me-2"></i> Overview
     </a>
+    @endcanany
 
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Operations</div>
 
+    @canany(['access_website_dashboard', 'website.bookings'])
     <a href="{{ route('website.admin.bookings.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.bookings.*') ? 'active' : '' }}">
         <i class="fas fa-calendar-check fa-fw me-2"></i> Web Bookings
@@ -23,7 +26,9 @@
             <span class="badge bg-danger rounded-pill">{{ $pendingBookings }}</span>
         @endif
     </a>
+    @endcanany
 
+    @canany(['access_website_dashboard', 'website.contact-messages'])
     <a href="{{ route('website.admin.contact-messages.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.contact-messages.*') ? 'active' : '' }}">
         <i class="fas fa-envelope fa-fw me-2"></i> Messages
@@ -32,61 +37,74 @@
             <span class="badge bg-danger rounded-pill">{{ $unreadMessages }}</span>
         @endif
     </a>
+    @endcanany
 
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Content Pages</div>
 
+    @canany(['access_website_dashboard', 'website.facilities'])
     <a href="{{ route('website.admin.facilities.edit') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.facilities.*') ? 'active' : '' }}">
         <i class="fas fa-th-large fa-fw me-2"></i> Facilities Page
     </a>
+    @endcanany
 
+    @canany(['access_website_dashboard', 'website.offers'])
     <a href="{{ route('website.admin.offers.edit') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.offers.*') ? 'active' : '' }}">
         <i class="fas fa-tag fa-fw me-2"></i> Offers Page
     </a>
+    @endcanany
 
+    @canany(['access_website_dashboard', 'website.meeting'])
     <a href="{{ route('website.admin.meeting.edit') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.meeting.*') ? 'active' : '' }}">
         <i class="fas fa-building fa-fw me-2"></i> Meetings Page
     </a>
+    @endcanany
 
+    @canany(['access_website_dashboard', 'website.dining'])
     <a href="{{ route('website.admin.dining.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.dining.*') ? 'active' : '' }}">
         <i class="fas fa-utensils fa-fw me-2"></i> On-site Restaurant
     </a>
+    @endcanany
 
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Accommodation</div>
 
+    @canany(['access_website_dashboard', 'website.room-types'])
     <a href="{{ route('website.admin.room-types.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.room-types.*') ? 'active' : '' }}">
         <i class="fas fa-bed fa-fw me-2"></i> Room Types
     </a>
+    @endcanany
 
+    @canany(['access_website_dashboard', 'website.inventory'])
     <a href="{{ route('website.admin.inventory.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.inventory.*') ? 'active' : '' }}">
         <i class="fas fa-calendar-alt fa-fw me-2"></i> Inventory Calendar
     </a>
+    @endcanany
 
+    @canany(['access_website_dashboard', 'website.room-types'])
     <a href="{{ route('website.admin.rooms.calendar') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.rooms.calendar') ? 'active' : '' }}">
         <i class="fas fa-th fa-fw me-2"></i> Room Schedule
     </a>
+    @endcanany
 
-    <a href="{{ route('website.admin.rooms.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.rooms.index') || request()->routeIs('website.admin.rooms.create') || request()->routeIs('website.admin.rooms.edit') || request()->routeIs('website.admin.rooms.show') ? 'active' : '' }}">
-        <i class="fas fa-door-open fa-fw me-2"></i> Rooms (Legacy)
-    </a>
-
+    @canany(['access_website_dashboard', 'website.amenities'])
     <a href="{{ route('website.admin.amenities.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.amenities.*') ? 'active' : '' }}">
         <i class="fas fa-wifi fa-fw me-2"></i> Amenities
     </a>
+    @endcanany
 
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Marketing</div>
 
+    @canany(['access_website_dashboard', 'website.newsletter'])
     <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#newsletterSubmenu" role="button"
        aria-expanded="{{ request()->routeIs('website.admin.newsletter.*') ? 'true' : 'false' }}">
         <i class="fas fa-newspaper fa-fw me-2"></i>
@@ -111,14 +129,17 @@
             @endif
         </a>
     </div>
+    @endcanany
 
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Settings</div>
 
+    @canany(['access_website_dashboard', 'website.settings'])
     <a href="{{ route('website.admin.settings.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.settings.*') ? 'active' : '' }}">
         <i class="fas fa-cog fa-fw me-2"></i> CMS Settings
     </a>
+    @endcanany
 
 </div>
-@endcan
+@endcanany

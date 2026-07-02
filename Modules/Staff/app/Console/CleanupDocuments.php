@@ -46,7 +46,7 @@ class CleanupDocuments extends Command
         if ($orphanCount > 0) {
             $this->warn("Orphaned: {$orphanCount} record(s) had missing files on disk — file_path set to null.");
         }
-        $this->info("Done.");
+        $this->info('Done.');
 
         return Command::SUCCESS;
     }

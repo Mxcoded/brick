@@ -138,22 +138,16 @@ Route::middleware(['web'])->group(function () {
             // Dashboard
             Route::get('/', [WebsiteAdminController::class, 'index'])->name('dashboard');
 
-            // Image Deletion Route
-            Route::delete('/rooms/image/{id}', [AdminRoomController::class, 'deleteImage'])
-                ->name('rooms.image.delete');
-
-            // Room Resource Route (Handles index, store, update, destroy)
-            // Resource Management
-            Route::resource('rooms', AdminRoomController::class); // Legacy - will be deprecated
-            Route::resource('bookings', AdminBookingController::class);
-            Route::resource('amenities', AmenityController::class);
-            Route::resource('settings', SettingController::class);
-            Route::resource('dining', DiningController::class);
+            // Bookings Management
+            Route::resource('bookings', AdminBookingController::class)->middleware('permission:access_website_dashboard|website.bookings');
+            Route::resource('amenities', AmenityController::class)->middleware('permission:access_website_dashboard|website.amenities');
+            Route::resource('settings', SettingController::class)->middleware('permission:access_website_dashboard|website.settings');
+            Route::resource('dining', DiningController::class)->middleware('permission:access_website_dashboard|website.dining');
             Route::get('dining/{dining}/delete-pdf', [DiningController::class, 'deletePdf'])->name('dining.delete-pdf');
             Route::get('dining/{dining}/qr', [DiningController::class, 'qrCode'])->name('dining.qr');
 
             // Meetings Page Editor
-            Route::prefix('meeting')->name('meeting.')->group(function () {
+            Route::prefix('meeting')->name('meeting.')->middleware('permission:access_website_dashboard|website.meeting')->group(function () {
                 Route::get('/', [MeetingPageController::class, 'edit'])->name('edit');
                 Route::post('/hero', [MeetingPageController::class, 'updateHero'])->name('update-hero');
                 Route::post('/equipment-catering', [MeetingPageController::class, 'updateEquipmentCatering'])->name('update-equipment');
@@ -166,7 +160,7 @@ Route::middleware(['web'])->group(function () {
             });
 
             // Facilities Page Editor
-            Route::prefix('facilities')->name('facilities.')->group(function () {
+            Route::prefix('facilities')->name('facilities.')->middleware('permission:access_website_dashboard|website.facilities')->group(function () {
                 Route::get('/', [FacilitiesPageController::class, 'edit'])->name('edit');
                 Route::post('/hero', [FacilitiesPageController::class, 'updateHero'])->name('update-hero');
                 Route::post('/items', [FacilitiesPageController::class, 'storeItem'])->name('items.store');
@@ -175,7 +169,7 @@ Route::middleware(['web'])->group(function () {
             });
 
             // Offers Page Editor
-            Route::prefix('offers')->name('offers.')->group(function () {
+            Route::prefix('offers')->name('offers.')->middleware('permission:access_website_dashboard|website.offers')->group(function () {
                 Route::get('/', [OffersPageController::class, 'edit'])->name('edit');
                 Route::post('/hero', [OffersPageController::class, 'updateHero'])->name('update-hero');
                 Route::post('/offers', [OffersPageController::class, 'storeOffer'])->name('offers.store');
@@ -183,31 +177,32 @@ Route::middleware(['web'])->group(function () {
                 Route::delete('/offers/{offer}', [OffersPageController::class, 'destroyOffer'])->name('offers.destroy');
             });
 
-            // Room Types & Units Management (NEW)
-            // IMPORTANT: This route MUST be before the resource to avoid conflict
+            // Room Types & Units Management
             Route::delete('room-types/images/{imageId}', [RoomTypeController::class, 'deleteImage'])
                 ->name('room-types.images.destroy');
-            Route::resource('room-types', RoomTypeController::class);
+            Route::resource('room-types', RoomTypeController::class)->middleware('permission:access_website_dashboard|website.room-types');
 
             // Room Units
-            Route::post('room-types/{roomType}/units', [RoomTypeController::class, 'storeUnit'])
-                ->name('room-types.units.store');
-            Route::post('room-types/{roomType}/units/bulk', [RoomTypeController::class, 'bulkStoreUnits'])
-                ->name('room-types.units.bulk');
-            Route::put('room-units/{unit}', [RoomTypeController::class, 'updateUnit'])
-                ->name('room-units.update');
-            Route::post('room-units/{unit}/move', [RoomTypeController::class, 'moveUnit'])
-                ->name('room-units.move');
-            Route::delete('room-units/{unit}', [RoomTypeController::class, 'destroyUnit'])
-                ->name('room-units.destroy');
-            Route::get('/api/room-status', [AdminRoomController::class, 'getRoomStatus'])->name('api.room.status');
-            Route::get('/calendar', [AdminRoomController::class, 'calendar'])->name('rooms.calendar');
-            Route::get('/api/calendar-data', [AdminRoomController::class, 'getCalendarData'])->name('api.calendar.data');
+            Route::middleware('permission:access_website_dashboard|website.room-types')->group(function () {
+                Route::post('room-types/{roomType}/units', [RoomTypeController::class, 'storeUnit'])
+                    ->name('room-types.units.store');
+                Route::post('room-types/{roomType}/units/bulk', [RoomTypeController::class, 'bulkStoreUnits'])
+                    ->name('room-types.units.bulk');
+                Route::put('room-units/{unit}', [RoomTypeController::class, 'updateUnit'])
+                    ->name('room-units.update');
+                Route::post('room-units/{unit}/move', [RoomTypeController::class, 'moveUnit'])
+                    ->name('room-units.move');
+                Route::delete('room-units/{unit}', [RoomTypeController::class, 'destroyUnit'])
+                    ->name('room-units.destroy');
+                Route::get('/api/room-status', [AdminRoomController::class, 'getRoomStatus'])->name('api.room.status');
+                Route::get('/calendar', [AdminRoomController::class, 'calendar'])->name('rooms.calendar');
+                Route::get('/api/calendar-data', [AdminRoomController::class, 'getCalendarData'])->name('api.calendar.data');
+            });
 
             // =========================================================================
             // INVENTORY CALENDAR (Expedia-Style)
             // =========================================================================
-            Route::prefix('inventory')->name('inventory.')->group(function () {
+            Route::prefix('inventory')->name('inventory.')->middleware('permission:access_website_dashboard|website.inventory')->group(function () {
                 Route::get('/', [InventoryCalendarController::class, 'index'])->name('index');
                 Route::get('/api/data', [InventoryCalendarController::class, 'getInventoryData'])->name('api.data');
                 Route::get('/api/blocks', [InventoryCalendarController::class, 'getBlocks'])->name('api.blocks');
@@ -220,24 +215,27 @@ Route::middleware(['web'])->group(function () {
             });
             // Contact Messages (Read Only / Reply)
             Route::resource('contact-messages', ContactMessageController::class)
-                ->only(['index', 'show', 'destroy', 'update']);
+                ->only(['index', 'show', 'destroy', 'update'])
+                ->middleware('permission:access_website_dashboard|website.contact-messages');
 
             // Contact Message Conversation Routes
-            Route::get('contact-messages/{contact_message}/reply', [ContactMessageController::class, 'reply'])
-                ->name('contact-messages.reply');
-            Route::post('contact-messages/{contact_message}/reply', [ContactMessageController::class, 'sendReply'])
-                ->name('contact-messages.send-reply');
-            Route::post('contact-messages/{contact_message}/archive', [ContactMessageController::class, 'archive'])
-                ->name('contact-messages.archive');
-            Route::post('contact-messages/{contact_message}/restore', [ContactMessageController::class, 'restore'])
-                ->name('contact-messages.restore');
+            Route::middleware('permission:access_website_dashboard|website.contact-messages')->group(function () {
+                Route::get('contact-messages/{contact_message}/reply', [ContactMessageController::class, 'reply'])
+                    ->name('contact-messages.reply');
+                Route::post('contact-messages/{contact_message}/reply', [ContactMessageController::class, 'sendReply'])
+                    ->name('contact-messages.send-reply');
+                Route::post('contact-messages/{contact_message}/archive', [ContactMessageController::class, 'archive'])
+                    ->name('contact-messages.archive');
+                Route::post('contact-messages/{contact_message}/restore', [ContactMessageController::class, 'restore'])
+                    ->name('contact-messages.restore');
+            });
 
             // =========================================================================
             // NEWSLETTER MANAGEMENT
             // =========================================================================
 
             // Newsletter Campaigns
-            Route::prefix('newsletter/campaigns')->name('newsletter.campaigns.')->group(function () {
+            Route::prefix('newsletter/campaigns')->name('newsletter.campaigns.')->middleware('permission:access_website_dashboard|website.newsletter')->group(function () {
                 Route::get('/', [NewsletterController::class, 'index'])->name('index');
                 Route::get('/create', [NewsletterController::class, 'create'])->name('create');
                 Route::post('/', [NewsletterController::class, 'store'])->name('store');
@@ -257,16 +255,14 @@ Route::middleware(['web'])->group(function () {
             });
 
             // Newsletter Subscribers Management
-            Route::get('newsletter/subscribers', [NewsletterController::class, 'subscribersIndex'])->name('newsletter.subscribers');
-            Route::get('newsletter/subscribers/export', [NewsletterController::class, 'exportSubscribers'])->name('newsletter.subscribers.export');
-            Route::post('newsletter/subscribers/import', [NewsletterController::class, 'importSubscribers'])->name('newsletter.subscribers.import');
-            Route::get('newsletter/subscribers/import/sample', [NewsletterController::class, 'downloadSampleImport'])->name('newsletter.subscribers.import.sample');
-            Route::delete('newsletter/subscribers/{subscriber}', [NewsletterController::class, 'destroySubscriber'])->name('newsletter.subscribers.destroy');
-            Route::post('newsletter/subscribers/{subscriber}/toggle', [NewsletterController::class, 'toggleSubscriberStatus'])->name('newsletter.subscribers.toggle');
-
-            // Manual specific routes if Resources don't cover everything
-            Route::post('/rooms/image/upload', [AdminRoomController::class, 'uploadImage'])->name('rooms.image.upload');
-            Route::delete('/rooms/image/{id}', [AdminRoomController::class, 'deleteImage'])->name('rooms.image.delete');
+            Route::middleware('permission:access_website_dashboard|website.newsletter')->group(function () {
+                Route::get('newsletter/subscribers', [NewsletterController::class, 'subscribersIndex'])->name('newsletter.subscribers');
+                Route::get('newsletter/subscribers/export', [NewsletterController::class, 'exportSubscribers'])->name('newsletter.subscribers.export');
+                Route::post('newsletter/subscribers/import', [NewsletterController::class, 'importSubscribers'])->name('newsletter.subscribers.import');
+                Route::get('newsletter/subscribers/import/sample', [NewsletterController::class, 'downloadSampleImport'])->name('newsletter.subscribers.import.sample');
+                Route::delete('newsletter/subscribers/{subscriber}', [NewsletterController::class, 'destroySubscriber'])->name('newsletter.subscribers.destroy');
+                Route::post('newsletter/subscribers/{subscriber}/toggle', [NewsletterController::class, 'toggleSubscriberStatus'])->name('newsletter.subscribers.toggle');
+            });
 
             Route::post('/bookings/{id}/confirm', [AdminBookingController::class, 'confirm'])->name('bookings.confirm');
             Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'cancel'])->name('bookings.cancel');

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
@@ -71,7 +72,7 @@ class PermissionGateTest extends TestCase
         parent::setUp();
 
         $this->withoutMiddleware([
-            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+            ValidateCsrfToken::class,
         ]);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
@@ -108,7 +109,7 @@ class PermissionGateTest extends TestCase
         $this->assertNotEquals(
             403,
             $response->getStatusCode(),
-            "Gate blocked access to [$url] for user with permissions: " . implode(', ', $permissions)
+            "Gate blocked access to [$url] for user with permissions: ".implode(', ', $permissions)
         );
     }
 
@@ -403,6 +404,71 @@ class PermissionGateTest extends TestCase
         $user->givePermissionTo(['access_gym_dashboard', 'gym.create', 'gym.update', 'gym.delete']);
         $response = $this->actingAs($user)->get('/gym');
         $this->assertNotEquals(403, $response->getStatusCode(), 'Gym gate blocked despite having access_gym_dashboard');
+    }
+
+    // ==========================================
+    // CONTROLLER-LEVEL PERMISSION CHECKS
+    // ==========================================
+
+    // ==========================================
+    // WEBSITE GRANULAR PAGES
+    // ==========================================
+
+    /** @test */
+    public function website_newsletter_admin()
+    {
+        $this->assertBlocked('/website/admin/newsletter/campaigns', []);
+        $this->assertPasses('/website/admin/newsletter/campaigns', ['access_website_dashboard']);
+    }
+
+    /** @test */
+    public function website_settings_requires_dashboard_not_manage_settings()
+    {
+        // manage_settings is blade-only — route is gated by access_website_dashboard
+        $this->assertBlocked('/website/admin/settings', []);
+        $this->assertPasses('/website/admin/settings', ['access_website_dashboard']);
+    }
+
+    /** @test */
+    public function website_subscribers_admin()
+    {
+        $this->assertBlocked('/website/admin/newsletter/subscribers', []);
+        $this->assertPasses('/website/admin/newsletter/subscribers', ['access_website_dashboard']);
+    }
+
+    /** @test */
+    public function website_contact_messages_admin()
+    {
+        $this->assertBlocked('/website/admin/contact-messages', []);
+        $this->assertPasses('/website/admin/contact-messages', ['access_website_dashboard']);
+    }
+
+    /** @test */
+    public function website_rooms_calendar()
+    {
+        $this->assertBlocked('/website/admin/calendar', []);
+        $this->assertPasses('/website/admin/calendar', ['access_website_dashboard']);
+    }
+
+    /** @test */
+    public function website_bookings_admin()
+    {
+        $this->assertBlocked('/website/admin/bookings', []);
+        $this->assertPasses('/website/admin/bookings', ['access_website_dashboard']);
+    }
+
+    /** @test */
+    public function website_room_types_admin()
+    {
+        $this->assertBlocked('/website/admin/room-types', []);
+        $this->assertPasses('/website/admin/room-types', ['access_website_dashboard']);
+    }
+
+    /** @test */
+    public function website_inventory_calendar_admin()
+    {
+        $this->assertBlocked('/website/admin/inventory', []);
+        $this->assertPasses('/website/admin/inventory', ['access_website_dashboard']);
     }
 
     // ==========================================
