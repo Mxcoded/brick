@@ -23,21 +23,39 @@
     .status-toggle .st-btn.active.st-completed { background: #198754; color: #fff; }
     .status-toggle .st-btn:not(.active):hover { filter: brightness(0.92); }
     .status-toggle .st-btn.readonly { cursor: default; }
+
+    .update-timeline { position: relative; padding-left: 24px; }
+    .update-timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: #e0e0e0; }
+    .update-item { position: relative; margin-bottom: 16px; }
+    .update-item::before { content: ''; position: absolute; left: -20px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: #C8A165; border: 2px solid #fff; box-shadow: 0 0 0 2px #C8A165; }
+    .update-item .update-action { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .update-item .update-meta { font-size: 0.75rem; color: #999; }
+    .update-item .update-details { font-size: 0.85rem; color: #555; margin-top: 2px; }
+
+    .comment-avatar { width: 36px; height: 36px; border-radius: 50%; background: #C8A165; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
 </style>
 @endsection
 
 @section('page-content')
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold text-charcoal mb-0"><i class="fas fa-tasks me-2"></i>Task #{{ $task->task_number }}</h3>
-        <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary btn-sm">
+        <a href="{{ route('tasks.index') }}" class="btn btn-outline-dark btn-sm">
             <i class="fas fa-arrow-left me-1"></i>Back to Tasks
         </a>
     </div>
 
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    {{-- Task Detail Card --}}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <div class="d-flex align-items-start gap-3 mb-4">
-                @if ($isCreator)
+                @if ($isCreator || $isAssignee)
                     <div class="status-toggle mt-1" data-task-toggle="{{ $task->id }}">
                         @foreach (['pending', 'in_progress', 'completed'] as $st)
                             <form action="{{ route('tasks.status', $task->id) }}" method="POST" class="d-inline task-status-form">
@@ -100,6 +118,81 @@
         </div>
     </div>
 
+    <div class="row g-4">
+        {{-- Comments --}}
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent py-3 border-bottom">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-comments me-2" style="color: #C8A165;"></i>Comments &amp; Updates</h6>
+                </div>
+                <div class="card-body">
+                    @if ($isCreator || $isAssignee)
+                        <form method="POST" action="{{ route('tasks.comment', $task->id) }}" class="mb-4">
+                            @csrf
+                            <div class="d-flex gap-2">
+                                <textarea name="comment" class="form-control form-control-sm" rows="2" placeholder="Add a comment..." required maxlength="2000"></textarea>
+                                <button type="submit" class="btn btn-gold btn-sm align-self-end flex-shrink-0"><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </form>
+                    @endif
+
+                    <div class="update-timeline">
+                        @forelse ($task->comments->sortByDesc('created_at') as $comment)
+                            <div class="update-item">
+                                <div class="d-flex gap-2 align-items-start">
+                                    <div class="comment-avatar" style="background: #C8A165;">{{ substr($comment->user->name ?? '?', 0, 1) }}</div>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-semibold small">{{ $comment->user->name ?? 'Unknown' }}</span>
+                                            <span class="update-meta">{{ $comment->created_at->diffForHumans() }}</span>
+                                        </div>
+                                        <p class="mb-0 mt-1" style="font-size: 0.9rem;">{{ $comment->comment }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-muted small mb-0">No comments yet.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Activity Timeline --}}
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent py-3 border-bottom">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-history me-2" style="color: #C8A165;"></i>Activity</h6>
+                </div>
+                <div class="card-body">
+                    <div class="update-timeline">
+                        @forelse ($task->updates->sortByDesc('created_at') as $update)
+                            <div class="update-item">
+                                <span class="update-action" style="color: #C8A165;">{{ str_replace('_', ' ', $update->action) }}</span>
+                                <span class="update-meta d-block">
+                                    by {{ $update->user->name ?? 'System' }} &middot; {{ $update->created_at->diffForHumans() }}
+                                </span>
+                                @if($update->changes)
+                                    <div class="update-details">
+                                        @if(isset($update->changes['from']) && isset($update->changes['to']))
+                                            <span>{{ $update->changes['from'] }} &rarr; {{ $update->changes['to'] }}</span>
+                                        @elseif(isset($update->changes['comment_preview']))
+                                            <span>&ldquo;{{ $update->changes['comment_preview'] }}&rdquo;</span>
+                                        @elseif(isset($update->changes['assigned']))
+                                            <span>Assigned to: {{ implode(', ', $update->changes['assigned']) }}</span>
+                                        @endif
+                                    </div>
+                                @endif
+                            </div>
+                        @empty
+                            <p class="text-muted small mb-0">No activity recorded yet.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @if ($isCreator)
         <div class="d-flex gap-2">
             @can('tasks.update')
@@ -127,49 +220,38 @@
             form.addEventListener('submit', function (e) {
                 var btn = this.querySelector('button[type="submit"]');
                 if (btn.disabled) return;
-
                 var toggle = this.closest('[data-task-toggle]');
                 if (!toggle) return;
-
                 e.preventDefault();
-
                 var token = this.querySelector('input[name="_token"]')?.value || '';
                 var status = this.querySelector('input[name="status"]')?.value || '';
-
                 var body = new URLSearchParams();
                 body.append('_token', token);
                 body.append('_method', 'PATCH');
                 body.append('status', status);
-
                 fetch(this.action, {
                     method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: body.toString()
                 })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     if (!data.success) return;
-
                     var newStatus = data.status;
                     toggle.querySelectorAll('.st-btn').forEach(function (b) {
-                        var st = b.closest('form') ? b.closest('form').querySelector('input[name="status"]').value : '';
                         b.classList.remove('active');
                         b.disabled = false;
-                        if (st === newStatus) {
+                        if (b.closest('form').querySelector('input[name="status"]').value === newStatus) {
                             b.classList.add('active');
                             b.disabled = true;
                         }
                     });
-
                     var card = toggle.closest('.card');
                     if (card) {
                         card.querySelector('.card-body').style.borderLeftColor =
                             newStatus === 'completed' ? '#198754' : newStatus === 'in_progress' ? '#0d6efd' : '#ffc107';
                     }
+                    location.reload();
                 })
                 .catch(function () {});
             });

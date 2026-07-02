@@ -1,14 +1,21 @@
 @php
     $isCreator = ($task->created_by === Auth::id());
     $statuses = ['pending' => 'Pending', 'in_progress' => 'In Progress', 'completed' => 'Completed'];
-    $borderClass = ['pending' => 'border-warning', 'in_progress' => 'border-primary', 'completed' => 'border-success'];
 @endphp
-<div class="card border-0 shadow-sm mb-2 task-card status-{{ $task->status }} {{ $task->status === 'completed' ? 'completed' : '' }}" data-task-id="{{ $task->id }}">
+<div class="card border-0 shadow-sm mb-2 task-card status-{{ $task->status }} {{ $task->status === 'completed' ? 'completed' : '' }}"
+     data-task-id="{{ $task->id }}"
+     draggable="{{ isset($draggable) && $draggable ? 'true' : 'false' }}">
     <div class="card-body py-3" style="border-left: 4px solid; border-left-color: {{ $task->status === 'pending' ? '#ffc107' : ($task->status === 'in_progress' ? '#0d6efd' : '#198754') }}; border-radius: 8px 0 0 8px;">
         <div class="d-flex align-items-start gap-3">
+            @if(isset($showBulkCheckbox) && $showBulkCheckbox)
+                <div class="mt-1">
+                    <input type="checkbox" class="form-check-input task-bulk-checkbox" value="{{ $task->id }}" style="cursor: pointer;">
+                </div>
+            @endif
+
             {{-- Status Toggle --}}
             <div class="mt-1">
-                @if ($isCreator)
+                @if ($isCreator || (isset($showAssigneeActions) && $showAssigneeActions))
                     <div class="status-toggle" data-task-toggle="{{ $task->id }}">
                         @foreach (['pending', 'in_progress', 'completed'] as $st)
                             <form action="{{ route('tasks.status', $task->id) }}" method="POST" class="d-inline task-status-form">
@@ -38,9 +45,9 @@
             {{-- Content --}}
             <div class="flex-grow-1 min-width-0">
                 <div class="d-flex justify-content-between align-items-start">
-                    <div>
+                    <div class="min-width-0 w-100">
                         <a href="{{ route('tasks.show', $task->id) }}" class="text-decoration-none text-dark fw-semibold task-link">
-                            {{ Str::limit($task->description, 60) }}
+                            {{ $task->description }}
                         </a>
                         <div class="d-flex flex-wrap gap-2 mt-1">
                             <span class="badge bg-{{ $task->priority === 'high' ? 'danger' : ($task->priority === 'medium' ? 'warning text-dark' : 'secondary') }} rounded-pill">
@@ -53,7 +60,7 @@
                                 @endif
                             </span>
                             @if(isset($showActions) && $showActions && $task->employees->isNotEmpty())
-                                <span class="small text-muted">
+                                <span class="small text-muted" title="{{ $task->employees->pluck('name')->implode(', ') }}">
                                     <i class="fas fa-users me-1"></i>{{ $task->employees->pluck('name')->implode(', ') }}
                                 </span>
                             @elseif(!isset($showActions) || !$showActions)
@@ -64,22 +71,22 @@
                         </div>
                     </div>
                     @if (isset($showActions) && $showActions)
-                        <div class="d-flex gap-1 ms-3">
-                            <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-sm btn-outline-secondary" title="View"><i class="fas fa-eye"></i></a>
+                        <div class="d-flex gap-1 ms-3 flex-shrink-0">
+                            <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-sm btn-outline-dark" title="View"><i class="fas fa-eye"></i></a>
                             @can('tasks.update')
-                                <a href="{{ route('tasks.edit', $task->id) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+                                <a href="{{ route('tasks.edit', $task->id) }}" class="btn btn-sm btn-outline-dark" title="Edit"><i class="fas fa-edit"></i></a>
                             @endcan
                             @can('tasks.delete')
                                 <form action="{{ route('tasks.destroy', $task->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this task?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="fas fa-trash"></i></button>
+                                    <button type="submit" class="btn btn-sm btn-outline-dark" title="Delete"><i class="fas fa-trash"></i></button>
                                 </form>
                             @endcan
                         </div>
                     @else
-                        <div class="d-flex gap-1 ms-3">
-                            <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-sm btn-outline-secondary" title="View"><i class="fas fa-eye"></i></a>
+                        <div class="d-flex gap-1 ms-3 flex-shrink-0">
+                            <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-sm btn-outline-dark" title="View"><i class="fas fa-eye"></i></a>
                         </div>
                     @endif
                 </div>

@@ -7,15 +7,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Staff\Models\Employee;
 
-// use Modules\Tasks\Database\Factories\TaskFactory;
-
 class Task extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'task_number',
         'date',
@@ -55,6 +50,11 @@ class Task extends Model
         return $this->hasMany(TaskUpdate::class, 'task_id');
     }
 
+    public function comments()
+    {
+        return $this->hasMany(TaskComment::class);
+    }
+
     public function scopePending($q)
     {
         return $q->where('status', 'pending');
@@ -68,5 +68,18 @@ class Task extends Model
     public function scopeCompleted($q)
     {
         return $q->where('status', 'completed');
+    }
+
+    public function scopeFilter($q, array $filters)
+    {
+        $q->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+            ->when($filters['priority'] ?? null, fn ($q, $v) => $q->where('priority', $v))
+            ->when($filters['assignee_id'] ?? null, fn ($q, $v) => $q->whereHas('employees', fn ($q) => $q->where('employees.id', $v)))
+            ->when($filters['search'] ?? null, fn ($q, $v) => $q->where(function ($q) use ($v) {
+                $q->where('description', 'like', "%{$v}%")
+                    ->orWhere('task_number', 'like', "%{$v}%");
+            }))
+            ->when($filters['date_from'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '>=', $v))
+            ->when($filters['date_to'] ?? null, fn ($q, $v) => $q->whereDate('created_at', '<=', $v));
     }
 }
