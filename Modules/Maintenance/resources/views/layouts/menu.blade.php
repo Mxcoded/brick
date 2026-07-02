@@ -1,4 +1,4 @@
-@can('access_maintenance_dashboard')
+@canany(['access_maintenance_dashboard', 'maintenance.read', 'maintenance.create'])
 <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#maintenanceSubmenu" role="button"
    aria-expanded="{{ request()->routeIs('maintenance.*') ? 'true' : 'false' }}" aria-controls="maintenanceSubmenu">
     <i class="fas fa-tools fa-fw"></i>
@@ -12,7 +12,7 @@
        class="list-group-item list-group-item-action {{ request()->routeIs('maintenance.index') || request()->routeIs('maintenance.show') ? 'active' : '' }}">
         <i class="fas fa-list fa-fw me-2"></i> All Logs
     </a>
-    @endcan
+@endcanany
 
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Management</div>

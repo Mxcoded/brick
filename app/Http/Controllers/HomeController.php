@@ -28,7 +28,7 @@ class HomeController extends Controller
         }
 
         // 2. HR staff
-        if ($user->can('access_staff_dashboard') && $user->can('view_employees')) {
+        if ($user->can('access_staff_dashboard') && $user->can('employees.read')) {
             return redirect()->route('staff.dashboard');
         }
 

@@ -240,17 +240,17 @@ class AdminController extends Controller
 
                     continue;
                 }
-                if (str_starts_with($perm->name, 'check_in') || str_starts_with($perm->name, 'check_out') || str_starts_with($perm->name, 'manage_rooms')) {
+                if (str_starts_with($perm->name, 'check_in') || str_starts_with($perm->name, 'check_out')) {
                     $groups['Front Desk'][] = $perm;
 
                     continue;
                 }
-                if (str_starts_with($perm->name, 'view_employees') || str_starts_with($perm->name, 'manage_employees')) {
+                if (str_starts_with($perm->name, 'employees.') || str_starts_with($perm->name, 'view_employees') || str_starts_with($perm->name, 'manage_employees')) {
                     $groups['HR & Staff'][] = $perm;
 
                     continue;
                 }
-                if (str_starts_with($perm->name, 'approve_leaves')) {
+                if (str_starts_with($perm->name, 'leaves.approve') || str_starts_with($perm->name, 'approve_leaves')) {
                     $groups['HR & Staff'][] = $perm;
 
                     continue;
@@ -309,6 +309,9 @@ class AdminController extends Controller
                         break;
                     case 'gym':
                         $group = 'Gym';
+                        break;
+                    case 'maintenance':
+                        $group = 'Maintenance';
                         break;
                     default:
                         $group = 'Other';

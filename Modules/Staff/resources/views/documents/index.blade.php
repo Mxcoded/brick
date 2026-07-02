@@ -119,7 +119,7 @@
                                             <i class="fas fa-download"></i>
                                         </a>
                                     @endif
-                                    @can('manage_employees')
+                                    @canany(['employees.update', 'employees.delete'])
                                     <form method="POST" action="{{ route('staff.documents.destroy', $doc) }}" onsubmit="return confirm('Delete {{ $doc->filename }}?')" class="d-inline">
                                         @csrf @method('DELETE')
                                         <button class="btn btn-sm" style="background: #fde8e8; color: #c0392b; border: 1px solid #f5c6c6; border-radius: 8px;">

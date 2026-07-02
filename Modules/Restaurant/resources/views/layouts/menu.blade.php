@@ -14,14 +14,14 @@
     </a>
     @endcan
 
-    @can('manage_menu')
+    @canany(['menu.create', 'menu.update', 'menu.delete', 'menu.read'])
     <a href="{{ route('restaurant.admin.dashboard') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('restaurant.admin.dashboard') || request()->routeIs('restaurant.admin.edit*') || request()->routeIs('restaurant.admin.add*') || request()->routeIs('restaurant.admin.delete*') || request()->routeIs('restaurant.admin.update*') ? 'active' : '' }}">
         <i class="fas fa-book-open fa-fw me-2"></i> Manage Menu
     </a>
-    @endcan
+    @endcanany
 
-    @can('manage_menu')
+    @can('menu.read')
     <a href="{{ route('restaurant.admin.settings') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('restaurant.admin.settings') ? 'active' : '' }}">
         <i class="fas fa-gear fa-fw me-2"></i> Settings
