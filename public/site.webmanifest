@@ -1,0 +1,19 @@
+{
+    "name": "Brickspoint ApartHotel",
+    "short_name": "Brickspoint",
+    "icons": [
+        {
+            "src": "/images/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/images/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "theme_color": "#C8A165",
+    "background_color": "#FFFFFF",
+    "display": "standalone"
+}
