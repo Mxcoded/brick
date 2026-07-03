@@ -1100,7 +1100,7 @@
 
     <!-- Main Content -->
     <main class="flex-grow-1">
-        @if (View::hasSection('page-content'))
+        @if (! empty(trim($__env->yieldContent('page-content'))))
             @yield('page-content')
         @else
             @yield('content')
