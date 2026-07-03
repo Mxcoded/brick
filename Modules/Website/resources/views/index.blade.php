@@ -171,7 +171,7 @@
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
                                 <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
-                                    class="card-img-top room-image" alt="{{ $roomType->name }}">
+                                    class="card-img-top room-image" alt="{{ $roomType->name }}" loading="lazy">
                                 <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
                                     ₦{{ number_format($roomType->price, 2) }} <small>/ night</small>
                                 </div>
@@ -281,7 +281,7 @@
                         <img src="{{ !empty($settings['hotel_feature_image'])
                             ? asset($settings['hotel_feature_image'])
                             : asset('images/default-hotel.jpg') }}"
-                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover">
+                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover" loading="lazy">
                     </div>
                 </div>
             </div>
@@ -304,7 +304,7 @@
                     <div class="col-md-4">
                         <div class="card border-0 shadow-sm h-100 overflow-hidden dining-card">
                             <img src="{{ $option->image_url }}" class="card-img-top dining-image"
-                                alt="{{ $option->name }}">
+                                alt="{{ $option->name }}" loading="lazy">
                             <div class="card-body">
                                 <h3 class="h5 card-title">{{ $option->name }}</h3>
                                 <p class="card-text text-muted">{{ Str::limit($option->description, 100) }}</p>
@@ -369,7 +369,7 @@
                 <div class="col-lg-6 order-lg-1 mb-4 mb-lg-0 reveal-left">
                     <div class="ratio ratio-16x9 rounded overflow-hidden shadow-lg">
                         <img src="{{ asset('images/spa.jpg') }}" alt="Spa"
-                            class="img-fluid w-100 h-100 object-fit-cover">
+                            class="img-fluid w-100 h-100 object-fit-cover" loading="lazy">
                     </div>
                 </div>
             </div>

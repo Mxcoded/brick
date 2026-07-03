@@ -45,11 +45,10 @@
 
     <!-- CSS -->
     @vite(['resources/sass/app.scss'])
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <link href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap"
-        rel="stylesheet">
+    <link rel="preload" href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap" rel="stylesheet"></noscript>
 
-    <!-- Custom CSS -->
+    <!-- Landing Page Styles -->
     <style>
         /* Design System Tokens */
         :root {
@@ -609,7 +608,6 @@
                 display: none !important;
             }
         }
-        }
 
         @media (max-width: 768px) {
             .navbar-brand img {
@@ -1102,7 +1100,7 @@
 
     <!-- Main Content -->
     <main class="flex-grow-1">
-        @hasSection('page-content')
+        @if (View::hasSection('page-content'))
             @yield('page-content')
         @else
             @yield('content')
@@ -1281,9 +1279,7 @@
 
     <!-- JavaScript -->
     @vite(['resources/js/app.js'])
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script defer src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 
     @stack('scripts')
 
