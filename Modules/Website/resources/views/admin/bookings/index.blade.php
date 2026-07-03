@@ -27,8 +27,10 @@
                     <label class="small text-muted text-uppercase fw-bold">Status</label>
                     <select name="status" class="form-select">
                         <option value="">All Statuses</option>
-                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending Request</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                         <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                        <option value="checked_in" {{ request('status') == 'checked_in' ? 'selected' : '' }}>Checked In</option>
+                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
                         <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                     </select>
                 </div>
@@ -61,12 +63,19 @@
                     <tbody class="border-top-0">
                         @forelse($bookings as $booking)
                         <tr>
-                            <td class="ps-4 fw-bold text-primary">{{ $booking->booking_reference }}</td>
+                            <td class="ps-4">
+                                <div class="fw-bold text-primary">{{ $booking->booking_reference }}</div>
+                                @if($booking->booking_group_id)
+                                    <div class="small text-muted">
+                                        <i class="fas fa-layer-group me-1"></i>{{ $booking->booking_group_id }}
+                                    </div>
+                                @endif
+                            </td>
                             <td>
                                 <div class="fw-bold text-dark">{{ $booking->guest_name }}</div>
                                 <div class="small text-muted">{{ $booking->guest_phone }}</div>
                             </td>
-                            <td>{{ $booking->room->name ?? 'Deleted Room' }}</td>
+                            <td>{{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Room' }}</td>
                             <td>
                                 <div class="small">
                                     <span class="text-success"><i class="fas fa-sign-in-alt me-1"></i> {{ $booking->check_in_date->format('M d') }}</span>

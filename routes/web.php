@@ -17,6 +17,7 @@ use App\Http\Controllers\ProfileController;
 
 // 1. Public Landing Page
 Route::get('/', function () {
+    // return redirect()->route('website.home');
     return view('welcome');
 });
 

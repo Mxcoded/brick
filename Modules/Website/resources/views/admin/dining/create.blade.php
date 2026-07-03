@@ -30,16 +30,33 @@
                             <input type="text" name="name" class="form-control" required value="{{ old('name') }}">
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Opening Hours</label>
-                            <input type="text" name="opening_hours" class="form-control" placeholder="e.g. 7:00 AM - 10:00 PM" value="{{ old('opening_hours') }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Opening Hours</label>
+                                <input type="text" name="opening_hours" class="form-control" placeholder="e.g. 7:00 AM - 10:00 PM" value="{{ old('opening_hours') }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Cuisine Type</label>
+                                <input type="text" name="cuisine_type" class="form-control" placeholder="e.g. Continental, Nigerian, Asian" value="{{ old('cuisine_type') }}">
+                            </div>
                         </div>
 
-                        {{-- ✅ ADDED: Menu Link --}}
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Menu Link (Optional)</label>
-                            <input type="url" name="menu_link" class="form-control" placeholder="https://..." value="{{ old('menu_link') }}">
-                            <div class="form-text">Link to a PDF menu or external page.</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Dress Code</label>
+                                <select name="dress_code" class="form-select">
+                                    <option value="">Select dress code</option>
+                                    <option value="Casual" {{ old('dress_code') == 'Casual' ? 'selected' : '' }}>Casual</option>
+                                    <option value="Smart Casual" {{ old('dress_code') == 'Smart Casual' ? 'selected' : '' }}>Smart Casual</option>
+                                    <option value="Business Casual" {{ old('dress_code') == 'Business Casual' ? 'selected' : '' }}>Business Casual</option>
+                                    <option value="Formal" {{ old('dress_code') == 'Formal' ? 'selected' : '' }}>Formal</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Menu Link (Optional)</label>
+                                <input type="url" name="menu_link" class="form-control" placeholder="https://..." value="{{ old('menu_link') }}">
+                                <div class="form-text">Link to a PDF menu or external page.</div>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -47,10 +64,19 @@
                             <textarea name="description" class="form-control" rows="4" required>{{ old('description') }}</textarea>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Image</label>
-                            <input type="file" name="image" class="form-control" accept="image/*">
-                            <div class="form-text">Recommended size: 800x600px</div>
+                        <div class="row">
+                            <div class="col-md-8 mb-4">
+                                <label class="form-label fw-bold">Image</label>
+                                <input type="file" name="image" class="form-control" accept="image/*">
+                                <div class="form-text">Recommended size: 800x600px</div>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <label class="form-label fw-bold">Featured</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input type="checkbox" name="is_featured" value="1" class="form-check-input" id="is_featured" {{ old('is_featured') ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="is_featured">Show on homepage</label>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="d-flex justify-content-end gap-2">

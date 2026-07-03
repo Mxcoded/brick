@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\User;
+use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Account\Models\OrderItems;
+use Modules\Website\Models\Room;
 
 class Booking extends Model
 {
@@ -15,7 +17,10 @@ class Booking extends Model
 
     protected $fillable = [
         'booking_reference',
-        'room_id',
+        'booking_group_id',   // NEW: Links multiple bookings from a single cart transaction
+        'room_id',            // Legacy: will be deprecated
+        'room_type_id',       // NEW: The room type booked
+        'room_unit_id',       // NEW: Assigned unit (nullable until check-in)
         'user_id',            // Optional: links to registered user
         'guest_profile_id',   // Optional: links to CRM profile
 
@@ -68,7 +73,24 @@ class Booking extends Model
         });
     }
     /**
-     * Relationship: The room being booked.
+     * Relationship: The room type being booked.
+     */
+    public function roomType()
+    {
+        return $this->belongsTo(RoomType::class);
+    }
+
+    /**
+     * Relationship: The assigned room unit (assigned at check-in).
+     */
+    public function roomUnit()
+    {
+        return $this->belongsTo(RoomUnit::class);
+    }
+
+    /**
+     * Legacy: The room being booked (backward compatibility).
+     * @deprecated Use roomType() and roomUnit() instead.
      */
     public function room()
     {
@@ -81,6 +103,14 @@ class Booking extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    /**
+     * Link to the detailed CRM Guest Profile.
+     */
+    public function guest()
+    {
+        // Links 'guest_profile_id' in bookings table to 'id' in guests table
+        return $this->belongsTo(Guest::class, 'guest_profile_id');
     }
 
     public function orderItems() {

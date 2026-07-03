@@ -23,6 +23,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <style>
+        :root {
+            --luxury-gold: #C5A572;
+            --luxury-gold-hover: #B8956A;
+            --luxury-gold-light: #F5EFE6;
+        }
         .hover-scale tr {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -45,10 +50,59 @@
             background-color: #fff;
             border-color: #dee2e6 !important;
         }
+        /* Luxury Gold Primary Button */
+        .btn-primary {
+            background-color: var(--luxury-gold) !important;
+            border-color: var(--luxury-gold) !important;
+            color: #fff !important;
+        }
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: var(--luxury-gold-hover) !important;
+            border-color: var(--luxury-gold-hover) !important;
+            color: #fff !important;
+        }
+        .btn-primary:active {
+            background-color: var(--luxury-gold-hover) !important;
+            border-color: var(--luxury-gold-hover) !important;
+        }
+        /* DataTables Pagination - Luxury Gold */
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: var(--luxury-gold) !important;
+            border-color: var(--luxury-gold) !important;
+            color: #fff !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: var(--luxury-gold-light) !important;
+            border-color: var(--luxury-gold) !important;
+            color: var(--luxury-gold) !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            border-radius: 6px !important;
+            margin: 0 2px;
+        }
+        /* Filter buttons active state */
+        .filter-btn.active {
+            background-color: var(--luxury-gold) !important;
+            border-color: var(--luxury-gold) !important;
+            color: #fff !important;
+        }
+        .filter-btn:hover:not(.active) {
+            background-color: var(--luxury-gold-light) !important;
+            border-color: var(--luxury-gold) !important;
+        }
         .text-gradient {
-            background: linear-gradient(45deg, #0d6efd, #00b4d8);
+            background: linear-gradient(45deg, var(--luxury-gold), #D4AF37);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+        /* Text primary color */
+        .text-primary {
+            color: var(--luxury-gold) !important;
+        }
+        /* Links */
+        a.text-primary:hover {
+            color: var(--luxury-gold-hover) !important;
         }
     </style>
     {{-- Vite CSS --}}

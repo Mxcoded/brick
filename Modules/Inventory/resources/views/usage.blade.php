@@ -85,13 +85,21 @@
                 departmentDropdown.empty().append('<option value="">Loading departments...</option>');
 
                 $.ajax({
+<<<<<<< HEAD
+                    url: `/api/stores/{store}/departments`, // We will create this API route
+=======
                     url: `/inventory/api/stores/${storeId}/departments`, // We will create this API route
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
                     method: 'GET',
                     success: function(response) {
                         departmentDropdown.empty().append('<option value="">Select a department</option>');
                         if (response.length > 0) {
                             response.forEach(department => {
+<<<<<<< HEAD
+                                departmentDropdown.append(`<option value="${departments.id}">${departments.name}</option>`);
+=======
                                 departmentDropdown.append(`<option value="${department.id}">${department.name}</option>`);
+>>>>>>> 906e7a586886564176404b18921d3c1599cfba39
                             });
                         } else {
                             departmentDropdown.empty().append('<option value="">No departments found</option>');

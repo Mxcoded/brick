@@ -117,30 +117,62 @@
                             </div>
                         </div>
 
+                        {{-- Primary Image Upload with Preview --}}
                         <div class="row">
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Primary Image <span class="text-danger">*</span></label>
-                                    <input type="file" name="image" class="form-control" accept="image/*" required>
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Primary Image <span class="text-danger">*</span></label>
+                                    <div class="upload-zone" id="primaryUploadZone">
+                                        <input type="file" name="image" id="primary_image" class="form-control" accept="image/*" required>
+                                        <div id="primary_preview" class="upload-preview mt-2"></div>
+                                    </div>
+                                    <small class="text-muted">Max 20MB. Images will be automatically compressed.</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Gallery Images (Optional)</label>
-                                    <input type="file" name="gallery_images[]" class="form-control" accept="image/*"
-                                        multiple>
+                                <div class="form-group mb-3">
+                                    <label class="form-label fw-bold">Gallery Images (Optional)</label>
+                                    <input type="file" name="gallery_images[]" id="gallery_images" class="form-control" accept="image/*" multiple>
+                                    <div id="gallery_preview" class="upload-preview mt-2 d-flex flex-wrap gap-2"></div>
+                                    <small class="text-muted">Select multiple images for the gallery.</small>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-check mb-4">
-                            <label class="form-check-label">
-                                <input type="checkbox" class="form-check-input" name="is_featured" value="1">
-                                Feature this room on Homepage
-                            </label>
+                        {{-- Upload Progress Overlay (shown during form submission) --}}
+                        <div id="uploadOverlay" class="upload-overlay d-none">
+                            <div class="upload-modal">
+                                <div class="upload-modal-content">
+                                    <div class="spinner-border text-primary mb-3" role="status">
+                                        <span class="visually-hidden">Uploading...</span>
+                                    </div>
+                                    <h5 class="mb-2">Uploading & Compressing Images</h5>
+                                    <p class="text-muted mb-3" id="uploadStatusText">Please wait while we optimize your images...</p>
+                                    <div class="progress" style="height: 25px; width: 100%;">
+                                        <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                             role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                            <span id="uploadProgressText">0%</span>
+                                        </div>
+                                    </div>
+                                    <p class="mt-2 small text-muted" id="uploadFileInfo"></p>
+                                </div>
+                            </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary me-2">Create Room</button>
+                        <div class="card bg-light border-0 p-3 mb-4">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" name="is_featured" value="1" class="form-check-input" 
+                                       id="is_featured" {{ old('is_featured') ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold" for="is_featured">
+                                    <i class="fas fa-star text-warning me-1"></i> Featured Room
+                                </label>
+                                <small class="d-block text-muted mt-1">Featured rooms appear on the homepage</small>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary me-2" id="submitBtn">
+                            <i class="fas fa-plus-circle me-1"></i> Create Room
+                        </button>
                         <a href="{{ route('website.admin.rooms.index') }}" class="btn btn-light">Cancel</a>
                     </form>
                 </div>
@@ -149,58 +181,213 @@
     </div>
 @endsection
 
+@push('styles')
+<style>
+    .upload-preview-item {
+        position: relative;
+        display: inline-block;
+    }
+    .upload-preview-item img {
+        width: 120px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+    }
+    .upload-preview-item .file-info {
+        font-size: 0.7rem;
+        color: #6c757d;
+        text-align: center;
+        margin-top: 4px;
+    }
+    .upload-preview-item .file-size {
+        background: rgba(0,0,0,0.6);
+        color: #fff;
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        position: absolute;
+        bottom: 28px;
+        right: 4px;
+    }
+    .upload-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .upload-modal {
+        background: #fff;
+        border-radius: 16px;
+        padding: 40px;
+        max-width: 450px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .upload-modal .progress {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .upload-modal .progress-bar {
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+</style>
+@endpush
+
 @push('scripts')
-    <script>
-        // Primary Image Preview
-        document.getElementById('primary_image').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.classList.add('img-fluid', 'rounded', 'shadow-sm');
-                    img.style.maxHeight = '200px';
-                    document.getElementById('primary_image_preview').innerHTML = '';
-                    document.getElementById('primary_image_preview').appendChild(img);
-                }
-                reader.readAsDataURL(file);
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submitBtn');
+    const overlay = document.getElementById('uploadOverlay');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressText = document.getElementById('uploadProgressText');
+    const statusText = document.getElementById('uploadStatusText');
+    const fileInfo = document.getElementById('uploadFileInfo');
+
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Primary Image Preview
+    document.getElementById('primary_image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('primary_preview');
+        preview.innerHTML = '';
+        
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'upload-preview-item';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                    <div class="file-info">${file.name.substring(0, 20)}${file.name.length > 20 ? '...' : ''}</div>
+                `;
+                preview.appendChild(div);
             }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Gallery Images Preview
+    document.getElementById('gallery_images').addEventListener('change', function(e) {
+        const files = e.target.files;
+        const preview = document.getElementById('gallery_preview');
+        preview.innerHTML = '';
+        
+        let totalSize = 0;
+        Array.from(files).forEach(file => {
+            totalSize += file.size;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const div = document.createElement('div');
+                div.className = 'upload-preview-item';
+                div.innerHTML = `
+                    <img src="${ev.target.result}" alt="Preview">
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                    <div class="file-info">${file.name.substring(0, 15)}...</div>
+                `;
+                preview.appendChild(div);
+            }
+            reader.readAsDataURL(file);
         });
 
-        // Additional Images Preview
-        document.getElementById('images').addEventListener('change', function(e) {
-            const files = e.target.files;
-            const preview = document.getElementById('images_preview');
-            preview.innerHTML = '';
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const div = document.createElement('div');
-                    div.classList.add('me-2', 'mb-2');
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.classList.add('img-fluid', 'rounded', 'shadow-sm');
-                    img.style.maxHeight = '100px';
-                    div.appendChild(img);
-                    preview.appendChild(div);
+        if (files.length > 0) {
+            const totalInfo = document.createElement('div');
+            totalInfo.className = 'w-100 mt-2 small text-muted';
+            totalInfo.innerHTML = `<i class="fas fa-images me-1"></i> ${files.length} images selected (${formatFileSize(totalSize)} total)`;
+            preview.appendChild(totalInfo);
+        }
+    });
+
+    // Form Submit with Progress
+    form.addEventListener('submit', function(e) {
+        const primaryImage = document.getElementById('primary_image').files[0];
+        const galleryImages = document.getElementById('gallery_images').files;
+        
+        // Only show overlay if images are being uploaded
+        if (primaryImage || galleryImages.length > 0) {
+            e.preventDefault();
+            
+            // Show overlay
+            overlay.classList.remove('d-none');
+            submitBtn.disabled = true;
+            
+            // Calculate total size
+            let totalSize = primaryImage ? primaryImage.size : 0;
+            Array.from(galleryImages).forEach(f => totalSize += f.size);
+            const totalImages = (primaryImage ? 1 : 0) + galleryImages.length;
+            
+            fileInfo.innerHTML = `<i class="fas fa-file-image me-1"></i> Uploading ${totalImages} image(s) (${formatFileSize(totalSize)})`;
+            
+            // Create FormData
+            const formData = new FormData(form);
+            
+            // Create XMLHttpRequest for progress tracking
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.setAttribute('aria-valuenow', percent);
+                    progressText.textContent = percent + '%';
+                    
+                    if (percent < 50) {
+                        statusText.textContent = 'Uploading images...';
+                    } else if (percent < 90) {
+                        statusText.textContent = 'Compressing & optimizing...';
+                    } else {
+                        statusText.textContent = 'Almost done, saving room...';
+                    }
                 }
-                reader.readAsDataURL(file);
             });
-        });
-
-        // Video Preview (optional)
-        document.getElementById('video').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const video = document.createElement('video');
-                video.src = URL.createObjectURL(file);
-                video.controls = true;
-                video.classList.add('img-fluid', 'rounded', 'shadow-sm');
-                video.style.maxHeight = '200px';
-                document.getElementById('video_preview').innerHTML = '';
-                document.getElementById('video_preview').appendChild(video);
-            }
-        });
-    </script>
+            
+            xhr.addEventListener('load', function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    progressBar.classList.remove('progress-bar-animated');
+                    progressBar.classList.add('bg-success');
+                    statusText.textContent = 'Upload complete! Redirecting...';
+                    progressText.textContent = '100%';
+                    
+                    // Redirect to success page (parse redirect from response)
+                    setTimeout(() => {
+                        window.location.href = '{{ route("website.admin.rooms.index") }}';
+                    }, 500);
+                } else {
+                    // Handle error
+                    overlay.classList.add('d-none');
+                    submitBtn.disabled = false;
+                    alert('Upload failed. Please try again.');
+                }
+            });
+            
+            xhr.addEventListener('error', function() {
+                overlay.classList.add('d-none');
+                submitBtn.disabled = false;
+                alert('Network error. Please check your connection and try again.');
+            });
+            
+            xhr.open('POST', form.action);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.send(formData);
+        }
+    });
+});
+</script>
 @endpush

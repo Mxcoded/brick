@@ -43,7 +43,11 @@ class WebsiteServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            \Modules\Website\Console\MigrateRoomsToTypes::class,
+            \Modules\Website\Console\Commands\CleanupOrphanedBookings::class,
+            \Modules\Website\Console\Commands\FixConfirmedBookingBalances::class,
+        ]);
     }
 
     /**

@@ -52,6 +52,9 @@ Route::prefix('frontdesk')
         // Route to process the conversion
         Route::post('/bookings/{ref}/process', [RegistrationController::class, 'processBookingCheckin'])
             ->name('bookings.process');
+    //records a payment made against a registration.
+    Route::post('/registrations/{registration}/payment', [RegistrationController::class, 'storePayment'])
+        ->name('registrations.payment.store');
         // --- REGISTRATION MANAGEMENT ---
         Route::prefix('registrations')->name('registrations.')->group(function () {
 
@@ -76,6 +79,7 @@ Route::prefix('frontdesk')
 
             // Adjusts the stay details (e.g., extending checkout date) for a registration.
             Route::put('/{registration}/adjust-stay', [RegistrationController::class, 'adjustStay'])->name('adjust-stay');
+      
 
             // Retrieves active group members for a group registration.
             Route::get('/{registration}/active-members', [RegistrationController::class, 'getActiveMembers'])->name('active-members');
@@ -85,7 +89,10 @@ Route::prefix('frontdesk')
             Route::get('/{registration}/print', [RegistrationController::class, 'print'])->name('print');
             // ** ADD THIS NEW ROUTE FOR CHECKOUT **
             Route::post('/{registration}/checkout', [RegistrationController::class, 'checkout'])->name('checkout');
-            // --- NEW "NO-SHOW" FIX ROUTE (Gap) ---
+            // --- NO-SHOW ROUTE ---
+            Route::post('/{registration}/no-show', [RegistrationController::class, 'markNoShow'])->name('no-show');
+
+            // --- REOPEN ROUTE (From No-Show or Checked-Out) ---
             Route::post('/{registration}/reopen', [RegistrationController::class, 'reopen'])->name('reopen');
 
             // --- NEW "DELETE DRAFT" ROUTE (Feature) ---
@@ -108,3 +115,23 @@ Route::prefix('frontdesk')
             Route::get('/schedule', [RegistrationController::class, 'schedule'])->name('schedule');
         });
     });
+
+
+// =====================================================================
+// 3. FAST TRACK CHECK-IN ROUTES (SIMPLE FLOW FOR GUESTS) 
+// =====================================================================
+Route::prefix('fast-track')->name('frontdesk.fasttrack.')->group(function () {
+    // The Landing Page (Scan QR lands here)
+    Route::get('/', [RegistrationController::class, 'fastTrackIndex'])->name('index');
+
+    // Lookup (Find Booking)
+    Route::post('/lookup', [RegistrationController::class, 'fastTrackLookup'])->name('lookup');
+
+    // Submit Data (Save Profile + Signature)
+    Route::post('/submit', [RegistrationController::class, 'fastTrackStore'])->name('store');
+
+    // Success Page
+    Route::get('/done', function () {
+        return view('frontdeskcrm::fasttrack.done');
+    })->name('done');
+});

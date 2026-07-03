@@ -16,6 +16,11 @@ class Registration extends Model
     protected $fillable = [
         'guest_id',
         'booking_id', // ✅ Verified: It's here
+        'original_check_in_date',   // Immutable: original booking check-in
+        'original_check_out_date',  // Immutable: original booking check-out
+        'booking_group_id',         // Links registrations from same group (GRP reference)
+        'dates_adjusted',           // Track if dates were modified from original
+        'billing_policy',           // The policy used (strict/flexible)
         'guest_type_id',
         'booking_source_id',
         'parent_registration_id',
@@ -35,7 +40,9 @@ class Registration extends Model
         'emergency_contact',
         'emergency_relationship',
         'room_allocation',
-        'room_id', // ✅ Verified
+        'room_id',           // Legacy: will be deprecated
+        'room_type_id',      // NEW: The room type
+        'room_unit_id',      // NEW: The assigned unit
         'room_rate',
         'bed_breakfast',
         'check_in',
@@ -53,14 +60,19 @@ class Registration extends Model
         'checked_out_by_agent_id', // ✅ Verified
         'review_rating',
         'review_comment',
-        'front_desk_agent'
+        'front_desk_agent',
+        'checked_in_at'
     ];
 
     protected $casts = [
         'check_in' => 'date',
         'check_out' => 'date',
+        'original_check_in_date' => 'date',
+        'original_check_out_date' => 'date',
+        'dates_adjusted' => 'boolean',
         'registration_date' => 'date',
         'actual_checkout_at' => 'datetime',
+        'checked_in_at' => 'datetime',
         'birthdate' => 'date',
         'bed_breakfast' => 'boolean',
         'is_group_lead' => 'boolean',
@@ -108,6 +120,26 @@ class Registration extends Model
         return $this->belongsTo(\App\Models\User::class, 'checked_out_by_agent_id');
     }
 
+    /**
+     * Relationship: The room type.
+     */
+    public function roomType(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Website\Models\RoomType::class);
+    }
+
+    /**
+     * Relationship: The assigned room unit.
+     */
+    public function roomUnit(): BelongsTo
+    {
+        return $this->belongsTo(\Modules\Website\Models\RoomUnit::class);
+    }
+
+    /**
+     * Legacy: The room (backward compatibility).
+     * @deprecated Use roomType() and roomUnit() instead.
+     */
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
@@ -116,5 +148,75 @@ class Registration extends Model
     public function booking()
     {
         return $this->belongsTo(\Modules\Website\Models\Booking::class);
+    }
+    /**
+     * Get the payment history for this registration.
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(RegistrationPayment::class)->latest('payment_date');
+    }
+
+    /**
+     * Helper to get total paid amount from the new table
+     */
+    public function getTotalPaidAttribute()
+    {
+        // Sum from local payments + any online booking payment
+        $localTotal = $this->payments()->sum('amount');
+        $onlineTotal = $this->booking ? $this->booking->amount_paid : 0;
+
+        return $localTotal + $onlineTotal;
+    }
+
+    /**
+     * Get all registrations in the same booking group.
+     */
+    public function groupRegistrations(): HasMany
+    {
+        return $this->hasMany(Registration::class, 'booking_group_id', 'booking_group_id');
+    }
+
+    /**
+     * Check if this registration is part of a group booking.
+     */
+    public function isGroupBooking(): bool
+    {
+        return !empty($this->booking_group_id);
+    }
+
+    /**
+     * Check if dates have been modified from the original booking.
+     */
+    public function hasDateAdjustments(): bool
+    {
+        return $this->dates_adjusted ?? false;
+    }
+
+    /**
+     * Get original dates display for read-only UI.
+     */
+    public function getOriginalDatesAttribute(): ?string
+    {
+        if ($this->original_check_in_date && $this->original_check_out_date) {
+            return $this->original_check_in_date->format('M d, Y') . ' - ' . $this->original_check_out_date->format('M d, Y');
+        }
+        return null;
+    }
+
+    /**
+     * Scope to find registrations by group ID.
+     */
+    public function scopeInGroup($query, string $groupId)
+    {
+        return $query->where('booking_group_id', $groupId);
+    }
+
+    /**
+     * Scope to find registrations from web bookings (has booking_id).
+     */
+    public function scopeFromWebBooking($query)
+    {
+        return $query->whereNotNull('booking_id');
     }
 }

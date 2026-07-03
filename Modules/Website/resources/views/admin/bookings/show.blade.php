@@ -2,289 +2,1039 @@
 
 @section('title', 'Booking Details')
 
+@push('styles')
+<style>
+    /* Brickspoint Brand Colors */
+    :root {
+        --bp-gold: #C8A165;
+        --bp-gold-light: #D4B87A;
+        --bp-gold-dark: #B8915A;
+        --bp-charcoal: #333333;
+        --bp-white: #FFFFFF;
+        --bp-neutral: #F5F3EF;
+        --bp-neutral-dark: #E8E4DC;
+    }
+
+    /* Font Family */
+    .booking-details {
+        font-family: 'Proxima Nova', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* Gold Accent Elements */
+    .text-bp-gold { color: var(--bp-gold) !important; }
+    .bg-bp-gold { background-color: var(--bp-gold) !important; }
+    .border-bp-gold { border-color: var(--bp-gold) !important; }
+    .text-bp-charcoal { color: var(--bp-charcoal) !important; }
+    .bg-bp-neutral { background-color: var(--bp-neutral) !important; }
+
+    /* Card Styling */
+    .bp-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .bp-card .card-header {
+        background: var(--bp-white);
+        border-bottom: 2px solid var(--bp-neutral-dark);
+        padding: 1rem 1.25rem;
+    }
+
+    .bp-card .card-header h6 {
+        color: var(--bp-charcoal);
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .bp-card .card-header h6 i {
+        color: var(--bp-gold);
+    }
+
+    /* Status Card */
+    .status-card {
+        background: linear-gradient(135deg, var(--bp-charcoal) 0%, #1a1a1a 100%);
+        color: var(--bp-white);
+        border-radius: 12px;
+    }
+
+    .status-card .status-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+    }
+
+    .status-confirmed { background: rgba(40, 167, 69, 0.2); color: #28a745; }
+    .status-pending { background: rgba(200, 161, 101, 0.2); color: var(--bp-gold); }
+    .status-cancelled { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+
+    /* Action Buttons */
+    .btn-bp-gold {
+        background: linear-gradient(135deg, var(--bp-gold) 0%, var(--bp-gold-dark) 100%);
+        border: none;
+        color: var(--bp-white);
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-bp-gold:hover {
+        background: linear-gradient(135deg, var(--bp-gold-light) 0%, var(--bp-gold) 100%);
+        color: var(--bp-white);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(200, 161, 101, 0.4);
+    }
+
+    .btn-bp-outline {
+        border: 2px solid var(--bp-gold);
+        color: var(--bp-gold);
+        background: transparent;
+        font-weight: 600;
+        padding: 0.65rem 1.25rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-bp-outline:hover {
+        background: var(--bp-gold);
+        color: var(--bp-white);
+    }
+
+    /* Guest Avatar */
+    .guest-avatar {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--bp-gold) 0%, var(--bp-gold-dark) 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--bp-white);
+        font-size: 2rem;
+    }
+
+    /* Info Labels */
+    .info-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        font-weight: 600;
+        color: var(--bp-charcoal);
+    }
+
+    /* Date Box */
+    .date-box {
+        background: var(--bp-neutral);
+        border-radius: 10px;
+        padding: 1rem;
+        border-left: 4px solid var(--bp-gold);
+    }
+
+    /* Financial Summary */
+    .financial-row {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--bp-neutral-dark);
+    }
+
+    .financial-row:last-child {
+        border-bottom: none;
+    }
+
+    .grand-total {
+        background: var(--bp-neutral);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .grand-total .amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--bp-gold);
+    }
+
+    /* Badge Styles */
+    .badge-bp {
+        background: var(--bp-gold);
+        color: var(--bp-white);
+        font-weight: 600;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+    }
+
+    /* Section Divider */
+    .section-divider {
+        height: 2px;
+        background: linear-gradient(90deg, var(--bp-gold), transparent);
+        margin: 1.5rem 0;
+    }
+
+    /* Alert Styling */
+    .alert-bp-info {
+        background: rgba(200, 161, 101, 0.1);
+        border: 1px solid var(--bp-gold);
+        border-radius: 8px;
+        color: var(--bp-charcoal);
+    }
+
+    .alert-bp-info i {
+        color: var(--bp-gold);
+    }
+</style>
+@endpush
+
 @section('page-content')
-    <div class="container-fluid py-4">
+<div class="container-fluid py-4 booking-details">
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1 class="h3 text-gray-800 mb-0">Booking Details</h1>
-                <p class="text-muted small mb-0">Reference: <span
-                        class="fw-bold text-primary">{{ $booking->booking_reference }}</span></p>
-            </div>
-            <a href="{{ route('website.admin.bookings.index') }}" class="btn btn-outline-secondary shadow-sm">
-                <i class="fas fa-arrow-left me-1"></i> Back to List
+    {{-- Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ route('website.admin.bookings.index') }}" class="btn btn-sm btn-light mb-2">
+                <i class="fas fa-arrow-left me-1"></i> Back to Bookings
             </a>
+            <h1 class="h3 text-bp-charcoal mb-1" style="font-weight: 700;">Booking Details</h1>
+            <p class="mb-0">
+                <span class="text-muted">Reference:</span> 
+                <span class="fw-bold text-bp-gold">{{ $booking->booking_reference }}</span>
+                @if($booking->booking_group_id)
+                    <span class="badge badge-bp ms-2">Group: {{ $booking->booking_group_id }}</span>
+                @endif
+            </p>
         </div>
-        {{-- ✅ NICE UI: SUCCESS MESSAGE --}}
-        @if (session('success'))
-            <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-check-circle me-2 fs-4 text-success"></i>
-                    <div>
-                        <strong>Success!</strong> {{ session('success') }}
-                    </div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    {{-- Success Message --}}
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert" style="border-radius: 10px;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-2 fs-4"></i>
+                <div><strong>Success!</strong> {{ session('success') }}</div>
             </div>
-        @endif
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
-        {{-- ⚠️ NICE UI: ERROR MESSAGES --}}
-        @if ($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
-                <div class="d-flex align-items-center mb-1">
-                    <i class="fas fa-exclamation-circle me-2 fs-4 text-danger"></i>
-                    <strong>Please fix the following errors:</strong>
-                </div>
-                <ul class="mb-0 mt-2 ps-4">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    {{-- Error Messages --}}
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert" style="border-radius: 10px;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle me-2 fs-4"></i>
+                <div><strong>Error!</strong> {{ session('error') }}</div>
             </div>
-        @endif
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert" style="border-radius: 10px;">
+            <div class="d-flex align-items-center mb-1">
+                <i class="fas fa-exclamation-circle me-2 fs-4"></i>
+                <strong>Please fix the following errors:</strong>
+            </div>
+            <ul class="mb-0 mt-2 ps-4">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
-        <div class="row g-4">
-            <div class="col-lg-8">
+    <div class="row g-4">
+        {{-- Main Content --}}
+        <div class="col-lg-8">
 
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white py-3 border-bottom-0">
-                        <h6 class="m-0 fw-bold text-primary"><i class="fas fa-info-circle me-2"></i>Reservation Info</h6>
-                    </div>
-                    <div class="card-body pt-0">
-                        <div class="row g-4">
-                            <div class="col-md-6 border-end">
-                                <h6 class="text-uppercase text-muted small fw-bold mb-3">Guest Details</h6>
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-light rounded-circle p-3 text-primary me-3">
-                                        <i class="fas fa-user fa-lg"></i>
-                                    </div>
-                                    <div>
-                                        <h5 class="fw-bold mb-0">{{ $booking->guest_name }}</h5>
-                                        <small class="text-muted">Registered Guest</small>
-                                    </div>
+            {{-- Guest Profile Card --}}
+            <div class="card bp-card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0"><i class="fas fa-user-circle me-2"></i>Guest Profile</h6>
+                    @if($booking->guest)
+                        <span class="badge bg-success"><i class="fas fa-link me-1"></i>CRM Linked</span>
+                    @else
+                        <span class="badge bg-secondary"><i class="fas fa-user me-1"></i>Website Guest</span>
+                    @endif
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {{-- Primary Guest Info --}}
+                        <div class="col-md-6 border-end">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="guest-avatar me-3">
+                                    <i class="fas fa-user"></i>
                                 </div>
-                                <ul class="list-unstyled mb-0">
-                                    <li class="mb-2"><i class="fas fa-envelope text-muted me-2 fixed-width-icon"></i>
-                                        {{ $booking->guest_email }}</li>
-                                    <li class="mb-2"><i class="fas fa-phone text-muted me-2 fixed-width-icon"></i>
-                                        {{ $booking->guest_phone }}</li>
-                                    <li><i class="fas fa-users text-muted me-2 fixed-width-icon"></i> {{ $booking->adults }}
-                                        Adults, {{ $booking->children }} Children</li>
-                                </ul>
+                                <div>
+                                    <h4 class="fw-bold mb-1 text-bp-charcoal">{{ $booking->guest->title ?? '' }} {{ $booking->guest_name }}</h4>
+                                    <span class="text-muted">{{ $booking->guest->occupation ?? 'Guest' }}</span>
+                                    @if($booking->guest?->company_name)
+                                        <br><small class="text-muted"><i class="fas fa-building me-1"></i>{{ $booking->guest->company_name }}</small>
+                                    @endif
+                                </div>
                             </div>
 
-                            <div class="col-md-6 ps-md-4">
-                                <h6 class="text-uppercase text-muted small fw-bold mb-3">Room Details</h6>
-                                @if ($booking->room)
-                                    <div class="d-flex align-items-start mb-3">
-                                        @if ($booking->room->image_url)
-                                            <img src="{{ $booking->room->image_url }}" class="rounded me-3"
-                                                style="width: 60px; height: 60px; object-fit: cover;">
-                                        @endif
-                                        <div>
-                                            <h6 class="fw-bold mb-1">{{ $booking->room->name }}</h6>
-                                            <span
-                                                class="badge bg-light text-dark border">{{ $booking->room->bed_type }}</span>
-                                        </div>
+                            <p class="info-label mb-3 border-bottom pb-2">Contact Information</p>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-3 d-flex align-items-center">
+                                    <i class="fas fa-envelope text-bp-gold me-3" style="width: 20px;"></i>
+                                    <div>
+                                        <span class="info-label d-block">Email</span>
+                                        <a href="mailto:{{ $booking->guest_email }}" class="info-value text-decoration-none">{{ $booking->guest_email }}</a>
                                     </div>
-                                    <div class="alert alert-light border small mb-0">
-                                        <div class="d-flex justify-content-between mb-1">
-                                            <span>Check-in:</span>
-                                            <span
-                                                class="fw-bold text-success">{{ $booking->check_in_date->format('D, M d, Y') }}</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span>Check-out:</span>
-                                            <span
-                                                class="fw-bold text-danger">{{ $booking->check_out_date->format('D, M d, Y') }}</span>
-                                        </div>
+                                </li>
+                                <li class="mb-3 d-flex align-items-center">
+                                    <i class="fas fa-phone text-bp-gold me-3" style="width: 20px;"></i>
+                                    <div>
+                                        <span class="info-label d-block">Phone</span>
+                                        <a href="tel:{{ $booking->guest_phone }}" class="info-value text-decoration-none">{{ $booking->guest_phone ?? 'N/A' }}</a>
                                     </div>
+                                </li>
+                                @if($booking->guest?->contact_number && $booking->guest->contact_number != $booking->guest_phone)
+                                <li class="mb-3 d-flex align-items-center">
+                                    <i class="fas fa-mobile-alt text-bp-gold me-3" style="width: 20px;"></i>
+                                    <div>
+                                        <span class="info-label d-block">Alt. Phone</span>
+                                        <a href="tel:{{ $booking->guest->contact_number }}" class="info-value text-decoration-none">{{ $booking->guest->contact_number }}</a>
+                                    </div>
+                                </li>
+                                @endif
+                            </ul>
+                        </div>
+
+                        {{-- Extended Guest Info --}}
+                        <div class="col-md-6 ps-md-4">
+                            @if($booking->guest)
+                                <p class="info-label mb-3 border-bottom pb-2">Personal Details</p>
+                                <div class="row g-3 mb-4">
+                                    @if($booking->guest->gender)
+                                    <div class="col-6">
+                                        <span class="info-label d-block">Gender</span>
+                                        <span class="info-value">{{ ucfirst($booking->guest->gender) }}</span>
+                                    </div>
+                                    @endif
+                                    @if($booking->guest->birthday)
+                                    <div class="col-6">
+                                        <span class="info-label d-block">Birthday</span>
+                                        <span class="info-value">{{ $booking->guest->birthday->format('M d, Y') }}</span>
+                                    </div>
+                                    @endif
+                                    @if($booking->guest->nationality)
+                                    <div class="col-6">
+                                        <span class="info-label d-block">Nationality</span>
+                                        <span class="info-value">{{ $booking->guest->nationality }}</span>
+                                    </div>
+                                    @endif
+                                    @if($booking->guest->identification_type)
+                                    <div class="col-6">
+                                        <span class="info-label d-block">ID Type</span>
+                                        <span class="info-value">{{ ucfirst(str_replace('_', ' ', $booking->guest->identification_type)) }}</span>
+                                    </div>
+                                    @endif
+                                    @if($booking->guest->identification_number)
+                                    <div class="col-12">
+                                        <span class="info-label d-block">ID Number</span>
+                                        <span class="info-value font-monospace">{{ $booking->guest->identification_number }}</span>
+                                    </div>
+                                    @endif
+                                </div>
+
+                                @if($booking->guest->home_address || $booking->guest->city || $booking->guest->state)
+                                <p class="info-label mb-3 border-bottom pb-2">Address</p>
+                                <address class="mb-0 info-value">
+                                    @if($booking->guest->home_address)
+                                        {{ $booking->guest->home_address }}<br>
+                                    @endif
+                                    @if($booking->guest->city || $booking->guest->state || $booking->guest->zip_code)
+                                        {{ $booking->guest->city }}{{ $booking->guest->city && $booking->guest->state ? ', ' : '' }}{{ $booking->guest->state }} {{ $booking->guest->zip_code }}
+                                    @endif
+                                </address>
+                                @endif
+                            @else
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle fa-2x mb-2 d-block text-bp-gold"></i>
+                                    <p class="mb-0">Extended profile data not available.<br>
+                                    <small>Guest booked without creating a CRM profile.</small></p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Emergency Contact --}}
+                    @if($booking->guest && ($booking->guest->emergency_name || $booking->guest->emergency_contact))
+                    <div class="section-divider"></div>
+                    <p class="info-label mb-3"><i class="fas fa-exclamation-triangle text-warning me-2"></i>Emergency Contact</p>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <span class="info-label d-block">Name</span>
+                            <span class="info-value">{{ $booking->guest->emergency_name ?? 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="info-label d-block">Relationship</span>
+                            <span class="info-value">{{ ucfirst($booking->guest->emergency_relationship ?? 'N/A') }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="info-label d-block">Contact</span>
+                            <a href="tel:{{ $booking->guest->emergency_contact }}" class="info-value text-decoration-none">{{ $booking->guest->emergency_contact ?? 'N/A' }}</a>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Guest Stats --}}
+                    @if($booking->guest && $booking->guest->visit_count > 0)
+                    <div class="section-divider"></div>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="h3 fw-bold text-bp-gold mb-0">{{ $booking->guest->visit_count }}</div>
+                            <small class="text-muted">Total Visits</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h6 fw-bold text-bp-charcoal mb-0">{{ $booking->guest->last_visit_at ? $booking->guest->last_visit_at->diffForHumans() : 'N/A' }}</div>
+                            <small class="text-muted">Last Visit</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h6 fw-bold mb-0">
+                                @if($booking->guest->visit_count >= 5)
+                                    <span class="text-bp-gold"><i class="fas fa-crown"></i> VIP</span>
+                                @elseif($booking->guest->visit_count >= 2)
+                                    <span class="text-info"><i class="fas fa-redo"></i> Returning</span>
                                 @else
-                                    <div class="alert alert-danger mb-0">
-                                        <i class="fas fa-exclamation-triangle me-1"></i> Room has been deleted from
-                                        inventory.
+                                    <span class="text-success"><i class="fas fa-user-plus"></i> New</span>
+                                @endif
+                            </div>
+                            <small class="text-muted">Guest Type</small>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Reservation Details Card --}}
+            <div class="card bp-card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0"><i class="fas fa-bed me-2"></i>Reservation Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6 border-end">
+                            <p class="info-label mb-3">Stay Information</p>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-users text-bp-gold me-3" style="width: 24px;"></i>
+                                <div>
+                                    <span class="info-label d-block">Guests</span>
+                                    <span class="info-value">{{ $booking->adults }} Adult{{ $booking->adults > 1 ? 's' : '' }}, {{ $booking->children }} Child{{ $booking->children != 1 ? 'ren' : '' }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center mb-4">
+                                <i class="fas fa-moon text-bp-gold me-3" style="width: 24px;"></i>
+                                <div>
+                                    <span class="info-label d-block">Duration</span>
+                                    <span class="info-value">{{ $booking->check_in_date->diffInDays($booking->check_out_date) }} Night{{ $booking->check_in_date->diffInDays($booking->check_out_date) > 1 ? 's' : '' }}</span>
+                                </div>
+                            </div>
+
+                            <div class="date-box">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted"><i class="fas fa-sign-in-alt me-1"></i> Check-in</span>
+                                    <span class="fw-bold text-success">{{ $booking->check_in_date->format('D, M d, Y') }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted"><i class="fas fa-sign-out-alt me-1"></i> Check-out</span>
+                                    <span class="fw-bold text-danger">{{ $booking->check_out_date->format('D, M d, Y') }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 ps-md-4">
+                            <p class="info-label mb-3">Room Details</p>
+                            @php
+                                $roomInfo = $booking->roomType ?? $booking->room;
+                            @endphp
+                            @if ($roomInfo)
+                                <div class="d-flex align-items-start mb-3">
+                                    @if ($roomInfo->image_url)
+                                        <img src="{{ $roomInfo->image_url }}" class="rounded me-3" style="width: 70px; height: 70px; object-fit: cover;">
+                                    @else
+                                        <div class="bg-bp-neutral rounded me-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                                            <i class="fas fa-bed text-bp-gold fa-lg"></i>
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <h5 class="fw-bold mb-1 text-bp-charcoal">{{ $roomInfo->name }}</h5>
+                                        <span class="badge bg-light text-dark border">{{ $roomInfo->bed_type ?? 'Standard' }}</span>
+                                        @if($booking->roomUnit)
+                                            <span class="badge badge-bp ms-1">Room {{ $booking->roomUnit->room_number }}</span>
+                                        @elseif($booking->roomType)
+                                            <span class="badge bg-warning text-dark ms-1">Room TBA</span>
+                                        @endif
                                     </div>
+                                </div>
+                                @if($roomInfo->max_occupancy)
+                                <div class="small text-muted">
+                                    <i class="fas fa-users me-1"></i> Max Occupancy: {{ $roomInfo->max_occupancy }} guests
+                                </div>
+                                @endif
+                            @else
+                                <div class="alert alert-danger mb-0">
+                                    <i class="fas fa-exclamation-triangle me-1"></i> Room has been deleted from inventory.
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Financial Summary Card --}}
+            <div class="card bp-card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0"><i class="fas fa-file-invoice-dollar me-2"></i>Financial Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="financial-row d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="info-value">Room Charge</span>
+                            <small class="text-muted d-block">{{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Room' }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-muted">₦{{ number_format(optional($booking->roomType)->price ?? optional($booking->room)->price ?? 0, 2) }} × {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }} nights</span>
+                        </div>
+                    </div>
+
+                    <div class="grand-total d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-bp-charcoal">Grand Total</span>
+                        <span class="amount">₦{{ number_format($booking->total_amount, 2) }}</span>
+                    </div>
+
+                    <div class="row text-center mt-4 pt-3 border-top">
+                        <div class="col-4">
+                            <span class="info-label d-block">Amount Paid</span>
+                            <span class="fw-bold text-success fs-5">₦{{ number_format($booking->amount_paid ?? 0, 2) }}</span>
+                        </div>
+                        <div class="col-4">
+                            <span class="info-label d-block">Balance Due</span>
+                            <span class="fw-bold fs-5 {{ ($booking->total_amount - ($booking->amount_paid ?? 0)) > 0 ? 'text-danger' : 'text-success' }}">
+                                ₦{{ number_format($booking->total_amount - ($booking->amount_paid ?? 0), 2) }}
+                            </span>
+                        </div>
+                        <div class="col-4">
+                            <span class="info-label d-block">Payment Method</span>
+                            <span class="info-value">{{ ucfirst($booking->payment_method ?? 'N/A') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Special Requests & Admin Notes --}}
+            <div class="row g-4 mb-4">
+                @if ($booking->special_requests)
+                <div class="col-md-6">
+                    <div class="card bp-card border-start border-4 h-100" style="border-color: var(--bp-gold) !important;">
+                        <div class="card-body">
+                            <p class="info-label mb-2"><i class="fas fa-comment-dots text-bp-gold me-1"></i> Special Requests</p>
+                            <p class="mb-0 text-bp-charcoal fst-italic">"{{ $booking->special_requests }}"</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                @if ($booking->admin_notes)
+                <div class="col-md-6">
+                    <div class="card bp-card border-start border-4 border-warning h-100">
+                        <div class="card-body">
+                            <p class="info-label mb-2"><i class="fas fa-sticky-note text-warning me-1"></i> Admin Notes</p>
+                            <p class="mb-0 text-bp-charcoal">{{ $booking->admin_notes }}</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </div>
+
+        </div>
+
+        {{-- Sidebar --}}
+        <div class="col-lg-4">
+
+            {{-- Status Card --}}
+            <div class="status-card mb-4 p-4">
+                <div class="text-center">
+                    <div class="status-icon {{ $booking->status === 'confirmed' ? 'status-confirmed' : ($booking->status === 'pending' ? 'status-pending' : 'status-cancelled') }}">
+                        @if ($booking->status === 'confirmed')
+                            <i class="fas fa-check-circle fa-3x"></i>
+                        @elseif($booking->status === 'pending')
+                            <i class="fas fa-clock fa-3x"></i>
+                        @elseif($booking->status === 'cancelled')
+                            <i class="fas fa-times-circle fa-3x"></i>
+                        @else
+                            <i class="fas fa-circle fa-3x"></i>
+                        @endif
+                    </div>
+                    <h4 class="fw-bold mb-3">
+                        @if ($booking->status === 'confirmed')
+                            Confirmed
+                        @elseif($booking->status === 'pending')
+                            Pending Confirmation
+                        @elseif($booking->status === 'cancelled')
+                            Cancelled
+                        @else
+                            {{ ucfirst($booking->status) }}
+                        @endif
+                    </h4>
+
+                    <div class="d-flex justify-content-between px-3 mb-2">
+                        <span class="text-white-50">Payment Status</span>
+                        <span class="fw-bold {{ $booking->payment_status === 'paid' ? 'text-success' : 'text-warning' }}">
+                            {{ ucfirst($booking->payment_status) }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between px-3">
+                        <span class="text-white-50">Created</span>
+                        <span>{{ $booking->created_at->format('M d, Y') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Actions Card --}}
+            <div class="card bp-card">
+                <div class="card-header">
+                    <h6 class="m-0"><i class="fas fa-cogs me-2"></i>Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+
+                        {{-- Confirm Booking (Only for Pending) --}}
+                        @if ($booking->status === 'pending')
+                            <form action="{{ route('website.admin.bookings.confirm', $booking->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-bp-gold w-100">
+                                    <i class="fas fa-check-circle me-2"></i> Confirm Booking
+                                </button>
+                            </form>
+                            
+                            <div class="alert alert-bp-info small mb-0 mt-2">
+                                <i class="fas fa-info-circle me-1"></i> Confirming will verify room availability and mark as paid.
+                            </div>
+                        @endif
+
+                        {{-- Assign Room --}}
+                        <button type="button" class="btn btn-bp-outline w-100" data-bs-toggle="modal" data-bs-target="#assignRoomModal">
+                            <i class="fas fa-door-open me-2"></i> 
+                            {{ $booking->roomUnit ? 'Change Room' : 'Assign Room' }}
+                        </button>
+
+                        {{-- Change Room Type --}}
+                        <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#changeRoomTypeModal">
+                            <i class="fas fa-exchange-alt me-2"></i> Change Room Type
+                        </button>
+
+                        {{-- Resend Confirmation --}}
+                        <form action="{{ route('website.admin.bookings.resend', $booking->id) }}" method="POST"
+                            onsubmit="return confirm('Resend confirmation email to {{ $booking->guest_email }}?');">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-envelope me-2"></i> Resend Email
+                            </button>
+                        </form>
+
+                        {{-- Edit --}}
+                        <a href="{{ route('website.admin.bookings.edit', $booking->id) }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-edit me-2"></i> Edit Details
+                        </a>
+
+                        {{-- Cancel --}}
+                        @if ($booking->status !== 'cancelled')
+                            <form action="{{ route('website.admin.bookings.cancel', $booking->id) }}" method="POST"
+                                onsubmit="return confirm('Are you sure you want to cancel this booking?');">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-danger w-100">
+                                    <i class="fas fa-ban me-2"></i> Cancel Booking
+                                </button>
+                            </form>
+                        @endif
+
+                        <hr class="my-2">
+
+                        {{-- Delete --}}
+                        <form action="{{ route('website.admin.bookings.destroy', $booking->id) }}" method="POST"
+                            onsubmit="return confirm('WARNING: This will permanently delete this booking record. This action cannot be undone. Are you sure?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-link text-danger text-decoration-none w-100 small">
+                                <i class="fas fa-trash-alt me-1"></i> Delete Permanently
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{{-- Assign Room Modal --}}
+<div class="modal fade" id="assignRoomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ route('website.admin.bookings.assign-room', $booking->id) }}" method="POST" class="modal-content">
+            @csrf
+            <div class="modal-header" style="background: var(--bp-neutral);">
+                <h5 class="modal-title text-bp-charcoal">
+                    <i class="fas fa-door-open me-2 text-bp-gold"></i>
+                    {{ $booking->roomUnit ? 'Change Room Assignment' : 'Assign Room' }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {{-- Current Info --}}
+                <div class="date-box mb-4">
+                    <div class="row small">
+                        <div class="col-6">
+                            <span class="info-label">Room Type</span>
+                            <div class="info-value">{{ optional($booking->roomType)->name ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="info-label">Current Room</span>
+                            <div class="info-value">
+                                @if($booking->roomUnit)
+                                    <span class="text-bp-gold">{{ $booking->roomUnit->room_number }}</span>
+                                @else
+                                    <span class="text-warning">Not Assigned</span>
                                 @endif
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white py-3 border-bottom-0">
-                        <h6 class="m-0 fw-bold text-primary"><i class="fas fa-file-invoice-dollar me-2"></i>Financial
-                            Summary</h6>
-                    </div>
-                    <div class="card-body pt-0">
-                        <div class="table-responsive">
-                            <table class="table table-borderless align-middle mb-0">
-                                <thead class="bg-light text-muted small text-uppercase">
-                                    <tr>
-                                        <th>Description</th>
-                                        <th class="text-end">Rate</th>
-                                        <th class="text-center">Nights</th>
-                                        <th class="text-end">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Room Charge ({{ $booking->room->name ?? 'Room' }})</td>
-                                        <td class="text-end">₦{{ number_format($booking->room->price ?? 0, 2) }}</td>
-                                        <td class="text-center">
-                                            {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }}</td>
-                                        <td class="text-end fw-bold">₦{{ number_format($booking->total_amount, 2) }}</td>
-                                    </tr>
-                                    <tr class="border-top">
-                                        <td colspan="3" class="text-end fw-bold pt-3">Grand Total</td>
-                                        <td class="text-end fw-bold text-success fs-5 pt-3">
-                                            ₦{{ number_format($booking->total_amount, 2) }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                    <hr class="my-2">
+                    <div class="row small">
+                        <div class="col-6">
+                            <span class="info-label">Check-in</span>
+                            <div class="info-value">{{ $booking->check_in_date->format('M d, Y') }}</div>
+                        </div>
+                        <div class="col-6">
+                            <span class="info-label">Check-out</span>
+                            <div class="info-value">{{ $booking->check_out_date->format('M d, Y') }}</div>
                         </div>
                     </div>
                 </div>
 
-                @if ($booking->special_requests)
-                    <div class="card border-0 shadow-sm border-start border-4 border-info">
-                        <div class="card-body">
-                            <h6 class="text-uppercase text-muted small fw-bold mb-2">Special Requests</h6>
-                            <p class="mb-0 text-dark fst-italic">"{{ $booking->special_requests }}"</p>
-                        </div>
-                    </div>
+                {{-- Room Selection --}}
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-bp-charcoal">Select Room Unit <span class="text-danger">*</span></label>
+                    <select name="room_unit_id" class="form-select" required>
+                        <option value="">-- Select a Room --</option>
+                        @php
+                            $roomType = $booking->roomType;
+                            $availableUnits = collect();
+                            if ($roomType) {
+                                $availableUnits = $roomType->units()
+                                    ->where('status', 'available')
+                                    ->orderBy('room_number')
+                                    ->get();
+                            }
+                        @endphp
+                        @forelse($availableUnits as $unit)
+                            @php
+                                $isAvailable = $unit->isAvailableForDates(
+                                    $booking->check_in_date->format('Y-m-d'),
+                                    $booking->check_out_date->format('Y-m-d'),
+                                    $booking->id
+                                );
+                                $isCurrentUnit = $booking->room_unit_id == $unit->id;
+                            @endphp
+                            <option value="{{ $unit->id }}" 
+                                {{ $isCurrentUnit ? 'selected' : '' }}
+                                {{ !$isAvailable && !$isCurrentUnit ? 'disabled' : '' }}>
+                                Room {{ $unit->room_number }} 
+                                ({{ $unit->floor ? 'Floor ' . $unit->floor : 'Ground' }})
+                                @if($isCurrentUnit)
+                                    - Current
+                                @elseif(!$isAvailable)
+                                    - Occupied
+                                @else
+                                    - Available
+                                @endif
+                            </option>
+                        @empty
+                            <option value="" disabled>No rooms available for this type</option>
+                        @endforelse
+                    </select>
+                    <small class="text-muted">Only showing rooms available for the booking dates</small>
+                </div>
+
+                {{-- Unassign Option --}}
+                @if($booking->roomUnit)
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="unassign" id="unassignRoom" value="1">
+                    <label class="form-check-label text-danger small" for="unassignRoom">
+                        <i class="fas fa-times-circle me-1"></i> Unassign current room (leave as TBA)
+                    </label>
+                </div>
                 @endif
-
             </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-bp-gold">
+                    <i class="fas fa-save me-1"></i> Save Assignment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-            <div class="col-lg-4">
-
-                <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white py-3">
-                        <h6 class="m-0 fw-bold text-dark">Booking Status</h6>
+{{-- Change Room Type Modal --}}
+<div class="modal fade" id="changeRoomTypeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <form action="{{ route('website.admin.bookings.change-room-type', $booking->id) }}" method="POST" class="modal-content" id="changeRoomTypeForm">
+            @csrf
+            <div class="modal-header" style="background: var(--bp-neutral);">
+                <h5 class="modal-title text-bp-charcoal">
+                    <i class="fas fa-exchange-alt me-2 text-bp-gold"></i>
+                    Change Room Type
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {{-- Current Booking Summary --}}
+                <div class="date-box mb-4">
+                    <div class="row small">
+                        <div class="col-4">
+                            <span class="info-label">Current Room Type</span>
+                            <div class="info-value">{{ optional($booking->roomType)->name ?? 'N/A' }}</div>
+                        </div>
+                        <div class="col-4">
+                            <span class="info-label">Current Price/Night</span>
+                            <div class="info-value">₦{{ number_format(optional($booking->roomType)->price ?? 0, 2) }}</div>
+                        </div>
+                        <div class="col-4">
+                            <span class="info-label">Total Amount</span>
+                            <div class="info-value text-bp-gold">₦{{ number_format($booking->total_amount, 2) }}</div>
+                        </div>
                     </div>
-                    <div class="card-body text-center py-4">
-                        <div class="mb-3">
-                            @if ($booking->status === 'confirmed')
-                                <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
-                                <h4 class="fw-bold text-success">Confirmed</h4>
-                            @elseif($booking->status === 'pending')
-                                <i class="fas fa-clock text-warning fa-4x mb-3"></i>
-                                <h4 class="fw-bold text-warning">Pending Approval</h4>
-                            @elseif($booking->status === 'cancelled')
-                                <i class="fas fa-times-circle text-danger fa-4x mb-3"></i>
-                                <h4 class="fw-bold text-danger">Cancelled</h4>
-                            @else
-                                <i class="fas fa-circle text-secondary fa-4x mb-3"></i>
-                                <h4 class="fw-bold text-secondary">{{ ucfirst($booking->status) }}</h4>
-                            @endif
+                    <hr class="my-2">
+                    <div class="row small">
+                        <div class="col-6">
+                            <span class="info-label">Check-in</span>
+                            <div class="info-value">{{ $booking->check_in_date->format('M d, Y') }}</div>
                         </div>
-
-                        <div class="d-flex justify-content-between px-4 mt-4 text-muted small">
-                            <span>Payment:</span>
-                            <span
-                                class="fw-bold text-uppercase {{ $booking->payment_status === 'paid' ? 'text-success' : 'text-danger' }}">
-                                {{ ucfirst($booking->payment_status) }}
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between px-4 mt-2 text-muted small">
-                            <span>Created:</span>
-                            <span>{{ $booking->created_at->diffForHumans() }}</span>
+                        <div class="col-6">
+                            <span class="info-label">Check-out</span>
+                            <div class="info-value">{{ $booking->check_out_date->format('M d, Y') }} ({{ $booking->check_in_date->diffInDays($booking->check_out_date) }} nights)</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <h6 class="text-uppercase text-muted small fw-bold mb-3">Actions</h6>
+                <div class="row">
+                    {{-- Room Type Selection --}}
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-bp-charcoal">New Room Type <span class="text-danger">*</span></label>
+                            <select name="room_type_id" id="newRoomTypeSelect" class="form-select" required>
+                                <option value="">-- Select Room Type --</option>
+                                @php
+                                    $allRoomTypes = \Modules\Website\Models\RoomType::active()->ordered()->get();
+                                    $nights = $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1;
+                                @endphp
+                                @foreach($allRoomTypes as $type)
+                                    @php
+                                        $availableCount = $type->getAvailabilityCountForDates(
+                                            $booking->check_in_date->format('Y-m-d'),
+                                            $booking->check_out_date->format('Y-m-d')
+                                        );
+                                        $isCurrent = $booking->room_type_id == $type->id;
+                                    @endphp
+                                    <option value="{{ $type->id }}" 
+                                        data-price="{{ $type->price }}"
+                                        data-units="{{ $availableCount }}"
+                                        {{ $isCurrent ? 'selected' : '' }}>
+                                        {{ $type->name }} - ₦{{ number_format($type->price, 2) }}/night
+                                        @if($isCurrent)
+                                            (Current)
+                                        @elseif($availableCount > 0)
+                                            ({{ $availableCount }} available)
+                                        @else
+                                            (No availability)
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
 
-                        <div class="d-grid gap-2">
-                            @if ($booking->status === 'pending')
-                                <form action="{{ route('website.admin.bookings.confirm', $booking->id) }}"
-                                    method="POST">
-                                    @csrf
-                                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold">
-                                        <i class="fas fa-check me-2"></i> Confirm & Mark Paid
-                                    </button>
-                                </form>
+                        {{-- Price Recalculation Option --}}
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="recalculate_price" id="recalculatePrice" value="1" checked>
+                                <label class="form-check-label" for="recalculatePrice">
+                                    <strong>Recalculate price</strong>
+                                    <small class="text-muted d-block">Update total amount based on new room type price</small>
+                                </label>
+                            </div>
+                        </div>
 
-                                <div class="alert alert-info small mb-0 mt-2">
-                                    <i class="fas fa-info-circle me-1"></i> Confirming will check Frontdesk CRM for room
-                                    availability first.
-                                </div>
-                            @endif
-                            <form action="{{ route('website.admin.bookings.resend', $booking->id) }}" method="POST"
-                                class="d-inline"
-                                onsubmit="return confirm('Resend confirmation email to {{ $booking->guest_email }}?');">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-warning mt-2 w-100"
-                                    title="Resend Confirmation Email">
-                                    <i class="fas fa-envelope me-1"></i> Resend Confirmation Email
-                                </button>
-                            </form>
-                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
-                                data-bs-target="#moveRoomModal">
-                                <i class="fas fa-exchange-alt"></i> Move Room
-                            </button>
+                        {{-- Price Preview --}}
+                        <div class="alert alert-bp-info" id="pricePreview">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-calculator me-2"></i>New Total:</span>
+                                <strong class="fs-5" id="newPriceDisplay">₦{{ number_format($booking->total_amount, 2) }}</strong>
+                            </div>
+                            <small class="text-muted" id="priceBreakdown">{{ $nights }} nights × ₦{{ number_format(optional($booking->roomType)->price ?? 0, 2) }}</small>
+                        </div>
+                    </div>
 
-                            <div class="modal fade" id="moveRoomModal" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <form action="{{ route('website.admin.bookings.move', $booking->id) }}"
-                                        method="POST" class="modal-content">
-                                        @csrf
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Move Reservation</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <p>Current Room: <strong>{{ $booking->room->name }}</strong></p>
-                                            <div class="form-group">
-                                                <label>Select New Room</label>
-                                                <select name="new_room_id" class="form-select" required>
-                                                    @foreach (\Modules\Website\Models\Room::where('id', '!=', $booking->room_id)->get() as $room)
-<option value="{{ $room->id }}">{{ $room->name }}</option>
-@endforeach
-                                                                                </select>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div class="modal-footer">
-                                                                            <button type="submit" class="btn btn-primary">Save Change</button>
-                                                                        </div>
-                                                                    </form>
-                                                                </div>
-                                                            </div>
-                            <a href="{{ route('website.admin.bookings.edit', $booking->id) }}"
-                                class="btn btn-outline-primary mt-2">
-                                <i class="fas fa-edit me-2"></i> Edit Details
-                            </a>
+                    {{-- Room Unit Selection --}}
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-bp-charcoal">Assign Room Unit <small class="text-muted">(Optional)</small></label>
+                            <select name="room_unit_id" id="newRoomUnitSelect" class="form-select">
+                                <option value="">-- Leave as TBA --</option>
+                                {{-- Will be populated dynamically --}}
+                            </select>
+                            <small class="text-muted">Select a specific room or leave as TBA</small>
+                        </div>
 
-                            @if ($booking->status !== 'cancelled')
-<form action="{{ route('website.admin.bookings.cancel', $booking->id) }}" method="POST"
-                                    onsubmit="return confirm('Are you sure you want to cancel this booking?');">
-                                                @csrf
-                                                <button type="submit" class="btn btn-outline-danger w-100 mt-2">
-                                                    <i class="fas fa-ban me-2"></i> Cancel Booking
-                                                </button>
-                                            </form>
-     @endif
+                        <div id="roomUnitsList" class="border rounded p-3" style="max-height: 200px; overflow-y: auto; background: #fafafa;">
+                            <p class="text-muted text-center mb-0 small"><i class="fas fa-info-circle me-1"></i>Select a room type to see available units</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-bp-gold">
+                    <i class="fas fa-save me-1"></i> Change Room Type
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-                                                        <form
-                                                        action="{{ route('website.admin.bookings.destroy', $booking->id) }}"
-                                                        method="POST"
-                                                        onsubmit="return confirm('WARNING: This will permanently delete the record. Are you sure?');">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit"
-                                                        class="btn btn-link text-danger text-decoration-none w-100 mt-2">
-                                                        <small>Delete Record Permanently</small>
-                                                        </button>
-                                                        </form>
-                                                        </div>
-                                                        </div>
-                                                        </div>
+@php
+    // Prepare room units data for JavaScript
+    $roomUnitsDataArray = $allRoomTypes->mapWithKeys(function($type) use ($booking) {
+        $units = $type->units()
+            ->where('status', 'available')
+            ->orderBy('room_number')
+            ->get()
+            ->map(function($unit) use ($booking) {
+                $isAvailable = $unit->isAvailableForDates(
+                    $booking->check_in_date->format('Y-m-d'),
+                    $booking->check_out_date->format('Y-m-d'),
+                    $booking->id
+                );
+                return [
+                    'id' => $unit->id,
+                    'room_number' => $unit->room_number,
+                    'floor' => $unit->floor,
+                    'is_available' => $isAvailable,
+                ];
+            });
+        return [$type->id => $units];
+    })->toArray();
+@endphp
 
-                                                        </div>
-                                                        </div>
-                                                        </div>
-                                                    @endsection)
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roomTypeSelect = document.getElementById('newRoomTypeSelect');
+    const roomUnitSelect = document.getElementById('newRoomUnitSelect');
+    const roomUnitsList = document.getElementById('roomUnitsList');
+    const recalculateCheckbox = document.getElementById('recalculatePrice');
+    const pricePreview = document.getElementById('pricePreview');
+    const newPriceDisplay = document.getElementById('newPriceDisplay');
+    const priceBreakdown = document.getElementById('priceBreakdown');
+    const nights = {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }};
+    const currentTotal = {{ $booking->total_amount }};
+    const checkIn = '{{ $booking->check_in_date->format('Y-m-d') }}';
+    const checkOut = '{{ $booking->check_out_date->format('Y-m-d') }}';
+    const bookingId = {{ $booking->id }};
+
+    // Room units data by room type
+    const roomUnitsData = @json($roomUnitsDataArray);
+
+    function updateRoomUnits(roomTypeId) {
+        roomUnitSelect.innerHTML = '<option value="">-- Leave as TBA --</option>';
+        roomUnitsList.innerHTML = '';
+
+        if (!roomTypeId || !roomUnitsData[roomTypeId]) {
+            roomUnitsList.innerHTML = '<p class="text-muted text-center mb-0 small"><i class="fas fa-info-circle me-1"></i>Select a room type to see available units</p>';
+            return;
+        }
+
+        const units = roomUnitsData[roomTypeId];
+        if (units.length === 0) {
+            roomUnitsList.innerHTML = '<p class="text-warning text-center mb-0 small"><i class="fas fa-exclamation-triangle me-1"></i>No room units configured for this type</p>';
+            return;
+        }
+
+        let availableCount = 0;
+        let html = '<div class="small">';
+        
+        units.forEach(unit => {
+            const statusClass = unit.is_available ? 'text-success' : 'text-danger';
+            const statusIcon = unit.is_available ? 'fa-check-circle' : 'fa-times-circle';
+            const statusText = unit.is_available ? 'Available' : 'Occupied';
+            
+            if (unit.is_available) {
+                availableCount++;
+                roomUnitSelect.innerHTML += `<option value="${unit.id}">Room ${unit.room_number} (Floor ${unit.floor || 'G'})</option>`;
+            }
+
+            html += `<div class="d-flex justify-content-between py-1 border-bottom">
+                <span>Room ${unit.room_number} <small class="text-muted">(Floor ${unit.floor || 'G'})</small></span>
+                <span class="${statusClass}"><i class="fas ${statusIcon} me-1"></i>${statusText}</span>
+            </div>`;
+        });
+
+        html += '</div>';
+        html = `<p class="mb-2 fw-bold"><small>${availableCount} of ${units.length} available</small></p>` + html;
+        roomUnitsList.innerHTML = html;
+    }
+
+    function updatePricePreview() {
+        const selectedOption = roomTypeSelect.options[roomTypeSelect.selectedIndex];
+        const newPrice = parseFloat(selectedOption.dataset.price) || 0;
+        const shouldRecalculate = recalculateCheckbox.checked;
+
+        if (shouldRecalculate) {
+            const newTotal = newPrice * nights;
+            newPriceDisplay.textContent = '₦' + newTotal.toLocaleString('en-NG', {minimumFractionDigits: 2});
+            priceBreakdown.textContent = `${nights} nights × ₦${newPrice.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+            
+            if (newTotal > currentTotal) {
+                pricePreview.classList.remove('alert-bp-info');
+                pricePreview.classList.add('alert-warning');
+            } else if (newTotal < currentTotal) {
+                pricePreview.classList.remove('alert-bp-info', 'alert-warning');
+                pricePreview.classList.add('alert-success');
+            } else {
+                pricePreview.classList.remove('alert-warning', 'alert-success');
+                pricePreview.classList.add('alert-bp-info');
+            }
+        } else {
+            newPriceDisplay.textContent = '₦' + currentTotal.toLocaleString('en-NG', {minimumFractionDigits: 2});
+            priceBreakdown.textContent = 'Price will remain unchanged';
+            pricePreview.classList.remove('alert-warning', 'alert-success');
+            pricePreview.classList.add('alert-bp-info');
+        }
+    }
+
+    roomTypeSelect.addEventListener('change', function() {
+        updateRoomUnits(this.value);
+        updatePricePreview();
+    });
+
+    recalculateCheckbox.addEventListener('change', updatePricePreview);
+
+    // Initialize with current room type
+    if (roomTypeSelect.value) {
+        updateRoomUnits(roomTypeSelect.value);
+    }
+});
+</script>
+@endpush
+@endsection

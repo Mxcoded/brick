@@ -134,7 +134,7 @@
                                                     </div>
                                                     <div>
                                                         <span
-                                                            class="d-block fw-bold text-dark">{{ $booking->room->name ?? 'Room #' . $booking->room_id }}</span>
+                                                            class="d-block fw-bold text-dark">{{ optional($booking->roomType)->name ?? optional($booking->room)->name ?? 'Room' }}</span>
                                                         <span class="small text-muted">Ref:
                                                             {{ $booking->booking_reference }}</span>
                                                     </div>

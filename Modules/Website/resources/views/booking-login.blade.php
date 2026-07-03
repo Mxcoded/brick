@@ -24,7 +24,8 @@
                         @csrf
                         <div class="mb-3">
                             <label class="form-label fw-bold">Booking Reference</label>
-                            <input type="text" name="booking_reference" class="form-control form-control-lg text-uppercase" placeholder="e.g. BK-25-X9Y2Z" required>
+                            <input type="text" name="booking_reference" class="form-control form-control-lg text-uppercase" placeholder="e.g. BK26ABCD or GRP26XYZ123" required>
+                            <div class="form-text text-muted">Enter your individual (BK...) or group (GRP...) reference</div>
                         </div>
 
                         <div class="mb-4">

@@ -7,7 +7,7 @@
     <div class="container-fluid px-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="fw-bold text-gradient">🏗️ Maintenance Tracker</h1>
-            <a href="{{ route('maintenance.create') }}" class="btn btn-primary rounded-pill shadow-sm">
+            <a href="{{ route('maintenance.create') }}" class="btn btn-luxury-gold rounded-pill shadow-sm px-4">
                 <i class="fas fa-plus-circle me-2"></i> New Log
             </a>
             @auth
@@ -18,7 +18,7 @@
         </div>
 
         @if (session('success'))
-            <div class="toast-alert position-fixed top-20 end-0 p-3">
+            <div class="toast-alert position-fixed top-20 end-0 p-3" style="z-index: 1050;">
                 <div class="alert alert-success alert-dismissible fade show shadow" role="alert">
                     ✅ {{ session('success') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -36,22 +36,24 @@
                                 placeholder="Search logs...">
                         </div>
                     </div>
-                    <div class="col-md-8 d-flex justify-content-end">
+                    <div class="col-md-8 d-flex justify-content-end gap-2">
                         <div class="btn-group" role="group">
                             <button type="button" class="btn btn-light filter-btn active" data-status="all">All</button>
                             <button type="button" class="btn btn-light filter-btn" data-status="New">New</button>
-                            <button type="button" class="btn btn-light filter-btn" data-status="In Progress">In
-                                Progress</button>
-                            <button type="button" class="btn btn-light filter-btn"
-                                data-status="Completed">Completed</button>
+                            <button type="button" class="btn btn-light filter-btn" data-status="In Progress">In Progress</button>
+                            <button type="button" class="btn btn-light filter-btn" data-status="Completed">Completed</button>
+                            <button type="button" class="btn btn-light filter-btn" data-status="Cancelled">Cancelled</button>
                         </div>
+                        <button type="button" class="btn btn-print rounded-pill shadow-sm px-3" id="printBtn" title="Print">
+                            <i class="fas fa-print me-1"></i> Print
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table id="maintenanceTable" class="table table-hover align-middle mb-0">
+                <div class="table-responsive w-100">
+                    <table id="maintenanceTable" class="table table-hover align-middle mb-0 w-100">
                         <thead class="bg-light-100">
                             <tr>
                                 <th class="ps-4">Location</th>
@@ -86,7 +88,8 @@
                                                 'new' => ['color' => 'primary', 'icon' => 'clock'],
                                                 'in_progress' => ['color' => 'warning', 'icon' => 'tools'],
                                                 'completed' => ['color' => 'success', 'icon' => 'check-circle'],
-                                            ][$log->status];
+                                                'cancelled' => ['color' => 'danger', 'icon' => 'times-circle'],
+                                            ][$log->status] ?? ['color' => 'secondary', 'icon' => 'question-circle'];
                                         @endphp
                                         <span
                                             class="badge rounded-pill bg-{{ $statusConfig['color'] }}-100 text-{{ $statusConfig['color'] }}">
@@ -107,7 +110,7 @@
                                                 class="btn btn-light border" data-bs-toggle="tooltip" title="Update Log">
                                                 <i class="fas fa-edit text-primary"></i>
                                             </a>
-                                            @can('delete-maintenance-log')
+                                            @can('access_maintenance_dashboard')
                                             <form action="{{ route('maintenance.destroy', $log->id) }}" method="POST">
                                                 @csrf
                                                 @method('DELETE')
@@ -147,22 +150,147 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
 
+    <style>
+        /* Hide DataTables default search - we use custom search */
+        .dataTables_filter {
+            display: none !important;
+        }
+        /* Full width table */
+        .dataTables_wrapper {
+            width: 100%;
+        }
+        #maintenanceTable {
+            width: 100% !important;
+        }
+        /* Luxury Gold Button */
+        .btn-luxury-gold {
+            background: linear-gradient(135deg, #C5A572 0%, #D4AF37 100%);
+            border: none;
+            color: #fff;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-luxury-gold:hover {
+            background: linear-gradient(135deg, #B8956A 0%, #C5A572 100%);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(197, 165, 114, 0.4);
+        }
+        /* Print Button */
+        .btn-print {
+            background: #fff;
+            border: 2px solid #C5A572;
+            color: #C5A572;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-print:hover {
+            background: #C5A572;
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(197, 165, 114, 0.4);
+        }
+        /* Luxury Gold Pagination for Bootstrap 5 DataTables */
+        .dataTables_wrapper .dataTables_paginate .pagination .page-item.active .page-link {
+            background-color: #C5A572 !important;
+            border-color: #C5A572 !important;
+            color: #fff !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .pagination .page-link {
+            color: #C5A572;
+        }
+        .dataTables_wrapper .dataTables_paginate .pagination .page-link:hover {
+            background-color: #F5EFE6 !important;
+            border-color: #C5A572 !important;
+            color: #C5A572 !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .pagination .page-link:focus {
+            box-shadow: 0 0 0 0.25rem rgba(197, 165, 114, 0.25);
+        }
+        /* Page length selector styling */
+        .dataTables_wrapper .dataTables_length {
+            padding: 0.75rem 1rem;
+        }
+        .dataTables_wrapper .dataTables_length select {
+            border: 1px solid #C5A572;
+            border-radius: 6px;
+            padding: 0.375rem 2rem 0.375rem 0.75rem;
+            color: #C5A572;
+        }
+        .dataTables_wrapper .dataTables_length select:focus {
+            border-color: #C5A572;
+            box-shadow: 0 0 0 0.25rem rgba(197, 165, 114, 0.25);
+            outline: none;
+        }
+        /* Bottom section layout */
+        .dataTables_wrapper .bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        .dataTables_info {
+            color: #6c757d;
+        }
+        /* Print styles */
+        @media print {
+            .btn, .btn-group, .card-header, .toast-alert, .dataTables_paginate, .dataTables_info, .dataTables_length {
+                display: none !important;
+            }
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .table {
+                font-size: 12px;
+            }
+            h1 {
+                font-size: 18px;
+                -webkit-text-fill-color: #333 !important;
+                background: none !important;
+            }
+        }
+    </style>
+
     <script>
         $(document).ready(function() {
             const table = $('#maintenanceTable').DataTable({
-                dom: '<"top"f>rt<"bottom"ip><"clear">',
+                dom: '<"top"l>rt<"bottom d-flex justify-content-between align-items-center flex-wrap px-3 py-2"ip><"clear">',
+                order: [[3, 'asc']], // Sort by Status column (New first alphabetically)
+                pageLength: 10, // Default 10 items per page
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]], // Page length options
                 language: {
                     search: '',
-                    searchPlaceholder: "Search logs..."
+                    searchPlaceholder: "Search logs...",
+                    lengthMenu: "Show _MENU_ entries"
                 },
-                columnDefs: [{
-                    orderable: false,
-                    targets: [5]
-                }],
-                initComplete: function() {
-                    $('.dataTables_filter input').addClass('form-control');
-                }
+                columnDefs: [
+                    {
+                        orderable: false,
+                        targets: [5]
+                    },
+                    {
+                        // Custom sort for status: New > In Progress > Completed > Cancelled
+                        targets: 3,
+                        type: 'status-priority'
+                    }
+                ]
             });
+
+            // Custom sorting for status priority
+            $.fn.dataTable.ext.type.order['status-priority-pre'] = function(data) {
+                const statusOrder = {
+                    'New': 1,
+                    'In Progress': 2,
+                    'Completed': 3,
+                    'Cancelled': 4
+                };
+                // Extract text from the badge
+                const text = $(data).text().trim();
+                return statusOrder[text] || 99;
+            };
 
             // Custom search input
             $('#customSearch').on('keyup', function() {
@@ -184,6 +312,11 @@
             setTimeout(function() {
                 $('.toast-alert').fadeOut('slow');
             }, 3000);
+
+            // Print button
+            $('#printBtn').click(function() {
+                window.print();
+            });
         });
 
         function confirmAction(type) {
