@@ -166,7 +166,7 @@
             </div>
 
             <div class="row g-4">
-                @foreach ($featuredRooms as $roomType)
+                @foreach ($featuredRooms ?? [] as $roomType)
                     <div class="col-md-6 col-lg-4">
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
@@ -300,7 +300,7 @@
             </div>
 
             <div class="row g-4">
-                @foreach ($dining as $option)
+                @foreach ($dining ?? [] as $option)
                     <div class="col-md-4">
                         <div class="card border-0 shadow-sm h-100 overflow-hidden dining-card">
                             <img src="{{ $option->image_url }}" class="card-img-top dining-image"
@@ -513,7 +513,7 @@
             </div>
 
             <div class="row g-4">
-                @forelse ($testimonials->take(6) as $testimonial)
+                @forelse (($testimonials ?? collect())->take(6) as $testimonial)
                     <div class="col-md-4">
                         <div class="testimonial-card bg-gray-800 p-4 h-100 rounded">
                             <div class="rating mb-3 text-warning">

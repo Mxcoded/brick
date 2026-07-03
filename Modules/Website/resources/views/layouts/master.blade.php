@@ -1106,7 +1106,7 @@
             @yield('page-content')
         @else
             @yield('content')
-        @endhasSection
+        @endif
     </main>
 
     <!-- Footer -->
