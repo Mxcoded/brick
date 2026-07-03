@@ -67,6 +67,12 @@
         </li>
         @endcanany
         @canany(['access_website_dashboard', 'website.settings'])
+        <li class="nav-item">
+            <a class="nav-link" href="{{ route('website.admin.settings.index') }}">
+                <i class="fas fa-cog me-2"></i> Settings
+            </a>
+        </li>
+        @endcanany
     </ul>
 </div>
         <!-- Content -->
