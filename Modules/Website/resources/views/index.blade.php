@@ -1,5 +1,7 @@
 @extends('website::layouts.master')
 
+@section('title', 'Home')
+
 @push('head')
     <link rel="preload" as="image" href="{{ Storage::url($settings['hero_poster'] ?? 'images/hero-fallback.jpg') }}" fetchpriority="high">
     <style>img,video{max-width:100%;height:auto}</style>
