@@ -1490,19 +1490,19 @@
     <!-- Schema.org JSON-LD -->
     <script type="application/ld+json">
     {
-        "@context": "https://schema.org",
-        "@type": "Hotel",
+        "@@context": "https://schema.org",
+        "@@type": "Hotel",
         "name": "{{ config('app.name', 'Brickspoint ApartHotel') }}",
         "description": "{{ $meta_description ?? $description ?? 'Premium boutique apart-hotel in Abuja.' }}",
         "url": "{{ url('/') }}",
         "telephone": "+234-XXX-XXX-XXXX",
         "address": {
-            "@type": "PostalAddress",
+            "@@type": "PostalAddress",
             "addressLocality": "Abuja",
             "addressCountry": "NG"
         },
         "aggregateRating": {
-            "@type": "AggregateRating",
+            "@@type": "AggregateRating",
             "ratingValue": "{{ $averageRating ?? '4.5' }}",
             "bestRating": "5",
             "reviewCount": "{{ $reviewCount ?? '0' }}"
