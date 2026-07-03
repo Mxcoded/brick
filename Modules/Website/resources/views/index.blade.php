@@ -1,6 +1,38 @@
 @extends('website::layouts.master')
 
-@section('title', 'Welcome to Brickspoint Boutique Aparthotel')
+@push('head')
+    <link rel="preload" as="image" href="{{ Storage::url($settings['hero_poster'] ?? 'images/hero-fallback.jpg') }}" fetchpriority="high">
+    <style>img,video{max-width:100%;height:auto}</style>
+    <style>
+        .hero-section { position: relative; height: 100vh; min-height: 800px; }
+        .video-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: -1; }
+        .video-background video { width: 100%; height: 100%; object-fit: cover; }
+        .hero-loading-placeholder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%); z-index: 0; animation: heroShimmer 2s ease-in-out infinite; }
+        @keyframes heroShimmer { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        .video-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%); }
+        .hotel-logo { max-width: 300px; height: auto; }
+        .hero-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .hero-content h1, .hero-content .display-3, .hero-content h4 { text-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+        .quick-booking-form { z-index: 10; }
+        .scroll-down-indicator { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.7); font-size: 24px; animation: scrollBounce 2.5s ease-in-out infinite; z-index: 5; cursor: pointer; transition: color 0.3s ease; }
+        .scroll-down-indicator:hover { color: #C8A165; }
+        @keyframes scrollBounce { 0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.7; } 50% { transform: translateX(-50%) translateY(10px); opacity: 1; } }
+        @media (max-width: 768px) {
+            .hero-section { height: auto; min-height: 550px; }
+            .hotel-logo { max-width: 180px; }
+            .scroll-down-indicator { bottom: 15px; }
+            .scroll-down-indicator .fa-2x { font-size: 1.25rem !important; }
+        }
+        @media (max-width: 576px) {
+            .hero-section { min-height: auto; padding-bottom: 2rem; }
+            .hotel-logo { max-width: 140px; }
+        }
+        @media (max-width: 400px) {
+            .hero-section { min-height: 450px; }
+            .hotel-logo { max-width: 120px; }
+        }
+    </style>
+@endpush
 
 @section('content')
     <!-- Hero Section with Video Background -->
@@ -11,7 +43,7 @@
                 <div class="carousel-item active h-100">
                     <div class="video-background h-100">
                         <div class="hero-loading-placeholder"></div>
-                        <video autoplay loop muted playsinline class="w-100 h-100" poster="{{ Storage::url($settings['hero_poster'] ?? 'images/hero-fallback.jpg') }}">
+                        <video autoplay loop muted playsinline class="w-100 h-100" poster="{{ Storage::url($settings['hero_poster'] ?? 'images/hero-fallback.jpg') }}"
                             <source
                                 src="{{ Storage::url($settings['hero_video'] ?? 'images/myvideo1.79ba4195a28673379baa.mp4') }}"
                                 type="video/mp4">
@@ -22,7 +54,7 @@
                     <div class="container h-100 d-flex align-items-center position-relative z-index-1">
                         <div class="hero-content text-white text-center w-100 pt-5 pb-6">
                             <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
-                                alt="Brickspoint Logo" class="mb-4 hotel-logo">
+                                alt="Brickspoint Logo" class="mb-4 hotel-logo" width="300" height="100">
                             <h4 class="display-3 fw-light mb-4 text-white"
                                 style="text-transform: uppercase;">Experience Unmatched Luxury</h4>
                             <p class="lead mb-5">Discover our
@@ -172,7 +204,7 @@
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
                                 <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
-                                    class="card-img-top room-image" alt="{{ $roomType->name }}" loading="lazy">
+                                    class="card-img-top room-image" alt="{{ $roomType->name }}" loading="lazy" width="400" height="300">
                                 <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
                                     ₦{{ number_format($roomType->price, 2) }} <small>/ night</small>
                                 </div>
@@ -282,7 +314,7 @@
                         <img src="{{ !empty($settings['hotel_feature_image'])
                             ? asset($settings['hotel_feature_image'])
                             : asset('images/default-hotel.jpg') }}"
-                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover" loading="lazy">
+                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover" loading="lazy" width="800" height="450">
                     </div>
                 </div>
             </div>
@@ -305,7 +337,7 @@
                     <div class="col-md-4">
                         <div class="card border-0 shadow-sm h-100 overflow-hidden dining-card">
                             <img src="{{ $option->image_url }}" class="card-img-top dining-image"
-                                alt="{{ $option->name }}" loading="lazy">
+                                alt="{{ $option->name }}" loading="lazy" width="400" height="300">
                             <div class="card-body">
                                 <h3 class="h5 card-title">{{ $option->name }}</h3>
                                 <p class="card-text text-muted">{{ Str::limit($option->description, 100) }}</p>
@@ -370,7 +402,7 @@
                 <div class="col-lg-6 order-lg-1 mb-4 mb-lg-0 reveal-left">
                     <div class="ratio ratio-16x9 rounded overflow-hidden shadow-lg">
                         <img src="{{ asset('images/spa.jpg') }}" alt="Spa"
-                            class="img-fluid w-100 h-100 object-fit-cover" loading="lazy">
+                            class="img-fluid w-100 h-100 object-fit-cover" loading="lazy" width="800" height="450">
                     </div>
                 </div>
             </div>
@@ -532,8 +564,7 @@
                                                 </div>
                                                 <p class="mb-4">"{{ $testimonial->text }}"</p>
                                                 <div class="d-flex align-items-center">
-                                                    <img src="{{ $testimonial->guest_image ?? asset('images/default-avatar.png') }}" class="rounded-circle me-3" width="50"
-                                                        height="50" alt="{{ $testimonial->guest_name }}">
+                                                    <img src="{{ $testimonial->guest_image ?? asset('images/default-avatar.png') }}" class="rounded-circle me-3" width="50" height="50" alt="{{ $testimonial->guest_name }}" loading="lazy">
                                                     <div>
                                                         <h5 class="mb-0">{{ $testimonial->guest_name }}</h5>
                                                         <small class="text-muted">{{ $testimonial->stay_type ?? 'Guest' }}</small>
@@ -658,7 +689,7 @@
         </div>
     </section>
 
-    @push('styles')
+    @push('deferred-styles')
         <style>
             /* ===== SCROLL REVEAL ===== */
             .reveal,
@@ -701,98 +732,6 @@
                 background: #C8A165;
                 margin: 0.75rem 0 1.5rem;
                 border-radius: 2px;
-            }
-
-            /* ===== HERO SECTION ===== */
-            .hero-section {
-                position: relative;
-                height: 100vh;
-                min-height: 800px;
-            }
-
-            .video-background {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-                z-index: -1;
-            }
-
-            .video-background video {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-            }
-
-            .hero-loading-placeholder {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%);
-                z-index: 0;
-                animation: heroShimmer 2s ease-in-out infinite;
-            }
-            @keyframes heroShimmer {
-                0%, 100% { opacity: 0.6; }
-                50% { opacity: 1; }
-            }
-
-            .video-overlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%);
-            }
-
-            .hotel-logo {
-                max-width: 300px;
-                height: auto;
-            }
-
-            .hero-slide {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: -1;
-            }
-
-            .hero-content h1,
-            .hero-content .display-3,
-            .hero-content h4 {
-                text-shadow: 0 2px 20px rgba(0,0,0,0.3);
-            }
-
-            .quick-booking-form {
-                z-index: 10;
-            }
-
-            .scroll-down-indicator {
-                position: absolute;
-                bottom: 30px;
-                left: 50%;
-                transform: translateX(-50%);
-                color: rgba(255,255,255,0.7);
-                font-size: 24px;
-                animation: scrollBounce 2.5s ease-in-out infinite;
-                z-index: 5;
-                cursor: pointer;
-                transition: color 0.3s ease;
-            }
-            .scroll-down-indicator:hover {
-                color: #C8A165;
-            }
-
-            @keyframes scrollBounce {
-                0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.7; }
-                50% { transform: translateX(-50%) translateY(10px); opacity: 1; }
             }
 
             /* ===== ROOM CARDS ===== */
