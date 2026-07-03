@@ -876,6 +876,96 @@
                 margin-bottom: 1rem;
             }
         }
+
+        /* ===== Newsletter Trigger Button ===== */
+        .btn-newsletter-trigger {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            z-index: 9999;
+            background: #C8A165;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(200, 161, 101, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-newsletter-trigger:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 24px rgba(200, 161, 101, 0.5);
+        }
+        @media (min-width: 992px) {
+            .btn-newsletter-trigger {
+                width: 64px;
+                height: 64px;
+                font-size: 24px;
+                bottom: 30px;
+            }
+        }
+
+        /* ===== Mobile Sticky Booking Bar ===== */
+        .mobile-sticky-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9998;
+            display: flex;
+            gap: 0;
+            background: rgba(26, 26, 26, 0.98);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(200, 161, 101, 0.2);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn-book-sticky,
+        .btn-call-sticky {
+            flex: 1;
+            padding: 0.85rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-book-sticky {
+            background: linear-gradient(135deg, #C8A165, #b8924f);
+            color: #1a1a1a;
+        }
+        .btn-book-sticky:hover {
+            background: linear-gradient(135deg, #b8924f, #a07d3e);
+            color: #1a1a1a;
+        }
+        .btn-call-sticky {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+        .btn-call-sticky:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+        @media (min-width: 992px) {
+            .mobile-sticky-bar {
+                display: none !important;
+            }
+            .btn-newsletter-trigger {
+                bottom: 30px;
+            }
+        }
     </style>
     @stack('styles')
 
@@ -1450,26 +1540,31 @@
         });
     </script>
 
-    {{-- Debug: manual trigger button --}}
+    {{-- Newsletter trigger button --}}
     <button type="button" onclick="document.getElementById('newsletterPopupTrigger').click()"
-        style="position:fixed;bottom:60px;right:20px;z-index:9999;background:#C8A165;color:#fff;border:none;border-radius:50%;width:80px;height:80px;font-size:24px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);"
-        title="Subscribe to Newsletter"><span class="fa fa-envelope"></span></button>
+        class="btn btn-newsletter-trigger"
+        title="Subscribe to Newsletter">
+        <i class="fas fa-envelope"></i>
+    </button>
 
-    {{-- Newsletter Auto-Show (triggers via hidden Bootstrap data-api button) --}}
+    {{-- Mobile Sticky Booking Bar --}}
+    <div class="mobile-sticky-bar d-lg-none">
+        <a href="{{ route('website.book') }}" class="btn btn-book-sticky">
+            <i class="fas fa-calendar-check me-2"></i> Book Now
+        </a>
+        <a href="tel:+2348099999627" class="btn btn-call-sticky">
+            <i class="fas fa-phone me-2"></i> Call
+        </a>
+    </div>
+
+    {{-- Newsletter Auto-Show --}}
     <script>
         (function() {
             var trigger = document.getElementById('newsletterPopupTrigger');
-            if (!trigger) {
-                console.warn('[Newsletter] Trigger button not found.');
-                return;
-            }
+            if (!trigger) return;
 
             var isDismissed = localStorage.getItem('newsletter_popup_dismissed') === 'true';
-
-            if (isDismissed) {
-                console.log('[Newsletter] Skipped: popup_dismissed flag set.');
-                return;
-            }
+            if (isDismissed) return;
 
             var lastShown = localStorage.getItem('newsletter_popup_last_shown');
             var now = Date.now();
@@ -1477,19 +1572,27 @@
 
             if (lastShown) {
                 var lastTime = parseInt(lastShown, 10);
-                if (!isNaN(lastTime) && (now - lastTime) < oneDay) {
-                    var remaining = Math.round((oneDay - (now - lastTime)) / 1000 / 60);
-                    console.log('[Newsletter] Skipped: shown ' + remaining + 'm ago, cooldown active.');
-                    return;
-                }
+                if (!isNaN(lastTime) && (now - lastTime) < oneDay) return;
             }
 
-            console.log('[Newsletter] Conditions passed, showing popup in 3s...');
             setTimeout(function() {
-                console.log('[Newsletter] Clicking trigger now.');
                 trigger.click();
                 localStorage.setItem('newsletter_popup_last_shown', now.toString());
-            }, 3000);
+            }, 15000);
+        })();
+    </script>
+
+    {{-- Sticky bar hide on scroll down --}}
+    <script>
+        (function() {
+            var bar = document.querySelector('.mobile-sticky-bar');
+            if (!bar) return;
+            var lastScroll = 0;
+            window.addEventListener('scroll', function() {
+                var current = window.scrollY;
+                bar.style.transform = current > lastScroll && current > 300 ? 'translateY(100%)' : 'translateY(0)';
+                lastScroll = current;
+            }, { passive: true });
         })();
     </script>
 </body>

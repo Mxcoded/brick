@@ -10,7 +10,8 @@
                 <!-- Video Slide -->
                 <div class="carousel-item active h-100">
                     <div class="video-background h-100">
-                        <video autoplay loop muted playsinline class="w-100 h-100">
+                        <div class="hero-loading-placeholder"></div>
+                        <video autoplay loop muted playsinline class="w-100 h-100" poster="{{ Storage::url($settings['hero_poster'] ?? 'images/hero-fallback.jpg') }}">
                             <source
                                 src="{{ Storage::url($settings['hero_video'] ?? 'images/myvideo1.79ba4195a28673379baa.mp4') }}"
                                 type="video/mp4">
@@ -512,33 +513,53 @@
                     hear from our satisfied guests.</p>
             </div>
 
-            <div class="row g-4">
-                @forelse (($testimonials ?? collect())->take(6) as $testimonial)
-                    <div class="col-md-4">
-                        <div class="testimonial-card bg-gray-800 p-4 h-100 rounded">
-                            <div class="rating mb-3 text-warning">
-                                @for ($i = 0; $i < 5; $i++)
-                                    <i class="fas fa-star{{ $i < $testimonial->rating ? '' : '-empty' }}"></i>
-                                @endfor
-                            </div>
-                            <p class="mb-4">"{{ $testimonial->text }}"</p>
-                            <div class="d-flex align-items-center">
-                                <img src="{{ $testimonial->guest_image ?? asset('images/default-avatar.png') }}" class="rounded-circle me-3" width="50"
-                                    height="50" alt="{{ $testimonial->guest_name }}">
-                                <div>
-                                    <h5 class="mb-0">{{ $testimonial->guest_name }}</h5>
-                                    <small class="text-muted">{{ $testimonial->stay_type ?? 'Guest' }}</small>
+            @php
+                $testiList = ($testimonials ?? collect())->take(8);
+            @endphp
+            @if ($testiList->count() > 0)
+                <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+                    <div class="carousel-inner">
+                        @foreach ($testiList->chunk(3) as $chunkIndex => $chunk)
+                            <div class="carousel-item {{ $chunkIndex === 0 ? 'active' : '' }}">
+                                <div class="row g-4">
+                                    @foreach ($chunk as $testimonial)
+                                        <div class="col-md-4">
+                                            <div class="testimonial-card bg-gray-800 p-4 h-100 rounded">
+                                                <div class="rating mb-3 text-warning">
+                                                    @for ($i = 0; $i < 5; $i++)
+                                                        <i class="fas fa-star{{ $i < $testimonial->rating ? '' : '-empty' }}"></i>
+                                                    @endfor
+                                                </div>
+                                                <p class="mb-4">"{{ $testimonial->text }}"</p>
+                                                <div class="d-flex align-items-center">
+                                                    <img src="{{ $testimonial->guest_image ?? asset('images/default-avatar.png') }}" class="rounded-circle me-3" width="50"
+                                                        height="50" alt="{{ $testimonial->guest_name }}">
+                                                    <div>
+                                                        <h5 class="mb-0">{{ $testimonial->guest_name }}</h5>
+                                                        <small class="text-muted">{{ $testimonial->stay_type ?? 'Guest' }}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
-                        </div>
+                        @endforeach
                     </div>
-                @empty
-                    <div class="col-12 text-center py-5">
-                        <i class="fas fa-comment-dots fa-3x mb-3 opacity-50"></i>
-                        <p class="text-muted mb-0">Testimonials coming soon.</p>
+                    <div class="carousel-indicators position-relative mt-4">
+                        @foreach ($testiList->chunk(3) as $chunkIndex => $chunk)
+                            <button type="button" data-bs-target="#testimonialCarousel" data-bs-slide-to="{{ $chunkIndex }}"
+                                class="{{ $chunkIndex === 0 ? 'active' : '' }} bg-secondary"
+                                aria-label="Slide {{ $chunkIndex + 1 }}"></button>
+                        @endforeach
                     </div>
-                @endforelse
-            </div>
+                </div>
+            @else
+                <div class="text-center py-5">
+                    <i class="fas fa-comment-dots fa-3x mb-3 opacity-50"></i>
+                    <p class="text-muted mb-0">Testimonials coming soon.</p>
+                </div>
+            @endif
         </div>
     </section>
 
@@ -640,32 +661,30 @@
     @push('styles')
         <style>
             /* ===== SCROLL REVEAL ===== */
-            .reveal {
-                opacity: 0;
-                transform: translateY(40px);
-                transition: opacity 0.7s ease, transform 0.7s ease;
-            }
-            .reveal.visible {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            .reveal-left {
-                opacity: 0;
-                transform: translateX(-40px);
-                transition: opacity 0.7s ease, transform 0.7s ease;
-            }
-            .reveal-left.visible {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            .reveal,
+            .reveal-left,
             .reveal-right {
                 opacity: 0;
-                transform: translateX(40px);
-                transition: opacity 0.7s ease, transform 0.7s ease;
+                transform: translateY(40px);
+                transition: opacity 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             }
+            .reveal-left {
+                transform: translateX(-40px);
+            }
+            .reveal-right {
+                transform: translateX(40px);
+            }
+            .reveal.visible,
+            .reveal-left.visible,
             .reveal-right.visible {
                 opacity: 1;
-                transform: translateX(0);
+                transform: translateY(0) translateX(0);
+            }
+
+            /* ===== STAGGER REVEAL ITEMS ===== */
+            .reveal-item.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             /* ===== SECTION ACCENT ===== */
@@ -705,6 +724,21 @@
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
+            }
+
+            .hero-loading-placeholder {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%);
+                z-index: 0;
+                animation: heroShimmer 2s ease-in-out infinite;
+            }
+            @keyframes heroShimmer {
+                0%, 100% { opacity: 0.6; }
+                50% { opacity: 1; }
             }
 
             .video-overlay {
@@ -763,9 +797,10 @@
 
             /* ===== ROOM CARDS ===== */
             .room-card {
-                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 border-radius: 12px !important;
                 overflow: hidden;
+                border: 1px solid rgba(0,0,0,0.04);
             }
 
             .room-card.visible {
@@ -867,9 +902,10 @@
 
             /* ===== DINING CARDS ===== */
             .dining-card {
-                transition: all 0.3s ease;
+                transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 border-radius: 12px !important;
                 overflow: hidden;
+                border: 1px solid rgba(0,0,0,0.04);
             }
 
             .dining-card.visible {
@@ -995,6 +1031,9 @@
                 border: 1px solid rgba(255,255,255,0.06);
             }
 
+            .testimonial-card {
+                transition: opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
+            }
             .testimonial-card.visible {
                 opacity: 1 !important;
                 transform: translateY(0) !important;
@@ -1294,21 +1333,30 @@
                     });
                 });
 
-                // Intersection Observer for scroll reveal
+                // Intersection Observer for scroll reveal with stagger
                 const revealObserver = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
+                    entries.forEach((entry, index) => {
                         if (entry.isIntersecting) {
-                            entry.target.classList.add('visible');
+                            const parent = entry.target.closest('.row') || entry.target.parentElement;
+                            const siblings = parent.querySelectorAll('.reveal-item, .room-card, .dining-card, .testimonial-card');
+                            if (siblings.length > 1) {
+                                siblings.forEach((el, i) => {
+                                    setTimeout(() => el.classList.add('visible'), i * 100);
+                                });
+                                revealObserver.unobserve(parent);
+                            } else {
+                                setTimeout(() => entry.target.classList.add('visible'), 100);
+                                revealObserver.unobserve(entry.target);
+                            }
                         }
                     });
-                }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+                }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
 
-                document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .testimonial-card, .room-card, .dining-card').forEach(el => {
-                    if (!el.classList.contains('reveal') && !el.classList.contains('reveal-left') && !el.classList.contains('reveal-right')) {
-                        el.style.opacity = '0';
-                        el.style.transform = 'translateY(30px)';
-                        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                    }
+                document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .room-card, .dining-card').forEach(el => {
+                    el.classList.add('reveal-item');
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(30px)';
+                    el.style.transition = 'opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     revealObserver.observe(el);
                 });
 
@@ -1316,6 +1364,11 @@
                 const video = document.querySelector('video');
                 if (video) {
                     video.play().catch(() => {});
+                    video.addEventListener('loadeddata', function() {
+                        document.querySelector('.hero-loading-placeholder')?.remove();
+                    });
+                } else {
+                    document.querySelector('.hero-loading-placeholder')?.remove();
                 }
 
                 // Read more toggles
