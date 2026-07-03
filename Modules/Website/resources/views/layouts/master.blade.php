@@ -1183,6 +1183,8 @@
                                 class="text-muted-footer text-decoration-none">About Us</a></li>
                         <li class="mb-2"><a href="{{ route('website.booking.login') }}"
                                 class="text-muted-footer text-decoration-none">Manage Booking</a></li>
+                        <li class="mb-2"><a href="{{ route('website.testimonials') }}"
+                                class="text-muted-footer text-decoration-none">Leave a Review</a></li>
                     </ul>
                 </div>
 

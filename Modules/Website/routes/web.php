@@ -46,6 +46,8 @@ Route::middleware(['web'])->group(function () {
         Route::get('/website', 'index')->name('website.home');
         Route::get('/about-us', 'about')->name('website.about');
         Route::get('/contact-us', 'contact')->name('website.contact');
+        Route::get('/testimonials', 'testimonials')->name('website.testimonials');
+        Route::post('/testimonials', 'storeTestimonial')->name('website.testimonials.store');
         Route::get('/location', 'location')->name('website.location');
         Route::get('/dining', 'dining')->name('website.dining');
         Route::get('/dining/{dining}/menu', 'diningMenu')->name('website.dining.menu');

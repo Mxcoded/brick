@@ -1005,12 +1005,30 @@ class WebsiteController extends Controller
 
     public function testimonials()
     {
-        $testimonials = [
-            ['name' => 'John Doe', 'text' => 'Amazing stay, great service!', 'rating' => 5],
-            ['name' => 'Jane Smith', 'text' => 'Loved the pool and food.', 'rating' => 4],
-        ];
+        $settings = $this->getSettings();
 
-        return view('website::testimonials', compact('testimonials'));
+        return view('website::testimonials', compact('settings'));
+    }
+
+    public function storeTestimonial(Request $request)
+    {
+        $validated = $request->validate([
+            'guest_name' => 'required|string|max:255',
+            'text' => 'required|string|max:2000',
+            'rating' => 'required|integer|min:1|max:5',
+            'stay_type' => 'nullable|string|max:255',
+        ]);
+
+        Testimonial::create([
+            'guest_name' => $validated['guest_name'],
+            'text' => $validated['text'],
+            'rating' => $validated['rating'],
+            'stay_type' => $validated['stay_type'] ?? null,
+            'approved' => false,
+        ]);
+
+        return redirect()->route('website.testimonials')
+            ->with('success', 'Thank you for your feedback! Your review has been submitted and will appear after review.');
     }
 
     public function blog()
@@ -2008,6 +2026,7 @@ class WebsiteController extends Controller
             ['loc' => route('website.facilities'), 'priority' => '0.8', 'changefreq' => 'monthly'],
             ['loc' => route('website.offers'), 'priority' => '0.8', 'changefreq' => 'weekly'],
             ['loc' => route('website.meetings'), 'priority' => '0.7', 'changefreq' => 'monthly'],
+            ['loc' => route('website.testimonials'), 'priority' => '0.6', 'changefreq' => 'monthly'],
         ];
 
         $roomTypes = RoomType::where('is_active', true)->get();

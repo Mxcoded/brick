@@ -32,18 +32,23 @@ class GoogleReviewsService
 
                 $result = $response->json('result') ?? [];
 
+                $reviews = array_map(function ($r) {
+                    return [
+                        'author' => $r['author_name'] ?? 'Anonymous',
+                        'photo' => $r['profile_photo_url'] ?? null,
+                        'rating' => $r['rating'] ?? 5,
+                        'text' => $r['text'] ?? '',
+                        'time' => $r['relative_time_description'] ?? null,
+                        'timestamp' => $r['time'] ?? 0,
+                    ];
+                }, $result['reviews'] ?? []);
+
+                usort($reviews, fn($a, $b) => $b['timestamp'] - $a['timestamp']);
+
                 return [
                     'rating' => $result['rating'] ?? null,
                     'count' => $result['user_ratings_total'] ?? 0,
-                    'reviews' => array_map(function ($r) {
-                        return [
-                            'author' => $r['author_name'] ?? 'Anonymous',
-                            'photo' => $r['profile_photo_url'] ?? null,
-                            'rating' => $r['rating'] ?? 5,
-                            'text' => $r['text'] ?? '',
-                            'time' => $r['relative_time_description'] ?? null,
-                        ];
-                    }, $result['reviews'] ?? []),
+                    'reviews' => $reviews,
                 ];
             } catch (\Exception $e) {
                 return ['rating' => null, 'count' => 0, 'reviews' => []];

@@ -593,6 +593,11 @@
                     <p class="text-muted mb-0">Testimonials coming soon.</p>
                 </div>
             @endif
+            <div class="text-center mt-4">
+                <a href="{{ route('website.testimonials') }}" class="btn btn-outline-light btn-lg px-5">
+                    <i class="fas fa-pen me-2"></i>Write a Review
+                </a>
+            </div>
         </div>
     </section>
 
