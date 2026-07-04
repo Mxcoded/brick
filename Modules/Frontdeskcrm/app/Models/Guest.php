@@ -62,6 +62,16 @@ class Guest extends Model
         return $this->hasMany(Registration::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(GuestDocument::class);
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(GuestMessage::class);
+    }
+
     public function preference(): HasOne
     {
         return $this->hasOne(GuestPreference::class);

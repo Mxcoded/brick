@@ -17,6 +17,12 @@
         <testsuite name="FrontdeskFeature">
             <directory>Modules/Frontdeskcrm/tests/Feature</directory>
         </testsuite>
+        <testsuite name="WebsiteUnit">
+            <directory>Modules/Website/tests/Unit</directory>
+        </testsuite>
+        <testsuite name="WebsiteFeature">
+            <directory>Modules/Website/tests/Feature</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

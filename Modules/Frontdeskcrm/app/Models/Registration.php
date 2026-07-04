@@ -85,6 +85,11 @@ class Registration extends Model
         'discount_reason',
         'corporate_account_id',
         'billing_to_account',
+        'special_requests',
+        'estimated_arrival_at',
+        'opt_in_marketing',
+        'pre_arrival_token',
+        'pre_arrival_completed_at',
     ];
 
     protected $casts = [
@@ -104,6 +109,9 @@ class Registration extends Model
         'security_deposit_collected_at' => 'datetime',
         'security_deposit_refunded_at' => 'datetime',
         'pre_authorization_expires_at' => 'datetime',
+        'estimated_arrival_at' => 'datetime',
+        'pre_arrival_completed_at' => 'datetime',
+        'opt_in_marketing' => 'boolean',
     ];
 
     protected static function boot()

@@ -109,11 +109,38 @@ class PreArrivalDashboardController extends Controller
 
     public function approve(Registration $registration)
     {
-        return back()->with('success', 'Pre-arrival approved.');
+        if ($registration->stay_status !== 'reserved' || !$registration->pre_arrival_token) {
+            return back()->with('error', 'This registration is not a valid pre-arrival.');
+        }
+
+        if (!$registration->pre_arrival_completed_at) {
+            $registration->update(['pre_arrival_completed_at' => now()]);
+        }
+
+        return back()->with('success', 'Pre-arrival approved successfully.');
     }
 
     public function sendReminder(Registration $registration)
     {
-        return back()->with('success', 'Reminder sent to guest.');
+        if ($registration->stay_status !== 'reserved' || !$registration->pre_arrival_token) {
+            return back()->with('error', 'This registration is not a valid pre-arrival.');
+        }
+
+        try {
+            $messaging = app(\Modules\Frontdeskcrm\Services\GuestMessagingService::class);
+            $result = $messaging->sendFromTemplate($registration, 'pre_arrival_reminder', 'email');
+
+            if ($result) {
+                return back()->with('success', 'Pre-arrival reminder sent to guest.');
+            }
+
+            return back()->with('error', 'No pre-arrival reminder template found. Please seed the message templates.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send pre-arrival reminder', [
+                'registration_id' => $registration->id,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Failed to send reminder: ' . $e->getMessage());
+        }
     }
 }

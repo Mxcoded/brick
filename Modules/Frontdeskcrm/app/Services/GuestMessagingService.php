@@ -89,11 +89,7 @@ class GuestMessagingService
                 break;
 
             case 'whatsapp':
-                // Placeholder for WhatsApp API integration
-                \Illuminate\Support\Facades\Log::info('WhatsApp message queued', [
-                    'to' => $recipient,
-                    'body' => $body,
-                ]);
+                app(\App\Services\WhatsAppService::class)->send($recipient, $body);
                 break;
         }
     }

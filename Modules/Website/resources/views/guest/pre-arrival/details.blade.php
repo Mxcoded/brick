@@ -136,8 +136,9 @@
                                 <a href="{{ route('guest.pre-arrival') }}" class="btn btn-outline-secondary px-4">
                                     <i class="fas fa-arrow-left me-2"></i> Back
                                 </a>
-                                <button type="submit" class="btn btn-primary px-5 py-2 fw-bold">
-                                    Continue <i class="fas fa-arrow-right ms-2"></i>
+                                <button type="submit" class="btn btn-primary px-5 py-2 fw-bold" id="continueBtn">
+                                    <span class="spinner-border spinner-border-sm d-none me-2" id="continueSpinner"></span>
+                                    <span id="continueText">Continue <i class="fas fa-arrow-right ms-2"></i></span>
                                 </button>
                             </div>
                         </form>
@@ -148,3 +149,14 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelector('form')?.addEventListener('submit', function() {
+    const btn = document.getElementById('continueBtn');
+    btn.disabled = true;
+    document.getElementById('continueSpinner').classList.remove('d-none');
+    document.getElementById('continueText').textContent = 'Saving...';
+});
+</script>
+@endpush

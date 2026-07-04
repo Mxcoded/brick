@@ -11,7 +11,7 @@ class GuestDocument extends Model
     protected $fillable = [
         'registration_id', 'guest_id', 'type', 'file_path', 'original_name',
         'mime_type', 'file_size', 'status', 'rejection_reason',
-        'verified_by_agent_id', 'verified_at',
+        'verified_by_agent_id', 'verified_at', 'rejected_at',
     ];
 
     protected function casts(): array

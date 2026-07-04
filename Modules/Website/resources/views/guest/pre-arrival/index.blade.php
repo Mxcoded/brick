@@ -45,8 +45,9 @@
                                 @enderror
                             </div>
 
-                            <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">
-                                <i class="fas fa-search me-2"></i> Find My Reservation
+                            <button type="submit" class="btn btn-primary w-100 py-3 fw-bold" id="lookupBtn">
+                                <span class="spinner-border spinner-border-sm d-none me-2" id="lookupSpinner"></span>
+                                <span id="lookupText"><i class="fas fa-search me-2"></i> Find My Reservation</span>
                             </button>
                         </form>
 
@@ -66,3 +67,16 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelector('form')?.addEventListener('submit', function() {
+    const btn = document.getElementById('lookupBtn');
+    const spinner = document.getElementById('lookupSpinner');
+    const text = document.getElementById('lookupText');
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    text.innerHTML = 'Searching...';
+});
+</script>
+@endpush

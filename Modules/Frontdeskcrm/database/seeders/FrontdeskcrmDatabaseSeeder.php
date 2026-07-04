@@ -16,6 +16,7 @@ class FrontdeskcrmDatabaseSeeder extends Seeder
             GuestTypesSeeder::class,
             GuestsSeeder::class,
             LoyaltyTierSeeder::class,
+            MessageTemplateSeeder::class,
         ]);
     }
 }

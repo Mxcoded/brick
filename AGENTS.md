@@ -114,6 +114,99 @@ Multi-property support uses:
 ### NOT scoped
 `App\Models\Room` (legacy), `Property` itself, `User`, `Guest`, `FolioCharge`, `NightAuditLog`, `RateCalendar`, `RateCodePrice`
 
+## Pre-Arrival / Digital Guest Journey
+
+The pre-arrival check-in flow is split across two modules:
+- **Guest-facing**: `Modules/Website/Http/Controllers/PreArrivalController` (11 routes) — `website::guest.pre-arrival.*` views
+- **Admin dashboard**: `Modules/Frontdeskcrm/Http/Controllers/PreArrivalDashboardController` (7 routes) — `frontdeskcrm::pre-arrival.*` views
+
+Key models (all in `Modules/Frontdeskcrm/Models`):
+- `Registration` — pre-arrival fields: `pre_arrival_token`, `special_requests`, `estimated_arrival_at`, `pre_arrival_completed_at`, `opt_in_marketing`
+- `GuestDocument` — uploaded IDs/docs linked to a `Registration` via `Guest`. Has `verified_at`, `rejected_at`, `type` enum
+- `MessageTemplate` — templates with `{guest_name}`, `{reservation_code}` placeholders
+- `GuestMessage` — delivery log with `channel` (email/sms/whatsapp) and `status`
+
+Services:
+- `Modules/Frontdeskcrm/Services/PreArrivalService` — token gen, guest detail update, document upload/delete, signature, completion
+- `Modules/Frontdeskcrm/Services/GuestMessagingService` — dispatches via `Mail::raw()`, `BulkSmsNigeria`, and `WhatsAppService`
+- `app/Services/WhatsAppService` — config-based stub (`config('services.whatsapp')`), real Graph API call commented in
+
+Console commands (registered, with schedule in `bootstrap/app.php`):
+- `hotel:send-pre-arrival-reminders` — daily 09:00, sends for `reserved` registrations within 3 days of checkout
+- `hotel:send-review-requests` — daily 10:00, sends for checkout dates >= 2 days ago (not already sent)
+- `hotel:re-engagement-campaign` — weekly Monday 11:00, sends for bookings with checkout > 30 days ago
+
+Observer (`RegistrationObserver`): auto-generates token + sends reminder when `stay_status` → `reserved`.
+
+**Warning — observer re-entrancy**: The `updated` event fires before `syncOriginal()`. Nested `update()` in an observer sees all prior attributes as dirty. To prevent infinite recursion, ensure gating fields (e.g. `!$registration->pre_arrival_token`) are in `$fillable` so the nested `update()` changes their value and breaks the cycle.
+
+## Production Operations
+
+### Required Environment Variables
+
+```bash
+# Multi-property subdomain routing
+PROPERTY_DOMAIN_FORMAT={property}.brickspoint.com
+
+# Guest messaging
+BULKSMSNIGERIA_API_TOKEN=
+WHATSAPP_API_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+MAIL_MAILER=smtp
+MAIL_HOST=
+MAIL_PORT=587
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM_ADDRESS=reservations@brickspoint.com
+MAIL_FROM_NAME="Brickspoint Hotels"
+```
+
+### First-Time Deploy
+
+```powershell
+# Before first deploy
+php artisan key:generate
+php artisan migrate
+php artisan module:migrate --all
+php artisan db:seed
+php artisan module:seed --all
+
+# Verify route cache build (no closures)
+php artisan route:list
+
+# Warm cache
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan event:cache
+```
+
+### Queue Setup (Required for Messaging)
+
+All guest messaging dispatches via `Mail::raw()` which uses the queue. Configure the queue worker:
+
+```powershell
+# In production, run as a service/supervisor process
+php artisan queue:work --tries=3 --delay=5
+```
+
+### Verifying Pre-Arrival Module
+
+```powershell
+# Check tables exist
+php artisan module:migration:check --name=Frontdeskcrm
+
+# Verify 3 scheduled commands are registered
+php artisan schedule:list
+
+# Quick test: trigger a pre-arrival reminder for a specific registration
+php artisan hotel:send-pre-arrival-reminders --registration-id=1
+
+# Check guest message log
+php artisan tinker
+>>> \Modules\Frontdeskcrm\Models\GuestMessage::all();
+```
+
 ### Creating New Modules
 
 ```powershell

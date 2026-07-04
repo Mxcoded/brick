@@ -56,4 +56,9 @@ return [
         'base_url' => env('BULKSMSNIGERIA_BASE_URL', 'https://www.bulksmsnigeria.com/api/sandbox/v2'),
         'verify_ssl' => env('BULKSMSNIGERIA_VERIFY_SSL', false),
     ],
+
+    'whatsapp' => [
+        'api_token' => env('WHATSAPP_API_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+    ],
 ];

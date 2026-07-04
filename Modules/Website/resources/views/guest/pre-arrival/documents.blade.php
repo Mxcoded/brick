@@ -84,8 +84,9 @@
                                     @enderror
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-primary mt-3 px-4">
-                                <i class="fas fa-upload me-2"></i> Upload
+                            <button type="submit" class="btn btn-primary mt-3 px-4" id="uploadBtn">
+                                <span class="spinner-border spinner-border-sm d-none me-2" id="uploadSpinner"></span>
+                                <span id="uploadText"><i class="fas fa-upload me-2"></i> Upload</span>
                             </button>
                         </form>
 
@@ -104,3 +105,14 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelector('form[enctype="multipart/form-data"]')?.addEventListener('submit', function() {
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    document.getElementById('uploadSpinner').classList.remove('d-none');
+    document.getElementById('uploadText').innerHTML = 'Uploading...';
+});
+</script>
+@endpush
