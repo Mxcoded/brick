@@ -590,19 +590,35 @@ class StaffController extends Controller
         $message = StaffSetting::get('birthday_sms_message')
             ?? config('staff.birthday_sms_message');
 
-        return view('staff::settings', compact('message'));
+        $hikvisionIp = StaffSetting::get('hikvision_ip');
+        $hikvisionUsername = StaffSetting::get('hikvision_username', 'admin');
+        $hikvisionPassword = StaffSetting::get('hikvision_password');
+        $hikvisionTimeout = StaffSetting::get('hikvision_timeout', 30);
+
+        return view('staff::settings', compact(
+            'message',
+            'hikvisionIp', 'hikvisionUsername', 'hikvisionPassword', 'hikvisionTimeout',
+        ));
     }
 
     public function updateSettings(Request $request)
     {
         $request->validate([
             'birthday_sms_message' => 'required|string|max:160',
+            'hikvision_ip' => 'nullable|string|max:255',
+            'hikvision_username' => 'nullable|string|max:255',
+            'hikvision_password' => 'nullable|string|max:255',
+            'hikvision_timeout' => 'nullable|integer|min:5|max:120',
         ]);
 
         StaffSetting::set('birthday_sms_message', $request->input('birthday_sms_message'));
+        StaffSetting::set('hikvision_ip', $request->input('hikvision_ip'));
+        StaffSetting::set('hikvision_username', $request->input('hikvision_username', 'admin'));
+        StaffSetting::set('hikvision_password', $request->input('hikvision_password'));
+        StaffSetting::set('hikvision_timeout', $request->input('hikvision_timeout', 30));
 
         return redirect()->route('staff.settings')
-            ->with('success', 'Birthday SMS message updated successfully.');
+            ->with('success', 'Settings updated successfully.');
     }
 
     /**

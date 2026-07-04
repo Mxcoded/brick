@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Modules\Staff\Console\BackfillLeaveDaysCount;
 use Modules\Staff\Console\CleanupDocuments;
+use Modules\Staff\Console\ImportHikvisionAttendance;
 use Modules\Staff\Console\SendBirthdaySms;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
@@ -51,6 +52,7 @@ class StaffServiceProvider extends ServiceProvider
             BackfillLeaveDaysCount::class,
             SendBirthdaySms::class,
             CleanupDocuments::class,
+            ImportHikvisionAttendance::class,
         ]);
     }
 
@@ -63,6 +65,7 @@ class StaffServiceProvider extends ServiceProvider
             $schedule = $this->app->make(Schedule::class);
             $schedule->command('staff:send-birthday-sms')->dailyAt('08:00');
             $schedule->command('documents:cleanup')->dailyAt('03:00');
+            $schedule->command('attendance:import-hikvision')->everyFiveMinutes();
         });
     }
 

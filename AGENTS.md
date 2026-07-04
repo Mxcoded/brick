@@ -33,6 +33,11 @@ php artisan db:seed        # Seed roles, admin, settings
 # Linting
 php artisan pint           # Laravel Pint code style fixer
 
+# Hikvision Attendance
+php artisan attendance:import-hikvision                        # Manual import
+php artisan attendance:import-hikvision --dry-run              # Preview before import
+php artisan attendance:import-hikvision --from="2026-07-01 00:00:00" --to="2026-07-04 23:59:59"  # Date range
+
 # Testing
 php artisan test                           # All tests
 php artisan test --filter=TestName         # Single test

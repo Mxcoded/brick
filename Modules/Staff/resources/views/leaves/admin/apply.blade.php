@@ -68,6 +68,22 @@
                             @enderror
                         </div>
 
+                        <div class="mb-3">
+                            <label for="covered_by" class="form-label"><strong>Covered By (optional)</strong></label>
+                            <select class="form-select @error('covered_by') is-invalid @enderror" id="covered_by" name="covered_by">
+                                <option value="">— Not assigned —</option>
+                                @foreach ($employees as $candidate)
+                                    <option value="{{ $candidate->id }}" {{ old('covered_by') == $candidate->id ? 'selected' : '' }}>
+                                        {{ $candidate->name }} ({{ $candidate->department ?? 'No Dept' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Select the employee covering duties during this leave.</small>
+                            @error('covered_by')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="d-grid">
                             <button type="submit" class="btn btn-warning">Submit Leave Request</button>
                         </div>

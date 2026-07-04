@@ -166,12 +166,119 @@ class LeaveController extends Controller
     // Leave Report
     public function leaveReport(Request $request)
     {
-        $year = $request->input('year', date('Y'));
-        $employees = Employee::with(['leaveRequests' => fn ($q) => $q->whereYear('start_date', $year)])
+        $year = (int) $request->input('year', date('Y'));
+        $prevYear = $year - 1;
+        $department = $request->department;
+
+        $employeeBase = Employee::where('status', 'approved')
+            ->when($department, fn ($q) => $q->where('department', $department));
+
+        $employees = (clone $employeeBase)
+            ->with(['leaveRequests' => fn ($q) => $q->whereYear('start_date', $year)])
             ->with(['leaveBalances' => fn ($q) => $q->where('year', $year)])
             ->get();
 
-        return view('staff::leaves.admin.report', compact('employees', 'year'));
+        $departments = Employee::where('status', 'approved')
+            ->whereNotNull('department')
+            ->distinct('department')
+            ->pluck('department')
+            ->sort();
+
+        $years = range(now()->year - 5, now()->year + 1);
+
+        // ---- Summary Stats ----
+        $totalEmployees = $employees->count();
+        $totalBalanceEntries = $employees->sum(fn ($e) => $e->leaveBalances->count());
+
+        $allRequests = $employees->pluck('leaveRequests')->flatten();
+        $totalLeaveRequests = $allRequests->count();
+        $totalApprovedRequests = $allRequests->where('status', 'approved')->count();
+        $totalPendingRequests = $allRequests->where('status', 'pending')->count();
+        $totalRejectedRequests = $allRequests->where('status', 'rejected')->count();
+        $totalCancelledRequests = $allRequests->where('status', 'cancelled')->count();
+
+        $totalLeaveDays = LeaveRequest::whereYear('start_date', $year)
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->where('status', 'approved')
+            ->sum('days_count');
+
+        // ---- Leave Type Distribution ----
+        $leaveTypeStats = LeaveRequest::whereYear('start_date', $year)
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->selectRaw("leave_type, COUNT(*) as total_requests, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count, SUM(CASE WHEN status = 'approved' THEN days_count ELSE 0 END) as days_used")
+            ->groupBy('leave_type')
+            ->get()
+            ->keyBy('leave_type');
+
+        $leaveTypes = ['Annual', 'Casual', 'Sick', 'Compassionate', 'Paternity', 'Maternity'];
+
+        // ---- Monthly Breakdown (approved days per month) ----
+        $monthlyDays = LeaveRequest::whereYear('start_date', $year)
+            ->where('status', 'approved')
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->selectRaw('MONTH(start_date) as month, SUM(days_count) as days')
+            ->groupBy('month')
+            ->pluck('days', 'month');
+
+        $monthlyLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $monthlyData = [];
+        $maxMonthlyDays = 1;
+        foreach (range(1, 12) as $m) {
+            $d = (int) ($monthlyDays[$m] ?? 0);
+            $monthlyData[] = $d;
+            if ($d > $maxMonthlyDays) {
+                $maxMonthlyDays = $d;
+            }
+        }
+
+        // ---- Department Summary ----
+        $deptStats = (clone $employeeBase)->get()->groupBy('department')->map(function ($emps) use ($year) {
+            $empIds = $emps->pluck('id');
+            $requests = LeaveRequest::whereIn('employee_id', $empIds)->whereYear('start_date', $year);
+            $approved = (clone $requests)->where('status', 'approved');
+
+            return [
+                'employee_count' => $emps->count(),
+                'total_requests' => (clone $requests)->count(),
+                'approved_requests' => (clone $approved)->count(),
+                'days_used' => (clone $approved)->sum('days_count'),
+                'pending_requests' => (clone $requests)->where('status', 'pending')->count(),
+            ];
+        })->sortByDesc('days_used');
+
+        // ---- Previous Year Comparison ----
+        $prevDaysUsed = LeaveRequest::whereYear('start_date', $prevYear)
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->where('status', 'approved')
+            ->sum('days_count');
+
+        // ---- Averages ----
+        $avgDaysPerRequest = $totalApprovedRequests > 0
+            ? round($totalLeaveDays / $totalApprovedRequests, 1) : 0;
+        $avgDaysPerEmployee = $totalEmployees > 0
+            ? round($totalLeaveDays / $totalEmployees, 1) : 0;
+
+        // ---- Most requested leave type ----
+        $mostUsedType = $leaveTypeStats->sortByDesc('days_used')->keys()->first();
+
+        // ---- Pending requests requiring approval ----
+        $pendingRequests = LeaveRequest::with('employee')
+            ->whereYear('start_date', $year)
+            ->where('status', 'pending')
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return view('staff::leaves.admin.report', compact(
+            'employees', 'year', 'prevYear', 'department', 'departments', 'years',
+            'totalEmployees', 'totalBalanceEntries', 'totalLeaveRequests',
+            'totalApprovedRequests', 'totalPendingRequests', 'totalRejectedRequests',
+            'totalCancelledRequests', 'totalLeaveDays', 'prevDaysUsed',
+            'leaveTypeStats', 'leaveTypes', 'monthlyData', 'monthlyLabels',
+            'maxMonthlyDays', 'deptStats', 'avgDaysPerRequest', 'avgDaysPerEmployee',
+            'mostUsedType', 'pendingRequests',
+        ));
     }
 
     // Leave Balance Form
@@ -180,7 +287,18 @@ class LeaveController extends Controller
         $user = Auth::user();
         $employee = $user->employee;
 
-        return view('staff::leaves.admin.balances', compact('employee'));
+        $currentYear = date('Y');
+
+        if (! $employee) {
+            return redirect()->route('staff.dashboard')
+                ->with('error', 'No employee record linked to your account.');
+        }
+
+        $employees = Employee::with(['leaveBalances' => fn ($q) => $q->where('year', $currentYear)])
+            ->where('id', $employee->id)
+            ->paginate(15);
+
+        return view('staff::leaves.admin.balances', compact('employees', 'currentYear'));
     }
 
     // Submit Leave Balance
@@ -264,6 +382,7 @@ class LeaveController extends Controller
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string|max:1000',
+            'covered_by' => 'nullable|exists:employees,id|different:employee_id',
         ]);
 
         $employee = Employee::find($validated['employee_id']);
@@ -352,7 +471,8 @@ class LeaveController extends Controller
             'start_date' => $validatedData['start_date'],
             'end_date' => $validatedData['end_date'],
             'reason' => $validatedData['reason'],
-            'days_count' => $leaveDaysCount, // Use our newly calculated count
+            'days_count' => $leaveDaysCount,
+            'covered_by' => $validatedData['covered_by'] ?? null,
             'status' => 'pending',
         ]);
         // 5. Send notification email to HR/Admin
@@ -487,5 +607,53 @@ class LeaveController extends Controller
         $leaveHistory = $query->paginate(20)->withQueryString();
 
         return view('staff::leaves.admin.history', compact('leaveHistory', 'employees'));
+    }
+
+    public function leaveCalendar(Request $request)
+    {
+        $month = (int) ($request->month ?? now()->month);
+        $year = (int) ($request->year ?? now()->year);
+        $department = $request->department;
+
+        $employees = Employee::where('status', 'approved')
+            ->when($department, fn ($q) => $q->where('department', $department))
+            ->pluck('id');
+
+        $firstOfMonth = now()->setYear($year)->setMonth($month)->startOfMonth();
+        $lastOfMonth = $firstOfMonth->copy()->endOfMonth();
+
+        $leaves = LeaveRequest::with('employee')
+            ->whereIn('employee_id', $employees)
+            ->where('status', 'approved')
+            ->where('start_date', '<=', $lastOfMonth)
+            ->where('end_date', '>=', $firstOfMonth)
+            ->get();
+
+        // Build date-indexed map
+        $dateMap = [];
+        foreach ($leaves as $leave) {
+            $period = CarbonPeriod::create($leave->start_date, $leave->end_date);
+            foreach ($period as $date) {
+                $key = $date->format('Y-m-d');
+                if (! isset($dateMap[$key])) {
+                    $dateMap[$key] = collect([]);
+                }
+                $dateMap[$key]->push($leave);
+            }
+        }
+
+        $departments = Employee::where('status', 'approved')
+            ->whereNotNull('department')
+            ->distinct('department')
+            ->pluck('department')
+            ->sort();
+
+        $startOfCalendar = $firstOfMonth->copy()->startOfWeek(Carbon::SUNDAY);
+        $endOfCalendar = $lastOfMonth->copy()->endOfWeek(Carbon::SATURDAY);
+
+        return view('staff::leaves.admin.calendar', compact(
+            'dateMap', 'month', 'year', 'department', 'departments',
+            'firstOfMonth', 'lastOfMonth', 'startOfCalendar', 'endOfCalendar',
+        ));
     }
 }

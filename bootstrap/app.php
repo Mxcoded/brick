@@ -30,6 +30,11 @@ return Application::configure(basePath: __DIR__.'/../')
 
         // Log page views and write actions (throttled)
         $middleware->appendToGroup('web', LogUserActivity::class);
+
+        // Exclude Hikvision webhook from CSRF (machine-to-machine)
+        $middleware->validateCsrfTokens(except: [
+            'staff/attendance/hikvision-webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

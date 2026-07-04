@@ -1,9 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Staff\Http\Controllers\AttendanceController;
 use Modules\Staff\Http\Controllers\LeaveController;
+use Modules\Staff\Http\Controllers\PerformanceController;
+use Modules\Staff\Http\Controllers\ReportsController;
 use Modules\Staff\Http\Controllers\SharedDocumentController;
 use Modules\Staff\Http\Controllers\StaffController;
+use Modules\Staff\Http\Controllers\TrainingController;
 
 // Import the Enum
 
@@ -74,7 +78,52 @@ Route::prefix('staff')
 
             Route::get('/admin/history', [LeaveController::class, 'showLeaveHistory'])
                 ->name('leaves.admin.history');
+
+            Route::get('/calendar', [LeaveController::class, 'leaveCalendar'])
+                ->name('leaves.calendar');
         });
+        // ** Attendance Routes **
+        Route::prefix('attendance')->group(function () {
+            Route::get('/', [AttendanceController::class, 'index'])->name('attendance.index');
+            Route::get('/clock', [AttendanceController::class, 'clockInForm'])->name('attendance.clock');
+            Route::post('/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
+            Route::post('/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
+            Route::get('/report', [AttendanceController::class, 'report'])->name('attendance.report');
+            Route::post('/hikvision-webhook', [AttendanceController::class, 'hikvisionWebhook'])->name('attendance.hikvision-webhook');
+            Route::post('/hikvision-test', [AttendanceController::class, 'hikvisionTest'])->name('attendance.hikvision-test');
+        });
+
+        // ** Performance & Training Routes **
+        Route::prefix('performance')->group(function () {
+            Route::get('/', [PerformanceController::class, 'index'])->name('performance.index');
+            Route::get('/create', [PerformanceController::class, 'create'])->name('performance.create');
+            Route::post('/', [PerformanceController::class, 'store'])->name('performance.store');
+
+            // Skills routes must come BEFORE the wildcard {performanceReview} route
+            Route::get('/skills', [PerformanceController::class, 'skillsIndex'])->name('performance.skills');
+            Route::get('/skills/create', [PerformanceController::class, 'skillsCreate'])->name('performance.skills-create');
+            Route::post('/skills', [PerformanceController::class, 'skillsStore'])->name('performance.skills-store');
+            Route::delete('/skills/{employeeSkill}', [PerformanceController::class, 'skillsDestroy'])->name('performance.skills-destroy');
+
+            Route::get('/{performanceReview}', [PerformanceController::class, 'show'])->name('performance.show');
+            Route::get('/{performanceReview}/edit', [PerformanceController::class, 'edit'])->name('performance.edit');
+            Route::put('/{performanceReview}', [PerformanceController::class, 'update'])->name('performance.update');
+        });
+
+        Route::prefix('training')->group(function () {
+            Route::get('/', [TrainingController::class, 'index'])->name('training.index');
+            Route::get('/create', [TrainingController::class, 'create'])->name('training.create');
+            Route::post('/', [TrainingController::class, 'store'])->name('training.store');
+            Route::get('/{trainingRecord}/edit', [TrainingController::class, 'edit'])->name('training.edit');
+            Route::put('/{trainingRecord}', [TrainingController::class, 'update'])->name('training.update');
+            Route::delete('/{trainingRecord}', [TrainingController::class, 'destroy'])->name('training.destroy');
+        });
+
+        // ** Reports Routes **
+        Route::prefix('reports')->group(function () {
+            Route::get('/', [ReportsController::class, 'index'])->name('reports.index')->middleware('permission:employees.read');
+        });
+
         // ** Staff Approval Routes (Admin Only)**
         Route::prefix('approvals')->group(function () {
             Route::get('/', [StaffController::class, 'approvalIndex'])
