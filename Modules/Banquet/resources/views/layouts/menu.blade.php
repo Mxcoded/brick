@@ -39,12 +39,12 @@
         <i class="fas fa-users fa-fw me-2"></i> Event Leads
     </a>
 
-    @can('access_website_dashboard')
+    @canany(['access_website_dashboard', 'website.meeting'])
     <a href="{{ route('website.admin.meeting.edit') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.meeting.*') ? 'active' : '' }}">
         <i class="fas fa-building fa-fw me-2"></i> Meetings Page
     </a>
-    @endcan
+    @endcanany
 
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Reports</div>

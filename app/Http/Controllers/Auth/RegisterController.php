@@ -32,7 +32,7 @@ class RegisterController extends Controller
                     if (strpos(trim($value), ' ') === false) {
                         $fail('Please enter your full name (first and last name).');
                     }
-                    if (!preg_match('/^[\pL\s\'\-.]+$/u', $value)) {
+                    if (! preg_match('/^[\pL\s\'\-.]+$/u', $value)) {
                         $fail('The :attribute contains invalid characters.');
                     }
                 },
@@ -48,11 +48,11 @@ class RegisterController extends Controller
             'register_time.integer' => 'Invalid request.',
         ]);
 
-        if (!empty($data['website'])) {
+        if (! empty($data['website'])) {
             $validator->errors()->add('website', 'Invalid request.');
         }
 
-        if (!empty($data['register_time']) && ((int) $data['register_time'] > 0) && (time() - (int) $data['register_time']) < 3) {
+        if (! empty($data['register_time']) && ((int) $data['register_time'] > 0) && (time() - (int) $data['register_time']) < 3) {
             $validator->errors()->add('register_time', 'Please wait a moment before submitting.');
         }
 

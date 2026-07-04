@@ -148,9 +148,15 @@ class AdminController extends Controller
         $highPriorityTasks = Task::where('priority', 'high')->whereIn('status', ['pending', 'in_progress'])->count();
 
         // ── Restaurant ──
-        $restaurantOrdersToday = RestaurantOrder::whereDate('created_at', today())->count();
-        $restaurantOrdersPending = RestaurantOrder::where('status', 'pending')->count();
-        $restaurantOrdersMonth = RestaurantOrder::whereMonth('created_at', now()->month)->count();
+        if (Module::has('Restaurant') && Module::find('Restaurant')->isEnabled()) {
+            $restaurantOrdersToday = RestaurantOrder::whereDate('created_at', today())->count();
+            $restaurantOrdersPending = RestaurantOrder::where('status', 'pending')->count();
+            $restaurantOrdersMonth = RestaurantOrder::whereMonth('created_at', now()->month)->count();
+        } else {
+            $restaurantOrdersToday = 0;
+            $restaurantOrdersPending = 0;
+            $restaurantOrdersMonth = 0;
+        }
 
         // ── Gym ──
         $activeMemberships = Membership::count();
@@ -234,17 +240,17 @@ class AdminController extends Controller
 
                     continue;
                 }
-                if (str_starts_with($perm->name, 'check_in') || str_starts_with($perm->name, 'check_out') || str_starts_with($perm->name, 'manage_rooms')) {
+                if (str_starts_with($perm->name, 'check_in') || str_starts_with($perm->name, 'check_out')) {
                     $groups['Front Desk'][] = $perm;
 
                     continue;
                 }
-                if (str_starts_with($perm->name, 'view_employees') || str_starts_with($perm->name, 'manage_employees')) {
+                if (str_starts_with($perm->name, 'employees.') || str_starts_with($perm->name, 'view_employees') || str_starts_with($perm->name, 'manage_employees')) {
                     $groups['HR & Staff'][] = $perm;
 
                     continue;
                 }
-                if (str_starts_with($perm->name, 'approve_leaves')) {
+                if (str_starts_with($perm->name, 'leaves.approve') || str_starts_with($perm->name, 'approve_leaves')) {
                     $groups['HR & Staff'][] = $perm;
 
                     continue;
@@ -303,6 +309,9 @@ class AdminController extends Controller
                         break;
                     case 'gym':
                         $group = 'Gym';
+                        break;
+                    case 'maintenance':
+                        $group = 'Maintenance';
                         break;
                     default:
                         $group = 'Other';
@@ -614,7 +623,7 @@ class AdminController extends Controller
     public function createUserFromEmployee()
     {
         $employees = Employee::whereNull('end_date')
-            ->where(fn($q) => $q->whereNull('user_id')->orWhereDoesntHave('user'))
+            ->where(fn ($q) => $q->whereNull('user_id')->orWhereDoesntHave('user'))
             ->orderBy('name')
             ->get();
 

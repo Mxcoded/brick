@@ -431,11 +431,11 @@
                         <h6 class="section-header mb-0"><i class="fas fa-bolt icon"></i>Quick Actions</h6>
                     </div>
                     <div class="card-body py-3 d-grid gap-2">
-                        <a href="{{ route('website.admin.rooms.create') }}" class="action-btn">
+                        <a href="{{ route('website.admin.room-types.index') }}" class="action-btn">
                             <span class="icon-wrap text-white" style="background: linear-gradient(135deg, #C8A165, #a8864a);">
-                                <i class="fas fa-plus"></i>
+                                <i class="fas fa-bed"></i>
                             </span>
-                            Add New Room
+                            Manage Room Types
                         </a>
                         <a href="{{ route('website.admin.rooms.calendar') }}" class="action-btn">
                             <span class="icon-wrap text-white" style="background: linear-gradient(135deg, #1a1a2e, #2c3e50);">

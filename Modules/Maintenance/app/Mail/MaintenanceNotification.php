@@ -51,6 +51,9 @@ class MaintenanceNotification extends Mailable implements ShouldQueue
                 config('mail.from.address', 'no-reply@brickspoint.com'),
                 config('mail.from.name', 'Brickspoint Maintenance')
             ),
+            replyTo: [
+                new Address(config('mail.from.address', 'no-reply@brickspoint.com'), config('mail.from.name', 'Brickspoint Maintenance')),
+            ],
             subject: $subject,
         );
     }
@@ -62,6 +65,7 @@ class MaintenanceNotification extends Mailable implements ShouldQueue
     {
         return new Content(
             view: 'maintenance::emails.notification',
+            text: 'maintenance::emails.notification-plain',
             with: [
                 'log' => $this->log,
                 'notificationType' => $this->notificationType,

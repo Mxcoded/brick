@@ -10,5 +10,5 @@
     "Gym": true,
     "Frontdeskcrm": true,
     "Inventory": true,
-    "Restaurant": false
+    "Restaurant": true
 }

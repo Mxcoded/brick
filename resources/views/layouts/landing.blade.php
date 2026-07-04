@@ -322,6 +322,62 @@
             transform: scale(1.05);
             background-color: var(--accent-color);
         }
+
+        .theme-toggle {
+            background: transparent;
+            cursor: pointer;
+            padding: 4px 10px 4px 4px;
+            border-radius: 50px;
+            transition: background 0.3s ease;
+        }
+        .theme-toggle:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        .dark .theme-toggle:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .theme-toggle-track {
+            width: 40px;
+            height: 22px;
+            background: #e9ecef;
+            border-radius: 50px;
+            position: relative;
+            transition: background 0.3s ease;
+            flex-shrink: 0;
+        }
+        .dark .theme-toggle-track {
+            background: #495057;
+        }
+        .theme-toggle-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            color: #f39c12;
+        }
+        .dark .theme-toggle-thumb {
+            transform: translateX(18px);
+            color: #6c757d;
+        }
+        .theme-toggle-thumb i {
+            transition: transform 0.4s ease;
+            font-size: 10px;
+        }
+        .dark .theme-toggle-thumb i {
+            transform: rotate(360deg);
+        }
+        .theme-toggle-label {
+            color: #6c757d;
+            transition: color 0.3s ease;
+        }
+        .dark .theme-toggle-label {
+            color: #adb5bd;
+        }
     </style>
 </head>
 
@@ -358,31 +414,48 @@
             });
         });
 
-        const themeToggle = document.getElementById('theme-toggle');
-        const html = document.documentElement;
+        (() => {
+            const themeToggle = document.getElementById('theme-toggle');
+            if (!themeToggle) return;
+            const html = document.documentElement;
+            const sunIcon = document.getElementById('theme-icon-sun');
+            const moonIcon = document.getElementById('theme-icon-moon');
+            const themeLabel = document.getElementById('theme-label');
 
-        const systemThemeIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const currentTheme = localStorage.getItem('theme');
+            const storedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const currentTheme = storedTheme || (prefersDark ? 'dark' : 'light');
 
-        if (currentTheme === 'dark' || (!currentTheme && systemThemeIsDark)) {
-            html.classList.add('dark');
-            themeToggle.querySelector('i').className = 'fas fa-sun';
-        } else {
-            html.classList.remove('dark');
-            themeToggle.querySelector('i').className = 'fas fa-moon';
-        }
+            const applyTheme = (theme) => {
+                if (theme === 'dark') {
+                    html.classList.add('dark');
+                    html.setAttribute('data-bs-theme', 'dark');
+                } else {
+                    html.classList.remove('dark');
+                    html.setAttribute('data-bs-theme', 'light');
+                }
+                if (sunIcon && moonIcon) {
+                    if (theme === 'dark') {
+                        sunIcon.classList.add('d-none');
+                        moonIcon.classList.remove('d-none');
+                    } else {
+                        sunIcon.classList.remove('d-none');
+                        moonIcon.classList.add('d-none');
+                    }
+                }
+                if (themeLabel) {
+                    themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
+                }
+            };
 
-        themeToggle.addEventListener('click', () => {
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                themeToggle.querySelector('i').className = 'fas fa-moon';
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.classList.add('dark');
-                themeToggle.querySelector('i').className = 'fas fa-sun';
-                localStorage.setItem('theme', 'dark');
-            }
-        });
+            applyTheme(currentTheme);
+
+            themeToggle.addEventListener('click', () => {
+                const next = html.classList.contains('dark') ? 'light' : 'dark';
+                localStorage.setItem('theme', next);
+                applyTheme(next);
+            });
+        })();
 
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {

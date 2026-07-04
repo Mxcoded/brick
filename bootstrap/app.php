@@ -7,6 +7,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Modules\Restaurant\Http\Middleware\RedirectToWaiterLogin;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
@@ -21,6 +22,7 @@ return Application::configure(basePath: __DIR__.'/../')
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
+            'waiter-auth' => RedirectToWaiterLogin::class,
         ]);
 
         // Track user activity for login session monitoring

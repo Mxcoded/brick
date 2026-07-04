@@ -16,7 +16,7 @@
             <a href="{{ route('staff.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i> Add Staff
             </a>
-            <a href="{{ route('staff.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route('staff.index') }}" class="btn btn-outline-primary">
                 <i class="fas fa-list me-1"></i> View All Staff
             </a>
         </div>
@@ -83,7 +83,7 @@
         </div>
 
         <div class="col-xl-2 col-lg-4 col-md-6">
-            <div class="card bg-secondary text-white shadow-sm h-100">
+            <div class="card bg-danger text-white shadow-sm h-100">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div>
                         <span class="small text-white-50 text-uppercase">Exited</span>
@@ -170,7 +170,7 @@
                         </div>
                         <div class="col-4">
                             <div class="p-3 rounded-3 bg-secondary bg-opacity-10">
-                                <i class="fas fa-building fa-2x text-secondary mb-2"></i>
+                                <i class="fas fa-building fa-2x text-muted mb-2"></i>
                                 <h3 class="mb-0">{{ $otherBranchCount }}</h3>
                                 <small class="text-muted">Other</small>
                             </div>
@@ -210,7 +210,7 @@
                         </div>
                         <div class="text-center">
                             <div class="mb-1">
-                                <i class="fas fa-genderless fa-3x text-secondary"></i>
+                                <i class="fas fa-genderless fa-3x text-muted"></i>
                             </div>
                             <h3 class="mb-0">{{ $otherGenderCount }}</h3>
                             <small class="text-muted">Other ({{ $otherPct }}%)</small>

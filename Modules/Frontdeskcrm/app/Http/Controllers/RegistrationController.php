@@ -937,10 +937,10 @@ class RegistrationController extends Controller
         // 6. DYNAMIC REDIRECT with reservation code in message
         if ($isFuture) {
             return redirect()->route('frontdesk.registrations.index')
-                ->with('success', "Reservation [{$reservationCode}] created! Guest can sign at the kiosk (" . route('frontdesk.kiosk.sign') . ") using this code.");
+                ->with('success', "Reservation [{$reservationCode}] created! Guest can sign at the kiosk (".route('frontdesk.kiosk.sign').') using this code.');
         } else {
             return redirect()->route('frontdesk.registrations.finalize.form', $registration)
-                ->with('success', "Walk-in [{$reservationCode}] created. Ask guest to sign at the kiosk (" . route('frontdesk.kiosk.sign') . ") using this code.");
+                ->with('success', "Walk-in [{$reservationCode}] created. Ask guest to sign at the kiosk (".route('frontdesk.kiosk.sign').') using this code.');
         }
     }
 

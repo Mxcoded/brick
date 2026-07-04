@@ -29,9 +29,14 @@
         <ul class="navbar-nav ms-auto align-items-center">
             <!-- Theme Toggle -->
             <li class="nav-item me-3">
-                <button class="btn btn-outline-secondary" id="theme-toggle" type="button">
-                    <i class="fas fa-sun" id="theme-icon-sun"></i>
-                    <i class="fas fa-moon d-none" id="theme-icon-moon"></i>
+                <button class="btn theme-toggle d-inline-flex align-items-center gap-2 border-0" id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+                    <span class="theme-toggle-track">
+                        <span class="theme-toggle-thumb d-flex align-items-center justify-content-center">
+                            <i class="fas fa-sun" id="theme-icon-sun"></i>
+                            <i class="fas fa-moon d-none" id="theme-icon-moon"></i>
+                        </span>
+                    </span>
+                    <span class="theme-toggle-label small fw-semibold" id="theme-label">Light</span>
                 </button>
             </li>
 

@@ -59,15 +59,22 @@ class RoleSeeder extends Seeder
             'settings.update',
 
             // ──────────────────────────────────────────
-            // FRONT DESK
+            // FRONT DESK – legacy
             // ──────────────────────────────────────────
             'check_in_guest',
             'check_out_guest',
-            'manage_rooms',
+
+            // ──────────────────────────────────────────
+            // FRONT DESK – CRUD
+            // ──────────────────────────────────────────
+            'guests.create',
+            'guests.read',
+            'guests.update',
+            'guests.delete',
             'guests.manage',
 
             // ──────────────────────────────────────────
-            // HR / STAFF – legacy
+            // HR / STAFF – legacy (kept for backward compat)
             // ──────────────────────────────────────────
             'view_employees',
             'manage_employees',
@@ -157,11 +164,19 @@ class RoleSeeder extends Seeder
             'menu.delete',
 
             // ──────────────────────────────────────────
-            // MAINTENANCE – legacy
+            // MAINTENANCE – legacy (backward compat)
             // ──────────────────────────────────────────
             'view_tasks',
             'assign_tasks',
             'log_maintenance',
+
+            // ──────────────────────────────────────────
+            // MAINTENANCE – CRUD
+            // ──────────────────────────────────────────
+            'maintenance.create',
+            'maintenance.read',
+            'maintenance.update',
+            'maintenance.delete',
 
             // ──────────────────────────────────────────
             // BANQUET – legacy
@@ -180,6 +195,9 @@ class RoleSeeder extends Seeder
             // GYM
             // ──────────────────────────────────────────
             'gym.manage',
+            'gym.create',
+            'gym.update',
+            'gym.delete',
         ];
 
         foreach ($permissions as $permission) {
@@ -204,13 +222,14 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'hr_manager', 'guard_name' => 'web'])
             ->syncPermissions([
                 'access_staff_dashboard',
-                'view_employees',
-                'manage_employees',
-                'approve_leaves',
                 'employees.create',
                 'employees.read',
                 'employees.update',
                 'employees.delete',
+                'access_tasks_dashboard',
+                'tasks.create',
+                'tasks.read',
+                'leaves.approve',
                 'leaves.manage',
                 'leaves.apply-for-others',
                 'leaves.create',
@@ -227,6 +246,7 @@ class RoleSeeder extends Seeder
                 'access_tasks_dashboard',
                 'tasks.create',
                 'tasks.read',
+                'tasks.delete',
                 'leaves.create',
                 'leaves.read',
             ]);
@@ -247,9 +267,12 @@ class RoleSeeder extends Seeder
                 'access_frontdesk_dashboard',
                 'check_in_guest',
                 'check_out_guest',
-                'guests.manage',
+                'guests.create',
+                'guests.read',
+                'guests.update',
+                'guests.delete',
                 'access_tasks_dashboard',
-                'view_tasks',
+                'tasks.create',
                 'tasks.read',
             ]);
 
@@ -259,7 +282,6 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'restaurant_manager', 'guard_name' => 'web'])
             ->syncPermissions([
                 'access_restaurant_dashboard',
-                'manage_menu',
                 'take_orders',
                 'menu.create',
                 'menu.read',
@@ -270,9 +292,11 @@ class RoleSeeder extends Seeder
                 'orders.update',
                 'orders.delete',
                 'access_inventory_dashboard',
-                'view_inventory',
                 'inventory.reports',
                 'inventory.export',
+                'access_tasks_dashboard',
+                'tasks.create',
+                'tasks.read',
             ]);
 
         // ──────────────────────────────────────────
@@ -284,6 +308,9 @@ class RoleSeeder extends Seeder
                 'take_orders',
                 'orders.create',
                 'orders.read',
+                'access_tasks_dashboard',
+                'tasks.create',
+                'tasks.read',
             ]);
 
         // ──────────────────────────────────────────
@@ -292,7 +319,12 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'gym_supervisor', 'guard_name' => 'web'])
             ->syncPermissions([
                 'access_gym_dashboard',
-                'gym.manage',
+                'gym.create',
+                'gym.update',
+                'gym.delete',
+                'access_tasks_dashboard',
+                'tasks.create',
+                'tasks.read',
             ]);
 
         // ──────────────────────────────────────────
@@ -301,9 +333,6 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'store_keeper', 'guard_name' => 'web'])
             ->syncPermissions([
                 'access_inventory_dashboard',
-                'view_inventory',
-                'adjust_stock',
-                'manage_suppliers',
                 'inventory.create',
                 'inventory.read',
                 'inventory.update',
@@ -339,13 +368,14 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'maintenance_engineer', 'guard_name' => 'web'])
             ->syncPermissions([
                 'access_maintenance_dashboard',
-                'log_maintenance',
+                'maintenance.create',
+                'maintenance.read',
+                'maintenance.update',
+                'maintenance.delete',
                 'access_tasks_dashboard',
-                'view_tasks',
                 'tasks.read',
                 'tasks.update',
                 'access_inventory_dashboard',
-                'view_inventory',
                 'inventory.reports',
             ]);
 
@@ -361,6 +391,9 @@ class RoleSeeder extends Seeder
                 'banquet.read',
                 'banquet.update',
                 'banquet.delete',
+                'access_tasks_dashboard',
+                'tasks.create',
+                'tasks.read',
             ]);
 
         // ──────────────────────────────────────────
@@ -371,6 +404,20 @@ class RoleSeeder extends Seeder
                 'access_website_dashboard',
                 'manage_settings',
                 'settings.update',
+                'website.dashboard',
+                'website.bookings',
+                'website.room-types',
+                'website.amenities',
+                'website.settings',
+                'website.dining',
+                'website.meeting',
+                'website.facilities',
+                'website.offers',
+                'website.inventory',
+                'website.contact-messages',
+                'website.newsletter',
+                'website.subscribers',
+                'website.testimonials',
             ]);
     }
 }

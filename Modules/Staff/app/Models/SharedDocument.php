@@ -31,7 +31,9 @@ class SharedDocument extends Model
         });
 
         static::deleted(function (self $document) {
-            Storage::disk('documents')->delete($document->file_path);
+            if ($document->file_path) {
+                Storage::disk('documents')->delete($document->file_path);
+            }
         });
     }
 
@@ -40,12 +42,28 @@ class SharedDocument extends Model
         $slug = preg_replace('/[^\w\-\.]+/', '-', $this->filename);
         $slug = trim($slug, '-');
         $slug = $slug ?: 'file';
+
         return route('shared.documents.download', [$this->share_token, $slug]);
     }
 
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function isArchived(): bool
+    {
+        return is_null($this->file_path);
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->created_at->addDays(7)->isPast();
+    }
+
+    public function isAvailable(): bool
+    {
+        return ! $this->isArchived() && ! $this->isExpired();
     }
 
     public function formattedSize(): string
@@ -60,6 +78,7 @@ class SharedDocument extends Model
         if ($bytes >= 1024) {
             return number_format($bytes / 1024, 0).' KB';
         }
+
         return $bytes.' B';
     }
 
@@ -84,10 +103,9 @@ class SharedDocument extends Model
         if ($term) {
             $query->where(function ($q) use ($term) {
                 $q->where('filename', 'like', "%{$term}%")
-                  ->orWhere('description', 'like', "%{$term}%")
-                  ->orWhere('extension', 'like', "%{$term}%");
+                    ->orWhere('description', 'like', "%{$term}%")
+                    ->orWhere('extension', 'like', "%{$term}%");
             });
         }
     }
-
 }

@@ -7,7 +7,7 @@
 </a>
 <div class="collapse {{ request()->routeIs('staff.*') ? 'show' : '' }}" id="staffSubmenu">
 
-    @can('view_employees')
+    @can('employees.read')
     <a href="{{ route('staff.dashboard') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('staff.dashboard') ? 'active' : '' }}">
         <i class="fas fa-tachometer-alt fa-fw me-2"></i> Dashboard
@@ -19,15 +19,18 @@
         <i class="fas fa-calendar-alt fa-fw me-2"></i> My Leave Requests
     </a>
 
-    @can('manage_employees')
+    @canany(['employees.create', 'employees.read'])
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">HR Management</div>
 
+    @can('employees.create')
     <a href="{{ route('staff.create') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('staff.create') ? 'active' : '' }}">
         <i class="fas fa-user-plus fa-fw me-2"></i> Add Staff
     </a>
+    @endcan
 
+    @can('employees.read')
     <a href="{{ route('staff.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('staff.index') ? 'active' : '' }}">
         <i class="fas fa-users fa-fw me-2"></i> Staff List
@@ -48,6 +51,7 @@
         <i class="fas fa-cog fa-fw me-2"></i> SMS Settings
     </a>
     @endcan
+    @endcanany
 
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Documents</div>
@@ -57,7 +61,7 @@
         <i class="fas fa-folder-open fa-fw me-2"></i> Shared Files
     </a>
 
-    @can('approve_leaves')
+    @can('leaves.approve')
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Leave Management</div>
 

@@ -25,7 +25,7 @@ Route::prefix('staff')
     ->middleware(['web', 'auth', 'can:access_staff_dashboard']) // Updated
     ->name('staff.')
     ->group(function () {
-        Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard')->middleware('can:view_employees');
+        Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard')->middleware('can:employees.read');
         // **Leave Management Routes** - NOW HANDLED BY LeaveController
         Route::prefix('leaves')->group(function () {
             // User Leave Routes
@@ -95,7 +95,7 @@ Route::prefix('staff')
         // ** EXPORT ROUTE **
         Route::get('/export', [StaffController::class, 'export'])
             ->name('export')
-            ->middleware('permission:view_employees');
+            ->middleware('permission:employees.read');
 
         // ** Shared Documents Routes **
         Route::prefix('documents')->group(function () {
@@ -107,25 +107,13 @@ Route::prefix('staff')
             Route::delete('/{document}', [SharedDocumentController::class, 'destroy'])->name('documents.destroy');
         });
 
-        Route::resource('/', StaffController::class)->names([
-            'index' => 'index',
-            'create' => 'create',
-            'store' => 'store',
-            'show' => 'show', // <--- This was missing!
-            'edit' => 'edit',
-            'update' => 'update',
-            'destroy' => 'destroy',
-        ])->parameters([
-            '' => 'staff', // <--- THIS FIXES THE {} ISSUE
-        ])->middleware([
-            'index' => 'permission:view_employees',
-            'show' => 'permission:view_employees',
-            'create' => 'permission:manage_employees',
-            'store' => 'permission:manage_employees',
-            'edit' => 'permission:manage_employees',
-            'update' => 'permission:manage_employees',
-            'destroy' => 'permission:manage_employees',
-        ]);
+        Route::get('/', [StaffController::class, 'index'])->name('index')->middleware('permission:employees.read');
+        Route::get('/create', [StaffController::class, 'create'])->name('create')->middleware('permission:employees.create');
+        Route::post('/', [StaffController::class, 'store'])->name('store')->middleware('permission:employees.create');
+        Route::get('/{staff}', [StaffController::class, 'show'])->name('show')->middleware('permission:employees.read');
+        Route::get('/{staff}/edit', [StaffController::class, 'edit'])->name('edit')->middleware('permission:employees.update');
+        Route::put('/{staff}', [StaffController::class, 'update'])->name('update')->middleware('permission:employees.update');
+        Route::delete('/{staff}', [StaffController::class, 'destroy'])->name('destroy')->middleware('permission:employees.delete');
     });
 
 // **Public Routes**

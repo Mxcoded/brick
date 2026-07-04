@@ -36,11 +36,12 @@ use Modules\Website\Models\RoomType;
 use Modules\Website\Models\Settings;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Services\BookingCartService;
+use Modules\Website\Services\GoogleReviewsService;
 use Modules\Website\Services\RoomAvailabilityService;
 
 class WebsiteController extends Controller
 {
-    public function index()
+    public function index(GoogleReviewsService $googleReviews)
     {
         $settings = Settings::pluck('value', 'key')->toArray();
 
@@ -57,11 +58,15 @@ class WebsiteController extends Controller
 
         $dining = Dining::all();
 
+        $googleReviewsData = $googleReviews->fetch();
+        $averageRating = round($testimonials->avg('rating'), 1);
+        $reviewCount = $testimonials->count();
+
         $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays in Abuja, Nigeria. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
         $meta_keywords = 'boutique hotel Abuja, apart-hotel Abuja, luxury accommodation Abuja, short let Abuja, best hotel Abuja, Brickspoint, apart-hotel Nigeria';
-        $og_title = config('app.name', 'Brickspoint Boutique Aparthotel') . ' — Luxury Short & Long Stays in Abuja';
+        $og_title = config('app.name', 'Brickspoint Boutique Aparthotel').' — Luxury Short & Long Stays in Abuja';
 
-        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
+        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'googleReviewsData', 'averageRating', 'reviewCount', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     /**
@@ -123,7 +128,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Browse our premium room types and suites at Brickspoint Boutique Aparthotel. Find the perfect accommodation for your stay in Abuja.';
         $meta_keywords = 'rooms Abuja, suites Abuja, apart-hotel rooms, luxury accommodation Abuja, Brickspoint rooms';
-        $og_title = 'Rooms & Suites — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Rooms & Suites — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::rooms', compact('roomTypes', 'checkIn', 'checkOut', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -144,9 +149,9 @@ class WebsiteController extends Controller
             ->take(3)
             ->get();
 
-        $meta_description = strip_tags($roomType->short_description ?? $roomType->description ?? '') . ' — Book the ' . $roomType->name . ' at Brickspoint Boutique Aparthotel, Abuja.';
-        $meta_keywords = strtolower($roomType->name) . ', ' . ($roomType->amenities->pluck('name')->implode(', ') ?? 'luxury rooms Abuja');
-        $og_title = $roomType->name . ' — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = strip_tags($roomType->short_description ?? $roomType->description ?? '').' — Book the '.$roomType->name.' at Brickspoint Boutique Aparthotel, Abuja.';
+        $meta_keywords = strtolower($roomType->name).', '.($roomType->amenities->pluck('name')->implode(', ') ?? 'luxury rooms Abuja');
+        $og_title = $roomType->name.' — '.config('app.name', 'Brickspoint Boutique Aparthotel');
         $og_image = $roomType->images->first()?->url ?? asset('images/og-default.jpg');
 
         return view('website::room-details', compact('roomType', 'relatedRooms', 'meta_description', 'meta_keywords', 'og_title', 'og_image'));
@@ -165,14 +170,14 @@ class WebsiteController extends Controller
         // Fetch existing guest profile for logged-in users
         $guest = null;
         if (Auth::check()) {
-            $guest = Guest::where('user_id', Auth::id())->first() ?? new Guest();
+            $guest = Guest::where('user_id', Auth::id())->first() ?? new Guest;
         }
 
         $viewData = compact('guest');
 
         $meta_description = 'Complete your booking at Brickspoint Boutique Aparthotel. Secure your room with our easy online reservation system.';
         $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking';
-        $og_title = 'Book Your Stay — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Book Your Stay — '.config('app.name', 'Brickspoint Boutique Aparthotel');
         $viewData['meta_description'] = $meta_description;
         $viewData['meta_keywords'] = $meta_keywords;
         $viewData['og_title'] = $og_title;
@@ -460,6 +465,7 @@ class WebsiteController extends Controller
                                 'guest_profile_id' => $guest->id,
                                 'room_type_id' => $item['room_type_id'],
                                 'room_unit_id' => null, // Assigned at check-in
+                                'source' => 'website',
                                 'guest_name' => $validated['guest_name'],
                                 'guest_email' => $validated['guest_email'],
                                 'guest_phone' => $validated['guest_phone'],
@@ -499,6 +505,7 @@ class WebsiteController extends Controller
                         'guest_profile_id' => $guest->id,
                         'room_type_id' => $roomType->id,
                         'room_unit_id' => $selectedUnitId,
+                        'source' => 'website',
                         'guest_name' => $validated['guest_name'],
                         'guest_email' => $validated['guest_email'],
                         'guest_phone' => $validated['guest_phone'],
@@ -661,7 +668,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Visit Brickspoint Boutique Aparthotel in Abuja, Nigeria. Find directions, map, and information about our prime location.';
         $meta_keywords = 'Brickspoint location Abuja, apart-hotel Abuja address, map Abuja hotel, Abuja Nigeria hotel location';
-        $og_title = 'Our Location — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Our Location — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::location', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -672,7 +679,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Get in touch with Brickspoint Boutique Aparthotel. Contact us for reservations, enquiries, or special requests. We are here to help.';
         $meta_keywords = 'contact Brickspoint, Abuja hotel contact, apart-hotel enquiries, book hotel Abuja, Brickspoint address';
-        $og_title = 'Contact Us — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Contact Us — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::contact', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -779,6 +786,7 @@ class WebsiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|regex:/^[\pL\s\-\']+$/u',
             'email' => 'required|email:rfc,dns|max:255',
+            'subject' => 'nullable|string|max:255',
             'message' => 'required|string|min:10|max:2000',
         ], [
             'name.regex' => 'Please enter a valid name.',
@@ -811,6 +819,7 @@ class WebsiteController extends Controller
         ContactMessage::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'subject' => $validated['subject'] ?? null,
             'message' => $validated['message'],
             'status' => 'unread',
         ]);
@@ -996,12 +1005,30 @@ class WebsiteController extends Controller
 
     public function testimonials()
     {
-        $testimonials = [
-            ['name' => 'John Doe', 'text' => 'Amazing stay, great service!', 'rating' => 5],
-            ['name' => 'Jane Smith', 'text' => 'Loved the pool and food.', 'rating' => 4],
-        ];
+        $settings = $this->getSettings();
 
-        return view('website::testimonials', compact('testimonials'));
+        return view('website::testimonials', compact('settings'));
+    }
+
+    public function storeTestimonial(Request $request)
+    {
+        $validated = $request->validate([
+            'guest_name' => 'required|string|max:255',
+            'text' => 'required|string|max:2000',
+            'rating' => 'required|integer|min:1|max:5',
+            'stay_type' => 'nullable|string|max:255',
+        ]);
+
+        Testimonial::create([
+            'guest_name' => $validated['guest_name'],
+            'text' => $validated['text'],
+            'rating' => $validated['rating'],
+            'stay_type' => $validated['stay_type'] ?? null,
+            'approved' => false,
+        ]);
+
+        return redirect()->route('website.testimonials')
+            ->with('success', 'Thank you for your feedback! Your review has been submitted and will appear after review.');
     }
 
     public function blog()
@@ -1025,7 +1052,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Explore dining at Brickspoint Boutique Aparthotel. Enjoy exquisite cuisine at our on-site restaurant, bar, and dining venues in Abuja.';
         $meta_keywords = 'dining Abuja, restaurant Abuja, Brickspoint restaurant, fine dining Abuja, apart-hotel dining';
-        $og_title = 'Dining — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Dining — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::dining', compact('settings', 'diningOptions', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1034,9 +1061,9 @@ class WebsiteController extends Controller
     {
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        $meta_description = 'View the menu for ' . $dining->name . ' at Brickspoint Boutique Aparthotel.';
-        $meta_keywords = $dining->name . ' menu, dining Abuja, restaurant menu';
-        $og_title = $dining->name . ' Menu — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'View the menu for '.$dining->name.' at Brickspoint Boutique Aparthotel.';
+        $meta_keywords = $dining->name.' menu, dining Abuja, restaurant menu';
+        $og_title = $dining->name.' Menu — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::menu', compact('settings', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1059,7 +1086,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Discover exclusive offers and special packages at Brickspoint Boutique Aparthotel. Save on your next stay in Abuja.';
         $meta_keywords = 'hotel deals Abuja, apart-hotel offers, Brickspoint promotions, Abuja hotel packages';
-        $og_title = 'Offers & Deals — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Offers & Deals — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::offers', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1082,7 +1109,7 @@ class WebsiteController extends Controller
 
         $meta_description = 'Explore the premium facilities at Brickspoint Boutique Aparthotel — gym, restaurant, meeting rooms, and more in Abuja.';
         $meta_keywords = 'hotel facilities Abuja, apart-hotel amenities, Brickspoint gym, meeting rooms Abuja, Abuja hotel services';
-        $og_title = 'Facilities — ' . config('app.name', 'Brickspoint Boutique Aparthotel');
+        $og_title = 'Facilities — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::facilities', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1782,7 +1809,7 @@ class WebsiteController extends Controller
             'subscribed_at' => now(),
         ]);
 
-        $greeting = $validated['name'] ? "Thank you, {$validated['name']}!" : 'Thank you for subscribing to our newsletter!';
+        $greeting = ! empty($validated['name']) ? "Thank you, {$validated['name']}!" : 'Thank you for subscribing to our newsletter!';
 
         return response()->json([
             'success' => true,
@@ -1984,5 +2011,44 @@ class WebsiteController extends Controller
 
         return redirect()->route('website.event-lead', $slug)
             ->with('success', $event->getThankYouMessageOrDefault());
+    }
+
+    public function sitemap()
+    {
+        $pages = [
+            ['loc' => route('website.home'), 'priority' => '1.0', 'changefreq' => 'weekly'],
+            ['loc' => route('website.rooms.index'), 'priority' => '0.9', 'changefreq' => 'weekly'],
+            ['loc' => route('website.about'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.contact'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.location'), 'priority' => '0.7', 'changefreq' => 'monthly'],
+            ['loc' => route('website.dining'), 'priority' => '0.8', 'changefreq' => 'weekly'],
+            ['loc' => route('website.amenities'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.facilities'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.offers'), 'priority' => '0.8', 'changefreq' => 'weekly'],
+            ['loc' => route('website.meetings'), 'priority' => '0.7', 'changefreq' => 'monthly'],
+            ['loc' => route('website.testimonials'), 'priority' => '0.6', 'changefreq' => 'monthly'],
+        ];
+
+        $roomTypes = RoomType::where('is_active', true)->get();
+        foreach ($roomTypes as $room) {
+            $pages[] = [
+                'loc' => route('website.rooms.show', $room->slug ?? $room->id),
+                'priority' => '0.7',
+                'changefreq' => 'weekly',
+            ];
+        }
+
+        $diningItems = Dining::all();
+        foreach ($diningItems as $item) {
+            $pages[] = [
+                'loc' => route('website.dining.menu', $item),
+                'priority' => '0.6',
+                'changefreq' => 'monthly',
+            ];
+        }
+
+        return response()
+            ->view('website::sitemap', compact('pages'))
+            ->header('Content-Type', 'application/xml');
     }
 }

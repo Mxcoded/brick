@@ -1,6 +1,40 @@
 @extends('website::layouts.master')
 
-@section('title', 'Welcome to Brickspoint Boutique Aparthotel')
+@section('title', 'Home')
+
+@push('head')
+    <link rel="preload" as="image" href="{{ Storage::url($settings['hero_poster'] ?? 'images/hero-fallback.jpg') }}" fetchpriority="high">
+    <style>img,video{max-width:100%;height:auto}</style>
+    <style>
+        .hero-section { position: relative; height: 100vh; min-height: 800px; }
+        .video-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: -1; }
+        .video-background video { width: 100%; height: 100%; object-fit: cover; }
+        .hero-loading-placeholder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%); z-index: 0; animation: heroShimmer 2s ease-in-out infinite; }
+        @keyframes heroShimmer { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        .video-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%); }
+        .hotel-logo { max-width: 300px; height: auto; }
+        .hero-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .hero-content h1, .hero-content .display-3, .hero-content h4 { text-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+        .quick-booking-form { z-index: 10; }
+        .scroll-down-indicator { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.7); font-size: 24px; animation: scrollBounce 2.5s ease-in-out infinite; z-index: 5; cursor: pointer; transition: color 0.3s ease; }
+        .scroll-down-indicator:hover { color: #C8A165; }
+        @keyframes scrollBounce { 0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.7; } 50% { transform: translateX(-50%) translateY(10px); opacity: 1; } }
+        @media (max-width: 768px) {
+            .hero-section { height: auto; min-height: 550px; }
+            .hotel-logo { max-width: 180px; }
+            .scroll-down-indicator { bottom: 15px; }
+            .scroll-down-indicator .fa-2x { font-size: 1.25rem !important; }
+        }
+        @media (max-width: 576px) {
+            .hero-section { min-height: auto; padding-bottom: 2rem; }
+            .hotel-logo { max-width: 140px; }
+        }
+        @media (max-width: 400px) {
+            .hero-section { min-height: 450px; }
+            .hotel-logo { max-width: 120px; }
+        }
+    </style>
+@endpush
 
 @section('content')
     <!-- Hero Section with Video Background -->
@@ -10,7 +44,8 @@
                 <!-- Video Slide -->
                 <div class="carousel-item active h-100">
                     <div class="video-background h-100">
-                        <video autoplay loop muted playsinline class="w-100 h-100">
+                        <div class="hero-loading-placeholder"></div>
+                        <video autoplay loop muted playsinline class="w-100 h-100" poster="{{ Storage::url($settings['hero_poster'] ?? 'images/hero-fallback.jpg') }}"
                             <source
                                 src="{{ Storage::url($settings['hero_video'] ?? 'images/myvideo1.79ba4195a28673379baa.mp4') }}"
                                 type="video/mp4">
@@ -21,7 +56,7 @@
                     <div class="container h-100 d-flex align-items-center position-relative z-index-1">
                         <div class="hero-content text-white text-center w-100 pt-5 pb-6">
                             <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
-                                alt="Brickspoint Logo" class="mb-4 hotel-logo">
+                                alt="Brickspoint Logo" class="mb-4 hotel-logo" width="300" height="100">
                             <h4 class="display-3 fw-light mb-4 text-white"
                                 style="text-transform: uppercase;">Experience Unmatched Luxury</h4>
                             <p class="lead mb-5">Discover our
@@ -166,12 +201,12 @@
             </div>
 
             <div class="row g-4">
-                @foreach ($featuredRooms as $roomType)
+                @foreach ($featuredRooms ?? [] as $roomType)
                     <div class="col-md-6 col-lg-4">
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
                                 <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
-                                    class="card-img-top room-image" alt="{{ $roomType->name }}">
+                                    class="card-img-top room-image" alt="{{ $roomType->name }}" loading="lazy" width="400" height="300">
                                 <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
                                     ₦{{ number_format($roomType->price, 2) }} <small>/ night</small>
                                 </div>
@@ -281,7 +316,7 @@
                         <img src="{{ !empty($settings['hotel_feature_image'])
                             ? asset($settings['hotel_feature_image'])
                             : asset('images/default-hotel.jpg') }}"
-                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover">
+                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover" loading="lazy" width="800" height="450">
                     </div>
                 </div>
             </div>
@@ -300,11 +335,11 @@
             </div>
 
             <div class="row g-4">
-                @foreach ($dining as $option)
+                @foreach ($dining ?? [] as $option)
                     <div class="col-md-4">
                         <div class="card border-0 shadow-sm h-100 overflow-hidden dining-card">
                             <img src="{{ $option->image_url }}" class="card-img-top dining-image"
-                                alt="{{ $option->name }}">
+                                alt="{{ $option->name }}" loading="lazy" width="400" height="300">
                             <div class="card-body">
                                 <h3 class="h5 card-title">{{ $option->name }}</h3>
                                 <p class="card-text text-muted">{{ Str::limit($option->description, 100) }}</p>
@@ -369,7 +404,7 @@
                 <div class="col-lg-6 order-lg-1 mb-4 mb-lg-0 reveal-left">
                     <div class="ratio ratio-16x9 rounded overflow-hidden shadow-lg">
                         <img src="{{ asset('images/spa.jpg') }}" alt="Spa"
-                            class="img-fluid w-100 h-100 object-fit-cover">
+                            class="img-fluid w-100 h-100 object-fit-cover" loading="lazy" width="800" height="450">
                     </div>
                 </div>
             </div>
@@ -512,30 +547,134 @@
                     hear from our satisfied guests.</p>
             </div>
 
-            <div class="row g-4">
-                @foreach ($testimonials as $testimonial)
-                    <div class="col-md-4">
-                        <div class="testimonial-card bg-gray-800 p-4 h-100 rounded">
-                            <div class="rating mb-3 text-warning">
-                                @for ($i = 0; $i < 5; $i++)
-                                    <i class="fas fa-star{{ $i < $testimonial->rating ? '' : '-empty' }}"></i>
-                                @endfor
-                            </div>
-                            <p class="mb-4">"{{ $testimonial->comment }}"</p>
-                            <div class="d-flex align-items-center">
-                                <img src="{{ $testimonial->guest_image }}" class="rounded-circle me-3" width="50"
-                                    height="50" alt="{{ $testimonial->guest_name }}">
-                                <div>
-                                    <h5 class="mb-0">{{ $testimonial->guest_name }}</h5>
-                                    <small class="text-muted">{{ $testimonial->guest_type }}</small>
+            @php
+                $testiList = ($testimonials ?? collect())->take(8);
+            @endphp
+            @if ($testiList->count() > 0)
+                <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+                    <div class="carousel-inner">
+                        @foreach ($testiList->chunk(3) as $chunkIndex => $chunk)
+                            <div class="carousel-item {{ $chunkIndex === 0 ? 'active' : '' }}">
+                                <div class="row g-4">
+                                    @foreach ($chunk as $testimonial)
+                                        <div class="col-md-4">
+                                            <div class="testimonial-card bg-gray-800 p-4 h-100 rounded">
+                                                <div class="rating mb-3 text-warning">
+                                                    @for ($i = 0; $i < 5; $i++)
+                                                        <i class="fas fa-star{{ $i < $testimonial->rating ? '' : '-empty' }}"></i>
+                                                    @endfor
+                                                </div>
+                                                <p class="mb-4">"{{ $testimonial->text }}"</p>
+                                                <div class="d-flex align-items-center">
+                                                    <img src="{{ $testimonial->guest_image ?? asset('images/default-avatar.png') }}" class="rounded-circle me-3" width="50" height="50" alt="{{ $testimonial->guest_name }}" loading="lazy">
+                                                    <div>
+                                                        <h5 class="mb-0">{{ $testimonial->guest_name }}</h5>
+                                                        <small class="text-muted">{{ $testimonial->stay_type ?? 'Guest' }}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
-                        </div>
+                        @endforeach
                     </div>
-                @endforeach
+                    <div class="carousel-indicators position-relative mt-4">
+                        @foreach ($testiList->chunk(3) as $chunkIndex => $chunk)
+                            <button type="button" data-bs-target="#testimonialCarousel" data-bs-slide-to="{{ $chunkIndex }}"
+                                class="{{ $chunkIndex === 0 ? 'active' : '' }} bg-secondary"
+                                aria-label="Slide {{ $chunkIndex + 1 }}"></button>
+                        @endforeach
+                    </div>
+                </div>
+            @else
+                <div class="text-center py-5">
+                    <i class="fas fa-comment-dots fa-3x mb-3 opacity-50"></i>
+                    <p class="text-muted mb-0">Testimonials coming soon.</p>
+                </div>
+            @endif
+            <div class="text-center mt-4">
+                <a href="{{ route('website.testimonials') }}" class="btn btn-outline-light btn-lg px-5">
+                    <i class="fas fa-pen me-2"></i>Write a Review
+                </a>
             </div>
         </div>
     </section>
+
+    @php
+        $googlePlaceId = $settings['google_place_id'] ?? null;
+        $googleReviewLink = $googlePlaceId ? 'https://search.google.com/local/writereview?placeid=' . $googlePlaceId : null;
+        $gr = $googleReviewsData ?? [];
+        $grRating = $gr['rating'] ?? null;
+        $grCount = $gr['count'] ?? 0;
+        $grReviews = $gr['reviews'] ?? [];
+    @endphp
+    @if ($googlePlaceId)
+    <!-- Google Reviews Section -->
+    <section class="py-5 py-lg-7 bg-light">
+        <div class="container">
+            <div class="section-header text-center mb-5 reveal">
+                <h2 class="display-5 fw-bold mb-3">Google Reviews</h2>
+                <div class="section-accent"></div>
+                <p class="text-muted mx-auto" style="max-width: 700px;">See what our guests are saying on Google.</p>
+            </div>
+
+            @if ($grRating)
+            <div class="text-center mb-5">
+                <div class="mb-2">
+                    @for ($i = 0; $i < 5; $i++)
+                        <i class="fas fa-star{{ $i < round($grRating) ? '' : '-empty' }} text-warning fa-lg"></i>
+                    @endfor
+                </div>
+                <p class="h3 mb-0">{{ number_format($grRating, 1) }} out of 5</p>
+                <p class="text-muted">Based on {{ $grCount }} Google reviews</p>
+                @if ($googleReviewLink)
+                <a href="{{ $googleReviewLink }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark">
+                    <i class="fab fa-google me-2"></i> Write a Review
+                </a>
+                @endif
+            </div>
+            @endif
+
+            @if (count($grReviews) > 0)
+            <div class="row g-4">
+                @foreach (array_slice($grReviews, 0, 6) as $review)
+                <div class="col-md-4 d-flex">
+                    <div class="bg-white p-4 rounded shadow-sm d-flex flex-column w-100">
+                        <div class="mb-2">
+                            @for ($i = 0; $i < 5; $i++)
+                                <i class="fas fa-star{{ $i < $review['rating'] ? '' : '-empty' }} text-warning" style="font-size:0.85rem"></i>
+                            @endfor
+                        </div>
+                        <div class="review-text flex-grow-1">
+                            <p class="mb-0 review-text-clamp">"{{ $review['text'] }}"</p>
+                            @if (strlen($review['text']) > 150)
+                            <button class="btn btn-sm btn-link p-0 review-toggle" onclick="toggleReview(this)">Read more</button>
+                            @endif
+                        </div>
+                        <div class="d-flex align-items-center mt-3 pt-2 border-top">
+                            @if ($review['photo'])
+                            <img src="{{ $review['photo'] }}" class="rounded-circle me-2" width="36" height="36" alt="{{ $review['author'] }}">
+                            @else
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width:36px;height:36px;">
+                                <i class="fas fa-user text-white small"></i>
+                            </div>
+                            @endif
+                            <div>
+                                <small class="fw-semibold d-block">{{ $review['author'] }}</small>
+                                @if ($review['time'])
+                                <small class="text-muted">{{ $review['time'] }}</small>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            @endif
+        </div>
+    </section>
+    @endif
 
     <!-- Call to Action Section -->
     <section class="py-5 py-lg-7 cta-section text-white">
@@ -557,35 +696,33 @@
         </div>
     </section>
 
-    @push('styles')
+    @push('deferred-styles')
         <style>
             /* ===== SCROLL REVEAL ===== */
-            .reveal {
-                opacity: 0;
-                transform: translateY(40px);
-                transition: opacity 0.7s ease, transform 0.7s ease;
-            }
-            .reveal.visible {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            .reveal-left {
-                opacity: 0;
-                transform: translateX(-40px);
-                transition: opacity 0.7s ease, transform 0.7s ease;
-            }
-            .reveal-left.visible {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            .reveal,
+            .reveal-left,
             .reveal-right {
                 opacity: 0;
-                transform: translateX(40px);
-                transition: opacity 0.7s ease, transform 0.7s ease;
+                transform: translateY(40px);
+                transition: opacity 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             }
+            .reveal-left {
+                transform: translateX(-40px);
+            }
+            .reveal-right {
+                transform: translateX(40px);
+            }
+            .reveal.visible,
+            .reveal-left.visible,
             .reveal-right.visible {
                 opacity: 1;
-                transform: translateX(0);
+                transform: translateY(0) translateX(0);
+            }
+
+            /* ===== STAGGER REVEAL ITEMS ===== */
+            .reveal-item.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             /* ===== SECTION ACCENT ===== */
@@ -604,88 +741,17 @@
                 border-radius: 2px;
             }
 
-            /* ===== HERO SECTION ===== */
-            .hero-section {
-                position: relative;
-                height: 100vh;
-                min-height: 800px;
-            }
-
-            .video-background {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-                z-index: -1;
-            }
-
-            .video-background video {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-            }
-
-            .video-overlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%);
-            }
-
-            .hotel-logo {
-                max-width: 300px;
-                height: auto;
-            }
-
-            .hero-slide {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: -1;
-            }
-
-            .hero-content h1,
-            .hero-content .display-3,
-            .hero-content h4 {
-                text-shadow: 0 2px 20px rgba(0,0,0,0.3);
-            }
-
-            .quick-booking-form {
-                z-index: 10;
-            }
-
-            .scroll-down-indicator {
-                position: absolute;
-                bottom: 30px;
-                left: 50%;
-                transform: translateX(-50%);
-                color: rgba(255,255,255,0.7);
-                font-size: 24px;
-                animation: scrollBounce 2.5s ease-in-out infinite;
-                z-index: 5;
-                cursor: pointer;
-                transition: color 0.3s ease;
-            }
-            .scroll-down-indicator:hover {
-                color: #C8A165;
-            }
-
-            @keyframes scrollBounce {
-                0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.7; }
-                50% { transform: translateX(-50%) translateY(10px); opacity: 1; }
-            }
-
             /* ===== ROOM CARDS ===== */
             .room-card {
-                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 border-radius: 12px !important;
                 overflow: hidden;
+                border: 1px solid rgba(0,0,0,0.04);
+            }
+
+            .room-card.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             .room-card:hover {
@@ -782,9 +848,15 @@
 
             /* ===== DINING CARDS ===== */
             .dining-card {
-                transition: all 0.3s ease;
+                transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 border-radius: 12px !important;
                 overflow: hidden;
+                border: 1px solid rgba(0,0,0,0.04);
+            }
+
+            .dining-card.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             .dining-card:hover {
@@ -905,6 +977,14 @@
                 border: 1px solid rgba(255,255,255,0.06);
             }
 
+            .testimonial-card {
+                transition: opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
+            }
+            .testimonial-card.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
+            }
+
             .testimonial-card::before {
                 content: '\201C';
                 position: absolute;
@@ -938,6 +1018,17 @@
                 border: 2px solid rgba(200, 161, 101, 0.3);
                 padding: 2px;
                 object-fit: cover;
+            }
+
+            /* ===== GOOGLE REVIEWS ===== */
+            .review-text-clamp {
+                display: -webkit-box;
+                -webkit-line-clamp: 4;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .review-text-clamp.expanded {
+                -webkit-line-clamp: unset;
             }
 
             /* ===== CTA SECTION ===== */
@@ -1188,21 +1279,30 @@
                     });
                 });
 
-                // Intersection Observer for scroll reveal
+                // Intersection Observer for scroll reveal with stagger
                 const revealObserver = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
+                    entries.forEach((entry, index) => {
                         if (entry.isIntersecting) {
-                            entry.target.classList.add('visible');
+                            const parent = entry.target.closest('.row') || entry.target.parentElement;
+                            const siblings = parent.querySelectorAll('.reveal-item, .room-card, .dining-card, .testimonial-card');
+                            if (siblings.length > 1) {
+                                siblings.forEach((el, i) => {
+                                    setTimeout(() => el.classList.add('visible'), i * 100);
+                                });
+                                revealObserver.unobserve(parent);
+                            } else {
+                                setTimeout(() => entry.target.classList.add('visible'), 100);
+                                revealObserver.unobserve(entry.target);
+                            }
                         }
                     });
-                }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+                }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
 
-                document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .testimonial-card, .room-card, .dining-card').forEach(el => {
-                    if (!el.classList.contains('reveal') && !el.classList.contains('reveal-left') && !el.classList.contains('reveal-right')) {
-                        el.style.opacity = '0';
-                        el.style.transform = 'translateY(30px)';
-                        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                    }
+                document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .room-card, .dining-card').forEach(el => {
+                    el.classList.add('reveal-item');
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(30px)';
+                    el.style.transition = 'opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     revealObserver.observe(el);
                 });
 
@@ -1210,7 +1310,24 @@
                 const video = document.querySelector('video');
                 if (video) {
                     video.play().catch(() => {});
+                    video.addEventListener('loadeddata', function() {
+                        document.querySelector('.hero-loading-placeholder')?.remove();
+                    });
+                } else {
+                    document.querySelector('.hero-loading-placeholder')?.remove();
                 }
+
+                // Read more toggles
+                window.toggleReview = function(btn) {
+                    const text = btn.closest('.review-text').querySelector('.review-text-clamp');
+                    if (text.classList.contains('expanded')) {
+                        text.classList.remove('expanded');
+                        btn.textContent = 'Read more';
+                    } else {
+                        text.classList.add('expanded');
+                        btn.textContent = 'Show less';
+                    }
+                };
             });
         </script>
     @endpush

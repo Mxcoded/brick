@@ -5,6 +5,7 @@ namespace Modules\Staff\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Modules\Staff\Models\SharedDocument;
 
 class SharedDocumentController extends Controller
@@ -16,7 +17,7 @@ class SharedDocumentController extends Controller
             ->latest()
             ->paginate(20);
 
-        $totalSize = SharedDocument::sum('file_size');
+        $totalSize = SharedDocument::whereNotNull('file_path')->sum('file_size');
         $totalCount = SharedDocument::count();
 
         $docPath = storage_path('app/documents');
@@ -99,6 +100,7 @@ class SharedDocumentController extends Controller
 
         if ($request->ajax() || $request->wantsJson()) {
             session()->flash($type, $message);
+
             return response()->json([
                 'success' => empty($errors),
                 'message' => $message,
@@ -112,8 +114,14 @@ class SharedDocumentController extends Controller
 
     public function download(SharedDocument $document)
     {
+        if (! $document->isAvailable()) {
+            return back()->with('error', 'This file has expired or been removed.');
+        }
+
         if (! Storage::disk('documents')->exists($document->file_path)) {
-            return back()->with('error', 'File not found on disk.');
+            $document->update(['file_path' => null]);
+
+            return back()->with('error', 'This file has been removed.');
         }
 
         $document->increment('downloads_count');
@@ -125,8 +133,13 @@ class SharedDocumentController extends Controller
     {
         $document = SharedDocument::where('share_token', $token)->firstOrFail();
 
+        if (! $document->isAvailable()) {
+            abort(404, 'File has expired or been removed.');
+        }
+
         if (! Storage::disk('documents')->exists($document->file_path)) {
-            abort(404, 'File not found on disk.');
+            $document->update(['file_path' => null]);
+            abort(404, 'File has been removed from storage.');
         }
 
         $document->increment('downloads_count');
@@ -136,7 +149,7 @@ class SharedDocumentController extends Controller
 
     public function regenerateShareLink(SharedDocument $document)
     {
-        $document->update(['share_token' => (string) \Illuminate\Support\Str::uuid()]);
+        $document->update(['share_token' => (string) Str::uuid()]);
 
         return back()->with('success', 'Share link regenerated successfully.');
     }

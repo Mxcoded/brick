@@ -16,11 +16,11 @@
             <button class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#quickReportModal">
                 <i class="fas fa-bolt me-1"></i> Quick Report
             </button>
-            @can('access_maintenance_dashboard')
+            @canany(['maintenance.create', 'access_maintenance_dashboard'])
                 <a href="{{ route('maintenance.create') }}" class="btn btn-outline-gold">
                     <i class="fas fa-plus me-1"></i> New Log
                 </a>
-            @endcan
+            @endcanany
         </div>
     </div>
 
@@ -168,7 +168,7 @@
                                             <a href="{{ route('maintenance.show', $log->id) }}" class="btn btn-sm btn-outline-secondary" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            @can('access_maintenance_dashboard')
+                                            @canany(['maintenance.update', 'maintenance.delete', 'access_maintenance_dashboard'])
                                                 <a href="{{ route('maintenance.edit', $log->id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
@@ -176,7 +176,7 @@
                                                     data-bs-toggle="modal" data-bs-target="#deleteModal{{ $log->id }}">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
-                                            @endcan
+                                            @endcanany
                                         </div>
                                     </td>
                                 </tr>
