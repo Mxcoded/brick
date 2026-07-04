@@ -153,6 +153,13 @@
                 </div>
             @endif
 
+            @if(session('info'))
+                <div class="alert alert-info border-0 shadow-sm" style="border-left: 4px solid #17a2b8;">
+                    <i class="fas fa-info-circle me-2" style="color: #17a2b8;"></i>
+                    {{ session('info') }}
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="alert alert-danger border-0 shadow-sm" style="border-left: 4px solid #dc3545;">
                     <ul class="mb-0">

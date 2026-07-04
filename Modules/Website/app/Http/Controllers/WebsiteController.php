@@ -2004,6 +2004,15 @@ class WebsiteController extends Controller
             'company' => 'nullable|string|max:255',
         ]);
 
+        $existing = EventLead::where('event_id', $event->id)
+            ->where('email', $validated['email'])
+            ->first();
+
+        if ($existing) {
+            return redirect()->route('website.event-lead', $slug)
+                ->with('info', 'You have already registered your interest for this event. We will be in touch!');
+        }
+
         EventLead::create([
             'event_id' => $event->id,
             'name' => $validated['name'],
