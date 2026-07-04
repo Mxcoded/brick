@@ -786,40 +786,6 @@
             flex-wrap: wrap;
         }
 
-        /* Booking Progress Indicator */
-        /* ===== Newsletter Trigger Button ===== */
-        .btn-newsletter-trigger {
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            z-index: 9999;
-            background: #C8A165;
-            color: #fff;
-            border: none;
-            border-radius: 50%;
-            width: 56px;
-            height: 56px;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(200, 161, 101, 0.4);
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn-newsletter-trigger:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 24px rgba(200, 161, 101, 0.5);
-        }
-        @media (min-width: 992px) {
-            .btn-newsletter-trigger {
-                width: 64px;
-                height: 64px;
-                font-size: 24px;
-                bottom: 30px;
-            }
-        }
-
         /* ===== Mobile Sticky Booking Bar ===== */
         .mobile-sticky-bar {
             position: fixed;
@@ -1472,13 +1438,6 @@
         });
     </script>
 
-    {{-- Chat trigger button --}}
-    <button type="button" onclick="if (typeof Tawk_API !== 'undefined') Tawk_API.toggle()"
-        class="btn btn-newsletter-trigger"
-        title="Chat with us">
-        <i class="fas fa-comment-dots"></i>
-    </button>
-
     {{-- Mobile Sticky Booking Bar --}}
     <div class="mobile-sticky-bar d-lg-none">
         <a href="{{ route('website.book') }}" class="btn btn-book-sticky">
@@ -1513,7 +1472,8 @@
     </script>
     <!--Start of Tawk.to Script-->
 <script type="text/javascript">
-var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+var Tawk_API=Tawk_API||{};
+Tawk_LoadStart=new Date();
 (function(){
 var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
 s1.async=true;
