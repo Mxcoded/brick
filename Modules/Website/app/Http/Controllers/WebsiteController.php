@@ -29,6 +29,8 @@ use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Contact Mail
 use Modules\Website\Services\BookingCartService;
 use Modules\Website\Services\RoomAvailabilityService;
 use Modules\Website\Models\NewsletterSubscriber;
+use Inertia\Inertia;
+
 
 class WebsiteController extends Controller
 {
@@ -52,6 +54,12 @@ class WebsiteController extends Controller
         $dining = Dining::all();
 
         return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining'));
+        /**return Inertia::render('Welcome', [
+            'settings' => $settings,
+            'featuredRooms' => $featuredRooms,
+            'testimonials' => $testimonials,
+            'dining' => $dining,
+        ]);**/
     }
 
     /**

@@ -17,6 +17,7 @@ use Modules\Website\Http\Controllers\Admin\SettingController;
 use Modules\Website\Http\Controllers\Admin\ContactMessageController;
 use Modules\Website\Http\Controllers\Admin\NewsletterController;
 use Modules\Website\Http\Controllers\Admin\InventoryCalendarController;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,8 +35,28 @@ Route::post('/paystack/webhook', [WebsiteController::class, 'paystackWebhook'])
     ->name('website.paystack.webhook')
     ->withoutMiddleware(['web', 'csrf']);
 
+     Route::get('/room', function () {
+        return Inertia::render('Rooms');
+    })->name('room.new');
+    Route::get('/about', function () {
+        return Inertia::render('About');
+    })->name('about.us');
+    Route::get('/contact', function () {
+        return Inertia::render('Contact');
+    })->name('contact.us');
+    Route::get('/spa', function () {
+        return Inertia::render('Spa');
+    })->name('spa.us');
+    Route::get('/restaurants', function () {
+        return Inertia::render('Restaurant');
+    })->name('restaurant.us');
+    Route::get('/gallery', function () {
+        return Inertia::render('Gallery');
+    })->name('gallery.us');
+
 Route::middleware(['web'])->group(function () {
 
+   
     // =========================================================================
     // 1. PUBLIC WEBSITE ROUTES
     // =========================================================================
@@ -47,6 +68,9 @@ Route::middleware(['web'])->group(function () {
         Route::get('/location', 'location')->name('website.location');
         Route::get('/dining', 'dining')->name('website.dining');
         Route::get('/amenities', 'amenities')->name('website.amenities');
+
+
+
 
         // Rooms & Booking
         Route::get('/rooms', 'rooms')->name('website.rooms.index');

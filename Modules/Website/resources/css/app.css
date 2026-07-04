@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@plugin "@tailwindcss/forms";
+
+@theme {
+    --color-primary-50: #fdf8f6;
+    --color-primary-100: #f2e8e5;
+    --color-primary-200: #eaddd7;
+    --color-primary-300: #e0cec7;
+    --color-primary-400: #d2bab0;
+    --color-primary-500: #bfa094;
+    --color-primary-600: #a18072;
+    --color-primary-700: #977669;
+    --color-primary-800: #846358;
+    --color-primary-900: #43302b;
+    --color-primary-950: #1c1714;
+
+    --color-accent-50: #f6f7f6;
+    --color-accent-100: #e3e6e3;
+    --color-accent-200: #c8cdc8;
+    --color-accent-300: #a4afa4;
+    --color-accent-400: #7a8c7a;
+    --color-accent-500: #5e6e5e;
+    --color-accent-600: #4a584a;
+    --color-accent-700: #3d483d;
+    --color-accent-800: #333b33;
+    --color-accent-900: #2b312b;
+    --color-accent-950: #141814;
+
+    --color-warm-50: #fefcfa;
+    --color-warm-100: #fdf6f0;
+    --color-warm-200: #faebdb;
+    --color-warm-300: #f5d9be;
+    --color-warm-400: #edbf8f;
+    --color-warm-500: #e5a263;
+    --color-warm-600: #d48542;
+    --color-warm-700: #b06a34;
+    --color-warm-800: #8e552e;
+    --color-warm-900: #734729;
+    --color-warm-950: #3e2513;
+
+    --font-serif: "Playfair Display", Georgia, serif;
+    --font-sans: Inter, system-ui, sans-serif;
+}
+
+@layer components {
+    .container-custom {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    .section-padding {
+        @apply py-20 md:py-24 lg:py-28;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-300 hover:-translate-y-1 hover:bg-primary-700 hover:shadow-xl;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-6 py-3 font-semibold text-neutral-700 transition-all duration-300 hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700;
+    }
+
+    .btn-accent {
+        @apply inline-flex items-center justify-center gap-2 rounded-xl bg-warm-600 px-6 py-3 font-semibold text-white shadow-lg shadow-warm-500/25 transition-all duration-300 hover:-translate-y-1 hover:bg-warm-700 hover:shadow-xl;
+    }
+
+    .card {
+        @apply rounded-2xl border border-neutral-100 bg-white shadow-lg shadow-neutral-900/5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+    }
+}

@@ -13,6 +13,8 @@ use Modules\Website\Models\Room;
 
 class Booking extends Model
 {
+    // Use fully-qualified trait name to satisfy static analyzers that may
+    // not resolve the import correctly in this environment.
     use HasFactory;
 
     protected $fillable = [

@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Illuminate\Console\Scheduling\Schedule;
+use App\Http\Middleware\HandleInertiaRequests;
 
 return Application::configure(basePath: __DIR__ . '/../')
     ->withRouting(
@@ -15,6 +16,9 @@ return Application::configure(basePath: __DIR__ . '/../')
     )
     ->withMiddleware(function (Middleware $middleware) {
         // Register the permission middleware
+        $middleware->web(append: [
+            HandleInertiaRequests::class,
+        ]);
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
@@ -30,3 +34,4 @@ return Application::configure(basePath: __DIR__ . '/../')
     })
     // ** END OF ADDED BLOCK **
     ->create();
+
