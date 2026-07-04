@@ -1472,11 +1472,11 @@
         });
     </script>
 
-    {{-- Newsletter trigger button --}}
-    <button type="button" onclick="document.getElementById('newsletterPopupTrigger').click()"
+    {{-- Chat trigger button --}}
+    <button type="button" onclick="if (typeof Tawk_API !== 'undefined') Tawk_API.toggle()"
         class="btn btn-newsletter-trigger"
-        title="Subscribe to Newsletter">
-        <i class="fas fa-envelope"></i>
+        title="Chat with us">
+        <i class="fas fa-comment-dots"></i>
     </button>
 
     {{-- Mobile Sticky Booking Bar --}}
@@ -1511,6 +1511,19 @@
         }
     }
     </script>
+    <!--Start of Tawk.to Script-->
+<script type="text/javascript">
+var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+(function(){
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/6a486fab1f54021d42ef772e/1jslf8ea6';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+<!--End of Tawk.to Script-->
 </body>
 
 </html>
