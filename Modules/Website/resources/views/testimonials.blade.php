@@ -32,6 +32,10 @@
                             <form method="POST" action="{{ route('website.testimonials.store') }}">
                                 @csrf
 
+                                <div style="position: absolute; left: -9999px;" aria-hidden="true">
+                                    <input type="text" name="website" tabindex="-1" autocomplete="off" value="">
+                                </div>
+
                                 <div class="mb-4">
                                     <label class="form-label fw-semibold">Your Name</label>
                                     <input type="text" name="guest_name" class="form-control form-control-lg" required
@@ -100,52 +104,94 @@
 
 @push('head')
 <style>
-    .star-rating .star-label { cursor: pointer; }
-    .star-rating .star-label i { color: #ddd; transition: color 0.15s ease; }
-    .star-rating .star-label.active i { color: #f1c40f; }
+    .star-rating { gap: 0.25rem; }
+    .star-rating .star-label {
+        cursor: pointer;
+        padding: 0 0.1rem;
+        transition: transform 0.15s ease;
+    }
+    .star-rating .star-label i {
+        color: #ddd;
+        transition: color 0.15s ease, transform 0.15s ease;
+        font-size: 1.75rem;
+    }
+    .star-rating .star-label.active i,
+    .star-rating .star-label.hover i {
+        color: #f1c40f;
+    }
+    .star-rating .star-label.hover i {
+        transform: scale(1.15);
+    }
+    .star-rating .star-label.selected i {
+        filter: drop-shadow(0 0 4px rgba(241, 196, 15, 0.5));
+    }
+    @media (max-width: 576px) {
+        .star-rating .star-label i { font-size: 1.5rem; }
+    }
 </style>
 @endpush
 
 @push('scripts')
 <script>
-    let currentRating = {{ old('rating', 0) }};
+    document.addEventListener('DOMContentLoaded', function () {
+        let currentRating = {{ old('rating', 0) }};
+        const labels = document.querySelectorAll('.star-label');
+        const ratingText = document.getElementById('ratingText');
 
-    function setRating(rating) {
-        document.querySelectorAll('.star-label').forEach(label => {
-            let val = parseInt(label.dataset.value);
-            label.classList.toggle('active', val <= rating);
-        });
-    }
-
-    function updateRatingText(rating, isHover) {
-        let el = document.getElementById('ratingText');
-        if (rating > 0) {
-            let prefix = isHover ? 'Rate' : 'Your rating';
-            el.innerHTML = '<i class="fas fa-star text-warning me-1"></i>' + prefix + ': ' + rating + ' / 5';
-        } else {
-            el.innerHTML = '<span class="text-muted"><i class="far fa-star me-1"></i>Tap a star to rate</span>';
+        function setVisual(rating) {
+            labels.forEach(label => {
+                const val = parseInt(label.dataset.value);
+                label.classList.toggle('active', val <= rating);
+                label.classList.toggle('selected', val === rating && rating > 0);
+            });
         }
-    }
 
-    function hoverStar(el) {
-        let rating = parseInt(el.dataset.value);
-        setRating(rating);
-        updateRatingText(rating, true);
-    }
+        function updateText(rating, isHover) {
+            if (rating > 0) {
+                const prefix = isHover ? 'Rate' : 'Your rating';
+                const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+                ratingText.innerHTML = `<span class="text-warning fw-semibold">${stars}</span> ${prefix}: ${rating} / 5`;
+            } else {
+                ratingText.innerHTML = '<span class="text-muted"><i class="far fa-star me-1"></i>Tap a star to rate</span>';
+            }
+        }
 
-    function resetStars() {
-        setRating(currentRating);
-        updateRatingText(currentRating, false);
-    }
+        function applyRating(rating) {
+            currentRating = rating;
+            document.querySelectorAll('.star-input').forEach(input => {
+                input.checked = parseInt(input.value) === rating;
+            });
+            setVisual(rating);
+            updateText(rating, false);
+        }
 
-    function setStar(el) {
-        currentRating = parseInt(el.dataset.value);
-        document.querySelectorAll('.star-input').forEach(input => {
-            input.checked = parseInt(input.value) === currentRating;
+        labels.forEach(label => {
+            label.addEventListener('mouseenter', function () {
+                const val = parseInt(this.dataset.value);
+                labels.forEach(l => {
+                    const v = parseInt(l.dataset.value);
+                    l.classList.toggle('hover', v <= val);
+                    l.classList.toggle('active', v <= val);
+                });
+                updateText(val, true);
+            });
+
+            label.addEventListener('mouseleave', function () {
+                labels.forEach(l => l.classList.remove('hover'));
+                setVisual(currentRating);
+                updateText(currentRating, false);
+            });
+
+            label.addEventListener('click', function () {
+                applyRating(parseInt(this.dataset.value));
+            });
         });
-        resetStars();
-    }
 
-    document.addEventListener('DOMContentLoaded', resetStars);
+        // Initialise from old input
+        if (currentRating > 0) {
+            setVisual(currentRating);
+            updateText(currentRating, false);
+        }
+    });
 </script>
 @endpush

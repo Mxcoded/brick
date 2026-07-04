@@ -198,6 +198,24 @@ class RoleSeeder extends Seeder
             'gym.create',
             'gym.update',
             'gym.delete',
+
+            // ──────────────────────────────────────────
+            // WEBSITE – dashboard access & CRUD
+            // ──────────────────────────────────────────
+            'website.dashboard',
+            'website.bookings',
+            'website.room-types',
+            'website.amenities',
+            'website.settings',
+            'website.dining',
+            'website.meeting',
+            'website.facilities',
+            'website.offers',
+            'website.inventory',
+            'website.contact-messages',
+            'website.newsletter',
+            'website.subscribers',
+            'website.testimonials',
         ];
 
         foreach ($permissions as $permission) {

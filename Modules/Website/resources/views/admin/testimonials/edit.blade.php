@@ -4,8 +4,17 @@
 
 @section('page-content')
     <div class="card">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h1 class="h3 mb-0">Edit Testimonial</h1>
+            @if ($testimonial->approved)
+                <span class="badge bg-success px-3 py-2 rounded-pill fs-6 fw-normal">
+                    <i class="fas fa-check-circle me-1"></i> Approved
+                </span>
+            @else
+                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fs-6 fw-normal">
+                    <i class="fas fa-clock me-1"></i> Pending
+                </span>
+            @endif
         </div>
         <div class="card-body">
             @if ($errors->any())

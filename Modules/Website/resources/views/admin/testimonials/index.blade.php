@@ -18,14 +18,14 @@
             @if ($testimonials->isEmpty())
                 <p>No testimonials found.</p>
             @else
-                <table class="table table-hover">
+                <table class="table table-hover align-middle">
                     <thead>
                         <tr>
                             <th>Guest</th>
                             <th>Review</th>
                             <th>Rating</th>
                             <th>Stay Type</th>
-                            <th>Approved</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -33,33 +33,55 @@
                         @foreach ($testimonials as $testimonial)
                             <tr>
                                 <td>
-                                    @if ($testimonial->guest_image)
-                                        <img src="{{ $testimonial->guest_image }}" class="rounded-circle me-1" width="24" height="24" alt="">
-                                    @endif
-                                    {{ $testimonial->guest_name }}
+                                    <div class="d-flex align-items-center">
+                                        @if ($testimonial->guest_image)
+                                            <img src="{{ $testimonial->guest_image }}" class="rounded-circle me-2" width="28" height="28" alt="">
+                                        @else
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold me-2" style="width:28px;height:28px;background:rgba(200,161,101,0.2);color:#C8A165;font-size:0.75rem;">{{ substr($testimonial->guest_name, 0, 1) }}</div>
+                                        @endif
+                                        <span class="fw-semibold">{{ $testimonial->guest_name }}</span>
+                                    </div>
                                 </td>
                                 <td>{{ \Illuminate\Support\Str::limit($testimonial->text, 60) }}</td>
-                                <td>
+                                <td class="text-nowrap">
                                     @for ($i = 0; $i < 5; $i++)
-                                        <i class="fas fa-star{{ $i < $testimonial->rating ? '' : '-empty' }} text-warning" style="font-size:0.85rem"></i>
+                                        <i class="fa{{ $i < $testimonial->rating ? 's' : 'r' }} fa-star text-warning" style="font-size:0.8rem"></i>
                                     @endfor
                                 </td>
                                 <td>{{ $testimonial->stay_type ?? '-' }}</td>
                                 <td>
                                     @if ($testimonial->approved)
-                                        <span class="badge bg-success">Approved</span>
+                                        <span class="badge bg-success px-3 py-2 rounded-pill fs-6 fw-normal">
+                                            <i class="fas fa-check-circle me-1"></i> Approved
+                                        </span>
                                     @else
-                                        <span class="badge bg-secondary">Pending</span>
+                                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fs-6 fw-normal">
+                                            <i class="fas fa-clock me-1"></i> Pending
+                                        </span>
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('website.admin.testimonials.show', $testimonial) }}" class="btn btn-sm btn-info">View</a>
-                                    <a href="{{ route('website.admin.testimonials.edit', $testimonial) }}" class="btn btn-sm btn-warning">Edit</a>
-                                    <form action="{{ route('website.admin.testimonials.destroy', $testimonial) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
-                                    </form>
+                                    <div class="d-flex gap-1">
+                                        <a href="{{ route('website.admin.testimonials.show', $testimonial) }}" class="btn btn-sm btn-outline-info" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <form action="{{ route('website.admin.testimonials.toggle-approve', $testimonial) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm {{ $testimonial->approved ? 'btn-outline-warning' : 'btn-outline-success' }}" title="{{ $testimonial->approved ? 'Unapprove' : 'Approve' }}">
+                                                <i class="fas {{ $testimonial->approved ? 'fa-times-circle' : 'fa-check-circle' }}"></i>
+                                            </button>
+                                        </form>
+                                        <a href="{{ route('website.admin.testimonials.edit', $testimonial) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form action="{{ route('website.admin.testimonials.destroy', $testimonial) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete" onclick="return confirm('Delete this testimonial?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

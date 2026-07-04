@@ -146,6 +146,9 @@ Route::middleware(['web'])->group(function () {
 
             // Bookings Management
             Route::resource('bookings', AdminBookingController::class)->middleware('permission:access_website_dashboard|website.bookings');
+            Route::post('testimonials/{testimonial}/toggle-approve', [TestimonialController::class, 'toggleApprove'])
+                ->name('testimonials.toggle-approve')
+                ->middleware('permission:access_website_dashboard|website.testimonials');
             Route::resource('testimonials', TestimonialController::class)->middleware('permission:access_website_dashboard|website.testimonials');
             Route::resource('amenities', AmenityController::class)->middleware('permission:access_website_dashboard|website.amenities');
             Route::resource('settings', SettingController::class)->middleware('permission:access_website_dashboard|website.settings');

@@ -559,17 +559,23 @@
                                     @foreach ($chunk as $testimonial)
                                         <div class="col-md-4">
                                             <div class="testimonial-card bg-gray-800 p-4 h-100 rounded">
-                                                <div class="rating mb-3 text-warning">
+                                                <div class="rating mb-3">
                                                     @for ($i = 0; $i < 5; $i++)
-                                                        <i class="fas fa-star{{ $i < $testimonial->rating ? '' : '-empty' }}"></i>
+                                                        <i class="fa{{ $i < $testimonial->rating ? 's' : 'r' }} fa-star text-warning"></i>
                                                     @endfor
                                                 </div>
                                                 <p class="mb-4">"{{ $testimonial->text }}"</p>
-                                                <div class="d-flex align-items-center">
-                                                    <img src="{{ $testimonial->guest_image ?? asset('images/default-avatar.png') }}" class="rounded-circle me-3" width="50" height="50" alt="{{ $testimonial->guest_name }}" loading="lazy">
+                                                <div class="d-flex align-items-center pt-3 border-top border-secondary border-opacity-25">
+                                                    <div class="position-relative me-3 flex-shrink-0">
+                                                        @if ($testimonial->guest_image)
+                                                            <img src="{{ $testimonial->guest_image }}" class="rounded-circle" width="50" height="50" alt="{{ $testimonial->guest_name }}" loading="lazy" style="border: 2px solid rgba(200, 161, 101, 0.4); padding: 2px; object-fit: cover;">
+                                                        @else
+                                                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:50px;height:50px;background:rgba(200,161,101,0.2);border:2px solid rgba(200,161,101,0.3);color:#C8A165;font-size:1.1rem;">{{ substr($testimonial->guest_name, 0, 1) }}</div>
+                                                        @endif
+                                                    </div>
                                                     <div>
-                                                        <h5 class="mb-0">{{ $testimonial->guest_name }}</h5>
-                                                        <small class="text-muted">{{ $testimonial->stay_type ?? 'Guest' }}</small>
+                                                        <h5 class="mb-0 fw-semibold" style="color: #e8d5b5;">{{ $testimonial->guest_name }}</h5>
+                                                        <small class="text-white-50" style="font-size: 0.8rem;"><i class="fas fa-check-circle me-1" style="color: #C8A165; font-size: 0.65rem;"></i> {{ $testimonial->stay_type ?? 'Verified Guest' }}</small>
                                                     </div>
                                                 </div>
                                             </div>
@@ -623,7 +629,7 @@
             <div class="text-center mb-5">
                 <div class="mb-2">
                     @for ($i = 0; $i < 5; $i++)
-                        <i class="fas fa-star{{ $i < round($grRating) ? '' : '-empty' }} text-warning fa-lg"></i>
+                        <i class="fa{{ $i < round($grRating) ? 's' : 'r' }} fa-star text-warning fa-lg"></i>
                     @endfor
                 </div>
                 <p class="h3 mb-0">{{ number_format($grRating, 1) }} out of 5</p>
@@ -642,9 +648,9 @@
                 <div class="col-md-4 d-flex">
                     <div class="bg-white p-4 rounded shadow-sm d-flex flex-column w-100">
                         <div class="mb-2">
-                            @for ($i = 0; $i < 5; $i++)
-                                <i class="fas fa-star{{ $i < $review['rating'] ? '' : '-empty' }} text-warning" style="font-size:0.85rem"></i>
-                            @endfor
+                        @for ($i = 0; $i < 5; $i++)
+                            <i class="fa{{ $i < $review['rating'] ? 's' : 'r' }} fa-star text-warning" style="font-size:0.85rem"></i>
+                        @endfor
                         </div>
                         <div class="review-text flex-grow-1">
                             <p class="mb-0 review-text-clamp">"{{ $review['text'] }}"</p>
@@ -1002,6 +1008,11 @@
                 border-color: rgba(200, 161, 101, 0.2);
             }
 
+            .testimonial-card:hover h5 {
+                color: #C8A165 !important;
+                transition: color 0.3s ease;
+            }
+
             .testimonial-card p {
                 font-style: italic;
                 line-height: 1.7;
@@ -1014,10 +1025,25 @@
                 letter-spacing: 2px;
             }
 
-            .testimonial-card img {
-                border: 2px solid rgba(200, 161, 101, 0.3);
-                padding: 2px;
-                object-fit: cover;
+            .testimonial-card .rating .fa-star {
+                filter: drop-shadow(0 0 2px rgba(255, 193, 7, 0.4));
+            }
+
+            .testimonial-card .rating .far.fa-star {
+                opacity: 0.55;
+                filter: none;
+            }
+
+            .testimonial-card .border-top {
+                transition: border-color 0.3s ease;
+            }
+
+            .testimonial-card:hover .border-top {
+                border-color: rgba(200, 161, 101, 0.3) !important;
+            }
+
+            .testimonial-card h5 {
+                transition: color 0.3s ease;
             }
 
             /* ===== GOOGLE REVIEWS ===== */
@@ -1110,11 +1136,6 @@
 
             .bg-primary {
                 background-color: #C8A165 !important;
-            }
-
-            /* ===== STAR RATING ===== */
-            .fa-star-empty {
-                color: rgba(255,255,255,0.15);
             }
 
             /* ===== SECTION DIVIDER ===== */

@@ -1012,6 +1012,11 @@ class WebsiteController extends Controller
 
     public function storeTestimonial(Request $request)
     {
+        if ($request->filled('website')) {
+            return redirect()->route('website.testimonials')
+                ->with('success', 'Thank you for your feedback! Your review has been submitted and will appear after review.');
+        }
+
         $validated = $request->validate([
             'guest_name' => 'required|string|max:255',
             'text' => 'required|string|max:2000',

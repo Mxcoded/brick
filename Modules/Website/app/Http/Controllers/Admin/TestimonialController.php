@@ -68,6 +68,16 @@ class TestimonialController extends Controller
             ->with('success', 'Testimonial updated successfully.');
     }
 
+    public function toggleApprove(Testimonial $testimonial)
+    {
+        $testimonial->update(['approved' => !$testimonial->approved]);
+
+        return redirect()->route('website.admin.testimonials.index')
+            ->with('success', $testimonial->approved
+                ? 'Testimonial approved successfully.'
+                : 'Testimonial unapproved.');
+    }
+
     public function destroy(Testimonial $testimonial)
     {
         $testimonial->delete();
