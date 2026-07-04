@@ -145,7 +145,7 @@
 </div>
 @endsection
 
-@push('scripts')
+@section('scripts')
 <script>
 function updateCounter(el) {
     const count = el.value.length;
@@ -187,7 +187,8 @@ function testHikvisionConnection() {
         }
     })
     .catch(err => {
-        result.innerHTML = '<i class="fas fa-times-circle text-danger"></i> Connection failed';
+        console.error('Hikvision test failed:', err);
+        result.innerHTML = '<i class="fas fa-times-circle text-danger"></i> ' + err.message;
         result.className = 'ms-2 small text-danger';
     })
     .finally(() => {
@@ -195,4 +196,4 @@ function testHikvisionConnection() {
     });
 }
 </script>
-@endpush
+@endsection
