@@ -11,6 +11,7 @@ class LeadEvent extends Model
     protected $fillable = [
         'title',
         'slug',
+        'code',
         'description',
         'event_date',
         'location',
@@ -21,6 +22,7 @@ class LeadEvent extends Model
         'form_heading',
         'form_subtext',
         'thank_you_message',
+        'confirmation_email_body',
     ];
 
     protected function casts(): array

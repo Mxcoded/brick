@@ -15,20 +15,22 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Modules\Banquet\Mail\EventLeadConfirmation;
 use Modules\Banquet\Models\BanquetEnquiry;
 use Modules\Banquet\Models\EventLead;
 use Modules\Banquet\Models\LeadEvent;
 use Modules\Banquet\Notifications\NewEnquiryNotification;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Rules\ValidEmail;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Emails\BookingConfirmation;
-use Modules\Website\Emails\ContactMessageReceived;
-use Modules\Website\Models\Amenity; // ✅ Import Mail Facade
-use Modules\Website\Models\Booking;
-use Modules\Website\Models\ContactMessage; // ✅ Import Booking Mail
+use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Mail Facade
+use Modules\Website\Models\Amenity;
+use Modules\Website\Models\Booking; // ✅ Import Booking Mail
+use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\Dining;
-use Modules\Website\Models\FacilitiesPage;
-use Modules\Website\Models\MeetingPage; // ✅ Import Contact Mail
+use Modules\Website\Models\FacilitiesPage; // ✅ Import Contact Mail
+use Modules\Website\Models\MeetingPage;
 use Modules\Website\Models\NewsletterSubscriber;
 use Modules\Website\Models\OffersPage;
 use Modules\Website\Models\Room;
@@ -293,7 +295,7 @@ class WebsiteController extends Controller
         $rules = [
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
-            'guest_phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
+            'guest_phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'guest_gender' => 'required|in:male,female,other',
             'guest_address' => 'required|string|max:500',
             'guest_nationality' => 'required|string|max:100',
@@ -1933,7 +1935,7 @@ class WebsiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
+            'phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'company' => 'nullable|string|max:255',
             'event_type' => 'required|string|in:Meeting,Conference,Wedding,Banquet,Party,Other',
             'event_date' => 'required|date|after_or_equal:today',
@@ -2000,7 +2002,7 @@ class WebsiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'phone' => ['required', 'string', 'max:20', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
+            'phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'company' => 'nullable|string|max:255',
         ]);
 
@@ -2013,7 +2015,7 @@ class WebsiteController extends Controller
                 ->with('info', 'You have already registered your interest for this event. We will be in touch!');
         }
 
-        EventLead::create([
+        $lead = EventLead::create([
             'event_id' => $event->id,
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -2022,6 +2024,10 @@ class WebsiteController extends Controller
             'source' => 'Website Form',
             'status' => 'New',
         ]);
+
+        if ($event->confirmation_email_body) {
+            Mail::to($lead->email)->send(new EventLeadConfirmation($lead, $event));
+        }
 
         return redirect()->route('website.event-lead', $slug)
             ->with('success', $event->getThankYouMessageOrDefault());

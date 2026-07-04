@@ -28,6 +28,9 @@
             <a href="{{ route('banquet.event-leads.export', request()->query()) }}" class="btn btn-outline-gold">
                 <i class="fas fa-download me-1"></i> Export CSV
             </a>
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cleanDuplicatesModal">
+                <i class="fas fa-broom me-1"></i> Clean Duplicates
+            </button>
         </div>
     </div>
 
@@ -136,6 +139,28 @@
                     </thead>
                 </table>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cleanDuplicatesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('banquet.event-leads.clean-duplicates') }}">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-broom text-danger me-2"></i>Clean Duplicate Leads</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>This will remove duplicate leads where the <strong>same email</strong> was submitted for the <strong>same event</strong>, keeping only the earliest submission.</p>
+                    <p class="mb-0 text-muted small"><i class="fas fa-info-circle me-1"></i>This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-broom me-1"></i>Clean Duplicates</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
