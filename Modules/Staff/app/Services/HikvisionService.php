@@ -20,6 +20,8 @@ class HikvisionService
 
     protected ?string $password;
 
+    protected int $port;
+
     protected int $timeout;
 
     public function __construct()
@@ -27,12 +29,20 @@ class HikvisionService
         $this->ip = StaffSetting::get('hikvision_ip');
         $this->username = StaffSetting::get('hikvision_username', 'admin');
         $this->password = StaffSetting::get('hikvision_password');
+        $this->port = (int) StaffSetting::get('hikvision_port', 80);
         $this->timeout = (int) StaffSetting::get('hikvision_timeout', 30);
     }
 
     public function isConfigured(): bool
     {
         return ! empty($this->ip) && ! empty($this->password);
+    }
+
+    protected function baseUrl(): string
+    {
+        $scheme = in_array($this->port, [443, 8443]) ? 'https' : 'http';
+
+        return "{$scheme}://{$this->ip}:{$this->port}";
     }
 
     public function testConnection(): array
@@ -44,7 +54,7 @@ class HikvisionService
         try {
             $response = Http::timeout($this->timeout)
                 ->withDigestAuth($this->username, $this->password)
-                ->get("http://{$this->ip}/ISAPI/System/status");
+                ->get($this->baseUrl().'/ISAPI/System/status');
 
             if ($response->successful()) {
                 return ['success' => true, 'message' => 'Connection successful.'];
@@ -85,7 +95,7 @@ class HikvisionService
                 $response = Http::timeout($this->timeout)
                     ->withDigestAuth($this->username, $this->password)
                     ->withHeaders(['Content-Type' => 'application/xml'])
-                    ->send('POST', "http://{$this->ip}/ISAPI/AttendanceRecord/Search", ['body' => $xml]);
+                    ->send('POST', $this->baseUrl().'/ISAPI/AttendanceRecord/Search', ['body' => $xml]);
 
                 if (! $response->successful()) {
                     Log::warning('Hikvision API request failed', [

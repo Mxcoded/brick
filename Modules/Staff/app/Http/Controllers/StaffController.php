@@ -593,11 +593,12 @@ class StaffController extends Controller
         $hikvisionIp = StaffSetting::get('hikvision_ip');
         $hikvisionUsername = StaffSetting::get('hikvision_username', 'admin');
         $hikvisionPassword = StaffSetting::get('hikvision_password');
+        $hikvisionPort = StaffSetting::get('hikvision_port', 80);
         $hikvisionTimeout = StaffSetting::get('hikvision_timeout', 30);
 
         return view('staff::settings', compact(
             'message',
-            'hikvisionIp', 'hikvisionUsername', 'hikvisionPassword', 'hikvisionTimeout',
+            'hikvisionIp', 'hikvisionUsername', 'hikvisionPassword', 'hikvisionPort', 'hikvisionTimeout',
         ));
     }
 
@@ -608,6 +609,7 @@ class StaffController extends Controller
             'hikvision_ip' => 'nullable|string|max:255',
             'hikvision_username' => 'nullable|string|max:255',
             'hikvision_password' => 'nullable|string|max:255',
+            'hikvision_port' => 'nullable|integer|min:1|max:65535',
             'hikvision_timeout' => 'nullable|integer|min:5|max:120',
         ]);
 
@@ -615,6 +617,7 @@ class StaffController extends Controller
         StaffSetting::set('hikvision_ip', $request->input('hikvision_ip'));
         StaffSetting::set('hikvision_username', $request->input('hikvision_username', 'admin'));
         StaffSetting::set('hikvision_password', $request->input('hikvision_password'));
+        StaffSetting::set('hikvision_port', $request->input('hikvision_port', 80));
         StaffSetting::set('hikvision_timeout', $request->input('hikvision_timeout', 30));
 
         return redirect()->route('staff.settings')

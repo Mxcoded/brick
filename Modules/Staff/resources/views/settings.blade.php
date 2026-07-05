@@ -112,8 +112,17 @@
                     </div>
                 </div>
                 <div class="row g-3 mt-2">
-                    <div class="col-md-3">
-                        <label for="hikvision_timeout" class="form-label">Request Timeout (seconds)</label>
+                    <div class="col-md-2">
+                        <label for="hikvision_port" class="form-label">Port</label>
+                        <input type="number" class="form-control @error('hikvision_port') is-invalid @enderror"
+                               id="hikvision_port" name="hikvision_port"
+                               value="{{ old('hikvision_port', $hikvisionPort) }}"
+                               min="1" max="65535">
+                        @error('hikvision_port')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="form-text">Default <code>80</code>. Use <code>8443</code> for HTTPS.</div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="hikvision_timeout" class="form-label">Timeout (sec)</label>
                         <input type="number" class="form-control @error('hikvision_timeout') is-invalid @enderror"
                                id="hikvision_timeout" name="hikvision_timeout"
                                value="{{ old('hikvision_timeout', $hikvisionTimeout) }}"
@@ -173,6 +182,7 @@ function testHikvisionConnection() {
             ip: document.getElementById('hikvision_ip').value,
             username: document.getElementById('hikvision_username').value,
             password: document.getElementById('hikvision_password').value,
+            port: document.getElementById('hikvision_port').value,
             timeout: document.getElementById('hikvision_timeout').value,
         }),
     })

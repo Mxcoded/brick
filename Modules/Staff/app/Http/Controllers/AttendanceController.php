@@ -259,16 +259,20 @@ class AttendanceController extends Controller
         $ip = $request->input('ip');
         $username = $request->input('username', 'admin');
         $password = $request->input('password');
+        $port = (int) $request->input('port', 80);
         $timeout = (int) $request->input('timeout', 30);
 
         if (empty($ip) || empty($password)) {
             return response()->json(['success' => false, 'message' => 'IP and password are required.']);
         }
 
+        $scheme = in_array($port, [443, 8443]) ? 'https' : 'http';
+        $url = "{$scheme}://{$ip}:{$port}/ISAPI/System/status";
+
         try {
             $response = Http::timeout($timeout)
                 ->withDigestAuth($username, $password)
-                ->get("http://{$ip}/ISAPI/System/status");
+                ->get($url);
 
             if ($response->successful()) {
                 return response()->json(['success' => true, 'message' => 'Connection successful!']);
