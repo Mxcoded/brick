@@ -604,21 +604,35 @@ class StaffController extends Controller
 
     public function updateSettings(Request $request)
     {
-        $request->validate([
-            'birthday_sms_message' => 'required|string|max:160',
-            'hikvision_ip' => 'nullable|string|max:255',
-            'hikvision_username' => 'nullable|string|max:255',
-            'hikvision_password' => 'nullable|string|max:255',
-            'hikvision_port' => 'nullable|integer|min:1|max:65535',
-            'hikvision_timeout' => 'nullable|integer|min:5|max:120',
-        ]);
+        $rules = [];
 
-        StaffSetting::set('birthday_sms_message', $request->input('birthday_sms_message'));
-        StaffSetting::set('hikvision_ip', $request->input('hikvision_ip'));
-        StaffSetting::set('hikvision_username', $request->input('hikvision_username', 'admin'));
-        StaffSetting::set('hikvision_password', $request->input('hikvision_password'));
-        StaffSetting::set('hikvision_port', $request->input('hikvision_port', 80));
-        StaffSetting::set('hikvision_timeout', $request->input('hikvision_timeout', 30));
+        if ($request->has('birthday_sms_message')) {
+            $rules['birthday_sms_message'] = 'required|string|max:160';
+        }
+
+        if ($request->hasAny(['hikvision_ip', 'hikvision_username', 'hikvision_password', 'hikvision_port', 'hikvision_timeout'])) {
+            $rules = array_merge($rules, [
+                'hikvision_ip' => 'nullable|string|max:255',
+                'hikvision_username' => 'nullable|string|max:255',
+                'hikvision_password' => 'nullable|string|max:255',
+                'hikvision_port' => 'nullable|integer|min:1|max:65535',
+                'hikvision_timeout' => 'nullable|integer|min:5|max:120',
+            ]);
+        }
+
+        $request->validate($rules);
+
+        if ($request->has('birthday_sms_message')) {
+            StaffSetting::set('birthday_sms_message', $request->input('birthday_sms_message'));
+        }
+
+        if ($request->hasAny(['hikvision_ip', 'hikvision_username', 'hikvision_password', 'hikvision_port', 'hikvision_timeout'])) {
+            StaffSetting::set('hikvision_ip', $request->input('hikvision_ip'));
+            StaffSetting::set('hikvision_username', $request->input('hikvision_username', 'admin'));
+            StaffSetting::set('hikvision_password', $request->input('hikvision_password'));
+            StaffSetting::set('hikvision_port', $request->input('hikvision_port', 80));
+            StaffSetting::set('hikvision_timeout', $request->input('hikvision_timeout', 30));
+        }
 
         return redirect()->route('staff.settings')
             ->with('success', 'Settings updated successfully.');
