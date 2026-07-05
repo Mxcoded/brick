@@ -267,7 +267,7 @@ class AttendanceController extends Controller
         }
 
         $scheme = in_array($port, [443, 8443]) ? 'https' : 'http';
-        $url = "{$scheme}://{$ip}:{$port}/ISAPI/System/status";
+        $url = "{$scheme}://{$ip}:{$port}/ISAPI/System/deviceInfo";
 
         try {
             $response = Http::timeout($timeout)

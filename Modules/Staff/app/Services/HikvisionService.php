@@ -54,7 +54,7 @@ class HikvisionService
         try {
             $response = Http::timeout($this->timeout)
                 ->withDigestAuth($this->username, $this->password)
-                ->get($this->baseUrl().'/ISAPI/System/status');
+                ->get($this->baseUrl().'/ISAPI/System/deviceInfo');
 
             if ($response->successful()) {
                 return ['success' => true, 'message' => 'Connection successful.'];
