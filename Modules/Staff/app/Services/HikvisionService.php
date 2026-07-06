@@ -40,9 +40,19 @@ class HikvisionService
 
     protected function baseUrl(): string
     {
-        $scheme = in_array($this->port, [443, 8443]) ? 'https' : 'http';
+        return "http://{$this->ip}:{$this->port}";
+    }
 
-        return "{$scheme}://{$this->ip}:{$this->port}";
+    protected function http(): \Illuminate\Http\Client\PendingRequest
+    {
+        return Http::timeout($this->timeout)
+            ->withOptions([
+                'verify' => false,
+                'curl' => [
+                    CURLOPT_SSL_CIPHER_LIST => 'ALL:@SECLEVEL=0',
+                ],
+            ])
+            ->withDigestAuth($this->username, $this->password);
     }
 
     public function testConnection(): array
@@ -52,9 +62,7 @@ class HikvisionService
         }
 
         try {
-            $response = Http::timeout($this->timeout)
-                ->withDigestAuth($this->username, $this->password)
-                ->get($this->baseUrl().'/ISAPI/System/deviceInfo');
+            $response = $this->http()->get($this->baseUrl().'/ISAPI/System/deviceInfo');
 
             if ($response->successful()) {
                 return ['success' => true, 'message' => 'Connection successful.'];
@@ -92,8 +100,7 @@ class HikvisionService
             $xml = $this->buildSearchXml($from, $to, $position, $maxResults);
 
             try {
-                $response = Http::timeout($this->timeout)
-                    ->withDigestAuth($this->username, $this->password)
+                $response = $this->http()
                     ->withHeaders(['Content-Type' => 'application/xml'])
                     ->send('POST', $this->baseUrl().'/ISAPI/AttendanceRecord/Search', ['body' => $xml]);
 

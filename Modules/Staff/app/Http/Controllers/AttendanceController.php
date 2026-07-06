@@ -266,11 +266,17 @@ class AttendanceController extends Controller
             return response()->json(['success' => false, 'message' => 'IP and password are required.']);
         }
 
-        $scheme = in_array($port, [443, 8443]) ? 'https' : 'http';
-        $url = "{$scheme}://{$ip}:{$port}/ISAPI/System/deviceInfo";
+        $url = "http://{$ip}:{$port}/ISAPI/System/deviceInfo";
 
         try {
             $response = Http::timeout($timeout)
+                ->withOptions([
+                    'verify' => false,
+                    'curl' => [
+                        CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_0,
+                        CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=0',
+                    ],
+                ])
                 ->withDigestAuth($username, $password)
                 ->get($url);
 
