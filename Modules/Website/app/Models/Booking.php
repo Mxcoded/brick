@@ -6,12 +6,13 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
 
 class Booking extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'booking_reference',
@@ -54,6 +55,7 @@ class Booking extends Model
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'follow_up_sent_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     /**
