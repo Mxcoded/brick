@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Middleware\LogUserActivity;
+use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\TrackUserActivity;
 use App\Models\UserActivityLog;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Session\Middleware\AuthenticateSession;
 use Modules\Restaurant\Http\Middleware\RedirectToWaiterLogin;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -23,6 +25,8 @@ return Application::configure(basePath: __DIR__.'/../')
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'waiter-auth' => RedirectToWaiterLogin::class,
+            'guest' => RedirectIfAuthenticated::class,
+            'auth.session' => AuthenticateSession::class,
         ]);
 
         // Track user activity for login session monitoring
