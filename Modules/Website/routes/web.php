@@ -219,6 +219,9 @@ Route::middleware(['web', 'website.property'])->group(function () {
                 ->name('room-types.images.destroy');
             Route::resource('room-types', RoomTypeController::class)->middleware('permission:access_website_dashboard|website.room-types');
 
+            // Legacy Room management routes used by AdminRoomController redirects/views.
+            Route::resource('rooms', AdminRoomController::class)->middleware('permission:access_website_dashboard|website.rooms');
+
             // Room Units
             Route::middleware('permission:access_website_dashboard|website.room-types')->group(function () {
                 Route::post('room-types/{roomType}/units', [RoomTypeController::class, 'storeUnit'])
