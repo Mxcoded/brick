@@ -8,7 +8,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
      <title>@yield('title', 'Staff Portal')</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    @vite(['resources/sass/app.scss'])
     @stack('styles')
 
     <meta name="description" content="{{ $description ?? '' }}">
@@ -120,7 +121,7 @@
         <p>&copy; {{ date('Y') }} Staff Portal</p>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    @vite(['resources/js/app.js'])
     @stack('scripts')
 </body>
 </html>

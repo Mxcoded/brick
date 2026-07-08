@@ -3,16 +3,20 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Property;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Modules\Website\Models\RoomType;
-use Modules\Website\Models\RoomUnit;
-use Modules\Website\Models\RoomTypeImage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Models\Amenity;
 use Modules\Website\Models\Booking;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
+use Modules\Website\Models\RoomTypeImage;
 
 class RoomTypeController extends Controller
 {
@@ -44,6 +48,7 @@ class RoomTypeController extends Controller
     public function create()
     {
         $amenities = Amenity::all();
+
         return view('website::admin.room-types.create', compact('amenities'));
     }
 
@@ -54,7 +59,10 @@ class RoomTypeController extends Controller
     {
         try {
             $validated = $request->validate([
-                'name' => 'required|string|max:255|unique:room_types,name',
+                'name' => [
+                    'required', 'string', 'max:255',
+                    Rule::unique('room_types', 'name')->where('property_id', Property::current()?->id),
+                ],
                 'price' => 'required|numeric|min:0',
                 'capacity' => 'required|integer|min:1',
                 'size' => 'nullable|string',
@@ -88,7 +96,7 @@ class RoomTypeController extends Controller
             $roomType = RoomType::create($validated);
 
             // Sync amenities
-            if (!empty($validated['amenities'])) {
+            if (! empty($validated['amenities'])) {
                 $roomType->amenities()->sync($validated['amenities']);
             }
 
@@ -99,15 +107,15 @@ class RoomTypeController extends Controller
                     RoomTypeImage::create([
                         'room_type_id' => $roomType->id,
                         'image_url' => $result['url'],
-                        'path' => $result['path']
+                        'path' => $result['path'],
                     ]);
                 }
             }
 
             // Create initial units
-            if (!empty($request->units)) {
+            if (! empty($request->units)) {
                 foreach ($request->units as $unitData) {
-                    if (!empty($unitData['room_number'])) {
+                    if (! empty($unitData['room_number'])) {
                         RoomUnit::create([
                             'room_type_id' => $roomType->id,
                             'room_number' => $unitData['room_number'],
@@ -129,7 +137,7 @@ class RoomTypeController extends Controller
 
             return redirect()->route('website.admin.room-types.index')
                 ->with('success', 'Room type created successfully.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
@@ -139,15 +147,15 @@ class RoomTypeController extends Controller
             }
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Room type creation failed: ' . $e->getMessage());
-            
+            Log::error('Room type creation failed: '.$e->getMessage());
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create room type: ' . $e->getMessage(),
+                    'message' => 'Failed to create room type: '.$e->getMessage(),
                 ], 500);
             }
-            
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Failed to create room type. Please try again.');
@@ -186,7 +194,12 @@ class RoomTypeController extends Controller
             $roomType = RoomType::findOrFail($id);
 
             $validated = $request->validate([
-                'name' => 'required|string|max:255|unique:room_types,name,' . $id,
+                'name' => [
+                    'required', 'string', 'max:255',
+                    Rule::unique('room_types', 'name')
+                        ->where('property_id', Property::current()?->id)
+                        ->ignore($id),
+                ],
                 'price' => 'required|numeric|min:0',
                 'capacity' => 'required|integer|min:1',
                 'size' => 'nullable|string',
@@ -231,7 +244,7 @@ class RoomTypeController extends Controller
                     RoomTypeImage::create([
                         'room_type_id' => $roomType->id,
                         'image_url' => $result['url'],
-                        'path' => $result['path']
+                        'path' => $result['path'],
                     ]);
                 }
             }
@@ -246,7 +259,7 @@ class RoomTypeController extends Controller
             }
 
             return redirect()->back()->with('success', 'Room type updated successfully.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
@@ -256,15 +269,15 @@ class RoomTypeController extends Controller
             }
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Room type update failed: ' . $e->getMessage());
-            
+            Log::error('Room type update failed: '.$e->getMessage());
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to update room type: ' . $e->getMessage(),
+                    'message' => 'Failed to update room type: '.$e->getMessage(),
                 ], 500);
             }
-            
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Failed to update room type. Please try again.');
@@ -280,7 +293,7 @@ class RoomTypeController extends Controller
 
         // Prevent deletion if there are still units attached
         if ($roomType->units_count > 0) {
-            return back()->with('error', 
+            return back()->with('error',
                 "Cannot delete room type with {$roomType->units_count} unit(s). Move or delete the units first."
             );
         }
@@ -293,9 +306,9 @@ class RoomTypeController extends Controller
             ->count();
 
         if ($activeBookingsCount > 0) {
-            return back()->with('error', 
-                "Cannot delete room type with {$activeBookingsCount} active booking(s). " .
-                "Please reassign or cancel those bookings first."
+            return back()->with('error',
+                "Cannot delete room type with {$activeBookingsCount} active booking(s). ".
+                'Please reassign or cancel those bookings first.'
             );
         }
 
@@ -342,8 +355,8 @@ class RoomTypeController extends Controller
                 ->count();
 
             if ($remainingStragglersCount > 0) {
-                return back()->with('error', 
-                    "Cannot delete: {$remainingStragglersCount} booking(s) still reference this room type. " .
+                return back()->with('error',
+                    "Cannot delete: {$remainingStragglersCount} booking(s) still reference this room type. ".
                     "Run 'php artisan bookings:cleanup-orphaned' to fix."
                 );
             }
@@ -388,18 +401,18 @@ class RoomTypeController extends Controller
     public function deleteImage($imageId)
     {
         $image = RoomTypeImage::findOrFail($imageId);
-        
+
         // Get the room type for reference
         $roomTypeId = $image->room_type_id;
-        
+
         // Delete the file
         if ($image->path) {
             $this->imageService->delete($image->path);
         }
-        
+
         // Delete the database record
         $image->delete();
-        
+
         return back()->with('success', 'Gallery image deleted.');
     }
 
@@ -420,7 +433,7 @@ class RoomTypeController extends Controller
                     'required',
                     'string',
                     'max:50',
-                    \Illuminate\Validation\Rule::unique('room_units', 'room_number')->whereNull('deleted_at'),
+                    Rule::unique('room_units', 'room_number')->whereNull('deleted_at'),
                 ],
                 'floor' => 'nullable|string|max:50',
                 'notes' => 'nullable|string|max:500',
@@ -442,7 +455,7 @@ class RoomTypeController extends Controller
             ]);
 
             return back()->with('success', "Room unit '{$unit->room_number}' added successfully.");
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             // Re-throw validation exception to let Laravel handle it
             throw $e;
         } catch (\Exception $e) {
@@ -451,7 +464,8 @@ class RoomTypeController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return back()->with('error', 'Failed to create room unit: ' . $e->getMessage())->withInput();
+
+            return back()->with('error', 'Failed to create room unit: '.$e->getMessage())->withInput();
         }
     }
 
@@ -463,7 +477,7 @@ class RoomTypeController extends Controller
         $unit = RoomUnit::findOrFail($unitId);
 
         $validated = $request->validate([
-            'room_number' => 'required|string|max:50|unique:room_units,room_number,' . $unitId,
+            'room_number' => 'required|string|max:50|unique:room_units,room_number,'.$unitId,
             'floor' => 'nullable|string|max:50',
             'status' => 'required|in:available,occupied,maintenance,blocked',
             'notes' => 'nullable|string|max:500',
@@ -487,6 +501,7 @@ class RoomTypeController extends Controller
         }
 
         $unit->delete();
+
         return back()->with('success', 'Room unit deleted.');
     }
 
@@ -510,6 +525,7 @@ class RoomTypeController extends Controller
             // Check if room number already exists
             if (RoomUnit::where('room_number', $unitData['room_number'])->exists()) {
                 $errors[] = "Room number '{$unitData['room_number']}' already exists.";
+
                 continue;
             }
 
@@ -523,8 +539,9 @@ class RoomTypeController extends Controller
         }
 
         $message = "{$created} unit(s) created successfully.";
-        if (!empty($errors)) {
-            $message .= ' Errors: ' . implode(', ', $errors);
+        if (! empty($errors)) {
+            $message .= ' Errors: '.implode(', ', $errors);
+
             return back()->with('warning', $message);
         }
 
@@ -550,16 +567,16 @@ class RoomTypeController extends Controller
         $newRoomType = RoomType::findOrFail($validated['new_room_type_id']);
 
         // Check if unit has active registrations (Frontdesk) - these cannot be moved
-        if (class_exists(\Modules\Frontdeskcrm\Models\Registration::class)) {
+        if (class_exists(Registration::class)) {
             $activeRegistrationsCount = $unit->registrations()
                 ->whereIn('stay_status', ['checked_in', 'reserved', 'draft_by_guest'])
                 ->where('check_out', '>=', now())
                 ->count();
 
             if ($activeRegistrationsCount > 0) {
-                return back()->with('error', 
-                    "Cannot move unit '{$unit->room_number}': It has {$activeRegistrationsCount} active registration(s). " .
-                    "Please complete check-out first."
+                return back()->with('error',
+                    "Cannot move unit '{$unit->room_number}': It has {$activeRegistrationsCount} active registration(s). ".
+                    'Please complete check-out first.'
                 );
             }
         }
@@ -608,20 +625,20 @@ class RoomTypeController extends Controller
             if ($movedBookingsCount > 0) {
                 $message .= " {$movedBookingsCount} booking(s) also moved to the new room type.";
             }
-            $message .= " Inventory calendar has been updated automatically.";
+            $message .= ' Inventory calendar has been updated automatically.';
 
             return back()->with('success', $message);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Failed to move room unit', [
                 'unit_id' => $unitId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return back()->with('error', 'Failed to move unit: ' . $e->getMessage());
+            return back()->with('error', 'Failed to move unit: '.$e->getMessage());
         }
     }
 }

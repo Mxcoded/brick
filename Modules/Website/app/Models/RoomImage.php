@@ -2,9 +2,9 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Room;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-// use Modules\Website\Database\Factories\RoomImageFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class RoomImage extends Model
 {
@@ -19,5 +19,4 @@ class RoomImage extends Model
     {
         return $this->belongsTo(Room::class);
     }
-
 }

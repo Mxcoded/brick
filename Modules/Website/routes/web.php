@@ -1,23 +1,24 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
 // Public Controllers
-use Modules\Website\Http\Controllers\WebsiteController;
-use Modules\Website\Http\Controllers\GuestController;
-
+use Modules\Website\Http\Controllers\Admin\AmenityController;
+use Modules\Website\Http\Controllers\Admin\BookingController as AdminBookingController;
 // Admin Controllers (Aliased to prevent conflicts)
-use Modules\Website\Http\Controllers\Admin\WebsiteAdminController;
+use Modules\Website\Http\Controllers\Admin\DiningController;
+use Modules\Website\Http\Controllers\Admin\FacilitiesPageController;
+use Modules\Website\Http\Controllers\Admin\MeetingPageController;
+use Modules\Website\Http\Controllers\Admin\OffersPageController;
 use Modules\Website\Http\Controllers\Admin\RoomController as AdminRoomController;
 use Modules\Website\Http\Controllers\Admin\RoomTypeController;
-use Modules\Website\Http\Controllers\Admin\BookingController as AdminBookingController;
-use Modules\Website\Http\Controllers\Admin\DiningController;
-use Modules\Website\Http\Controllers\Admin\AmenityController;
 use Modules\Website\Http\Controllers\Admin\SettingController;
 use Modules\Website\Http\Controllers\Admin\ContactMessageController;
 use Modules\Website\Http\Controllers\Admin\NewsletterController;
 use Modules\Website\Http\Controllers\Admin\InventoryCalendarController;
 use Inertia\Inertia;
+use Modules\Website\Http\Controllers\Admin\WebsiteAdminController;
+use Modules\Website\Http\Controllers\GuestController;
+use Modules\Website\Http\Controllers\WebsiteController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,9 +36,11 @@ Route::post('/paystack/webhook', [WebsiteController::class, 'paystackWebhook'])
     ->name('website.paystack.webhook')
     ->withoutMiddleware(['web', 'csrf']);
 
-     Route::get('/room', function () {
-        return Inertia::render('Rooms');
-    })->name('room.new');
+Route::prefix('frontend')->group(function () {
+  
+    Route::get('/', [WebsiteController::class, 'index2'])->name('frontend.home');
+    Route::get('/room', [WebsiteController::class, 'rooms2'])->name('room.new');
+
     Route::get('/about', function () {
         return Inertia::render('About');
     })->name('about.us');
@@ -47,14 +50,15 @@ Route::post('/paystack/webhook', [WebsiteController::class, 'paystackWebhook'])
     Route::get('/spa', function () {
         return Inertia::render('Spa');
     })->name('spa.us');
-    Route::get('/restaurants', function () {
-        return Inertia::render('Restaurant');
-    })->name('restaurant.us');
+    
     Route::get('/gallery', function () {
         return Inertia::render('Gallery');
     })->name('gallery.us');
+});
 
-Route::middleware(['web'])->group(function () {
+     
+
+Route::middleware(['web', 'website.property'])->group(function () {
 
    
     // =========================================================================
@@ -67,7 +71,10 @@ Route::middleware(['web'])->group(function () {
         Route::get('/contact-us', 'contact')->name('website.contact');
         Route::get('/location', 'location')->name('website.location');
         Route::get('/dining', 'dining')->name('website.dining');
+        Route::get('/dining/{dining}/menu', 'diningMenu')->name('website.dining.menu');
         Route::get('/amenities', 'amenities')->name('website.amenities');
+        Route::get('/facilities', 'facilities')->name('website.facilities');
+        Route::get('/offers', 'offers')->name('website.offers');
 
 
 
@@ -78,13 +85,24 @@ Route::middleware(['web'])->group(function () {
 
         // Availability & Booking Logic
         Route::any('/check-availability', 'checkAvailability')->name('website.room.checkAvailability');
-        
+
         // Booking Flow: /book (Step 1: Room Selection) -> /booking (Step 2: Guest Details)
         Route::get('/book', 'bookStep1')->name('website.book'); // Step 1: Select rooms with cart
         Route::get('/booking', 'booking')->name('website.booking'); // Step 2: Guest details / checkout
-        Route::post('/booking', 'storeBooking')->name('website.booking.store');
+        Route::post('/booking', 'storeBooking')->name('website.booking.store')->middleware('throttle:5,60');
         Route::get('/payment/callback', 'verifyPayment')->name('website.payment.callback');
         Route::get('/booking/confirmation/{ref?}', 'confirmation')->name('website.booking.confirmation');
+
+        // Meetings Landing Page (Banquet)
+        Route::get('/meetings', 'meetings')->name('website.meetings');
+
+        // Meeting Enquiry (Banquet Quote Request)
+        Route::get('/meeting-enquiry', 'meetingEnquiry')->name('website.meeting-enquiry');
+        Route::post('/meeting-enquiry', 'storeEnquiry')->name('website.meeting-enquiry.store');
+
+        // Event Lead Capture (Public Form)
+        Route::get('/event-interest/{slug}', 'eventLead')->name('website.event-lead');
+        Route::post('/event-interest/{slug}', 'storeEventLead')->name('website.event-lead.store');
 
         // Form Submission
         Route::post('/contact/send', 'sendMessage')->name('website.contact.send');
@@ -139,7 +157,7 @@ Route::middleware(['web'])->group(function () {
     // 3. ADMIN MANAGEMENT ROUTES
     // =========================================================================
     // Access: http://your-site.com/website/admin
-    Route::middleware(['auth']) // Add 'can:manage_website' here in production
+    Route::middleware(['auth', 'can:access_website_dashboard'])
         ->prefix('website/admin')
         ->name('website.admin.')
         ->group(function () {
@@ -158,13 +176,46 @@ Route::middleware(['web'])->group(function () {
             Route::resource('amenities', AmenityController::class);
             Route::resource('settings', SettingController::class);
             Route::resource('dining', DiningController::class);
+            Route::get('dining/{dining}/delete-pdf', [DiningController::class, 'deletePdf'])->name('dining.delete-pdf');
+            Route::get('dining/{dining}/qr', [DiningController::class, 'qrCode'])->name('dining.qr');
+
+            // Meetings Page Editor
+            Route::prefix('meeting')->name('meeting.')->group(function () {
+                Route::get('/', [MeetingPageController::class, 'edit'])->name('edit');
+                Route::post('/hero', [MeetingPageController::class, 'updateHero'])->name('update-hero');
+                Route::post('/equipment-catering', [MeetingPageController::class, 'updateEquipmentCatering'])->name('update-equipment');
+                Route::post('/contact', [MeetingPageController::class, 'updateContact'])->name('update-contact');
+                Route::post('/rooms', [MeetingPageController::class, 'storeRoom'])->name('rooms.store');
+                Route::post('/rooms/{room}', [MeetingPageController::class, 'updateRoom'])->name('rooms.update');
+                Route::delete('/rooms/{room}', [MeetingPageController::class, 'destroyRoom'])->name('rooms.destroy');
+                Route::post('/gallery', [MeetingPageController::class, 'storeGallery'])->name('gallery.store');
+                Route::delete('/gallery/{gallery}', [MeetingPageController::class, 'destroyGallery'])->name('gallery.destroy');
+            });
+
+            // Facilities Page Editor
+            Route::prefix('facilities')->name('facilities.')->group(function () {
+                Route::get('/', [FacilitiesPageController::class, 'edit'])->name('edit');
+                Route::post('/hero', [FacilitiesPageController::class, 'updateHero'])->name('update-hero');
+                Route::post('/items', [FacilitiesPageController::class, 'storeItem'])->name('items.store');
+                Route::post('/items/{item}', [FacilitiesPageController::class, 'updateItem'])->name('items.update');
+                Route::delete('/items/{item}', [FacilitiesPageController::class, 'destroyItem'])->name('items.destroy');
+            });
+
+            // Offers Page Editor
+            Route::prefix('offers')->name('offers.')->group(function () {
+                Route::get('/', [OffersPageController::class, 'edit'])->name('edit');
+                Route::post('/hero', [OffersPageController::class, 'updateHero'])->name('update-hero');
+                Route::post('/offers', [OffersPageController::class, 'storeOffer'])->name('offers.store');
+                Route::post('/offers/{offer}', [OffersPageController::class, 'updateOffer'])->name('offers.update');
+                Route::delete('/offers/{offer}', [OffersPageController::class, 'destroyOffer'])->name('offers.destroy');
+            });
 
             // Room Types & Units Management (NEW)
             // IMPORTANT: This route MUST be before the resource to avoid conflict
             Route::delete('room-types/images/{imageId}', [RoomTypeController::class, 'deleteImage'])
                 ->name('room-types.images.destroy');
             Route::resource('room-types', RoomTypeController::class);
-            
+
             // Room Units
             Route::post('room-types/{roomType}/units', [RoomTypeController::class, 'storeUnit'])
                 ->name('room-types.units.store');
@@ -197,7 +248,7 @@ Route::middleware(['web'])->group(function () {
             // Contact Messages (Read Only / Reply)
             Route::resource('contact-messages', ContactMessageController::class)
                 ->only(['index', 'show', 'destroy', 'update']);
-            
+
             // Contact Message Conversation Routes
             Route::get('contact-messages/{contact_message}/reply', [ContactMessageController::class, 'reply'])
                 ->name('contact-messages.reply');
@@ -211,7 +262,7 @@ Route::middleware(['web'])->group(function () {
             // =========================================================================
             // NEWSLETTER MANAGEMENT
             // =========================================================================
-            
+
             // Newsletter Campaigns
             Route::prefix('newsletter/campaigns')->name('newsletter.campaigns.')->group(function () {
                 Route::get('/', [NewsletterController::class, 'index'])->name('index');
@@ -225,16 +276,18 @@ Route::middleware(['web'])->group(function () {
                 Route::post('/{campaign}/send', [NewsletterController::class, 'send'])->name('send');
                 Route::post('/{campaign}/duplicate', [NewsletterController::class, 'duplicate'])->name('duplicate');
                 Route::post('/{campaign}/test', [NewsletterController::class, 'sendTest'])->name('test');
-                
+
                 // Real-time delivery status
                 Route::get('/{campaign}/delivery-status', [NewsletterController::class, 'deliveryStatus'])->name('delivery-status');
                 Route::get('/{campaign}/delivery-status/api', [NewsletterController::class, 'deliveryStatusApi'])->name('delivery-status.api');
                 Route::post('/{campaign}/retry-failed', [NewsletterController::class, 'retryFailed'])->name('retry-failed');
             });
-            
+
             // Newsletter Subscribers Management
             Route::get('newsletter/subscribers', [NewsletterController::class, 'subscribersIndex'])->name('newsletter.subscribers');
             Route::get('newsletter/subscribers/export', [NewsletterController::class, 'exportSubscribers'])->name('newsletter.subscribers.export');
+            Route::post('newsletter/subscribers/import', [NewsletterController::class, 'importSubscribers'])->name('newsletter.subscribers.import');
+            Route::get('newsletter/subscribers/import/sample', [NewsletterController::class, 'downloadSampleImport'])->name('newsletter.subscribers.import.sample');
             Route::delete('newsletter/subscribers/{subscriber}', [NewsletterController::class, 'destroySubscriber'])->name('newsletter.subscribers.destroy');
             Route::post('newsletter/subscribers/{subscriber}/toggle', [NewsletterController::class, 'toggleSubscriberStatus'])->name('newsletter.subscribers.toggle');
 
@@ -249,4 +302,32 @@ Route::middleware(['web'])->group(function () {
             Route::post('/bookings/{id}/change-room-type', [AdminBookingController::class, 'changeRoomType'])->name('bookings.change-room-type');
             Route::post('/bookings/{id}/move', [AdminBookingController::class, 'moveRoom'])->name('bookings.move');
         });
-});
+
+        // =========================================================================
+        // 3. GUEST PRE-ARRIVAL CHECK-IN
+        // =========================================================================
+        Route::prefix('guest')->name('guest.')->group(function () {
+            Route::get('/pre-arrival', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'index'])
+                ->name('pre-arrival');
+            Route::post('/pre-arrival/lookup', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'lookup'])
+                ->name('pre-arrival.lookup');
+            Route::get('/pre-arrival/token/{token}', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'token'])
+                ->name('pre-arrival.token');
+            Route::get('/pre-arrival/{registration}/details', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'details'])
+                ->name('pre-arrival.details');
+            Route::put('/pre-arrival/{registration}/details', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'updateDetails'])
+                ->name('pre-arrival.update-details');
+            Route::get('/pre-arrival/{registration}/documents', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'documents'])
+                ->name('pre-arrival.documents');
+            Route::post('/pre-arrival/{registration}/documents/upload', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'uploadDocument'])
+                ->name('pre-arrival.upload-document');
+            Route::delete('/pre-arrival/{registration}/documents/{document}', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'deleteDocument'])
+                ->name('pre-arrival.delete-document');
+            Route::get('/pre-arrival/{registration}/signature', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'signature'])
+                ->name('pre-arrival.signature');
+            Route::post('/pre-arrival/{registration}/signature', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'submitSignature'])
+                ->name('pre-arrival.submit-signature');
+            Route::get('/pre-arrival/{registration}/confirmation', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'confirmation'])
+                ->name('pre-arrival.confirmation');
+        });
+    });

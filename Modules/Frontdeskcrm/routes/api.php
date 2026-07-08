@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Frontdeskcrm\Http\Controllers\ChannelWebhookController;
 use Modules\Frontdeskcrm\Http\Controllers\FrontdeskcrmController;
 
 /*
@@ -17,3 +18,7 @@ use Modules\Frontdeskcrm\Http\Controllers\FrontdeskcrmController;
 Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
     Route::apiResource('frontdeskcrm', FrontdeskcrmController::class)->names('frontdeskcrm');
 });
+
+// Channel webhook endpoints (no auth — OTAs call these with their own signature)
+Route::post('/webhooks/channel/{channel}', ChannelWebhookController::class)
+    ->name('frontdesk.webhooks.channel');

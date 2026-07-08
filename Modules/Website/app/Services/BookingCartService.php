@@ -2,9 +2,10 @@
 
 namespace Modules\Website\Services;
 
-use Illuminate\Support\Facades\Session;
-use Modules\Website\Models\RoomType;
+use App\Models\RoomType;
+use App\Services\RoomAvailabilityService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Session;
 
 class BookingCartService
 {
@@ -23,9 +24,20 @@ class BookingCartService
         $cart = $this->getCart();
 
         // Check if cart has different dates - if so, clear it first
-        if (!empty($cart['items']) && ($cart['check_in'] !== $checkIn || $cart['check_out'] !== $checkOut)) {
+        if (! empty($cart['items']) && ($cart['check_in'] !== $checkIn || $cart['check_out'] !== $checkOut)) {
             $this->clear();
             $cart = $this->getCart();
+        }
+
+        // Enforce single-property cart: reject if adding room from a different property
+        if (! empty($cart['items'])) {
+            $firstItem = reset($cart['items']);
+            if ($firstItem['property_id'] !== $roomType->property_id) {
+                return [
+                    'success' => false,
+                    'message' => 'Rooms from different properties cannot be booked together. Please complete or clear your current cart first.',
+                ];
+            }
         }
 
         // Set dates if not set
@@ -35,29 +47,25 @@ class BookingCartService
             $cart['nights'] = $nights;
         }
 
-        // Check availability
-        $availableCount = $roomType->getAvailabilityCountForDates($checkIn, $checkOut);
-        
-        // Get current quantity in cart for this room type
-        $existingQuantity = 0;
-        if (isset($cart['items'][$roomTypeId])) {
-            $existingQuantity = $cart['items'][$roomTypeId]['quantity'];
-        }
+        // Check availability using unified service (includes stop sell, CTA, CTD, min/max stay)
+        $availabilityService = app(RoomAvailabilityService::class);
+        $result = $availabilityService->checkRoomTypeAvailability($roomTypeId, $checkIn, $checkOut, $quantity);
 
-        // Validate requested quantity
-        $totalRequested = $quantity; // Replace, not add
-        if ($totalRequested > $availableCount) {
+        if (! $result['available']) {
             return [
                 'success' => false,
-                'message' => "Only {$availableCount} rooms available for these dates.",
-                'available' => $availableCount,
+                'message' => $result['message'],
+                'available' => 0,
             ];
         }
+
+        $availableCount = $result['available_count'];
 
         // Add/update cart item
         $cart['items'][$roomTypeId] = [
             'room_type_id' => $roomTypeId,
             'room_type_name' => $roomType->name,
+            'property_id' => $roomType->property_id,
             'quantity' => $quantity,
             'price_per_night' => (float) $roomType->price,
             'capacity' => $roomType->capacity,
@@ -82,7 +90,7 @@ class BookingCartService
     {
         $cart = $this->getCart();
 
-        if (!isset($cart['items'][$roomTypeId])) {
+        if (! isset($cart['items'][$roomTypeId])) {
             return [
                 'success' => false,
                 'message' => 'Room not found in cart.',
@@ -93,21 +101,23 @@ class BookingCartService
             return $this->remove($roomTypeId);
         }
 
-        // Check availability
+        // Check availability using unified service
         $roomType = RoomType::findOrFail($roomTypeId);
-        $availableCount = $roomType->getAvailabilityCountForDates($cart['check_in'], $cart['check_out']);
+        $availabilityService = app(RoomAvailabilityService::class);
+        $result = $availabilityService->checkRoomTypeAvailability($roomTypeId, $cart['check_in'], $cart['check_out'], $quantity);
 
-        if ($quantity > $availableCount) {
+        if (! $result['available']) {
             return [
                 'success' => false,
-                'message' => "Only {$availableCount} rooms available.",
-                'available' => $availableCount,
+                'message' => $result['message'],
+                'available' => 0,
             ];
         }
 
+        $nights = $cart['nights'];
         $cart['items'][$roomTypeId]['quantity'] = $quantity;
-        $cart['items'][$roomTypeId]['subtotal'] = $cart['items'][$roomTypeId]['price_per_night'] 
-            * $cart['items'][$roomTypeId]['nights'] 
+        $cart['items'][$roomTypeId]['subtotal'] = $cart['items'][$roomTypeId]['price_per_night']
+            * $nights
             * $quantity;
 
         $this->saveCart($cart);
@@ -133,6 +143,7 @@ class BookingCartService
         // If cart is empty, clear dates too
         if (empty($cart['items'])) {
             $this->clear();
+
             return [
                 'success' => true,
                 'message' => 'Item removed. Cart is now empty.',
@@ -169,6 +180,7 @@ class BookingCartService
     public function getItems(): array
     {
         $cart = $this->getCart();
+
         return array_values($cart['items'] ?? []);
     }
 
@@ -178,6 +190,7 @@ class BookingCartService
     public function getDates(): array
     {
         $cart = $this->getCart();
+
         return [
             'check_in' => $cart['check_in'] ?? null,
             'check_out' => $cart['check_out'] ?? null,
@@ -236,6 +249,7 @@ class BookingCartService
     public function isEmpty(): bool
     {
         $cart = $this->getCart();
+
         return empty($cart['items']);
     }
 
@@ -254,7 +268,7 @@ class BookingCartService
             'total_rooms' => $this->getTotalRooms(),
             'total_guests' => $this->getTotalGuests(),
             'total' => $this->getTotal(),
-            'formatted_total' => '₦' . number_format($this->getTotal(), 2),
+            'formatted_total' => '₦'.number_format($this->getTotal(), 2),
         ];
     }
 
@@ -276,8 +290,8 @@ class BookingCartService
 
         foreach ($cart['items'] as $roomTypeId => $item) {
             $roomType = RoomType::find($roomTypeId);
-            
-            if (!$roomType) {
+
+            if (! $roomType) {
                 $unavailable[] = [
                     'room_type_id' => $roomTypeId,
                     'name' => $item['room_type_name'],
@@ -285,6 +299,7 @@ class BookingCartService
                     'available' => 0,
                     'message' => 'Room type no longer exists.',
                 ];
+
                 continue;
             }
 
@@ -296,7 +311,7 @@ class BookingCartService
                 $item['quantity']
             );
 
-            if (!$result['available']) {
+            if (! $result['available']) {
                 $unavailable[] = [
                     'room_type_id' => $roomTypeId,
                     'name' => $item['room_type_name'],

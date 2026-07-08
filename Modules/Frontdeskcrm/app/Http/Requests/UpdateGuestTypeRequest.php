@@ -15,7 +15,7 @@ class UpdateGuestTypeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255|unique:guest_types,name,' . $this->guestType->id,
+            'name' => 'required|string|max:255|unique:guest_types,name,'.$this->guestType->id,
             'description' => 'nullable|string|max:500',
             'color' => 'nullable|string|max:7', // Hex color
             'discount_rate' => 'nullable|numeric|min:0|max:100',

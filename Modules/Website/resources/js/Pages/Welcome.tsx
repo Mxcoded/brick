@@ -74,17 +74,17 @@ const restaurants = [
 
 const Welcome = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-      const { auth, settings, featuredRooms, testimonials, dining } = usePage().props as unknown as PageProps;
+      const { auth, settings, featuredRooms, testimonials, dining, og_title, meta_description } = usePage().props as unknown as PageProps;
     const user = auth.user;
 
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-      console.log("settings:", settings);
+      console.log("featuredRooms:", settings.property_name);
     }, 5500);
     return () => clearInterval(interval);
-  }, [settings]);
+  }, []);
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
@@ -108,7 +108,7 @@ const Welcome = () => {
           >
             <img
               src={slide.image}
-              alt="The Bridge Hotel"
+              alt={`${settings.property_name} Hotel`}
               className="w-full h-full object-cover opacity-60"
             />
           </div>
@@ -177,19 +177,17 @@ const Welcome = () => {
 
               {/* Title */}
               <h1 className="font-serif text-5xl md:text-6xl font-bold text-white leading-tight mb-6 tracking-tight">
-                The Bridge Hotel
+                {settings.property_name} Hotel
               </h1>
 
               {/* Description */}
               <p className="text-white/80 text-base md:text-lg leading-relaxed max-w-sm mb-10">
-                Discover the perfect blend of luxury and comfort where every stay is
-                extraordinary. Situated in the heart of Ibadan, our hotel is your
-                gateway to an unforgettable experience.
+                {meta_description}
               </p>
 
               {/* CTA Button */}
               <Link
-                href="/rooms"
+                href="/frontend/room"
                 className="inline-flex items-center justify-center px-8 py-3 border border-warm-500 text-white text-sm font-semibold uppercase tracking-[0.15em] transition-all duration-300 hover:bg-warm-600 hover:border-warm-600"
               >
                 Discover Rooms
@@ -224,9 +222,7 @@ const Welcome = () => {
                 Experience Hospitality Like Never Before
               </h2>
               <p className="text-primary-600 text-lg leading-relaxed mb-6">
-                The Bridge Hotel is made up of 50 rooms en-suite which includes 2 connecting
-                rooms and 7 luxury suites and a full range of other rooms. At The Bridge Hotel,
-                we set a new standard of sophistication and unrivaled luxury in Ibadan.
+                {meta_description}
               </p>
               <div className="grid grid-cols-2 gap-3 mb-8">
                 {['Free WiFi', 'Swimming Pool', 'Spa Services', '24/7 Reception', 'Restaurant', 'Free Parking'].map((item) => (
@@ -237,7 +233,7 @@ const Welcome = () => {
                 ))}
               </div>
               <div className="flex flex-wrap gap-4">
-                <Link href="/rooms" className="btn-primary inline-flex items-center space-x-2">
+                <Link href="/frontend/room" className="btn-primary inline-flex items-center space-x-2">
                   <span>Book Your Stay</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -336,15 +332,15 @@ const Welcome = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-10">
-            {roomTypes.map((room, idx) => (
+            {featuredRooms.map((room, idx) => (
               <div key={idx} className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500">
                 <div className="relative h-56 overflow-hidden">
                   <img
-                    src={room.image}
+                    src={`${room.image_url}`} 
                     alt={room.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
-                  {room.originalPrice && (
+                  {room.price && (
                     <div className="absolute top-4 right-4 bg-warm-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
                       10% OFF
                     </div>
@@ -353,10 +349,10 @@ const Welcome = () => {
                 <div className="p-6">
                   <h3 className="font-serif text-xl font-semibold text-primary-900 mb-3">{room.name}</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {room.features.map((f, fi) => (
+                    {room.amenities.map((f, fi) => (
                       <span key={fi} className="flex items-center space-x-1 text-xs text-primary-600 bg-primary-50 px-2 py-1 rounded">
                         <Check className="w-3 h-3 text-warm-500" />
-                        <span>{f}</span>
+                        <span>{f.name}</span>
                       </span>
                     ))}
                   </div>
@@ -371,7 +367,7 @@ const Welcome = () => {
                       <p className="text-xs text-primary-400 mt-1">per night</p>
                     </div>
                     <Link
-                      href="/rooms"
+                      href="/frontend/room"
                       className="btn-primary text-sm py-2 px-4"
                     >
                       Book
@@ -383,7 +379,7 @@ const Welcome = () => {
           </div>
 
           <div className="text-center">
-            <Link href="/rooms" className="btn-primary inline-flex items-center space-x-2">
+            <Link href="/frontend/room" className="btn-primary inline-flex items-center space-x-2">
               <span>View All Rooms</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
@@ -410,23 +406,14 @@ const Welcome = () => {
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { type: 'Bridge Classic', rate: '106,000', discount: '90,100' },
-                  { type: 'Bridge Deluxe', rate: '112,000', discount: '95,200' },
-                  { type: 'Bridge Executive', rate: '118,000', discount: '100,300' },
-                  { type: 'Bridge Executive Suite', rate: '147,500', discount: '125,375' },
-                  { type: 'Bridge Balcony Suite', rate: '165,000', discount: '140,250' },
-                  { type: 'Presidential Suite', rate: '350,000', discount: '—' },
-                  { type: 'Conference Room', rate: '300,000', discount: '—' },
-                  { type: 'Meeting Room', rate: '100,000', discount: '—' },
-                ].map((row, idx) => (
+                {featuredRooms.map((row, idx) => (
                   <tr
                     key={idx}
                     className={`border-b border-primary-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-primary-50'}`}
                   >
-                    <td className="px-6 py-4 font-medium text-primary-800">{row.type}</td>
-                    <td className="px-6 py-4 text-right text-primary-600">{row.rate}</td>
-                    <td className="px-6 py-4 text-right font-semibold text-warm-700">{row.discount}</td>
+                    <td className="px-6 py-4 font-medium text-primary-800">{row.name}</td>
+                    <td className="px-6 py-4 text-right text-primary-600">{row.price}</td>
+                    <td className="px-6 py-4 text-right font-semibold text-warm-700">{row.price}</td>
                   </tr>
                 ))}
               </tbody>
@@ -508,7 +495,7 @@ const Welcome = () => {
             Enjoy 10% off when you book directly.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/rooms" className="btn-accent inline-flex items-center justify-center space-x-2">
+            <Link href="/frontend/room" className="btn-accent inline-flex items-center justify-center space-x-2">
               <span>Book Now</span>
               <ArrowRight className="w-4 h-4" />
             </Link>

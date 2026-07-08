@@ -2,10 +2,10 @@
 
 namespace Modules\Inventory\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 // use Modules\Inventory\Database\Factories\UsageLogFactory;
 
 /**
@@ -16,7 +16,14 @@ class UsageLog extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['item_id', 'store_id', 'quantity_used', 'used_for', 'technician_name'];
+    protected $fillable = ['item_id', 'store_id', 'department_id', 'quantity_used', 'unit_cost', 'used_for', 'technician_name', 'date_used', 'reference'];
+
+    protected function casts(): array
+    {
+        return [
+            'date_used' => 'date',
+        ];
+    }
 
     /**
      * Get the item that was used.
@@ -33,6 +40,7 @@ class UsageLog extends Model
     {
         return $this->belongsTo(Store::class);
     }
+
     /**
      * Get the department where the item was used.
      */

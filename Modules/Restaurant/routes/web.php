@@ -1,9 +1,10 @@
 <?php
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Modules\Restaurant\Http\Controllers\RestaurantController;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,8 +17,12 @@ use Illuminate\Http\Request;
 |
 */
 
+Route::get('/frontend/restaurant', function () {
+        return Inertia::render('Restaurant');
+    })->name('restaurant.us');
 Route::prefix('restaurant')->middleware(['web'])->group(function () {
     Route::get('/', [RestaurantController::class, 'index'])->name('restaurant.landing');
+    
     Route::post('/select-source', [RestaurantController::class, 'selectSource'])->name('restaurant.select-source');
 
     // Explicit routes for online (no optional source to avoid slash issues)
@@ -59,9 +64,9 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
     // General route for other types
     Route::get('/{type}/{source?}/getcart', [RestaurantController::class, 'getCart'])->name('restaurant.cart.get');
     Route::get('/{type}/{source?}/menu', [RestaurantController::class, 'menu'])->name('restaurant.menu');
-   
+
     // Log::info('Restaurant menu route accessed: type=' . request()->type . ', source=' . request()->source);
-   
+
     Route::post('/{type}/{source?}/cart/add', [RestaurantController::class, 'addToCart'])->name('restaurant.cart.add');
     Route::post('/{type}/{source?}/order/add', [RestaurantController::class, 'addToOrder'])->name('restaurant.order.add');
     Route::get('/{type}/{source?}/cart', [RestaurantController::class, 'viewCart'])->name('restaurant.cart');
@@ -72,7 +77,7 @@ Route::prefix('restaurant')->middleware(['web'])->group(function () {
     Route::match(['get', 'post'], '/online/orders', [RestaurantController::class, 'viewOrderHistory'])->name('restaurant.online.orders');
 });
 
-Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
+Route::prefix('restaurant-waiter')->middleware(['web', 'auth', 'can:access_restaurant_dashboard'])->group(function () {
     Route::get('/dashboard', [RestaurantController::class, 'waiterDashboard'])->name('restaurant.waiter.dashboard');
     Route::post('/order/{order}/accept', [RestaurantController::class, 'acceptOrder'])->name('restaurant.waiter.accept');
     Route::post('/order/{order}/update-status', [RestaurantController::class, 'updateOrderStatus'])->name('restaurant.waiter.update-status');
@@ -80,7 +85,7 @@ Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
     Route::post('/order/{order}/void', [RestaurantController::class, 'voidOrder'])->name('restaurant.waiter.void');
 });
 
-Route::prefix('restaurant-admin')->middleware(['web', 'auth'])->group(function () {
+Route::prefix('restaurant-admin')->middleware(['web', 'auth', 'can:access_restaurant_dashboard'])->group(function () {
     Route::get('/dashboard', [RestaurantController::class, 'adminDashboard'])->name('restaurant.admin.dashboard');
 
     // Menu Category CRUD

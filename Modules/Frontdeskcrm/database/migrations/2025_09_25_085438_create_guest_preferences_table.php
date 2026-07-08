@@ -2,30 +2,31 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('guest_preferences', function (Blueprint $table) {
             $table->id();
             $table->foreignId('guest_id')->constrained()->onDelete('cascade');
             $table->json('preferences')->nullable();
-            $table->string('language')->storedAs("JSON_UNQUOTE(JSON_EXTRACT(`preferences`, '$.language'))");
+
+            if (DB::connection()->getDriverName() === 'mysql') {
+                $table->string('language')->storedAs("JSON_UNQUOTE(JSON_EXTRACT(`preferences`, '$.language'))");
+            } else {
+                $table->string('language')->nullable();
+            }
+
             $table->timestamps();
 
             $table->index('guest_id');
-            $table->index('language'); // Indexing the generated column
+            $table->index('language');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('guest_preferences');

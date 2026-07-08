@@ -17,6 +17,15 @@
             <div class="filters mb-5 bg-white p-4 rounded shadow-sm">
                 <form action="{{ route('website.rooms.index') }}" method="GET" class="row g-3">
                     <div class="col-md-3">
+                        <label for="city" class="form-label">Location</label>
+                        <select class="form-select" id="city" name="city">
+                            <option value="">All Locations</option>
+                            @foreach ($cities as $city)
+                                <option value="{{ $city }}" {{ ($selectedCity ?? request('city')) == $city ? 'selected' : '' }}>{{ $city }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label for="min_price" class="form-label">Min Price</label>
                         <input type="number" class="form-control" id="min_price" name="min_price" min="0"
                             step="100" value="{{ request('min_price') }}" placeholder="N0">
@@ -64,7 +73,7 @@
                     @foreach ($roomTypes as $roomType)
                         @php
                             // Calculate real-time availability using unified service
-                            $availabilityService = app(\Modules\Website\Services\RoomAvailabilityService::class);
+                            $availabilityService = app(\App\Services\RoomAvailabilityService::class);
                             $today = \Carbon\Carbon::today();
                             $tomorrow = $today->copy()->addDay();
                             
@@ -123,7 +132,15 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="card-body p-4 d-flex flex-column h-100">
-                                            <h2 class="h3 mb-2">{{ $roomType->name }}</h2>
+                                            <div class="d-flex align-items-start justify-content-between mb-1">
+                                                <h2 class="h3 mb-0">{{ $roomType->name }}</h2>
+                                                @php $__prop = $allProperties->firstWhere('id', $roomType->property_id); @endphp
+                                                @if ($__prop)
+                                                <span class="badge bg-soft-neutral text-dark border ms-2" style="font-size: 0.7rem; white-space: nowrap;">
+                                                    <i class="fas fa-location-dot me-1 text-primary"></i>{{ $__prop->name }}
+                                                </span>
+                                                @endif
+                                            </div>
                                             <div class="d-flex gap-2 mb-2 text-muted small">
                                                 <span><i class="fas fa-user-friends me-1"></i> {{ $roomType->capacity }} Guests</span>
                                                 @if($roomType->bed_type)

@@ -15,7 +15,7 @@ class UpdateBookingSourceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255|unique:booking_sources,name,' . $this->bookingSource?->id,
+            'name' => 'required|string|max:255|unique:booking_sources,name,'.$this->bookingSource?->id,
             'description' => 'nullable|string|max:500',
             'type' => 'nullable|in:online,offline,partner',
             'commission_rate' => 'nullable|numeric|min:0|max:100',

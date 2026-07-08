@@ -1,17 +1,21 @@
 <?php
 
+use App\Http\Middleware\LogUserActivity;
+use App\Http\Middleware\SetPropertyContext;
+use App\Http\Middleware\TrackUserActivity;
+use App\Models\UserActivityLog;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
-use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\HandleInertiaRequests;
+use Spatie\Permission\Middleware\RoleMiddleware;
 
-return Application::configure(basePath: __DIR__ . '/../')
+return Application::configure(basePath: __DIR__.'/../')
     ->withRouting(
-        web: __DIR__ . '/../routes/web.php',
-        commands: __DIR__ . '/../routes/console.php',
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
@@ -22,7 +26,17 @@ return Application::configure(basePath: __DIR__ . '/../')
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
+            'website.property' => \App\Http\Middleware\DetectWebsiteProperty::class,
         ]);
+
+        // Track user activity for login session monitoring
+        $middleware->appendToGroup('web', TrackUserActivity::class);
+
+        // Log page views and write actions (throttled)
+        $middleware->appendToGroup('web', LogUserActivity::class);
+
+        // Set the current property context from session/query parameter
+        $middleware->appendToGroup('web', SetPropertyContext::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
@@ -31,6 +45,20 @@ return Application::configure(basePath: __DIR__ . '/../')
     ->withSchedule(function (Schedule $schedule) {
         // Run the overstay process every day at 1:00 PM (13:00).
         $schedule->command('hotel:process-overstays')->dailyAt('18:00');
+
+        // Send pre-arrival reminders at 9:00 AM daily
+        $schedule->command('hotel:send-pre-arrival-reminders')->dailyAt('09:00');
+
+        // Send review requests at 10:00 AM daily
+        $schedule->command('hotel:send-review-requests')->dailyAt('10:00');
+
+        // Run re-engagement campaign every Monday at 11:00 AM
+        $schedule->command('hotel:re-engagement-campaign')->weeklyOn(1, '11:00');
+
+        // Prune activity logs older than 90 days
+        $schedule->call(function () {
+            UserActivityLog::where('created_at', '<', now()->subDays(90))->delete();
+        })->dailyAt('03:00');
     })
     // ** END OF ADDED BLOCK **
     ->create();

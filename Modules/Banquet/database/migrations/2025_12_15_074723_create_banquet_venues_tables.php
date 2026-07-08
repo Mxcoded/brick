@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Create Venues Table (Replaces hardcoded 'Adamawa Hall', etc.)
-        if (!Schema::hasTable('banquet_venues')) {
+        if (! Schema::hasTable('banquet_venues')) {
             Schema::create('banquet_venues', function (Blueprint $table) {
                 $table->id();
                 $table->string('name')->unique(); // e.g., "Adamawa Hall"
@@ -25,7 +25,7 @@ return new class extends Migration
         }
 
         // 2. Create Combinations Table (Solves the 'Adamawa + Kano' logic)
-        if (!Schema::hasTable('banquet_venue_combinations')) {
+        if (! Schema::hasTable('banquet_venue_combinations')) {
             Schema::create('banquet_venue_combinations', function (Blueprint $table) {
                 $table->id();
                 // The "Parent" is the combined venue (e.g., Adamawa + Kano)
@@ -36,7 +36,7 @@ return new class extends Migration
         }
 
         // 3. Create Setup Styles Table (Replaces hardcoded style arrays)
-        if (!Schema::hasTable('banquet_setup_styles')) {
+        if (! Schema::hasTable('banquet_setup_styles')) {
             Schema::create('banquet_setup_styles', function (Blueprint $table) {
                 $table->id();
                 $table->string('name')->unique(); // e.g., "Theater Style"
@@ -49,10 +49,10 @@ return new class extends Migration
         if (Schema::hasTable('banquet_order_days')) {
             Schema::table('banquet_order_days', function (Blueprint $table) {
                 // Add nullable FKs. We will migrate data from the string columns to these IDs later.
-                if (!Schema::hasColumn('banquet_order_days', 'banquet_venue_id')) {
+                if (! Schema::hasColumn('banquet_order_days', 'banquet_venue_id')) {
                     $table->foreignId('banquet_venue_id')->nullable()->constrained('banquet_venues')->onDelete('set null');
                 }
-                if (!Schema::hasColumn('banquet_order_days', 'banquet_setup_style_id')) {
+                if (! Schema::hasColumn('banquet_order_days', 'banquet_setup_style_id')) {
                     $table->foreignId('banquet_setup_style_id')->nullable()->constrained('banquet_setup_styles')->onDelete('set null');
                 }
             });

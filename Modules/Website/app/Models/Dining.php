@@ -2,8 +2,9 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 // use Modules\Website\Database\Factories\DiningFactory;
 
 class Dining extends Model
@@ -21,6 +22,7 @@ class Dining extends Model
         'cuisine_type',
         'dress_code',
         'menu_link',
+        'menu_pdf',
         'is_featured',
     ];
 

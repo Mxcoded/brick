@@ -2,37 +2,62 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use App\Enums\RoleEnum;
 use Modules\Frontdeskcrm\Models\Guest;
+use Modules\Frontdeskcrm\Rules\ValidEmail;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 
 class RegisterController extends Controller
 {
     use RegistersUsers;
 
-    /**
-     * Where to redirect users after registration.
-     * We direct to /home so HomeController can route them to the Guest Dashboard.
-     */
     protected $redirectTo = '/home';
 
     public function __construct()
     {
         $this->middleware('guest');
+        $this->middleware('throttle:5,60');
     }
 
     protected function validator(array $data)
     {
-        return Validator::make($data, [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'contact_number' => ['required', 'string', 'max:191', 'unique:guests,contact_number'],
+        $validator = Validator::make($data, [
+            'name' => [
+                'required', 'string', 'max:255', 'min:3',
+                function ($attribute, $value, $fail) {
+                    if (strpos(trim($value), ' ') === false) {
+                        $fail('Please enter your full name (first and last name).');
+                    }
+                    if (! preg_match('/^[\pL\s\'\-.]+$/u', $value)) {
+                        $fail('The :attribute contains invalid characters.');
+                    }
+                },
+            ],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users', new ValidEmail],
+            'contact_number' => ['required', 'string', 'max:191', 'unique:guests,contact_number', new ValidPhoneNumber],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'website' => ['nullable', 'string', 'max:0'],
+            'register_time' => ['required', 'integer'],
+        ], [
+            'website.max' => 'Invalid request.',
+            'register_time.required' => 'Invalid request.',
+            'register_time.integer' => 'Invalid request.',
         ]);
+
+        if (! empty($data['website'])) {
+            $validator->errors()->add('website', 'Invalid request.');
+        }
+
+        if (! empty($data['register_time']) && ((int) $data['register_time'] > 0) && (time() - (int) $data['register_time']) < 3) {
+            $validator->errors()->add('register_time', 'Please wait a moment before submitting.');
+        }
+
+        return $validator;
     }
 
     protected function create(array $data)
@@ -41,14 +66,11 @@ class RegisterController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            'type' => 'guest',
         ]);
 
-        // 1. SECURITY: Force every public signup to be a Guest
-        // This prevents anyone from registering as an Admin by manipulating forms
         $user->assignRole(RoleEnum::GUEST->value);
 
-        // 2. DATA: Create the Guest Profile link immediately
-        // This prevents "Call to a member function on null" errors in the dashboard
         Guest::create([
             'user_id' => $user->id,
             'full_name' => $user->name,

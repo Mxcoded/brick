@@ -14,6 +14,7 @@ class GuestTypeController extends Controller
         $types = GuestType::withCount(['registrations' => function ($query) {
             $query->where('stay_status', 'checked_out');
         }])->paginate(10);
+
         return view('frontdeskcrm::guest-types.index', compact('types'));
     }
 
@@ -25,6 +26,7 @@ class GuestTypeController extends Controller
     public function store(StoreGuestTypeRequest $request)
     {
         GuestType::create($request->validated());
+
         return redirect()->route('frontdesk.guest-types.index')->with('success', 'Guest type added.');
     }
 
@@ -33,6 +35,7 @@ class GuestTypeController extends Controller
         $guestType->load(['registrations' => function ($query) {
             $query->with('guest')->where('stay_status', 'checked_out');
         }]);
+
         return view('frontdeskcrm::guest-types.show', compact('guestType'));
     }
 
@@ -44,6 +47,7 @@ class GuestTypeController extends Controller
     public function update(UpdateGuestTypeRequest $request, GuestType $guestType)
     {
         $guestType->update($request->validated());
+
         return redirect()->route('frontdesk.guest-types.index')->with('success', 'Guest type updated.');
     }
 
@@ -53,6 +57,7 @@ class GuestTypeController extends Controller
             return back()->with('error', 'Cannot delete type with existing registrations.');
         }
         $guestType->delete();
+
         return redirect()->route('frontdesk.guest-types.index')->with('success', 'Guest type deleted.');
     }
 }

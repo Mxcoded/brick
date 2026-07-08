@@ -2,44 +2,58 @@
 
 namespace Modules\Website\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Modules\Website\Models\Room;
-use Modules\Website\Models\RoomType;
-use Modules\Website\Models\Testimonial;
-use Modules\Website\Models\Dining;
-use Modules\Website\Models\Booking;
-use Modules\Frontdeskcrm\Models\Registration;
-use Modules\Website\Models\ContactMessage;
-use Illuminate\Support\Facades\Auth;
-// use Modules\Website\Models\GuestProfile;
+use App\Enums\RoleEnum;
+use App\Models\Property;
+use App\Models\Room;
+use App\Services\BookingEngine;
+use App\Values\BookingEngineRequest;
+use App\Models\RoomType;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use Modules\Website\Models\Settings;
-use Modules\Website\Models\Amenity;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
+use App\Services\RoomAvailabilityService;
 use Carbon\Carbon;
-use Modules\Website\Http\Requests\StoreBookingRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail; // ✅ Import Mail Facade
+// use Modules\Website\Models\GuestProfile;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
+use Modules\Banquet\Models\BanquetEnquiry;
+use Modules\Banquet\Models\EventLead;
+use Modules\Banquet\Models\LeadEvent;
+use Modules\Banquet\Notifications\NewEnquiryNotification;
 use Modules\Frontdeskcrm\Models\Guest;
+use Modules\Frontdeskcrm\Rules\ValidEmail; // ✅ Import Mail Facade
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Emails\BookingConfirmation; // ✅ Import Booking Mail
-use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Contact Mail
-use Modules\Website\Services\BookingCartService;
-use Modules\Website\Services\RoomAvailabilityService;
+use Modules\Website\Emails\ContactMessageReceived;
+use Modules\Website\Models\Amenity;
+use Modules\Website\Models\Booking; // ✅ Import Contact Mail
+use Modules\Website\Models\ContactMessage;
+use Modules\Website\Models\Dining;
+use Modules\Website\Models\FacilitiesPage;
+use Modules\Website\Models\MeetingPage;
 use Modules\Website\Models\NewsletterSubscriber;
 use Inertia\Inertia;
-
+use Modules\Website\Models\OffersPage;
+use Modules\Website\Models\Settings;
+use Modules\Website\Models\Testimonial;
+use Modules\Website\Services\BookingCartService;
 
 class WebsiteController extends Controller
 {
     public function index()
     {
-        // 1. Settings can remain an array (accessed by key)
-        $settings = \Modules\Website\Models\Settings::pluck('value', 'key')->toArray();
+        $currentProperty = Property::current();
+        $propertyName = $currentProperty?->name ?? config('app.name');
 
-        // 2. Featured Room Types (NEW architecture)
+        $globalSettings = Settings::pluck('value', 'key')->toArray();
+        $propertySettings = $currentProperty?->getWebsiteSettings() ?? [];
+        $settings = array_merge($globalSettings, $propertySettings);
+
         $featuredRooms = RoomType::where('is_featured', true)
             ->where('is_active', true)
             ->withCount('units')
@@ -53,13 +67,43 @@ class WebsiteController extends Controller
 
         $dining = Dining::all();
 
-        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining'));
-        /**return Inertia::render('Welcome', [
-            'settings' => $settings,
-            'featuredRooms' => $featuredRooms,
-            'testimonials' => $testimonials,
-            'dining' => $dining,
-        ]);**/
+
+        $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
+        $meta_keywords = 'boutique hotel, apart-hotel, luxury accommodation, short let, best hotel, Brickspoint, apart-hotel Nigeria';
+        $og_title = $propertyName . ' — Luxury Short & Long Stays';
+
+        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
+        
+    }
+
+    public function index2()
+    {
+        $currentProperty = Property::current();
+        $propertyName = $currentProperty?->name ?? config('app.name');
+
+        $globalSettings = Settings::pluck('value', 'key')->toArray();
+        $propertySettings = $currentProperty?->getWebsiteSettings() ?? [];
+        $settings = array_merge($globalSettings, $propertySettings);
+
+        $featuredRooms = RoomType::where('is_featured', true)
+            ->where('is_active', true)
+            ->withCount('units')
+            ->with('amenities')
+            ->ordered()
+            ->get();
+
+        $testimonials = Testimonial::where('approved', true)
+            ->latest()
+            ->get();
+
+        $dining = Dining::all();
+
+
+        $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
+        $meta_keywords = 'boutique hotel, apart-hotel, luxury accommodation, short let, best hotel, Brickspoint, apart-hotel Nigeria';
+        $og_title = $propertyName . ' — Luxury Short & Long Stays';
+
+        return Inertia::render('Welcome', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     /**
@@ -67,35 +111,38 @@ class WebsiteController extends Controller
      */
     public function rooms(Request $request)
     {
-        // 1. Base Query - Room Types (not individual rooms)
         $query = RoomType::where('is_active', true)
             ->withCount('units')
             ->with(['amenities', 'units']);
 
-        // 2. Search (Name/Description)
         $query->when($request->filled('search'), function ($q) use ($request) {
             $q->where(function ($sub) use ($request) {
-                $sub->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+                $sub->where('name', 'like', '%'.$request->search.'%')
+                    ->orWhere('description', 'like', '%'.$request->search.'%');
             });
         });
 
-        // 3. Filter by Min Price
         $query->when($request->filled('min_price'), function ($q) use ($request) {
             $q->where('price', '>=', $request->min_price);
         });
 
-        // 4. Filter by Max Price
         $query->when($request->filled('max_price'), function ($q) use ($request) {
             $q->where('price', '<=', $request->max_price);
         });
 
-        // 5. Filter by Guests
         $query->when($request->filled('guests'), function ($q) use ($request) {
             $q->where('capacity', '>=', $request->guests);
         });
 
-        // 6. Sorting
+        $query->when($request->filled('city'), function ($q) use ($request) {
+            $propertyIds = Property::where('city', $request->city)
+                ->where('is_active', true)
+                ->pluck('id');
+            if ($propertyIds->isNotEmpty()) {
+                $q->whereIn('property_id', $propertyIds);
+            }
+        });
+
         if ($request->filled('sort')) {
             switch ($request->sort) {
                 case 'price_asc':
@@ -112,26 +159,97 @@ class WebsiteController extends Controller
             $query->ordered();
         }
 
-        // 7. Pagination
         $roomTypes = $query->paginate(10)->withQueryString();
 
-        // 8. If dates provided, calculate availability for each type
         $checkIn = $request->check_in;
         $checkOut = $request->check_out;
 
-        return view('website::rooms', compact('roomTypes', 'checkIn', 'checkOut'));
+        $selectedCity = $request->city;
+
+        $currentProperty = Property::current();
+        $propName = $currentProperty?->name ?? config('app.name');
+        $meta_description = "Browse our premium room types and suites. Find the perfect accommodation for your stay.";
+        $meta_keywords = 'rooms, suites, apart-hotel rooms, luxury accommodation, Brickspoint rooms';
+        $og_title = "Rooms & Suites — {$propName}";
+
+        return view('website::rooms', compact('roomTypes', 'checkIn', 'checkOut', 'selectedCity', 'meta_description', 'meta_keywords', 'og_title'));
     }
+
+    public function rooms2(Request $request)
+    {
+        $query = RoomType::where('is_active', true)
+            ->withCount('units')
+            ->with(['amenities', 'units']);
+
+        $query->when($request->filled('search'), function ($q) use ($request) {
+            $q->where(function ($sub) use ($request) {
+                $sub->where('name', 'like', '%'.$request->search.'%')
+                    ->orWhere('description', 'like', '%'.$request->search.'%');
+            });
+        });
+
+        $query->when($request->filled('min_price'), function ($q) use ($request) {
+            $q->where('price', '>=', $request->min_price);
+        });
+
+        $query->when($request->filled('max_price'), function ($q) use ($request) {
+            $q->where('price', '<=', $request->max_price);
+        });
+
+        $query->when($request->filled('guests'), function ($q) use ($request) {
+            $q->where('capacity', '>=', $request->guests);
+        });
+
+        $query->when($request->filled('city'), function ($q) use ($request) {
+            $propertyIds = Property::where('city', $request->city)
+                ->where('is_active', true)
+                ->pluck('id');
+            if ($propertyIds->isNotEmpty()) {
+                $q->whereIn('property_id', $propertyIds);
+            }
+        });
+
+        if ($request->filled('sort')) {
+            switch ($request->sort) {
+                case 'price_asc':
+                    $query->orderBy('price', 'asc');
+                    break;
+                case 'price_desc':
+                    $query->orderBy('price', 'desc');
+                    break;
+                default:
+                    $query->ordered();
+                    break;
+            }
+        } else {
+            $query->ordered();
+        }
+
+        $roomTypes = $query->paginate(10)->withQueryString();
+
+        $checkIn = $request->check_in;
+        $checkOut = $request->check_out;
+
+        $selectedCity = $request->city;
+
+        $currentProperty = Property::current();
+        $propName = $currentProperty?->name ?? config('app.name');
+        $meta_description = "Browse our premium room types and suites. Find the perfect accommodation for your stay.";
+        $meta_keywords = 'rooms, suites, apart-hotel rooms, luxury accommodation, Brickspoint rooms';
+        $og_title = "Rooms & Suites — {$propName}";
+
+        return Inertia::render('Rooms', compact('roomTypes', 'checkIn', 'checkOut', 'selectedCity', 'meta_description', 'meta_keywords', 'og_title'));
+    }
+
     /**
      * Show details for a specific room type.
      */
     public function roomDetails($slug)
     {
-        // 1. Fetch the room type by Slug or ID
         $roomType = is_numeric($slug)
             ? RoomType::with(['amenities', 'images', 'units'])->findOrFail($slug)
             : RoomType::with(['amenities', 'images', 'units'])->where('slug', $slug)->firstOrFail();
 
-        // 2. Fetch Related Room Types
         $relatedRooms = RoomType::where('id', '!=', $roomType->id)
             ->where('is_active', true)
             ->with('amenities')
@@ -139,7 +257,13 @@ class WebsiteController extends Controller
             ->take(3)
             ->get();
 
-        return view('website::room-details', compact('roomType', 'relatedRooms'));
+        $propName = optional(Property::find($roomType->property_id))->name ?? config('app.name');
+        $meta_description = strip_tags($roomType->short_description ?? $roomType->description ?? '').' — Book the '.$roomType->name.'.';
+        $meta_keywords = strtolower($roomType->name).', '.($roomType->amenities->pluck('name')->implode(', ') ?? 'luxury rooms');
+        $og_title = $roomType->name.' — '.$propName;
+        $og_image = $roomType->images->first()?->url ?? asset('images/og-default.jpg');
+
+        return view('website::room-details', compact('roomType', 'relatedRooms', 'meta_description', 'meta_keywords', 'og_title', 'og_image'));
     }
 
     /**
@@ -149,19 +273,36 @@ class WebsiteController extends Controller
      */
     public function booking(Request $request)
     {
-        $cartService = new BookingCartService();
+        $cartService = new BookingCartService;
         $cart = $cartService->getCartSummary();
 
+        // Fetch existing guest profile for logged-in users
+        $guest = null;
+        if (Auth::check()) {
+            $guest = Guest::where('user_id', Auth::id())->first() ?? new Guest;
+        }
+
+        $viewData = compact('guest');
+
+        $currentProperty = Property::current();
+        $propName = $currentProperty?->name ?? config('app.name');
+        $meta_description = "Complete your booking at {$propName}. Secure your room with our easy online reservation system.";
+        $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking';
+        $og_title = "Book Your Stay — {$propName}";
+        $viewData['meta_description'] = $meta_description;
+        $viewData['meta_keywords'] = $meta_keywords;
+        $viewData['og_title'] = $og_title;
+
         // If cart has items, use cart-based booking flow
-        if (!empty($cart['items'])) {
+        if (! empty($cart['items'])) {
             // Validate cart availability before showing form
             $unavailable = $cartService->validateAvailability();
-            if (!empty($unavailable)) {
+            if (! empty($unavailable)) {
                 return redirect()->route('website.book')
                     ->with('error', 'Some rooms in your cart are no longer available. Please review your selection.');
             }
 
-            return view('website::booking', [
+            return view('website::booking', $viewData + [
                 'cart' => $cart,
                 'roomTypes' => collect(),
                 'selectedRoomType' => null,
@@ -169,11 +310,11 @@ class WebsiteController extends Controller
             ]);
         }
 
-        // Check if room_type_id is provided (legacy direct booking from room details)
-        $roomTypeId = old('room_type_id', $request->room_type_id ?? $request->room_id);
+        // Check if room_type_id is provided
+        $roomTypeId = old('room_type_id', $request->room_type_id);
 
         // If no cart and no room selected, redirect to room selection page
-        if (!$roomTypeId) {
+        if (! $roomTypeId) {
             return redirect()->route('website.book')
                 ->with('info', 'Please select your rooms first.');
         }
@@ -186,7 +327,7 @@ class WebsiteController extends Controller
 
         $selectedRoomType = RoomType::find($roomTypeId);
 
-        return view('website::booking', [
+        return view('website::booking', $viewData + [
             'cart' => $cart,
             'roomTypes' => $roomTypes,
             'selectedRoomType' => $selectedRoomType,
@@ -199,7 +340,7 @@ class WebsiteController extends Controller
         $request->validate(['email' => 'required|email']);
 
         // Check if email exists in the Users table
-        $exists = \App\Models\User::where('email', $request->email)->exists();
+        $exists = User::where('email', $request->email)->exists();
 
         return response()->json(['exists' => $exists]);
     }
@@ -224,7 +365,7 @@ class WebsiteController extends Controller
         );
 
         // If not available due to restrictions, return error with reason
-        if (!$result['available']) {
+        if (! $result['available']) {
             return response()->json([
                 'available' => false,
                 'count' => 0,
@@ -255,251 +396,172 @@ class WebsiteController extends Controller
      */
     public function storeBooking(Request $request)
     {
-        $cartService = new BookingCartService();
+        $cartService = new BookingCartService;
         $cart = $cartService->getCartSummary();
-        $useCart = !empty($cart['items']);
+        $useCart = ! empty($cart['items']);
 
         // 1. Validation - Guest details are always required
         $rules = [
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
-            'guest_phone' => 'required|string|max:20',
+            'guest_phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'guest_gender' => 'required|in:male,female,other',
             'guest_address' => 'required|string|max:500',
             'guest_nationality' => 'required|string|max:100',
             'guest_dob' => 'nullable|date',
             'guest_id_type' => 'required|string|max:50',
-            'guest_id_number' => 'required|string|max:50',
+            'guest_id_number' => [
+                'required', 'string', 'max:50',
+                function ($attribute, $value, $fail) {
+                    $type = request('guest_id_type');
+                    if ($type === 'NIN' && ! preg_match('/^\d{11}$/', $value)) {
+                        $fail('NIN must be exactly 11 digits (e.g., 12345678901).');
+                    }
+                    if ($type === 'International Passport' && ! preg_match('/^[A-Za-z]\d{7,9}$/', $value)) {
+                        $fail('International Passport number must start with a letter followed by 7-9 digits (e.g., A01234567).');
+                    }
+                    if ($type === 'Drivers License' && ! preg_match('/^[A-Za-z]{3}\d{12}[A-Za-z]$/', $value)) {
+                        $fail('Driver\'s License must be 3 letters + 12 digits + 1 letter (e.g., ABC123456789012X).');
+                    }
+                    if ($type === 'Voters Card' && ! preg_match('/^\d{19}$/', $value)) {
+                        $fail('Voter\'s Card number must be 19 digits.');
+                    }
+                },
+            ],
             'adults' => 'required|integer|min:1',
             'children' => 'nullable|integer|min:0',
             'payment_method' => 'required|in:paystack,pay_on_arrival',
         ];
 
         // Legacy single-room validation (when not using cart)
-        if (!$useCart) {
+        if (! $useCart) {
             $rules['room_type_id'] = 'required|exists:room_types,id';
             $rules['room_unit_id'] = 'nullable|exists:room_units,id';
             $rules['check_in_date'] = 'required|date|after_or_equal:today';
             $rules['check_out_date'] = 'required|date|after:check_in_date';
         }
 
-        if (!Auth::check() && $request->has('create_account')) {
+        if (! Auth::check() && $request->has('create_account')) {
             $rules['password'] = 'required|string|min:8';
-            $rules['guest_email'] = 'required|email|unique:users,email';
+            $rules['guest_email'] = ['required', 'email', 'unique:users,email', new ValidEmail];
+            $rules['website'] = 'nullable|string|max:0';
+            $rules['register_time'] = 'required|integer';
         }
 
         $validated = $request->validate($rules);
 
-        // 2. Validate Availability using unified RoomAvailabilityService
-        $availabilityService = app(RoomAvailabilityService::class);
-
-        if ($useCart) {
-            // Cart-based: Check each room type in cart
-            foreach ($cart['items'] as $item) {
-                $result = $availabilityService->checkRoomTypeAvailability(
-                    $item['room_type_id'],
-                    $cart['check_in'],
-                    $cart['check_out'],
-                    $item['quantity']
-                );
-
-                if (!$result['available']) {
-                    return back()->with('error', $item['room_type_name'] . ': ' . $result['message'])->withInput();
-                }
-            }
-        } else {
-            // Legacy: Check single room availability with comprehensive checks
-            $result = $availabilityService->checkRoomTypeAvailability(
-                $validated['room_type_id'],
-                $validated['check_in_date'],
-                $validated['check_out_date']
-            );
-
-            if (!$result['available']) {
-                return back()->with('error', $result['message'])->withInput();
-            }
-
-            // If specific unit selected, verify it's in the available list
-            $selectedUnitId = $request->filled('room_unit_id') ? $validated['room_unit_id'] : null;
-            if ($selectedUnitId && !$result['units']->contains('id', $selectedUnitId)) {
-                return back()->with('error', 'The selected room is no longer available. Please choose another.')->withInput();
+        if ($request->has('create_account')) {
+            $registerTime = (int) $request->input('register_time');
+            if ($registerTime > 0 && time() - $registerTime < 3) {
+                return back()->withErrors(['register_time' => 'Please wait a moment before submitting.'])->withInput();
             }
         }
 
         try {
-            $result = DB::transaction(function () use ($validated, $request, $cart, $useCart, $cartService) {
+            // 2. Build room requests for the engine
+            $rooms = [];
 
-                // ====================================================
-                // SMART GUEST HANDLING
-                // ====================================================
-                $userId = Auth::id();
-
-                // Handle "Create Account" Request
-                if (!$userId && $request->has('create_account')) {
-                    $newUser = User::create([
-                        'name' => $validated['guest_name'],
-                        'email' => $validated['guest_email'],
-                        'password' => Hash::make($request->password),
-                    ]);
-                    $userId = $newUser->id;
-                    Auth::login($newUser);
-                }
-
-                // Find or Create the Guest Profile
-                $guest = Guest::where('email', $validated['guest_email'])
-                    ->orWhere('contact_number', $validated['guest_phone'])
-                    ->first();
-
-                if ($guest) {
-                    $guest->update([
-                        'full_name' => $validated['guest_name'],
-                        'gender' => $validated['guest_gender'],
-                        'home_address' => $validated['guest_address'],
-                        'nationality' => $validated['guest_nationality'],
-                        'birthday' => $validated['guest_dob'],
-                        'identification_type' => $validated['guest_id_type'],
-                        'identification_number' => $validated['guest_id_number'],
-                        'user_id' => $userId ?? $guest->user_id,
-                    ]);
-                } else {
-                    $guest = Guest::create([
-                        'user_id' => $userId,
-                        'full_name' => $validated['guest_name'],
-                        'email' => $validated['guest_email'],
-                        'contact_number' => $validated['guest_phone'],
-                        'gender' => $validated['guest_gender'],
-                        'home_address' => $validated['guest_address'],
-                        'nationality' => $validated['guest_nationality'],
-                        'birthday' => $validated['guest_dob'],
-                        'identification_type' => $validated['guest_id_type'],
-                        'identification_number' => $validated['guest_id_number'],
-                    ]);
-                }
-
-                // ====================================================
-                // CREATE BOOKING(S)
-                // ====================================================
-                $bookings = [];
-                $bookingGroupId = null;
-                $totalAmount = 0;
-
-                if ($useCart) {
-                    // CART-BASED BOOKING: Create bookings from cart
-                    // Calculate total rooms across all cart items
-                    $totalRoomsInCart = array_sum(array_column($cart['items'], 'quantity'));
-
-                    // Only generate group ID if booking more than 1 room
-                    if ($totalRoomsInCart > 1) {
-                        $bookingGroupId = 'GRP' . date('y') . strtoupper(Str::random(6));
-                    }
-
-                    foreach ($cart['items'] as $item) {
-                        // Create one booking per room quantity
-                        for ($i = 0; $i < $item['quantity']; $i++) {
-                            do {
-                                $reference = 'BK' . date('y') . strtoupper(Str::random(4));
-                            } while (Booking::where('booking_reference', $reference)->exists());
-
-                            $booking = Booking::create([
-                                'booking_reference' => $reference,
-                                'booking_group_id' => $bookingGroupId, // null for single room
-                                'user_id' => $userId,
-                                'guest_profile_id' => $guest->id,
-                                'room_type_id' => $item['room_type_id'],
-                                'room_unit_id' => null, // Assigned at check-in
-                                'guest_name' => $validated['guest_name'],
-                                'guest_email' => $validated['guest_email'],
-                                'guest_phone' => $validated['guest_phone'],
-                                'check_in_date' => $cart['check_in'],
-                                'check_out_date' => $cart['check_out'],
-                                'adults' => $validated['adults'],
-                                'children' => $validated['children'] ?? 0,
-                                'total_amount' => $item['price_per_night'] * $item['nights'],
-                                'payment_status' => 'pending',
-                                'status' => 'pending',
-                                'payment_method' => $validated['payment_method'],
-                                'special_requests' => $validated['special_requests'] ?? null,
-                            ]);
-
-                            $bookings[] = $booking;
-                            $totalAmount += $booking->total_amount;
-                        }
-                    }
-
-                    // Clear cart after successful booking
-                    $cartService->clear();
-                } else {
-                    // SINGLE-ROOM: Legacy booking flow
-                    $roomType = RoomType::findOrFail($validated['room_type_id']);
-                    $selectedUnitId = $request->filled('room_unit_id') ? $validated['room_unit_id'] : null;
-
-                    do {
-                        $reference = 'BK' . date('y') . strtoupper(Str::random(4));
-                    } while (Booking::where('booking_reference', $reference)->exists());
-
-                    $days = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']) ?: 1;
-                    $totalAmount = $roomType->price * $days;
-
-                    $booking = Booking::create([
-                        'booking_reference' => $reference,
-                        'user_id' => $userId,
-                        'guest_profile_id' => $guest->id,
-                        'room_type_id' => $roomType->id,
-                        'room_unit_id' => $selectedUnitId,
-                        'guest_name' => $validated['guest_name'],
-                        'guest_email' => $validated['guest_email'],
-                        'guest_phone' => $validated['guest_phone'],
-                        'check_in_date' => $validated['check_in_date'],
-                        'check_out_date' => $validated['check_out_date'],
+            if ($useCart) {
+                foreach ($cart['items'] as $item) {
+                    $rooms[] = [
+                        'room_type_id' => $item['room_type_id'],
+                        'check_in' => $cart['check_in'],
+                        'check_out' => $cart['check_out'],
                         'adults' => $validated['adults'],
                         'children' => $validated['children'] ?? 0,
-                        'total_amount' => $totalAmount,
-                        'payment_status' => 'pending',
-                        'status' => 'pending',
-                        'payment_method' => $validated['payment_method'],
-                        'special_requests' => $validated['special_requests'] ?? null,
-                    ]);
-
-                    $bookings[] = $booking;
+                        'quantity' => $item['quantity'],
+                        'price_per_night' => $item['price_per_night'],
+                    ];
                 }
-
-                return [
-                    'bookings' => $bookings,
-                    'group_id' => $bookingGroupId,
-                    'total_amount' => $totalAmount,
-                    'primary_booking' => $bookings[0], // First booking for payment/email
+            } else {
+                $rooms[] = [
+                    'room_type_id' => $validated['room_type_id'],
+                    'check_in' => $validated['check_in_date'],
+                    'check_out' => $validated['check_out_date'],
+                    'adults' => $validated['adults'],
+                    'children' => $validated['children'] ?? 0,
+                    'quantity' => 1,
+                    'room_unit_id' => $request->filled('room_unit_id') ? $validated['room_unit_id'] : null,
                 ];
-            });
+            }
 
-            $primaryBooking = $result['primary_booking'];
+            // 3. Handle Create Account
+            $userId = Auth::id();
+            if (! $userId && $request->has('create_account')) {
+                $newUser = User::create([
+                    'name' => $validated['guest_name'],
+                    'email' => $validated['guest_email'],
+                    'password' => Hash::make($request->password),
+                    'type' => 'guest',
+                ]);
+                $newUser->assignRole('guest');
+                $userId = $newUser->id;
+                Auth::login($newUser);
+            }
 
-            // Payment or Confirmation
+            // Derive property_id from the first room type being booked
+            $firstRoomTypeId = $rooms[0]['room_type_id'] ?? null;
+            $propertyId = $firstRoomTypeId ? RoomType::where('id', $firstRoomTypeId)->value('property_id') : null;
+
+            $engineRequest = new BookingEngineRequest([
+                'property_id' => $propertyId,
+                'guest_name' => $validated['guest_name'],
+                'guest_email' => $validated['guest_email'],
+                'guest_phone' => $validated['guest_phone'],
+                'guest_gender' => $validated['guest_gender'],
+                'guest_address' => $validated['guest_address'],
+                'guest_nationality' => $validated['guest_nationality'],
+                'guest_dob' => $validated['guest_dob'] ?? null,
+                'guest_id_type' => $validated['guest_id_type'],
+                'guest_id_number' => $validated['guest_id_number'],
+                'user_id' => $userId,
+                'payment_method' => $validated['payment_method'],
+                'special_requests' => $validated['special_requests'] ?? null,
+                'rooms' => $rooms,
+            ]);
+
+            $engineResult = app(BookingEngine::class)->createBooking($engineRequest);
+
+            if (! $engineResult->success) {
+                return back()->with('error', $engineResult->error)->withInput();
+            }
+
+            // Clear cart after successful booking
+            if ($useCart) {
+                $cartService->clear();
+            }
+
+            $primaryBooking = $engineResult->primaryBooking();
+
+            // 5. Payment or Confirmation
             if ($validated['payment_method'] === 'paystack') {
-                // For multi-room, we'll charge the total and update all bookings
-                if ($result['group_id']) {
-                    session()->put('booking_group_id', $result['group_id']);
+                if ($engineResult->bookingGroupId) {
+                    session()->put('booking_group_id', $engineResult->bookingGroupId);
                 }
-                return $this->initializePaystackGrouped($result['bookings'], $result['total_amount']);
+
+                return $this->initializePaystackGrouped(
+                    $engineResult->bookings->all(),
+                    $engineResult->totalAmount
+                );
             }
 
             // Send confirmation emails
-            foreach ($result['bookings'] as $booking) {
+            foreach ($engineResult->bookings as $booking) {
                 $this->sendConfirmationEmail($booking);
             }
 
-            // Store reference or group ID for confirmation page
-            if ($result['group_id']) {
-                session()->put('just_booked_group', $result['group_id']);
-                session()->put('just_booked_ref', $primaryBooking->booking_reference);
-            } else {
-                session()->put('just_booked_ref', $primaryBooking->booking_reference);
+            // Store reference for confirmation page
+            if ($engineResult->bookingGroupId) {
+                session()->put('just_booked_group', $engineResult->bookingGroupId);
             }
+            session()->put('just_booked_ref', $primaryBooking->booking_reference);
 
             return redirect()->route('website.booking.confirmation', $primaryBooking->booking_reference)
                 ->with('success', 'Booking Reserved! Please pay upon arrival.');
         } catch (\Exception $e) {
             Log::error($e);
-            return back()->with('error', 'Error: ' . $e->getMessage())->withInput();
+
+            return back()->with('error', 'Error: '.$e->getMessage())->withInput();
         }
     }
 
@@ -509,10 +571,10 @@ class WebsiteController extends Controller
     private function initializePaystackGrouped(array $bookings, float $totalAmount)
     {
         $primaryBooking = $bookings[0];
-        $url = "https://api.paystack.co/transaction/initialize";
+        $url = 'https://api.paystack.co/transaction/initialize';
         $secretKey = config('services.paystack.secret');
 
-        if (!$secretKey) {
+        if (! $secretKey) {
             return back()->with('error', 'Payment configuration missing.');
         }
 
@@ -520,10 +582,10 @@ class WebsiteController extends Controller
             // Generate a unique reference for the group payment
             $paymentRef = $primaryBooking->booking_group_id ?? $primaryBooking->booking_reference;
 
-            $response = \Illuminate\Support\Facades\Http::withOptions([
+            $response = Http::withOptions([
                 'verify' => false,
             ])->withHeaders([
-                'Authorization' => 'Bearer ' . $secretKey,
+                'Authorization' => 'Bearer '.$secretKey,
                 'Content-Type' => 'application/json',
             ])->post($url, [
                 'email' => $primaryBooking->guest_email,
@@ -531,14 +593,14 @@ class WebsiteController extends Controller
                 'reference' => $paymentRef,
                 'callback_url' => route('website.payment.callback'),
                 'metadata' => [
-                    'booking_ids' => array_map(fn($b) => $b->id, $bookings),
+                    'booking_ids' => array_map(fn ($b) => $b->id, $bookings),
                     'booking_group_id' => $primaryBooking->booking_group_id,
                     'custom_fields' => [
-                        ['display_name' => "Guest Name", 'variable_name' => "guest_name", 'value' => $primaryBooking->guest_name],
-                        ['display_name' => "Rooms", 'variable_name' => "rooms_count", 'value' => count($bookings)],
-                        ['display_name' => "Primary Ref", 'variable_name' => "primary_ref", 'value' => $primaryBooking->booking_reference]
-                    ]
-                ]
+                        ['display_name' => 'Guest Name', 'variable_name' => 'guest_name', 'value' => $primaryBooking->guest_name],
+                        ['display_name' => 'Rooms', 'variable_name' => 'rooms_count', 'value' => count($bookings)],
+                        ['display_name' => 'Primary Ref', 'variable_name' => 'primary_ref', 'value' => $primaryBooking->booking_reference],
+                    ],
+                ],
             ]);
 
             $result = $response->json();
@@ -546,10 +608,11 @@ class WebsiteController extends Controller
             if ($result['status']) {
                 return redirect($result['data']['authorization_url']);
             } else {
-                return back()->with('error', 'Payment initialization failed: ' . ($result['message'] ?? 'Unknown error'));
+                return back()->with('error', 'Payment initialization failed: '.($result['message'] ?? 'Unknown error'));
             }
         } catch (\Exception $e) {
-            Log::error("Paystack Init Error: " . $e->getMessage());
+            Log::error('Paystack Init Error: '.$e->getMessage());
+
             return back()->with('error', 'Could not connect to payment gateway.');
         }
     }
@@ -569,8 +632,11 @@ class WebsiteController extends Controller
             $canView = true;
         }
 
-        if (!$canView) {
-            abort(403, 'Access denied. Please login to view your booking.');
+        if (! $canView) {
+            if (Auth::check()) {
+                abort(403, 'Access denied.');
+            }
+
             return redirect()->route('website.home')->with('error', 'You are not authorized to view this booking.');
         }
 
@@ -592,19 +658,30 @@ class WebsiteController extends Controller
     {
         $amenities = Amenity::all();
         $settings = Settings::pluck('value', 'key')->toArray();
+
         return view('website::amenities', compact('amenities', 'settings'));
     }
 
     public function location()
     {
         $settings = $this->getSettings();
-        return view('website::location', compact('settings'));
+
+        $meta_description = 'Visit Brickspoint Boutique Aparthotel in Abuja, Nigeria. Find directions, map, and information about our prime location.';
+        $meta_keywords = 'Brickspoint location Abuja, apart-hotel Abuja address, map Abuja hotel, Abuja Nigeria hotel location';
+        $og_title = 'Our Location — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+
+        return view('website::location', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function contact()
     {
         $settings = $this->getSettings();
-        return view('website::contact', compact('settings'));
+
+        $meta_description = 'Get in touch with Brickspoint Boutique Aparthotel. Contact us for reservations, enquiries, or special requests. We are here to help.';
+        $meta_keywords = 'contact Brickspoint, Abuja hotel contact, apart-hotel enquiries, book hotel Abuja, Brickspoint address';
+        $og_title = 'Contact Us — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+
+        return view('website::contact', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function sendMessage(Request $request)
@@ -619,12 +696,14 @@ class WebsiteController extends Controller
         // Primary honeypot - if filled, it's a bot
         if ($request->filled('website_url')) {
             $this->logSpamAttempt($ip, 'honeypot_website_url', $request->all());
+
             return $this->fakeSuccessResponse();
         }
 
         // Secondary honeypot - "phone_number" field that should be empty
         if ($request->filled('phone_number')) {
             $this->logSpamAttempt($ip, 'honeypot_phone', $request->all());
+
             return $this->fakeSuccessResponse();
         }
 
@@ -642,6 +721,7 @@ class WebsiteController extends Controller
                 // If submitted in less than 3 seconds, likely a bot
                 if ($timeTaken < 3) {
                     $this->logSpamAttempt($ip, 'too_fast_submission', ['time_taken' => $timeTaken]);
+
                     return $this->fakeSuccessResponse();
                 }
 
@@ -653,6 +733,7 @@ class WebsiteController extends Controller
             } catch (\Exception $e) {
                 // Invalid token - could be manipulation attempt
                 $this->logSpamAttempt($ip, 'invalid_form_token', []);
+
                 return $this->fakeSuccessResponse();
             }
         }
@@ -661,22 +742,24 @@ class WebsiteController extends Controller
         // 3. RATE LIMITING (Stricter)
         // ==========================================
 
-        $cacheKey = 'contact_form_' . md5($ip);
+        $cacheKey = 'contact_form_'.md5($ip);
         $submissions = cache($cacheKey, 0);
 
         // Max 3 submissions per hour
         if ($submissions >= 3) {
             $this->logSpamAttempt($ip, 'rate_limit_exceeded', ['submissions' => $submissions]);
+
             return redirect()->route('website.contact')
                 ->with('error', 'Too many submissions. Please try again in an hour.');
         }
 
         // Also check daily limit (max 10 per day)
-        $dailyCacheKey = 'contact_form_daily_' . md5($ip);
+        $dailyCacheKey = 'contact_form_daily_'.md5($ip);
         $dailySubmissions = cache($dailyCacheKey, 0);
 
         if ($dailySubmissions >= 10) {
             $this->logSpamAttempt($ip, 'daily_limit_exceeded', ['daily_submissions' => $dailySubmissions]);
+
             return redirect()->route('website.contact')
                 ->with('error', 'Daily submission limit reached. Please try again tomorrow.');
         }
@@ -688,8 +771,9 @@ class WebsiteController extends Controller
         $recaptchaToken = $request->input('g-recaptcha-response');
         if ($recaptchaToken && config('services.recaptcha.secret')) {
             $recaptchaValid = $this->verifyRecaptcha($recaptchaToken, $ip);
-            if (!$recaptchaValid) {
+            if (! $recaptchaValid) {
                 $this->logSpamAttempt($ip, 'recaptcha_failed', []);
+
                 return redirect()->route('website.contact')
                     ->with('error', 'Security verification failed. Please try again.');
             }
@@ -717,8 +801,9 @@ class WebsiteController extends Controller
         if ($spamCheck['is_spam']) {
             $this->logSpamAttempt($ip, 'spam_pattern_detected', [
                 'reason' => $spamCheck['reason'],
-                'data' => $validated
+                'data' => $validated,
             ]);
+
             return $this->fakeSuccessResponse();
         }
 
@@ -753,7 +838,7 @@ class WebsiteController extends Controller
             $adminEmail = config('mail.from.address', 'info@brickspoint.com');
             Mail::to($adminEmail)->send(new ContactMessageReceived($validated));
         } catch (\Exception $e) {
-            Log::error("Contact Email Failed: " . $e->getMessage());
+            Log::error('Contact Email Failed: '.$e->getMessage());
         }
 
         return redirect()->route('website.contact')->with('success', 'Your message has been sent!');
@@ -786,7 +871,8 @@ class WebsiteController extends Controller
 
             return false;
         } catch (\Exception $e) {
-            Log::error('reCAPTCHA verification error: ' . $e->getMessage());
+            Log::error('reCAPTCHA verification error: '.$e->getMessage());
+
             // If reCAPTCHA service fails, allow submission but log it
             return true;
         }
@@ -828,10 +914,10 @@ class WebsiteController extends Controller
             'nude',
         ];
 
-        $lowerMessage = strtolower($message . ' ' . $name);
+        $lowerMessage = strtolower($message.' '.$name);
         foreach ($spamKeywords as $keyword) {
             if (str_contains($lowerMessage, $keyword)) {
-                return ['is_spam' => true, 'reason' => 'spam_keyword: ' . $keyword];
+                return ['is_spam' => true, 'reason' => 'spam_keyword: '.$keyword];
             }
         }
 
@@ -892,7 +978,7 @@ class WebsiteController extends Controller
         ]);
 
         // Increment spam counter for this IP (for potential IP blocking)
-        $spamCacheKey = 'spam_attempts_' . md5($ip);
+        $spamCacheKey = 'spam_attempts_'.md5($ip);
         $spamAttempts = cache($spamCacheKey, 0);
         cache([$spamCacheKey => $spamAttempts + 1], now()->addDay());
     }
@@ -904,12 +990,14 @@ class WebsiteController extends Controller
     {
         // Add a small random delay to mimic real processing
         usleep(rand(100000, 500000)); // 100-500ms
+
         return redirect()->route('website.contact')->with('success', 'Your message has been sent!');
     }
 
     public function about()
     {
         $settings = $this->getSettings();
+
         return view('website::about', compact('settings'));
     }
 
@@ -919,6 +1007,7 @@ class WebsiteController extends Controller
             ['name' => 'John Doe', 'text' => 'Amazing stay, great service!', 'rating' => 5],
             ['name' => 'Jane Smith', 'text' => 'Loved the pool and food.', 'rating' => 4],
         ];
+
         return view('website::testimonials', compact('testimonials'));
     }
 
@@ -928,21 +1017,83 @@ class WebsiteController extends Controller
             ['title' => 'Summer Deals', 'excerpt' => 'Check out our latest offers...', 'date' => '2025-03-29'],
             ['title' => 'Local Events', 'excerpt' => 'What’s happening nearby...', 'date' => '2025-03-25'],
         ];
+
         return view('website::blog', compact('posts'));
     }
+
     /**
      * Display the Dining & Menu page.
      */
     public function dining()
     {
-        // 1. Fetch Global Settings (Logo, Phone, etc.)
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        // 2. Fetch Dining Options
         $diningOptions = Dining::all();
 
-        return view('website::dining', compact('settings', 'diningOptions'));
+        $meta_description = 'Explore dining at Brickspoint Boutique Aparthotel. Enjoy exquisite cuisine at our on-site restaurant, bar, and dining venues in Abuja.';
+        $meta_keywords = 'dining Abuja, restaurant Abuja, Brickspoint restaurant, fine dining Abuja, apart-hotel dining';
+        $og_title = 'Dining — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+
+        return view('website::dining', compact('settings', 'diningOptions', 'meta_description', 'meta_keywords', 'og_title'));
     }
+
+    public function diningMenu(Dining $dining)
+    {
+        $settings = Settings::pluck('value', 'key')->toArray();
+
+        $meta_description = 'View the menu for '.$dining->name.' at Brickspoint Boutique Aparthotel.';
+        $meta_keywords = $dining->name.' menu, dining Abuja, restaurant menu';
+        $og_title = $dining->name.' Menu — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+
+        return view('website::menu', compact('settings', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
+    }
+
+    public function offers()
+    {
+        $page = OffersPage::firstOrCreate(
+            ['id' => 1],
+            [
+                'hero_title' => 'Exclusive Offers',
+                'hero_subtitle' => 'Brickspoint ApartHotel',
+                'intro_heading' => 'Special Packages & Deals',
+                'intro_description' => 'Discover our latest offers and experience great savings on your stay.',
+            ]
+        );
+
+        $page->load('offers');
+
+        $settings = Settings::pluck('value', 'key')->toArray();
+
+        $meta_description = 'Discover exclusive offers and special packages at Brickspoint Boutique Aparthotel. Save on your next stay in Abuja.';
+        $meta_keywords = 'hotel deals Abuja, apart-hotel offers, Brickspoint promotions, Abuja hotel packages';
+        $og_title = 'Offers & Deals — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+
+        return view('website::offers', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
+    }
+
+    public function facilities()
+    {
+        $page = FacilitiesPage::firstOrCreate(
+            ['id' => 1],
+            [
+                'hero_title' => 'Our Facilities',
+                'hero_subtitle' => 'Experience Luxury & Comfort',
+                'intro_heading' => 'Amenities & Services',
+                'intro_description' => 'Discover a wide range of facilities designed to make your stay unforgettable.',
+            ]
+        );
+
+        $page->load('items');
+
+        $settings = Settings::pluck('value', 'key')->toArray();
+
+        $meta_description = 'Explore the premium facilities at Brickspoint Boutique Aparthotel — gym, restaurant, meeting rooms, and more in Abuja.';
+        $meta_keywords = 'hotel facilities Abuja, apart-hotel amenities, Brickspoint gym, meeting rooms Abuja, Abuja hotel services';
+        $og_title = 'Facilities — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+
+        return view('website::facilities', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
+    }
+
     /**
      * Smart Availability Check
      * Uses unified RoomAvailabilityService for comprehensive checking:
@@ -982,9 +1133,10 @@ class WebsiteController extends Controller
                         'room_type_id' => $validated['room_type_id'],
                         'check_in' => $validated['check_in_date'],
                         'check_out' => $validated['check_out_date'],
-                    ])
+                    ]),
                 ]);
             }
+
             return redirect()->route('website.book', [
                 'room_type_id' => $validated['room_type_id'],
                 'check_in' => $validated['check_in_date'],
@@ -1013,17 +1165,17 @@ class WebsiteController extends Controller
 
                 if ($latestBooking) {
                     $unitFreeDate = Carbon::parse($latestBooking->check_out_date);
-                    if (!$earliestAvailable || $unitFreeDate->lt($earliestAvailable)) {
+                    if (! $earliestAvailable || $unitFreeDate->lt($earliestAvailable)) {
                         $earliestAvailable = $unitFreeDate;
                     }
                 }
             }
 
             if ($earliestAvailable) {
-                $message .= " Next available from " . $earliestAvailable->format('M j, Y') . ".";
+                $message .= ' Next available from '.$earliestAvailable->format('M j, Y').'.';
                 $suggestion = [
                     'check_in' => $earliestAvailable->format('Y-m-d'),
-                    'check_out' => $earliestAvailable->copy()->addDay()->format('Y-m-d')
+                    'check_out' => $earliestAvailable->copy()->addDay()->format('Y-m-d'),
                 ];
             }
         }
@@ -1033,7 +1185,7 @@ class WebsiteController extends Controller
                 'available' => false,
                 'message' => $message,
                 'reason' => $result['reason'] ?? 'unavailable',
-                'suggestion' => $suggestion
+                'suggestion' => $suggestion,
             ]);
         }
 
@@ -1067,7 +1219,7 @@ class WebsiteController extends Controller
         $isAuthorized = session('just_booked_ref') === $booking->booking_reference
             || (Auth::check() && $booking->user_id === Auth::id());
 
-        if (!$isAuthorized) {
+        if (! $isAuthorized) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -1075,35 +1227,38 @@ class WebsiteController extends Controller
         if ($request->filled('email') && $request->email !== $booking->guest_email) {
             $booking->update(['guest_email' => $request->email]);
 
-            // If the user has a profile linked, we might want to update that too? 
+            // If the user has a profile linked, we might want to update that too?
             // For now, let's just update the booking contact info.
         }
 
         // 📧 Resend Email
         try {
             Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
-            return back()->with('success', 'Confirmation email sent to ' . $booking->guest_email);
+
+            return back()->with('success', 'Confirmation email sent to '.$booking->guest_email);
         } catch (\Exception $e) {
-            Log::error("Resend Email Failed: " . $e->getMessage());
+            Log::error('Resend Email Failed: '.$e->getMessage());
+
             return back()->with('error', 'Could not send email. Please contact support.');
         }
     }
+
     /**
      * ✅ Initialize Paystack Transaction
      */
     private function initializePaystack(Booking $booking)
     {
-        $url = "https://api.paystack.co/transaction/initialize";
+        $url = 'https://api.paystack.co/transaction/initialize';
         $secretKey = config('services.paystack.secret');
-        if (!$secretKey) {
+        if (! $secretKey) {
             return back()->with('error', 'Payment configuration missing.');
         }
 
         try {
-            $response = \Illuminate\Support\Facades\Http::withOptions([
+            $response = Http::withOptions([
                 'verify' => false, // ⚠️ DISABLES SSL CHECK (For Localhost/Dev Only)
             ])->withHeaders([
-                'Authorization' => 'Bearer ' . $secretKey,
+                'Authorization' => 'Bearer '.$secretKey,
                 'Content-Type' => 'application/json',
             ])->post($url, [
                 'email' => $booking->guest_email,
@@ -1113,10 +1268,10 @@ class WebsiteController extends Controller
                 'metadata' => [
                     'booking_id' => $booking->id,
                     'custom_fields' => [
-                        ['display_name' => "Guest Name", 'variable_name' => "guest_name", 'value' => $booking->guest_name],
-                        ['display_name' => "Booking Ref", 'variable_name' => "booking_ref", 'value' => $booking->booking_reference]
-                    ]
-                ]
+                        ['display_name' => 'Guest Name', 'variable_name' => 'guest_name', 'value' => $booking->guest_name],
+                        ['display_name' => 'Booking Ref', 'variable_name' => 'booking_ref', 'value' => $booking->booking_reference],
+                    ],
+                ],
             ]);
 
             $result = $response->json();
@@ -1125,10 +1280,11 @@ class WebsiteController extends Controller
                 // Redirect user to Paystack Payment Page
                 return redirect($result['data']['authorization_url']);
             } else {
-                return back()->with('error', 'Payment initialization failed: ' . ($result['message'] ?? 'Unknown error'));
+                return back()->with('error', 'Payment initialization failed: '.($result['message'] ?? 'Unknown error'));
             }
         } catch (\Exception $e) {
-            Log::error("Paystack Init Error: " . $e->getMessage());
+            Log::error('Paystack Init Error: '.$e->getMessage());
+
             return back()->with('error', 'Could not connect to payment gateway.');
         }
     }
@@ -1142,17 +1298,17 @@ class WebsiteController extends Controller
         $reference = $request->query('reference'); // Paystack returns this
         $secretKey = config('services.paystack.secret');
 
-        if (!$reference) {
+        if (! $reference) {
             return redirect()->route('website.home')->with('error', 'No payment reference provided.');
         }
 
         try {
             // Verify with Paystack API
-            $response = \Illuminate\Support\Facades\Http::withOptions([
+            $response = Http::withOptions([
                 'verify' => false, // ⚠️ DISABLES SSL CHECK (For Localhost/Dev Only)
             ])->withHeaders([
-                'Authorization' => 'Bearer ' . $secretKey,
-            ])->get("https://api.paystack.co/transaction/verify/" . $reference);
+                'Authorization' => 'Bearer '.$secretKey,
+            ])->get('https://api.paystack.co/transaction/verify/'.$reference);
 
             $result = $response->json();
 
@@ -1160,8 +1316,9 @@ class WebsiteController extends Controller
                 // Check if this is a group payment (reference starts with GRP)
                 $isGroupPayment = str_starts_with($reference, 'GRP');
 
+                $engine = app(BookingEngine::class);
+
                 if ($isGroupPayment) {
-                    // Update all bookings in the group
                     $bookings = Booking::where('booking_group_id', $reference)->get();
 
                     if ($bookings->isEmpty()) {
@@ -1169,11 +1326,7 @@ class WebsiteController extends Controller
                     }
 
                     foreach ($bookings as $booking) {
-                        $booking->update([
-                            'payment_status' => 'paid',
-                            'amount_paid' => $booking->total_amount,
-                            'status' => 'confirmed',
-                        ]);
+                        $engine->confirmBooking($booking);
                         $this->sendConfirmationEmail($booking);
                     }
 
@@ -1182,18 +1335,12 @@ class WebsiteController extends Controller
                     session()->put('just_booked_group', $reference);
 
                     return redirect()->route('website.booking.confirmation', $primaryBooking->booking_reference)
-                        ->with('success', 'Payment successful! All ' . $bookings->count() . ' rooms are confirmed.');
+                        ->with('success', 'Payment successful! All '.$bookings->count().' rooms are confirmed.');
                 } else {
-                    // Single booking payment
                     $booking = Booking::where('booking_reference', $reference)->first();
 
                     if ($booking) {
-                        $booking->update([
-                            'payment_status' => 'paid',
-                            'amount_paid' => $booking->total_amount,
-                            'status' => 'confirmed',
-                        ]);
-
+                        $engine->confirmBooking($booking);
                         $this->sendConfirmationEmail($booking);
                         session()->put('just_booked_ref', $booking->booking_reference);
 
@@ -1205,7 +1352,8 @@ class WebsiteController extends Controller
 
             return redirect()->route('website.booking')->with('error', 'Payment verification failed. Please try again.');
         } catch (\Exception $e) {
-            Log::error("Paystack Verify Error: " . $e->getMessage());
+            Log::error('Paystack Verify Error: '.$e->getMessage());
+
             return redirect()->route('website.booking')->with('error', 'Payment verification error.');
         }
     }
@@ -1222,8 +1370,9 @@ class WebsiteController extends Controller
         $signature = $request->header('x-paystack-signature');
         $payload = $request->getContent();
 
-        if (!$signature || hash_hmac('sha512', $payload, $secretKey) !== $signature) {
+        if (! $signature || hash_hmac('sha512', $payload, $secretKey) !== $signature) {
             Log::warning('Paystack webhook: Invalid signature');
+
             return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 401);
         }
 
@@ -1242,49 +1391,36 @@ class WebsiteController extends Controller
             $channel = $data['channel'] ?? 'unknown'; // card, bank_transfer, ussd, etc.
 
             if ($reference && $status === 'success') {
-                // Check if this is a group payment
+                $engine = app(BookingEngine::class);
                 $isGroupPayment = str_starts_with($reference, 'GRP');
 
                 if ($isGroupPayment) {
-                    // Update all bookings in the group
                     $bookings = Booking::where('booking_group_id', $reference)
-                        ->where('payment_status', '!=', 'paid') // Only update if not already paid
+                        ->where('payment_status', '!=', 'paid')
                         ->get();
 
                     if ($bookings->isNotEmpty()) {
                         foreach ($bookings as $booking) {
-                            $booking->update([
-                                'payment_status' => 'paid',
-                                'amount_paid' => $booking->total_amount,
-                                'payment_method' => $channel,
-                                'status' => 'confirmed',
-                            ]);
+                            $engine->confirmBooking($booking);
                             $this->sendConfirmationEmail($booking);
                         }
 
-                        Log::info('Paystack webhook: Group payment confirmed via ' . $channel, [
+                        Log::info('Paystack webhook: Group payment confirmed via '.$channel, [
                             'reference' => $reference,
                             'bookings_count' => $bookings->count(),
                             'total_amount' => $amount,
                         ]);
                     }
                 } else {
-                    // Single booking payment
                     $booking = Booking::where('booking_reference', $reference)
-                        ->where('payment_status', '!=', 'paid') // Only update if not already paid
+                        ->where('payment_status', '!=', 'paid')
                         ->first();
 
                     if ($booking) {
-                        $booking->update([
-                            'payment_status' => 'paid',
-                            'amount_paid' => $booking->total_amount,
-                            'payment_method' => $channel,
-                            'status' => 'confirmed',
-                        ]);
-
+                        $engine->confirmBooking($booking);
                         $this->sendConfirmationEmail($booking);
 
-                        Log::info('Paystack webhook: Payment confirmed via ' . $channel, [
+                        Log::info('Paystack webhook: Payment confirmed via '.$channel, [
                             'reference' => $reference,
                             'booking_id' => $booking->id,
                             'amount' => $amount,
@@ -1337,7 +1473,7 @@ class WebsiteController extends Controller
                 Mail::to($reservationsEmail)->send(new BookingConfirmation($booking, true)); // true = staff copy
             }
         } catch (\Exception $e) {
-            Log::error("Email Failed: " . $e->getMessage());
+            Log::error('Email Failed: '.$e->getMessage());
         }
     }
 
@@ -1370,7 +1506,7 @@ class WebsiteController extends Controller
                 ->where('guest_email', $email)
                 ->first();
 
-            if (!$booking) {
+            if (! $booking) {
                 return back()->with('error', 'No booking found with this group reference. Please check your details.');
             }
 
@@ -1379,8 +1515,8 @@ class WebsiteController extends Controller
             session()->put('just_booked_group', $reference);
 
             return redirect()->route('website.booking.confirmation', $booking->booking_reference)
-                ->with('success', 'Group booking found! Showing all ' .
-                    Booking::where('booking_group_id', $reference)->count() . ' rooms.');
+                ->with('success', 'Group booking found! Showing all '.
+                    Booking::where('booking_group_id', $reference)->count().' rooms.');
         }
 
         // Standard individual booking reference (BK...)
@@ -1388,7 +1524,7 @@ class WebsiteController extends Controller
             ->where('guest_email', $email)
             ->first();
 
-        if (!$booking) {
+        if (! $booking) {
             return back()->with('error', 'No booking found with these details. Please check your reference code.');
         }
 
@@ -1414,7 +1550,7 @@ class WebsiteController extends Controller
      */
     public function bookStep1(Request $request)
     {
-        $cartService = new BookingCartService();
+        $cartService = new BookingCartService;
         $availabilityService = app(RoomAvailabilityService::class);
 
         // Get dates from request or cart
@@ -1428,26 +1564,36 @@ class WebsiteController extends Controller
         if ($request->filled('room_type_id')) {
             $roomType = RoomType::find($request->room_type_id);
             if ($roomType) {
-                $availability = $availabilityService->checkRoomTypeAvailability($roomType->id, $checkIn, $checkOut);
-                if ($availability['available']) {
-                    // Auto-add 1 room of this type to the cart
-                    $cartService->add($roomType->id, 1, $checkIn, $checkOut);
+                $result = $cartService->add($roomType->id, 1, $checkIn, $checkOut);
+                if (! $result['success']) {
+                    return redirect()->route('website.book.step1')
+                        ->with('error', $result['message']);
                 }
             }
         }
 
         // Get all active room types with comprehensive availability info
-        $roomTypes = RoomType::where('is_active', true)
+        $roomTypesQuery = RoomType::where('is_active', true)
             ->with(['amenities', 'units'])
-            ->withCount('units')
-            ->ordered()
-            ->get()
+            ->withCount('units');
+
+        $roomTypesQuery->when($request->filled('city'), function ($q) use ($request) {
+            $propertyIds = Property::where('city', $request->city)
+                ->where('is_active', true)
+                ->pluck('id');
+            if ($propertyIds->isNotEmpty()) {
+                $q->whereIn('property_id', $propertyIds);
+            }
+        });
+
+        $roomTypes = $roomTypesQuery->ordered()->get()
             ->map(function ($roomType) use ($checkIn, $checkOut, $availabilityService) {
                 $availability = $availabilityService->checkRoomTypeAvailability($roomType->id, $checkIn, $checkOut);
                 $roomType->available_count = $availability['available_count'] ?? 0;
                 $roomType->is_available = $availability['available'];
                 $roomType->availability_message = $availability['message'] ?? null;
                 $roomType->availability_reason = $availability['reason'] ?? null;
+
                 return $roomType;
             });
 
@@ -1469,11 +1615,20 @@ class WebsiteController extends Controller
 
         $availabilityService = app(RoomAvailabilityService::class);
 
-        $roomTypes = RoomType::where('is_active', true)
+        $query = RoomType::where('is_active', true)
             ->with('amenities')
-            ->withCount('units')
-            ->ordered()
-            ->get()
+            ->withCount('units');
+
+        $query->when($request->filled('city'), function ($q) use ($request) {
+            $propertyIds = Property::where('city', $request->city)
+                ->where('is_active', true)
+                ->pluck('id');
+            if ($propertyIds->isNotEmpty()) {
+                $q->whereIn('property_id', $propertyIds);
+            }
+        });
+
+        $roomTypes = $query->ordered()->get()
             ->map(function ($roomType) use ($validated, $availabilityService) {
                 $availability = $availabilityService->checkRoomTypeAvailability(
                     $roomType->id,
@@ -1495,7 +1650,7 @@ class WebsiteController extends Controller
                     'is_available' => $availability['available'],
                     'availability_message' => $availability['message'] ?? null,
                     'availability_reason' => $availability['reason'] ?? null,
-                    'amenities' => $roomType->amenities->map(fn($a) => [
+                    'amenities' => $roomType->amenities->map(fn ($a) => [
                         'name' => $a->name,
                         'icon' => $a->icon,
                     ]),
@@ -1522,7 +1677,7 @@ class WebsiteController extends Controller
             'check_out' => 'required|date|after:check_in',
         ]);
 
-        $cartService = new BookingCartService();
+        $cartService = new BookingCartService;
         $result = $cartService->add(
             $validated['room_type_id'],
             $validated['quantity'],
@@ -1543,7 +1698,7 @@ class WebsiteController extends Controller
             'quantity' => 'required|integer|min:0|max:10',
         ]);
 
-        $cartService = new BookingCartService();
+        $cartService = new BookingCartService;
         $result = $cartService->update($validated['room_type_id'], $validated['quantity']);
 
         return response()->json($result);
@@ -1554,7 +1709,7 @@ class WebsiteController extends Controller
      */
     public function cartRemove($roomTypeId)
     {
-        $cartService = new BookingCartService();
+        $cartService = new BookingCartService;
         $result = $cartService->remove((int) $roomTypeId);
 
         return response()->json($result);
@@ -1565,7 +1720,7 @@ class WebsiteController extends Controller
      */
     public function cartClear()
     {
-        $cartService = new BookingCartService();
+        $cartService = new BookingCartService;
         $result = $cartService->clear();
 
         return response()->json($result);
@@ -1576,7 +1731,7 @@ class WebsiteController extends Controller
      */
     public function cartGet()
     {
-        $cartService = new BookingCartService();
+        $cartService = new BookingCartService;
 
         return response()->json([
             'success' => true,
@@ -1590,9 +1745,11 @@ class WebsiteController extends Controller
     public function subscribeNewsletter(Request $request)
     {
         $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
             'email' => 'required|email:rfc,dns|max:255',
         ], [
             'email.email' => 'Please enter a valid email address.',
+            'email.required' => 'Please enter your email address.',
         ]);
 
         // Check if already subscribed
@@ -1608,6 +1765,7 @@ class WebsiteController extends Controller
 
             // Reactivate subscription
             $existing->update([
+                'name' => $validated['name'] ?? $existing->name,
                 'is_active' => true,
                 'subscribed_at' => now(),
                 'unsubscribed_at' => null,
@@ -1621,14 +1779,213 @@ class WebsiteController extends Controller
 
         // Create new subscriber
         NewsletterSubscriber::create([
+            'name' => $validated['name'] ?? null,
             'email' => $validated['email'],
             'is_active' => true,
             'subscribed_at' => now(),
         ]);
 
+        $greeting = $validated['name'] ? "Thank you, {$validated['name']}!" : 'Thank you for subscribing to our newsletter!';
+
         return response()->json([
             'success' => true,
-            'message' => 'Thank you for subscribing to our newsletter!',
+            'message' => $greeting,
         ]);
+    }
+
+    public function meetings()
+    {
+        /** @var MeetingPage|null $page */
+        $page = MeetingPage::with(['rooms', 'gallery'])->first();
+
+        if (! $page) {
+            $page = MeetingPage::create([
+                'hero_title' => 'Meetings & Events Space',
+                'hero_subtitle' => 'Brickspoint ApartHotel',
+                'hero_description' => 'Discover our versatile meeting and event spaces, equipped with modern facilities and dedicated service.',
+                'is_published' => true,
+            ]);
+        }
+
+        $settings = Settings::pluck('value', 'key')->toArray();
+
+        return view('website::meetings', compact('page', 'settings'));
+    }
+
+    public function meetingEnquiry()
+    {
+        $settings = Settings::pluck('value', 'key')->toArray();
+
+        return view('website::meeting-enquiry', compact('settings'));
+    }
+
+    public function storeEnquiry(Request $request)
+    {
+        $ip = $request->ip();
+
+        // ==========================================
+        // 1. HONEYPOT / TIMING CHECKS
+        // ==========================================
+
+        // Honeypot fields must be empty
+        if (! empty($request->input('website_url')) || ! empty($request->input('phone_number'))) {
+            $this->logSpamAttempt($ip, 'honeypot_triggered', []);
+
+            return $this->fakeSuccessResponse();
+        }
+
+        // Validate encrypted form token
+        if ($token = $request->input('_form_token')) {
+            try {
+                $timeTaken = now()->diffInSeconds(now()->subSeconds(decrypt($token)) ?? now());
+
+                // Submissions faster than 3 seconds are likely bots
+                if ($timeTaken < 3) {
+                    $this->logSpamAttempt($ip, 'too_fast_submission', ['time_taken' => $timeTaken]);
+
+                    return $this->fakeSuccessResponse();
+                }
+
+                // If form token is older than 30 minutes, reject (stale form)
+                if ($timeTaken > 1800) {
+                    return redirect()->route('website.meeting-enquiry')
+                        ->with('error', 'Your session has expired. Please try again.');
+                }
+            } catch (\Exception $e) {
+                $this->logSpamAttempt($ip, 'invalid_form_token', []);
+
+                return $this->fakeSuccessResponse();
+            }
+        }
+
+        // ==========================================
+        // 2. RATE LIMITING
+        // ==========================================
+
+        $cacheKey = 'enquiry_form_'.md5($ip);
+        $submissions = cache($cacheKey, 0);
+
+        if ($submissions >= 3) {
+            $this->logSpamAttempt($ip, 'rate_limit_exceeded', ['submissions' => $submissions]);
+
+            return redirect()->route('website.meeting-enquiry')
+                ->with('error', 'Too many submissions. Please try again in an hour.');
+        }
+
+        $dailyCacheKey = 'enquiry_form_daily_'.md5($ip);
+        $dailySubmissions = cache($dailyCacheKey, 0);
+
+        if ($dailySubmissions >= 10) {
+            $this->logSpamAttempt($ip, 'daily_limit_exceeded', ['daily_submissions' => $dailySubmissions]);
+
+            return redirect()->route('website.meeting-enquiry')
+                ->with('error', 'Daily submission limit reached. Please try again tomorrow.');
+        }
+
+        // ==========================================
+        // 3. GOOGLE reCAPTCHA v3 VALIDATION
+        // ==========================================
+
+        $recaptchaToken = $request->input('g-recaptcha-response');
+        if ($recaptchaToken && config('services.recaptcha.secret')) {
+            $recaptchaValid = $this->verifyRecaptcha($recaptchaToken, $ip);
+            if (! $recaptchaValid) {
+                $this->logSpamAttempt($ip, 'recaptcha_failed', []);
+
+                return redirect()->route('website.meeting-enquiry')
+                    ->with('error', 'Security verification failed. Please try again.');
+            }
+        }
+
+        // ==========================================
+        // 4. FORM VALIDATION
+        // ==========================================
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
+            'company' => 'nullable|string|max:255',
+            'event_type' => 'required|string|in:Meeting,Conference,Wedding,Banquet,Party,Other',
+            'event_date' => 'required|date|after_or_equal:today',
+            'guest_count' => 'required|integer|min:1|max:9999',
+            'start_time' => 'nullable|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
+            'setup_style' => 'nullable|string|max:255',
+            'catering_option' => 'required|string|in:Full Catering,Corkage',
+            'accommodation_required' => 'nullable|boolean',
+            'rooms_required' => 'nullable|integer|min:1|max:100',
+            'arrival_date' => 'nullable|date|after_or_equal:today',
+            'departure_date' => 'nullable|date|after:arrival_date',
+            'parking_required' => 'nullable|boolean',
+            'site_inspection_required' => 'nullable|boolean',
+            'hear_about_us' => 'nullable|string|max:255',
+            'special_requirements' => 'nullable|string|max:2000',
+            'venue_interest' => 'nullable|string|max:255',
+        ]);
+
+        $validated['accommodation_required'] = $request->boolean('accommodation_required');
+        $validated['parking_required'] = $request->boolean('parking_required');
+        $validated['site_inspection_required'] = $request->boolean('site_inspection_required');
+
+        // ==========================================
+        // 5. SAVE & NOTIFY
+        // ==========================================
+
+        $enquiry = BanquetEnquiry::create($validated);
+
+        cache([$cacheKey => $submissions + 1], now()->addHour());
+        cache([$dailyCacheKey => $dailySubmissions + 1], now()->addDay());
+
+        $managers = User::role(RoleEnum::ADMIN->value)
+            ->orWhereHas('roles', function ($q) {
+                $q->where('name', RoleEnum::STAFF->value)
+                    ->whereHas('permissions', fn ($p) => $p->where('name', 'banquet.update'));
+            })
+            ->get();
+
+        if ($managers->isNotEmpty()) {
+            Notification::send($managers, new NewEnquiryNotification($enquiry));
+        }
+
+        return redirect()->route('website.meeting-enquiry')
+            ->with('success', 'Thank you! Your enquiry has been submitted successfully. Our team will contact you shortly.');
+    }
+
+    // =========================================================================
+    // EVENT LEAD CAPTURE (Public Form — Dynamic by Event Slug)
+    // =========================================================================
+
+    public function eventLead($slug)
+    {
+        $event = LeadEvent::where('slug', $slug)->where('is_active', true)->firstOrFail();
+        $settings = Settings::pluck('value', 'key')->toArray();
+
+        return view('website::event-lead', compact('event', 'settings'));
+    }
+
+    public function storeEventLead(Request $request, $slug)
+    {
+        $event = LeadEvent::where('slug', $slug)->where('is_active', true)->firstOrFail();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
+            'company' => 'nullable|string|max:255',
+        ]);
+
+        EventLead::create([
+            'event_id' => $event->id,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'company' => $validated['company'] ?? null,
+            'source' => 'Website Form',
+            'status' => 'New',
+        ]);
+
+        return redirect()->route('website.event-lead', $slug)
+            ->with('success', $event->getThankYouMessageOrDefault());
     }
 }

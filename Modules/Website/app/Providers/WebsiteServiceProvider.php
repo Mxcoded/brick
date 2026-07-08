@@ -2,8 +2,13 @@
 
 namespace Modules\Website\Providers;
 
+use App\Models\Property;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Modules\Website\Console\Commands\CleanupOrphanedBookings;
+use Modules\Website\Console\Commands\FixConfirmedBookingBalances;
+use Modules\Website\Console\MigrateRoomsToTypes;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -27,6 +32,12 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        View::composer('website::*', function ($view) {
+            $view->with('currentProperty', Property::current());
+            $view->with('allProperties', Property::active()->get());
+            $view->with('cities', Property::active()->whereNotNull('city')->distinct()->pluck('city')->sort()->values());
+        });
     }
 
     /**
@@ -44,9 +55,9 @@ class WebsiteServiceProvider extends ServiceProvider
     protected function registerCommands(): void
     {
         $this->commands([
-            \Modules\Website\Console\MigrateRoomsToTypes::class,
-            \Modules\Website\Console\Commands\CleanupOrphanedBookings::class,
-            \Modules\Website\Console\Commands\FixConfirmedBookingBalances::class,
+            MigrateRoomsToTypes::class,
+            CleanupOrphanedBookings::class,
+            FixConfirmedBookingBalances::class,
         ]);
     }
 
@@ -90,8 +101,8 @@ class WebsiteServiceProvider extends ServiceProvider
 
             foreach ($iterator as $file) {
                 if ($file->isFile() && $file->getExtension() === 'php') {
-                    $relativePath = str_replace($configPath . DIRECTORY_SEPARATOR, '', $file->getPathname());
-                    $configKey = $this->nameLower . '.' . str_replace([DIRECTORY_SEPARATOR, '.php'], ['.', ''], $relativePath);
+                    $relativePath = str_replace($configPath.DIRECTORY_SEPARATOR, '', $file->getPathname());
+                    $configKey = $this->nameLower.'.'.str_replace([DIRECTORY_SEPARATOR, '.php'], ['.', ''], $relativePath);
                     $key = ($relativePath === 'config.php') ? $this->nameLower : $configKey;
 
                     $this->publishes([$file->getPathname() => config_path($relativePath)], 'config');

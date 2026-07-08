@@ -2,19 +2,24 @@
 
 namespace Modules\Frontdeskcrm\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Room;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
+use App\Models\Traits\HasProperty;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
-use Modules\Website\Models\Room;
+use Modules\Website\Models\Booking;
 
 class Registration extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     protected $fillable = [
         'guest_id',
+        'reservation_code',
         'booking_id', // ✅ Verified: It's here
         'original_check_in_date',   // Immutable: original booking check-in
         'original_check_out_date',  // Immutable: original booking check-out
@@ -61,7 +66,30 @@ class Registration extends Model
         'review_rating',
         'review_comment',
         'front_desk_agent',
-        'checked_in_at'
+        'checked_in_at',
+        // New deposit, security deposit, pre-auth, discount fields
+        'deposit_required',
+        'deposit_amount',
+        'deposit_deadline',
+        'security_deposit_amount',
+        'security_deposit_collected_at',
+        'security_deposit_refunded_at',
+        'security_deposit_status',
+        'pre_authorization_amount',
+        'pre_authorization_reference',
+        'pre_authorization_status',
+        'pre_authorization_expires_at',
+        'discount_type',
+        'discount_value',
+        'discount_percent',
+        'discount_reason',
+        'corporate_account_id',
+        'billing_to_account',
+        'special_requests',
+        'estimated_arrival_at',
+        'opt_in_marketing',
+        'pre_arrival_token',
+        'pre_arrival_completed_at',
     ];
 
     protected $casts = [
@@ -73,9 +101,17 @@ class Registration extends Model
         'registration_date' => 'date',
         'actual_checkout_at' => 'datetime',
         'checked_in_at' => 'datetime',
-        'birthdate' => 'date',
+        'birthday' => 'date',
         'bed_breakfast' => 'boolean',
         'is_group_lead' => 'boolean',
+        'deposit_required' => 'boolean',
+        'deposit_deadline' => 'datetime',
+        'security_deposit_collected_at' => 'datetime',
+        'security_deposit_refunded_at' => 'datetime',
+        'pre_authorization_expires_at' => 'datetime',
+        'estimated_arrival_at' => 'datetime',
+        'pre_arrival_completed_at' => 'datetime',
+        'opt_in_marketing' => 'boolean',
     ];
 
     protected static function boot()
@@ -90,6 +126,16 @@ class Registration extends Model
     }
 
     // Relationships
+    public function documents(): HasMany
+    {
+        return $this->hasMany(GuestDocument::class);
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(GuestMessage::class);
+    }
+
     public function guest(): BelongsTo
     {
         return $this->belongsTo(Guest::class);
@@ -117,7 +163,7 @@ class Registration extends Model
 
     public function checkedOutBy(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'checked_out_by_agent_id');
+        return $this->belongsTo(User::class, 'checked_out_by_agent_id');
     }
 
     /**
@@ -125,7 +171,7 @@ class Registration extends Model
      */
     public function roomType(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Website\Models\RoomType::class);
+        return $this->belongsTo(RoomType::class);
     }
 
     /**
@@ -133,11 +179,12 @@ class Registration extends Model
      */
     public function roomUnit(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Website\Models\RoomUnit::class);
+        return $this->belongsTo(RoomUnit::class);
     }
 
     /**
      * Legacy: The room (backward compatibility).
+     *
      * @deprecated Use roomType() and roomUnit() instead.
      */
     public function room(): BelongsTo
@@ -147,14 +194,33 @@ class Registration extends Model
 
     public function booking()
     {
-        return $this->belongsTo(\Modules\Website\Models\Booking::class);
+        return $this->belongsTo(Booking::class);
     }
+
     /**
      * Get the payment history for this registration.
      */
     public function payments(): HasMany
     {
         return $this->hasMany(RegistrationPayment::class)->latest('payment_date');
+    }
+
+    /**
+     * Get the folio charges for this registration.
+     */
+    public function folioCharges(): HasMany
+    {
+        return $this->hasMany(FolioCharge::class);
+    }
+
+    public function loyaltyPoints(): HasMany
+    {
+        return $this->hasMany(LoyaltyPoint::class);
+    }
+
+    public function corporateAccount(): BelongsTo
+    {
+        return $this->belongsTo(CorporateAccount::class);
     }
 
     /**
@@ -170,6 +236,65 @@ class Registration extends Model
     }
 
     /**
+     * Helper to get total charges on the folio.
+     */
+    public function getTotalChargesAttribute()
+    {
+        return $this->folioCharges()->sum('amount');
+    }
+
+    /**
+     * Helper to get outstanding balance (total charges - total paid).
+     */
+    public function getBalanceAttribute()
+    {
+        return $this->total_charges - $this->total_paid;
+    }
+
+    /**
+     * Total discount applied to this registration.
+     */
+    public function getTotalDiscountAttribute()
+    {
+        if ($this->discount_type === 'percentage' && $this->discount_percent) {
+            return round(($this->room_rate ?? 0) * ($this->discount_percent / 100), 2);
+        }
+        if ($this->discount_type === 'fixed' && $this->discount_value) {
+            return $this->discount_value;
+        }
+        // Fallback to GuestType discount_rate if no per-registration discount set
+        if ($this->guestType && $this->guestType->discount_rate > 0) {
+            return round(($this->room_rate ?? 0) * ($this->guestType->discount_rate / 100), 2);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Room rate after discount per night.
+     */
+    public function getDiscountedRateAttribute()
+    {
+        return max(0, ($this->room_rate ?? 0) - $this->total_discount);
+    }
+
+    /**
+     * Total deposit paid (payments with payment_type=deposit).
+     */
+    public function getTotalDepositPaidAttribute()
+    {
+        return (float) $this->payments()->where('payment_type', 'deposit')->sum('amount');
+    }
+
+    /**
+     * Total security deposit collected.
+     */
+    public function getSecurityDepositCollectedAttribute()
+    {
+        return (float) $this->payments()->where('payment_type', 'security_deposit')->sum('amount');
+    }
+
+    /**
      * Get all registrations in the same booking group.
      */
     public function groupRegistrations(): HasMany
@@ -182,7 +307,7 @@ class Registration extends Model
      */
     public function isGroupBooking(): bool
     {
-        return !empty($this->booking_group_id);
+        return ! empty($this->booking_group_id);
     }
 
     /**
@@ -199,8 +324,9 @@ class Registration extends Model
     public function getOriginalDatesAttribute(): ?string
     {
         if ($this->original_check_in_date && $this->original_check_out_date) {
-            return $this->original_check_in_date->format('M d, Y') . ' - ' . $this->original_check_out_date->format('M d, Y');
+            return $this->original_check_in_date->format('M d, Y').' - '.$this->original_check_out_date->format('M d, Y');
         }
+
         return null;
     }
 

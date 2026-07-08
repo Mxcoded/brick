@@ -2,10 +2,10 @@
 
 namespace Modules\Frontdeskcrm\Rules;
 
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Closure;
 
 class ValidEmail implements ValidationRule
 {
@@ -19,6 +19,7 @@ class ValidEmail implements ValidationRule
 
         if (empty($accessKey)) {
             Log::error('Abstract Email API key is not set. Skipping email validation.');
+
             return;
         }
 
@@ -30,6 +31,7 @@ class ValidEmail implements ValidationRule
 
             if ($response->failed()) {
                 Log::warning('Abstract Email API call failed. Failing open.');
+
                 return;
             }
 
@@ -54,7 +56,8 @@ class ValidEmail implements ValidationRule
             // ======================================================
 
         } catch (\Exception $e) {
-            Log::error('Abstract Email API call exception: ' . $e->getMessage());
+            Log::error('Abstract Email API call exception: '.$e->getMessage());
+
             return; // Fail open on exception
         }
     }

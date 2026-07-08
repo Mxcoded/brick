@@ -47,15 +47,20 @@ class GuestsSeeder extends Seeder
         ];
 
         foreach ($guests as $guestData) {
-            $guest = Guest::create($guestData);
-            GuestPreference::create([
-                'guest_id' => $guest->id,
-                'preferences' => [
-                    'preferred_room_type' => 'Deluxe',
-                    'bb_included' => true,
-                    'language' => 'en', // For generated column
-                ],
-            ]);
+            $guest = Guest::updateOrCreate(
+                ['contact_number' => $guestData['contact_number']],
+                $guestData
+            );
+            GuestPreference::updateOrCreate(
+                ['guest_id' => $guest->id],
+                [
+                    'preferences' => [
+                        'preferred_room_type' => 'Deluxe',
+                        'bb_included' => true,
+                        'language' => 'en',
+                    ],
+                ]
+            );
         }
     }
 }

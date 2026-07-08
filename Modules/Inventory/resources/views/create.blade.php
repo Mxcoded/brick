@@ -1,4 +1,4 @@
-@extends('layouts.master')
+﻿@extends('layouts.master')
 
 @section('title', 'Add New Inventory Item')
 
@@ -12,11 +12,16 @@
                 <form id="createItemForm" action="{{ route('inventory.items.store') }}" method="POST">
                     @csrf
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
+                        <label for="sku" class="form-label">SKU (Barcode)</label>
+                        <input type="text" class="form-control" id="sku" name="sku" value="{{ $nextSku }}" placeholder="e.g., BRK-001">
+                        <div class="form-text">Auto-generated, editable if needed</div>
+                    </div>
+                        <div class="col-md-4 mb-3">
                             <label for="description" class="form-label">Item Description</label>
                             <input type="text" class="form-control" id="description" name="description" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="category" class="form-label">Category</label>
                             <input type="text" class="form-control" id="category" name="category">
                         </div>
@@ -46,6 +51,36 @@
                         <div class="col-md-6 mb-3">
                             <label for="unit_value" class="form-label">Unit Value</label>
                             <input type="number" class="form-control" id="unit_value" name="unit_value" step="0.01" min="0" placeholder="e.g., 1 for 1kg, 12 for 12pcs">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="min_stock" class="form-label">Min Stock Level</label>
+                            <input type="number" class="form-control" id="min_stock" name="min_stock" min="0" placeholder="e.g., 10">
+                            <div class="form-text">Alert when stock falls below this level</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="max_stock" class="form-label">Max Stock Level</label>
+                            <input type="number" class="form-control" id="max_stock" name="max_stock" min="0" placeholder="e.g., 100">
+                        </div>
+                    </div>
+
+                    <h4 class="mt-4 mb-3">Unit Conversion (Optional)</h4>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">From Unit</label>
+                            <input type="text" class="form-control" name="conv_from_unit" placeholder="e.g., Case">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">To Unit</label>
+                            <input type="text" class="form-control" name="conv_to_unit" placeholder="e.g., Pcs">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Conversion Rate</label>
+                            <input type="number" class="form-control" name="conv_rate" step="0.0001" min="0" placeholder="e.g., 12">
+                            <div class="form-text">e.g., 1 Case = 12 Pcs</div>
                         </div>
                     </div>
 

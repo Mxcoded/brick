@@ -1,6 +1,6 @@
 @php
-    $index = $index ?? 0; // Dynamic index for new/editable fields
-    $history = $history ?? null; // Existing data (for edit mode)
+    $index = $index ?? 0;
+    $history = $history ?? null;
 @endphp
 
 <div class="employment-history-form mb-4">
@@ -13,7 +13,6 @@
                     name="employment_history[{{ $index }}][employer_name]" 
                     class="form-control" 
                     value="{{ old("employment_history.$index.employer_name", $history->employer_name ?? '') }}"
-                    required
                 >
             </div>
         </div>
@@ -25,7 +24,6 @@
                     name="employment_history[{{ $index }}][employer_contact]" 
                     class="form-control" 
                     value="{{ old("employment_history.$index.employer_contact", $history->employer_contact ?? '') }}"
-                    required
                 >
             </div>
         </div>
@@ -39,7 +37,6 @@
                     name="employment_history[{{ $index }}][position_held]" 
                     class="form-control" 
                     value="{{ old("employment_history.$index.position_held", $history->position_held ?? '') }}"
-                    required
                 >
             </div>
         </div>
@@ -51,7 +48,6 @@
                     name="employment_history[{{ $index }}][duration]" 
                     class="form-control" 
                     value="{{ old("employment_history.$index.duration", $history->duration ?? '') }}"
-                    required
                 >
             </div>
         </div>

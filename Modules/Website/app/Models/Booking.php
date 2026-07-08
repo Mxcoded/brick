@@ -2,10 +2,13 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Builder;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
+use App\Models\Traits\HasProperty;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Account\Models\OrderItems;
@@ -13,11 +16,11 @@ use Modules\Website\Models\Room;
 
 class Booking extends Model
 {
-    // Use fully-qualified trait name to satisfy static analyzers that may
-    // not resolve the import correctly in this environment.
-    use HasFactory;
+    use HasFactory, HasProperty;
+
 
     protected $fillable = [
+        'property_id',
         'booking_reference',
         'booking_group_id',   // NEW: Links multiple bookings from a single cart transaction
         'room_id',            // Legacy: will be deprecated
@@ -56,6 +59,7 @@ class Booking extends Model
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
     ];
+
     /**
      * ✅ AUTOMATION LOGIC
      * The "booted" method runs automatically whenever this Model is saved.
@@ -70,10 +74,11 @@ class Booking extends Model
 
             // 2. Auto-Generate Reference if missing
             if (empty($booking->booking_reference)) {
-                $booking->booking_reference = 'BK-' . strtoupper(uniqid());
+                $booking->booking_reference = 'BK-'.strtoupper(uniqid());
             }
         });
     }
+
     /**
      * Relationship: The room type being booked.
      */
@@ -92,6 +97,7 @@ class Booking extends Model
 
     /**
      * Legacy: The room being booked (backward compatibility).
+     *
      * @deprecated Use roomType() and roomUnit() instead.
      */
     public function room()
@@ -106,6 +112,7 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     /**
      * Link to the detailed CRM Guest Profile.
      */

@@ -3,115 +3,70 @@
 namespace Modules\Tasks\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Modules\Staff\Models\Employee;
 use Modules\Tasks\Models\Task;
 use Modules\Tasks\Models\TaskAssignment;
-use Modules\Tasks\Models\TaskUpdate;
-use Modules\Staff\Models\Employee;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Notification;
-use App\Notifications\TaskAssigned;
 
 class TasksController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    // public function index()
-    // {
-    //     $user = Auth::user();
-    //     if ($user->hasRole('admin')) { // Replace with your role check
-    //         $tasks = Task::with('employees', 'creator')->get();
-    //     } else {
-    //         $employee = Employee::where('user_id', $user->id)->first();
-    //         $tasks = Task::whereHas('employees', function ($query) use ($employee) {
-    //             $query->where('employee_id', $employee->id);
-    //         })->with('employees', 'creator')->get();
-    //     }
-    //     return view('tasks::index', compact('tasks'));
-    // }
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request)
+    public function index()
     {
         $user = Auth::user();
-        $query = Task::with('employees', 'creator');
+        $employee = Employee::where('user_id', $user->id)->first();
 
-        // Role-based filtering
-        if (!$user->hasRole('admin','gm')) {
-            $employee = Employee::where('user_id', $user->id)->first();
-            $query->whereHas('employees', function ($q) use ($employee) {
-                $q->where('employee_id', $employee->id);
-            });
+        $createdTasks = Task::with('employees')
+            ->where('created_by', $user->id)
+            ->orderByRaw("FIELD(status, 'pending', 'in_progress', 'completed')")
+            ->orderBy('deadline', 'asc')
+            ->paginate(10);
+
+        $assignedTaskIds = [];
+        if ($employee) {
+            $assignedTaskIds = TaskAssignment::where('employee_id', $employee->id)
+                ->pluck('task_id')
+                ->toArray();
         }
 
-        // Search
-        if ($search = $request->query('q')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('task_number', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhereHas('employees', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
+        $assignedTasks = Task::with('creator', 'employees')
+            ->whereIn('id', $assignedTaskIds)
+            ->where('created_by', '!=', $user->id)
+            ->orderByRaw("FIELD(status, 'pending', 'in_progress', 'completed')")
+            ->orderBy('deadline', 'asc')
+            ->paginate(10);
 
-        // Filters
-        if ($status = $request->query('status')) {
-            if ($status == 'Pending') {
-                $query->where('is_completed', false);
-            } elseif ($status == 'Completed') {
-                $query->where('is_completed', true)->whereNull('is_successful');
-            } elseif ($status == 'Evaluated (Successful)') {
-                $query->where('is_completed', true)->where('is_successful', true);
-            } elseif ($status == 'Evaluated (Not Successful)') {
-                $query->where('is_completed', true)->where('is_successful', false);
-            }
-        }
+        $employees = Employee::whereNull('end_date')->get();
 
-        if ($priority = $request->query('priority')) {
-            $query->where('priority', $priority);
-        }
-
-        if ($assignee = $request->query('assignee') && $user->hasRole('admin','gm')) {
-            $query->whereHas('employees', function ($q) use ($assignee) {
-                $q->where('employee_id', $assignee);
-            });
-        }
-
-        $tasks = $query->paginate(10);
-        $employees = Employee::whereIn('position', ['Manager', 'Supervisor'])->get();
-
-        return view('tasks::index', compact('tasks', 'employees'));
+        return view('tasks::index', compact('createdTasks', 'assignedTasks', 'employees'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        $employees = Employee::whereIn('position', ['Manager', 'Supervisor'])->get();
-        return view('tasks::create', compact('employees'));
+        $user = Auth::user();
+        $canAssign = $user->can('tasks.assign');
+        $employees = $canAssign
+            ? Employee::whereNull('end_date')->get()
+            : collect();
+
+        return view('tasks::create', compact('canAssign', 'employees'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $creationDate = Carbon::today()->toDateString();
+        $user = Auth::user();
+        $canAssign = $user->can('tasks.assign');
+        $employee = Employee::where('user_id', $user->id)->first();
 
         $request->validate([
-            'description' => 'required',
+            'description' => 'required|string|max:5000',
             'priority' => 'required|in:high,medium,low',
-            'deadline' => 'required|date|after_or_equal:' . $creationDate,
-            'assignees' => 'required|array',
-            'assignees.*' => 'exists:employees,id',
+            'deadline' => 'required|date|after_or_equal:'.Carbon::today()->toDateString(),
+            'assignees' => $canAssign ? 'nullable|array' : 'nullable',
+            'assignees.*' => $canAssign ? 'exists:employees,id' : '',
         ]);
 
-        // Generate task number: TASK-DDMMYY-N
         $today = Carbon::today();
         $datePart = $today->format('dmy');
         $taskCount = Task::whereDate('created_at', $today)->count() + 1;
@@ -119,124 +74,161 @@ class TasksController extends Controller
 
         $task = Task::create([
             'task_number' => $taskNumber,
-            'date' => $creationDate,
-            'created_by' => Auth::id(),
+            'date' => $today->toDateString(),
+            'created_by' => $user->id,
             'description' => $request->description,
             'priority' => $request->priority,
             'deadline' => $request->deadline,
         ]);
 
-        foreach ($request->assignees as $employeeId) {
+        if ($canAssign && ! empty($request->assignees)) {
+            foreach ($request->assignees as $employeeId) {
+                TaskAssignment::create([
+                    'task_id' => $task->id,
+                    'employee_id' => $employeeId,
+                ]);
+            }
+        } elseif ($employee) {
             TaskAssignment::create([
                 'task_id' => $task->id,
-                'employee_id' => $employeeId,
+                'employee_id' => $employee->id,
             ]);
-            // Notify the assignee
-            $employee = Employee::find($employeeId);
-            if ($employee->user) {
-                Notification::send($employee->user, new TaskAssigned($task));
-            }
         }
 
         return redirect()->route('tasks.index')->with('success', 'Task created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show($id)
     {
-        $task = Task::with('employees', 'creator', 'updates.user')->findOrFail($id);
-        return view('tasks::show', compact('task'));
+        $task = Task::with('employees', 'creator')->findOrFail($id);
+
+        $user = Auth::user();
+        $isCreator = $task->created_by === $user->id;
+
+        return view('tasks::show', compact('task', 'isCreator'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit($id)
     {
         $task = Task::with('employees')->findOrFail($id);
-        return view('tasks::edit', compact('task'));
+
+        if ($task->created_by !== Auth::id()) {
+            return redirect()->route('tasks.index')->with('error', 'You can only edit tasks you created.');
+        }
+
+        $user = Auth::user();
+        $canAssign = $user->can('tasks.assign');
+        $employees = $canAssign
+            ? Employee::whereNull('end_date')->get()
+            : collect();
+
+        return view('tasks::edit', compact('task', 'canAssign', 'employees'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, $id)
     {
         $task = Task::findOrFail($id);
 
-        // Prevent updates if task is evaluated as successful
-        if ($task->is_successful) {
-            return redirect()->route('tasks.index')->with('error', 'This task has been evaluated as successful and cannot be updated.');
+        if ($task->created_by !== Auth::id()) {
+            return redirect()->route('tasks.index')->with('error', 'You can only update tasks you created.');
         }
 
+        $user = Auth::user();
+        $canAssign = $user->can('tasks.assign');
+
         $request->validate([
-            'is_completed' => 'required|boolean',
-            'completion_date' => 'nullable|date',
-            'notes' => 'nullable|string',
-            'non_completion_reason' => 'nullable|string',
+            'description' => 'required|string|max:5000',
+            'priority' => 'required|in:high,medium,low',
+            'deadline' => 'required|date',
+            'assignees' => $canAssign ? 'nullable|array' : 'nullable',
+            'assignees.*' => $canAssign ? 'exists:employees,id' : '',
         ]);
 
-        $changes = [
-            'is_completed' => $request->is_completed,
-            'completion_date' => $request->is_completed ? $request->completion_date : null,
-            'notes' => $request->notes,
-            'non_completion_reason' => $request->non_completion_reason,
-        ];
-
-        $task->update($changes);
-
-        // Log the update
-        TaskUpdate::create([
-            'task_id' => $task->id,
-            'user_id' => Auth::id(),
-            'action' => 'updated_completion',
-            'changes' => $changes,
+        $task->update([
+            'description' => $request->description,
+            'priority' => $request->priority,
+            'deadline' => $request->deadline,
         ]);
+
+        if ($canAssign && $request->has('assignees')) {
+            $task->assignees()->delete();
+            foreach ($request->assignees as $employeeId) {
+                TaskAssignment::create([
+                    'task_id' => $task->id,
+                    'employee_id' => $employeeId,
+                ]);
+            }
+        }
 
         return redirect()->route('tasks.index')->with('success', 'Task updated successfully.');
     }
 
-    /**
-     * Evaluate the specified task (for General Manager).
-     */
-    public function evaluate(Request $request, $id)
+    public function toggleComplete($id)
     {
         $task = Task::findOrFail($id);
 
-        $request->validate([
-            'is_successful' => 'required|boolean',
-            'meets_expectations' => 'required|boolean',
-            'gm_notes' => 'nullable|string',
+        if ($task->created_by !== Auth::id()) {
+            return redirect()->route('tasks.index')->with('error', 'Only the creator can change task status.');
+        }
+
+        $next = match ($task->status) {
+            'pending' => 'in_progress',
+            'in_progress' => 'completed',
+            'completed' => 'pending',
+        };
+
+        $task->update([
+            'status' => $next,
+            'completion_date' => $next === 'completed' ? Carbon::today() : ($next === 'pending' ? null : $task->completion_date),
         ]);
 
-        $changes = [
-            'is_successful' => $request->is_successful,
-            'meets_expectations' => $request->meets_expectations,
-            'gm_notes' => $request->gm_notes,
-        ];
+        $label = match ($next) {
+            'in_progress' => 'Task is now in progress.',
+            'completed' => 'Task marked complete.',
+            'pending' => 'Task reset to pending.',
+        };
 
-        $task->update($changes);
-
-        // Log the evaluation
-        TaskUpdate::create([
-            'task_id' => $task->id,
-            'user_id' => Auth::id(),
-            'action' => 'evaluated',
-            'changes' => $changes,
-        ]);
-
-        return redirect()->route('tasks.index')->with('success', 'Task evaluated successfully.');
+        return redirect()->back()->with('success', $label);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    public function setStatus(Request $request, $id)
+    {
+        $task = Task::findOrFail($id);
+
+        if ($task->created_by !== Auth::id()) {
+            return $request->wantsJson()
+                ? response()->json(['success' => false, 'message' => 'Only the creator can change task status.'], 403)
+                : redirect()->route('tasks.index')->with('error', 'Only the creator can change task status.');
+        }
+
+        $request->validate(['status' => 'required|in:pending,in_progress,completed']);
+
+        $task->update([
+            'status' => $request->status,
+            'completion_date' => $request->status === 'completed' ? Carbon::today() : ($request->status === 'pending' ? null : $task->completion_date),
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'status' => $task->status,
+                'completion_date' => $task->completion_date?->toDateString(),
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Task status updated.');
+    }
+
     public function destroy($id)
     {
         $task = Task::findOrFail($id);
+
+        if ($task->created_by !== Auth::id()) {
+            return redirect()->route('tasks.index')->with('error', 'You can only delete tasks you created.');
+        }
+
         $task->delete();
+
         return redirect()->route('tasks.index')->with('success', 'Task deleted successfully.');
     }
 }

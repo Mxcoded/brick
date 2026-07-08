@@ -30,6 +30,6 @@ class MenuSelection extends Model
         'breakfast',
         'tea_break',
         'lunch',
-        'dinner'
+        'dinner',
     ];
 }

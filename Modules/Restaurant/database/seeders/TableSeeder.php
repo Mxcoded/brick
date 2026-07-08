@@ -12,9 +12,10 @@ class TableSeeder extends Seeder
      */
     public function run(): void
     {
-    
-        Table::create(['number' => 'A1']);
-        Table::create(['number' => 'B2']);
-        Table::create(['number' => 'C3']);
+        foreach (['A1', 'B2', 'C3'] as $number) {
+            Table::updateOrCreate(
+                ['number' => $number]
+            );
+        }
     }
 }

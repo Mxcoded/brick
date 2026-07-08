@@ -2,8 +2,8 @@
 
 namespace Modules\Banquet\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class BanquetPayment extends Model
 {
@@ -15,7 +15,7 @@ class BanquetPayment extends Model
         'payment_date',
         'payment_method',
         'reference',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [

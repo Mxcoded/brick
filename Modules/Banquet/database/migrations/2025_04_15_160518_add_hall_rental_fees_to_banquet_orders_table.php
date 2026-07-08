@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('banquet_orders', function (Blueprint $table) {
-            if (!Schema::hasColumn('banquet_orders', 'hall_rental_fees')) {
+            if (! Schema::hasColumn('banquet_orders', 'hall_rental_fees')) {
                 $table->decimal('hall_rental_fees', 10, 2)->nullable()->default(0);
             }
         });
@@ -23,8 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('banquet_orders', function (Blueprint $table) {
-            
-        });
+        Schema::table('banquet_orders', function (Blueprint $table) {});
     }
 };

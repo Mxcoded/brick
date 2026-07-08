@@ -2,10 +2,11 @@
 
 namespace Modules\Tasks\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Modules\Staff\Models\Employee;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Modules\Staff\Models\Employee;
+
 // use Modules\Tasks\Database\Factories\TaskFactory;
 
 class Task extends Model
@@ -22,25 +23,17 @@ class Task extends Model
         'description',
         'priority',
         'deadline',
-        'is_completed',
+        'status',
         'completion_date',
         'notes',
         'non_completion_reason',
-        'is_successful',
-        'meets_expectations',
-        'gm_notes',
     ];
 
     protected $casts = [
         'date' => 'date',
         'deadline' => 'date',
         'completion_date' => 'date',
-        'is_completed' => 'boolean',
-        'is_successful' => 'boolean',
-        'meets_expectations' => 'boolean',
     ];
-
-    protected $appends = ['status'];
 
     public function creator()
     {
@@ -62,16 +55,18 @@ class Task extends Model
         return $this->hasMany(TaskUpdate::class, 'task_id');
     }
 
-    public function getStatusAttribute()
+    public function scopePending($q)
     {
-        if ($this->is_successful !== null) {
-            return $this->is_successful ? 'Evaluated (Successful)' : 'Evaluated (Not Successful)';
-        }
-        return $this->is_completed ? 'Completed' : 'Pending';
+        return $q->where('status', 'pending');
     }
 
-    // protected static function newFactory(): TaskFactory
-    // {
-    //     // return TaskFactory::new();
-    // }
+    public function scopeInProgress($q)
+    {
+        return $q->where('status', 'in_progress');
+    }
+
+    public function scopeCompleted($q)
+    {
+        return $q->where('status', 'completed');
+    }
 }

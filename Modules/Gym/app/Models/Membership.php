@@ -2,10 +2,10 @@
 
 namespace Modules\Gym\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 use Modules\Account\Models\OrderItems;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 // use Modules\Gym\Database\Factories\MembershipFactory;
 

@@ -15,7 +15,9 @@ class ContactReply extends Mailable
     use Queueable, SerializesModels;
 
     public ContactMessage $contactMessage;
+
     public ContactMessageReply $reply;
+
     public string $staffName;
 
     /**
@@ -33,8 +35,8 @@ class ContactReply extends Mailable
      */
     public function envelope(): Envelope
     {
-        $subject = $this->contactMessage->subject 
-            ? 'Re: ' . $this->contactMessage->subject
+        $subject = $this->contactMessage->subject
+            ? 'Re: '.$this->contactMessage->subject
             : 'Re: Your message to Brickspoint';
 
         return new Envelope(

@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Staff\Http\Controllers\LeaveController;
+use Modules\Staff\Http\Controllers\SharedDocumentController;
 use Modules\Staff\Http\Controllers\StaffController;
-use Modules\Staff\Http\Controllers\LeaveController; // Add this line
-use App\Enums\RoleEnum; // Import the Enum
+
+// Import the Enum
 
 /*
 |--------------------------------------------------------------------------
@@ -11,11 +13,19 @@ use App\Enums\RoleEnum; // Import the Enum
 |--------------------------------------------------------------------------
 */
 
+// Pending route – must be BEFORE the permission-gated group to avoid 404 (resource catch-all)
+Route::prefix('staff')
+    ->middleware(['web', 'auth'])
+    ->name('staff.')
+    ->group(function () {
+        Route::get('/pending', [StaffController::class, 'pending'])->name('pending');
+    });
+
 Route::prefix('staff')
     ->middleware(['web', 'auth', 'can:access_staff_dashboard']) // Updated
     ->name('staff.')
     ->group(function () {
-        Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard')->middleware('can:view_employees');
         // **Leave Management Routes** - NOW HANDLED BY LeaveController
         Route::prefix('leaves')->group(function () {
             // User Leave Routes
@@ -38,10 +48,8 @@ Route::prefix('staff')
             Route::post('/admin/balances', [LeaveController::class, 'updateBalanceAdmin'])
                 ->name('leaves.admin.balances.update');
 
-
             Route::post('/admin/balances/{id}/reset', [LeaveController::class, 'resetBalance'])
                 ->name('leaves.admin.balances.reset');
-
 
             Route::post('/admin/balances/{id}/delete', [LeaveController::class, 'deleteBalance'])
                 ->name('leaves.admin.balances.delete');
@@ -61,7 +69,6 @@ Route::prefix('staff')
             Route::get('/admin/apply', [LeaveController::class, 'showApplyForOtherForm'])
                 ->name('leaves.admin.apply');
 
-
             Route::post('/admin/apply', [LeaveController::class, 'submitLeaveForOther'])
                 ->name('leaves.admin.submit');
 
@@ -78,39 +85,63 @@ Route::prefix('staff')
                 ->name('reject');
         });
 
-        // ** NEW BIRTHDAY ROUTE **
+        // ** BIRTHDAY ROUTES **
         Route::get('/birthdays', [StaffController::class, 'birthdays'])->name('birthdays');
+
+        // ** SMS SETTINGS ROUTES **
+        Route::get('/settings', [StaffController::class, 'settings'])->name('settings');
+        Route::post('/settings', [StaffController::class, 'updateSettings'])->name('settings.update');
 
         // ** EXPORT ROUTE **
         Route::get('/export', [StaffController::class, 'export'])
             ->name('export')
             ->middleware('permission:view_employees');
 
+        // ** Shared Documents Routes **
+        Route::prefix('documents')->group(function () {
+            Route::get('/', [SharedDocumentController::class, 'index'])->name('documents.index');
+            Route::get('/create', [SharedDocumentController::class, 'create'])->name('documents.create');
+            Route::post('/', [SharedDocumentController::class, 'store'])->name('documents.store');
+            Route::get('/{document}/download', [SharedDocumentController::class, 'download'])->name('documents.download');
+            Route::post('/{document}/regenerate-link', [SharedDocumentController::class, 'regenerateShareLink'])->name('documents.regenerate-link');
+            Route::delete('/{document}', [SharedDocumentController::class, 'destroy'])->name('documents.destroy');
+        });
+
         Route::resource('/', StaffController::class)->names([
-            'index'  => 'index',
+            'index' => 'index',
             'create' => 'create',
-            'store'  => 'store',
-            'show'   => 'show', // <--- This was missing!
-            'edit'   => 'edit',
+            'store' => 'store',
+            'show' => 'show', // <--- This was missing!
+            'edit' => 'edit',
             'update' => 'update',
             'destroy' => 'destroy',
         ])->parameters([
-            '' => 'staff' // <--- THIS FIXES THE {} ISSUE
+            '' => 'staff', // <--- THIS FIXES THE {} ISSUE
         ])->middleware([
-            'index'   => 'permission:view_employees',
-            'show'    => 'permission:view_employees',
-            'create'  => 'permission:manage_employees',
-            'store'   => 'permission:manage_employees',
-            'edit'    => 'permission:manage_employees',
-            'update'  => 'permission:manage_employees',
+            'index' => 'permission:view_employees',
+            'show' => 'permission:view_employees',
+            'create' => 'permission:manage_employees',
+            'store' => 'permission:manage_employees',
+            'edit' => 'permission:manage_employees',
+            'update' => 'permission:manage_employees',
             'destroy' => 'permission:manage_employees',
         ]);
     });
 
 // **Public Routes**
 Route::middleware('web')->group(function () {
+    Route::get('/staffqr', [StaffController::class, 'verifyForm'])
+        ->name('staff.verify');
+    Route::post('/staffqr', [StaffController::class, 'verifyLookup'])
+        ->name('staff.verify.lookup');
+
     Route::get('/complete-registration', [StaffController::class, 'showCompleteRegistrationForm'])
         ->name('staff.complete-registration');
     Route::post('/complete-registration', [StaffController::class, 'completeRegistration'])
         ->name('staff.complete-registration.submit');
+
+    // Public shared document download (no auth required)
+    Route::get('/shared/d/{token}/{slug?}', [SharedDocumentController::class, 'publicDownload'])
+        ->where('slug', '[\w\-\.]+')
+        ->name('shared.documents.download');
 });

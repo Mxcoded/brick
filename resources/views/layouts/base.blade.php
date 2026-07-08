@@ -7,65 +7,125 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <title>Staff Module - {{ config('app.name', 'BRICKSPOINT ERP') }}</title>
-<link rel="icon" href=" {{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" type="image/x-icon">
+    <title>@yield('title', config('app.name', 'BRICKSPOINT ERP'))</title>
+    <meta name="description" content="@yield('meta_description', config('app.name', 'BRICKSPOINT ERP') . ' — Staff & Administration Portal')">
+    <meta name="author" content="{{ config('app.name') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <!-- Fonts -->
     <link href="https://fonts.cdnfonts.com/css/proxima-nova" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.bunny.net">
-    
-    <!-- Bootstrap & Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- Vite (Bootstrap, Icons, FontAwesome) -->
+    @vite(['resources/sass/app.scss'])
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <link rel="stylesheet" href="{{ asset('css/sidebar.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
 
     <style>
         :root {
             --bs-body-font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
+            --luxury-gold: #C5A572;
+            --luxury-gold-hover: #B8956A;
         }
-        
+
+        /* ─── intl-tel-input Overrides ─── */
+        .iti { width: 100%; }
+
+        /* Fix left padding for separate dial code (flag + code is wider than 52px) */
+        .iti--separate-dial-code input,
+        .iti--separate-dial-code input[type=text],
+        .iti--separate-dial-code input[type=tel] {
+            padding-left: 90px !important;
+        }
+
+        .iti__flag-container { z-index: 2; }
+
+        .iti__selected-flag {
+            background: transparent !important;
+            border-right: 1px solid #dee2e6;
+        }
+        .iti__selected-flag:hover { background-color: rgba(0,0,0,0.03) !important; }
+
+        .iti__selected-dial-code { font-size: 0.875rem; color: #6c757d; }
+
+        .iti__country-list {
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            margin-top: 4px !important;
+            z-index: 9999;
+        }
+        .iti__country.iti__highlight { background-color: #f3f4f6; }
+
+        /* Dark mode */
+        [data-bs-theme="dark"] .iti__selected-flag { border-color: #495057; }
+        [data-bs-theme="dark"] .iti__selected-flag:hover { background-color: rgba(255,255,255,0.05) !important; }
+        [data-bs-theme="dark"] .iti__selected-dial-code { color: #adb5bd; }
+        [data-bs-theme="dark"] .iti__country-list { background-color: #343a40; border-color: #495057; }
+        [data-bs-theme="dark"] .iti__country { color: #fff; }
+        [data-bs-theme="dark"] .iti__country:hover { background-color: rgba(255,255,255,0.08); }
+        [data-bs-theme="dark"] .iti__country.iti__highlight { background-color: rgba(255,255,255,0.15); }
+
+        /* Readonly - prevent interaction */
+        .iti:has(.phone-input[readonly]) { pointer-events: none; opacity: 0.7; }
+        /* Show validation feedback when intl-tel-input wraps the input */
+        .iti:has(.is-invalid) ~ .invalid-feedback,
+        .was-validated .iti:has(input:invalid) ~ .invalid-feedback { display: block; }
+        /* Floating label fix for intl-tel-input */
+        .form-floating:has(.iti) > label {
+            left: 90px !important;
+            width: calc(100% - 90px) !important;
+        }
+        .form-floating .iti:focus-within ~ label,
+        .form-floating.has-focus .iti ~ label,
+        .form-floating.has-value .iti ~ label,
+        .form-floating-custom.has-focus .iti ~ label {
+            opacity: .65;
+            transform: scale(.85) translateY(-0.5rem) translateX(.15rem);
+        }
+
         body {
             font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
             color: #333333;
         }
-        
+
         /* Gold accent color styling */
         .text-gold {
             color: #C8A165 !important;
         }
-        
+
         .bg-gold {
             background-color: #C8A165 !important;
         }
-        
+
         .btn-gold {
             background-color: #C8A165;
             border-color: #C8A165;
             color: white;
         }
-        
+
         .btn-gold:hover {
             background-color: #b08c54;
             border-color: #b08c54;
             color: white;
         }
-        
+
         .btn-outline-gold {
             border-color: #C8A165;
             color: #C8A165;
         }
-        
+
         .btn-outline-gold:hover {
             background-color: #C8A165;
             border-color: #C8A165;
             color: white;
         }
-        
+
         .border-gold {
             border-color: #C8A165 !important;
         }
     </style>
+
+
 
     @yield('styles')
 </head>
@@ -76,12 +136,13 @@
     @yield('content')
 
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
+
+    @vite(['resources/js/app.js'])
     @yield('scripts')
-      <script>
+    <script>
         (() => {
             'use strict'
 
@@ -115,7 +176,7 @@
 
             window.addEventListener('DOMContentLoaded', () => {
                 const themeToggler = document.getElementById('theme-toggle');
-                if(themeToggler) {
+                if (themeToggler) {
                     themeToggler.addEventListener('click', () => {
                         const currentTheme = getStoredTheme() || getPreferredTheme();
                         const newTheme = currentTheme === 'light' ? 'dark' : 'light';
@@ -125,6 +186,51 @@
                 }
             });
         })()
+    </script>
+    <script>
+        $(document).ready(function() {
+            if (typeof intlTelInput !== 'undefined') {
+                $('input.phone-input').each(function() {
+                    var input = this;
+                    if ($(input).data('iti')) return;
+                    var iti = window.intlTelInput(input, {
+                        initialCountry: 'auto',
+                        geoIpLookup: function(callback) {
+                            $.get('https://ipapi.co/json/', function(data) {}, 'jsonp').always(function(resp) {
+                                var countryCode = (resp && resp.country) ? resp.country : 'ng';
+                                callback(countryCode);
+                            });
+                        },
+                        utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js',
+                        separateDialCode: true,
+                        autoPlaceholder: 'aggressive',
+                        nationalMode: true,
+                    });
+                    $(input).on('input', function () {
+                        var val = $(this).val().trim();
+                        $(this).closest('.form-floating, .form-floating-custom').toggleClass('has-value', val !== '');
+                    });
+                    $(input).on('focusin focusout', function (e) {
+                        $(this).closest('.form-floating, .form-floating-custom').toggleClass('has-focus', e.type === 'focusin');
+                    });
+                    $(input).on('blur', function () {
+                        var val = $(this).val().trim();
+                        if (iti.isValidNumber()) {
+                            $(input).removeClass('is-invalid').addClass('is-valid');
+                        } else if (val !== '') {
+                            $(input).removeClass('is-valid').addClass('is-invalid');
+                        } else {
+                            $(input).removeClass('is-valid is-invalid');
+                        }
+                    });
+                    if ($(input).val().trim() !== '') {
+                        var $floating = $(input).closest('.form-floating, .form-floating-custom');
+                        $floating.addClass('has-value');
+                        $(input).trigger('blur');
+                    }
+                });
+            }
+        });
     </script>
 </body>
 

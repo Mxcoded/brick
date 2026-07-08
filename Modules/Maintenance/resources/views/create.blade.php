@@ -1,103 +1,159 @@
-@extends('maintenance::layouts.master')
+@extends('layouts.master')
 
-@section('content')
-<div class="container my-5">
-  <div class="row justify-content-center">
-    <div class="col-lg-8">
-      <div class="card shadow-sm rounded-4">
-        <div class="card-header bg-primary text-white">
-          <h4 class="mb-0">Create Maintenance Log</h4>
+@section('page-content')
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="fas fa-plus-circle me-2" style="color: var(--luxury-gold);"></i>Create Maintenance Log</h2>
+            <p class="text-muted mb-0">Log a new maintenance or IT issue</p>
         </div>
-        <div class="card-body">
-          <form action="{{ route('maintenance.store') }}" method="POST">
-            @csrf
-
-            <!-- Location -->
-            <div class="mb-3">
-              <label for="location" class="form-label">Location</label>
-              <input type="text" name="location" id="location" class="form-control @error('location') is-invalid @enderror" value="{{ old('location') }}" required>
-              @error('location')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
-
-            <!-- Complaint Date & Time -->
-            <div class="mb-3">
-              <label for="complaint_datetime" class="form-label">Complaint Date &amp; Time</label>
-              <input type="datetime-local" name="complaint_datetime" id="complaint_datetime" class="form-control @error('complaint_datetime') is-invalid @enderror" value="{{ old('complaint_datetime') }}" required>
-              @error('complaint_datetime')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
-
-            <!-- Nature of Complaint -->
-            <div class="mb-3">
-              <label for="nature_of_complaint" class="form-label">Nature of Complaint</label>
-              <textarea name="nature_of_complaint" id="nature_of_complaint" rows="3" class="form-control @error('nature_of_complaint') is-invalid @enderror" required>{{ old('nature_of_complaint') }}</textarea>
-              @error('nature_of_complaint')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
-
-            <!-- Lodged By -->
-            <div class="mb-3">
-              <label for="lodged_by" class="form-label">Lodged By</label>
-              <input type="text" name="lodged_by" id="lodged_by" class="form-control @error('lodged_by') is-invalid @enderror" value="{{ old('lodged_by') }}" required>
-              @error('lodged_by')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
-
-            <!-- Received By -->
-            <div class="mb-3">
-              <label for="received_by" class="form-label">Received By</label>
-              <input type="text" name="received_by" id="received_by" class="form-control @error('received_by') is-invalid @enderror" value="{{ old('received_by') }}">
-              @error('received_by')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
-
-            <!-- Cost of Fixing -->
-            <div class="mb-3">
-              <label for="cost_of_fixing" class="form-label">Cost of Fixing</label>
-              <input type="number" step="0.01" name="cost_of_fixing" id="cost_of_fixing" class="form-control @error('cost_of_fixing') is-invalid @enderror" value="{{ old('cost_of_fixing') }}">
-              @error('cost_of_fixing')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
-
-            <!-- Completion Date -->
-            <div class="mb-3">
-              <label for="completion_date" class="form-label">Completion Date</label>
-              <input type="date" name="completion_date" id="completion_date" class="form-control @error('completion_date') is-invalid @enderror" value="{{ old('completion_date') }}">
-              @error('completion_date')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
-
-            <!-- Status -->
-            <div class="mb-4">
-              <label for="status" class="form-label">Status</label>
-              <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
-                <option value="new" {{ old('status') == 'new' ? 'selected' : '' }}>New</option>
-                <option value="in_progress" {{ old('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                <option value="completed" {{ old('status') == 'completed' ? 'selected' : '' }}>Completed</option>
-                <option value="cancelled" {{ old('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-              </select>
-              @error('status')
-                <div class="invalid-feedback">{{ $message }}</div>
-              @enderror
-            </div>
-
-            <!-- Submit Button -->
-            <div class="d-grid">
-              <button type="submit" class="btn btn-primary btn-lg">Submit</button>
-            </div>
-
-          </form>
-        </div>
-      </div>
+        <a href="{{ route('maintenance.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Logs
+        </a>
     </div>
-  </div>
-</div>
+
+    @if ($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show">
+            <strong>Please fix the following errors:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <form method="POST" action="{{ route('maintenance.store') }}" enctype="multipart/form-data">
+                @csrf
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Location <span class="text-danger">*</span></label>
+                        <input type="text" name="location" class="form-control" value="{{ old('location') }}" required maxlength="100">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Department <span class="text-danger">*</span></label>
+                        <select name="department" class="form-select" required>
+                            <option value="">-- Select Department --</option>
+                            @foreach (\Modules\Maintenance\Models\MaintenanceLog::DEPARTMENTS as $key => $label)
+                                <option value="{{ $key }}" {{ old('department') === $key ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Priority</label>
+                    <div class="d-flex gap-2 priority-radio">
+                        @foreach (\Modules\Maintenance\Models\MaintenanceLog::PRIORITIES as $key => $label)
+                            <label class="priority-option {{ $key === 'medium' ? 'selected' : '' }}">
+                                <input type="radio" name="priority" value="{{ $key }}" {{ old('priority', 'medium') === $key ? 'checked' : '' }}>
+                                <span class="badge priority-badge p-2" data-priority="{{ $key }}">{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Complaint Date & Time <span class="text-danger">*</span></label>
+                        <input type="datetime-local" name="complaint_datetime" class="form-control" value="{{ old('complaint_datetime') }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Lodged By <span class="text-danger">*</span></label>
+                        <input type="text" name="lodged_by" class="form-control" value="{{ old('lodged_by', Auth::check() ? Auth::user()->name : '') }}" required maxlength="100">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Received By <span class="text-danger">*</span></label>
+                        <input type="text" name="received_by" class="form-control" value="{{ old('received_by', Auth::check() ? Auth::user()->name : '') }}" required maxlength="100" readonly>
+                        <div class="form-text">Auto-filled with your name.</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nature of Complaint <span class="text-danger">*</span></label>
+                    <textarea name="nature_of_complaint" class="form-control" rows="4" required>{{ old('nature_of_complaint') }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Photo <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="file" name="image" class="form-control" accept="image/*" capture="environment" data-compress="1200">
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Status <span class="text-danger">*</span></label>
+                        <div class="status-toggle-wrapper">
+                            <input type="hidden" name="status" id="statusInput" value="{{ old('status', 'new') }}">
+                            <div class="status-toggle">
+                                <button type="button" class="st-btn st-new {{ old('status', 'new') === 'new' ? 'active' : '' }}" data-value="new">New</button>
+                                <button type="button" class="st-btn st-in_progress {{ old('status') === 'in_progress' ? 'active' : '' }}" data-value="in_progress">Doing</button>
+                                <button type="button" class="st-btn st-completed {{ old('status') === 'completed' ? 'active' : '' }}" data-value="completed">Done</button>
+                                <button type="button" class="st-btn st-cancelled {{ old('status') === 'cancelled' ? 'active' : '' }}" data-value="cancelled">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Cost of Fixing (NGN)</label>
+                        <input type="number" step="0.01" name="cost_of_fixing" class="form-control" value="{{ old('cost_of_fixing') }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Completion Date</label>
+                        <input type="date" name="completion_date" class="form-control" value="{{ old('completion_date') }}">
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-lg px-4" style="background-color: var(--luxury-gold); color: #fff;">
+                        <i class="fas fa-save me-1"></i> Create Log
+                    </button>
+                    <a href="{{ route('maintenance.index') }}" class="btn btn-lg btn-outline-secondary px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
+
+@section('styles')
+<style>
+.status-toggle { display: inline-flex; border-radius: 20px; overflow: hidden; border: 1px solid #dee2e6; }
+.status-toggle .st-btn { border: none; padding: 5px 16px; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; font-weight: 500; }
+.status-toggle .st-btn:not(:last-child) { border-right: 1px solid #dee2e6; }
+.status-toggle .st-btn.st-new { background: #fff8e1; color: #8a6d00; }
+.status-toggle .st-btn.st-in_progress { background: #e3f2fd; color: #0a58ca; }
+.status-toggle .st-btn.st-completed { background: #e8f5e9; color: #146c43; }
+.status-toggle .st-btn.st-cancelled { background: #fce4e4; color: #c62828; }
+.status-toggle .st-btn.active.st-new { background: #ffc107; color: #212529; }
+.status-toggle .st-btn.active.st-in_progress { background: #0d6efd; color: #fff; }
+.status-toggle .st-btn.active.st-completed { background: #198754; color: #fff; }
+.status-toggle .st-btn.active.st-cancelled { background: #dc3545; color: #fff; }
+.status-toggle .st-btn:not(.active):hover { filter: brightness(0.92); }
+.priority-radio { gap: 0.35rem !important; }
+.priority-option { cursor: pointer; }
+.priority-option input { display: none; }
+.priority-badge { transition: all 0.15s; border: 2px solid transparent; font-weight: 500; }
+.priority-option input:checked + .priority-badge { border-color: #212529; box-shadow: 0 0 0 2px rgba(200,161,101,0.4); }
+.priority-option:hover .priority-badge { filter: brightness(0.92); }
+.priority-badge[data-priority="low"] { background-color: #6c757d; color: #fff; }
+.priority-badge[data-priority="medium"] { background-color: #ffc107; color: #212529; }
+.priority-badge[data-priority="high"] { background-color: #fd7e14; color: #fff; }
+.priority-badge[data-priority="critical"] { background-color: #dc3545; color: #fff; }
+</style>
+@endsection
+
+@section('page-scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.status-toggle .st-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var wrapper = this.closest('.status-toggle-wrapper');
+            wrapper.querySelectorAll('.st-btn').forEach(function (b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            wrapper.querySelector('#statusInput').value = this.dataset.value;
+        });
+    });
+});
+</script>
 @endsection

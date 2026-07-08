@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Calendar, Users, Bed, Wifi, Coffee, Check, X, ChevronRight, Info } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import { PageProps } from '../types';
 
 interface Room {
   id: number;
@@ -14,6 +16,32 @@ interface Room {
   available: boolean;
 }
 
+interface RoomTypeAmenity {
+  name: string;
+}
+
+interface RoomTypeResource {
+  id: number;
+  name: string;
+  price: string | number;
+  capacity: number;
+  bed_type?: string | null;
+  size?: string | null;
+  image_url?: string | null;
+  units_count?: number;
+  amenities?: RoomTypeAmenity[];
+}
+
+interface PaginatedRoomTypes {
+  data: RoomTypeResource[];
+}
+
+interface RoomsPageProps extends PageProps {
+  roomTypes?: PaginatedRoomTypes;
+}
+
+const fallbackRoomImage = 'https://images.pexels.com/photos/189296/pexels-photo-189296.jpeg?auto=compress&cs=tinysrgb&w=800';
+
 const Rooms = () => {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
@@ -22,6 +50,11 @@ const Rooms = () => {
   const [showResults, setShowResults] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const { roomTypes } = usePage().props as unknown as RoomsPageProps;
+
+  useEffect(() => {
+    console.log('Room Types:', roomTypes);
+  }, [roomTypes]);
 
   const calculateNights = () => {
     if (!checkIn || !checkOut) return 0;
@@ -31,80 +64,19 @@ const Rooms = () => {
     return diff > 0 ? diff : 0;
   };
 
-  const roomTypes: Room[] = [
-    {
-      id: 1,
-      name: 'Bridge Classic',
-      price: 106000,
-      discountPrice: 90100,
-      capacity: 2,
-      beds: '1 King Bed',
-      size: '28 sqm',
-      features: ['Free WiFi', 'Breakfast Included', 'Air Conditioning', 'Flat Screen TV', 'Private Bathroom'],
-      image: 'https://images.pexels.com/photos/189296/pexels-photo-189296.jpeg?auto=compress&cs=tinysrgb&w=800',
-      available: true,
-    },
-    {
-      id: 2,
-      name: 'Bridge Deluxe',
-      price: 112000,
-      discountPrice: 95200,
-      capacity: 2,
-      beds: '1 King Bed',
-      size: '32 sqm',
-      features: ['Free WiFi', 'Breakfast Included', 'Air Conditioning', 'Flat Screen TV', 'Mini Bar', 'Work Desk'],
-      image: 'https://images.pexels.com/photos/271618/pexels-photo-271618.jpeg?auto=compress&cs=tinysrgb&w=800',
-      available: true,
-    },
-    {
-      id: 3,
-      name: 'Bridge Executive',
-      price: 118000,
-      discountPrice: 100300,
-      capacity: 2,
-      beds: '1 King Bed',
-      size: '38 sqm',
-      features: ['Free WiFi', 'Breakfast Included', 'Air Conditioning', 'Flat Screen TV', 'Mini Bar', 'Work Desk', 'City View'],
-      image: 'https://images.pexels.com/photos/164595/pexels-photo-164595.jpeg?auto=compress&cs=tinysrgb&w=800',
-      available: true,
-    },
-    {
-      id: 4,
-      name: 'Bridge Executive Suite',
-      price: 147500,
-      discountPrice: 125375,
-      capacity: 2,
-      beds: '1 King Bed + Living Area',
-      size: '52 sqm',
-      features: ['Free WiFi', 'Breakfast for 2', 'Living Area', 'Mini Bar', 'Premium Toiletries', 'Lounge Access'],
-      image: 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg?auto=compress&cs=tinysrgb&w=800',
-      available: true,
-    },
-    {
-      id: 5,
-      name: 'Bridge Balcony Suite',
-      price: 165000,
-      discountPrice: 140250,
-      capacity: 2,
-      beds: '1 King Bed + Living Area',
-      size: '65 sqm',
-      features: ['Free WiFi', 'Breakfast for 2', 'Private Balcony', 'Living Area', 'Mini Bar', 'Premium Amenities'],
-      image: 'https://images.pexels.com/photos/1579253/pexels-photo-1579253.jpeg?auto=compress&cs=tinysrgb&w=800',
-      available: true,
-    },
-    {
-      id: 6,
-      name: 'Presidential Suite',
-      price: 350000,
-      discountPrice: undefined,
-      capacity: 4,
-      beds: '2 King Beds + Living Area',
-      size: '120 sqm',
-      features: ['Free WiFi', 'Breakfast for 4', 'Multiple Rooms', 'Butler Service', 'Private Dining', 'Exclusive Access', 'Jacuzzi'],
-      image: 'https://images.pexels.com/photos-2869275/pexels-photo-2869275.jpeg?auto=compress&cs=tinysrgb&w=800',
-      available: true,
-    },
-  ];
+  const availableRooms: Room[] = useMemo(() => {
+    return (roomTypes?.data ?? []).map((roomType) => ({
+      id: roomType.id,
+      name: roomType.name,
+      price: Number(roomType.price) || 0,
+      capacity: roomType.capacity,
+      beds: roomType.bed_type || 'Bed details available on request',
+      size: roomType.size || 'Size available on request',
+      features: roomType.amenities?.map((amenity) => amenity.name).filter(Boolean) ?? [],
+      image: roomType.image_url || fallbackRoomImage,
+      available: (roomType.units_count ?? 0) > 0,
+    }));
+  }, [roomTypes]);
 
   const handleCheckAvailability = (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,7 +222,19 @@ const Rooms = () => {
             </div>
           )}
 
-          {showResults && (
+          {availableRooms.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-20 h-20 bg-primary-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Bed className="w-10 h-10 text-primary-500" />
+              </div>
+              <h3 className="font-serif text-2xl font-semibold text-primary-900 mb-3">
+                No Rooms Found
+              </h3>
+              <p className="text-primary-600 max-w-md mx-auto">
+                No room types were returned for this page. Check that active room types exist for the selected property.
+              </p>
+            </div>
+          ) : (
             <div>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <div>
@@ -272,7 +256,7 @@ const Rooms = () => {
               </div>
 
               <div className="space-y-6">
-                {roomTypes.map((room) => (
+                {availableRooms.map((room) => (
                   <div
                     key={room.id}
                     className={`bg-white rounded-xl shadow-sm overflow-hidden ${
@@ -282,7 +266,7 @@ const Rooms = () => {
                     <div className="grid md:grid-cols-3 gap-6">
                       <div className="relative aspect-[4/3] md:aspect-auto">
                         <img
-                          src={room.image}
+                            src={`${room.image}`} 
                           alt={room.name}
                           className="w-full h-full object-cover"
                         />

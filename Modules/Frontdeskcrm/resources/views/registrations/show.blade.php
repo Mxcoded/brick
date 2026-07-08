@@ -141,10 +141,10 @@ $checkoutConfirmMsg = $isGroupLead
                 <div class="row g-3 align-items-end">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Assign Room</label>
-                        <select name="room_id" class="form-select form-select-lg" required>
+                        <select name="room_unit_id" class="form-select form-select-lg" required>
                             <option value="">Select available room...</option>
-                            @foreach(\Modules\Website\Models\Room::where('status', 'available')->get() as $room)
-                                <option value="{{ $room->id }}">{{ $room->name }} - ₦{{ number_format($room->price) }}</option>
+                            @foreach(\App\Models\RoomUnit::whereIn('status', ['available', 'occupied'])->with('roomType')->orderBy('room_number')->get() as $unit)
+                                <option value="{{ $unit->id }}">{{ $unit->room_number }} ({{ $unit->roomType->name ?? 'N/A' }})</option>
                             @endforeach
                         </select>
                     </div>
@@ -343,6 +343,9 @@ $checkoutConfirmMsg = $isGroupLead
                                             <span>
                                                 <i class="fas fa-money-bill-wave text-success me-1"></i>
                                                 {{ ucfirst($payment->payment_method) }}
+                                                @if($payment->payment_type && $payment->payment_type !== 'payment')
+                                                    <span class="badge bg-info bg-opacity-10 text-info small ms-1">{{ ucfirst(str_replace('_', ' ', $payment->payment_type)) }}</span>
+                                                @endif
                                                 <small class="text-muted">({{ $payment->payment_date->format('M d') }})</small>
                                                 @if ($payment->reference)
                                                     <small class="text-muted">- {{ $payment->reference }}</small>
@@ -399,6 +402,206 @@ $checkoutConfirmMsg = $isGroupLead
                             </div>
                         </div>
 
+                        {{-- Folio / Charge Posting Section --}}
+                        <div class="mt-4 p-3 bg-light rounded-3">
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="fas fa-receipt me-2"></i>Guest Folio
+                                <button class="btn btn-sm btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#chargeModal">
+                                    <i class="fas fa-plus"></i> Post Charge
+                                </button>
+                                <a href="{{ route('frontdesk.registrations.invoice', $registration) }}" class="btn btn-sm btn-outline-secondary ms-1" target="_blank">
+                                    <i class="fas fa-print"></i> Invoice
+                                </a>
+                            </h6>
+
+                            @php
+                                $folioTransactions = collect();
+
+                                $roomChargesItem = (object) [
+                                    'type' => 'charge',
+                                    'date' => $registration->check_in,
+                                    'description' => "Room Charge ({$nights} nights @ ₦" . number_format($roomRate) . "/night)",
+                                    'amount' => $roomCharges,
+                                    'icon' => 'bed',
+                                ];
+                                $folioTransactions->push($roomChargesItem);
+
+                                foreach ($registration->folioCharges as $fc) {
+                                    $folioTransactions->push((object) [
+                                        'type' => 'charge',
+                                        'date' => $fc->created_at,
+                                        'description' => $fc->description . ' (' . $fc->quantity . 'x ₦' . number_format($fc->unit_price) . ')',
+                                        'amount' => $fc->amount,
+                                        'icon' => $fc->chargeType->icon ?? 'receipt',
+                                    ]);
+                                }
+
+                                foreach ($registration->payments as $payment) {
+                                    $folioTransactions->push((object) [
+                                        'type' => 'payment',
+                                        'date' => $payment->payment_date,
+                                        'description' => $payment->payment_method . ($payment->payment_type && $payment->payment_type !== 'payment' ? ' ('.ucfirst(str_replace('_', ' ', $payment->payment_type)).')' : '') . ($payment->reference ? ' - ' . $payment->reference : ''),
+                                        'amount' => -abs($payment->amount),
+                                        'icon' => 'money-bill-wave',
+                                    ]);
+                                }
+
+                                $folioTransactions = $folioTransactions->sortBy('date');
+                                $runningBalance = 0;
+                            @endphp
+
+                            <div class="bg-white rounded p-2">
+                                <table class="table table-sm mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Description</th>
+                                            <th class="text-end">Charge</th>
+                                            <th class="text-end">Payment</th>
+                                            <th class="text-end">Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($folioTransactions as $txn)
+                                            @php $runningBalance += $txn->amount; @endphp
+                                            <tr class="{{ $txn->type === 'payment' ? 'table-success' : '' }}">
+                                                <td class="small">{{ optional($txn->date)->format('M d') ?? '—' }}</td>
+                                                <td class="small">
+                                                    <i class="fas fa-{{ $txn->icon }} me-1 text-muted"></i>
+                                                    {{ $txn->description }}
+                                                </td>
+                                                <td class="text-end small">
+                                                    @if($txn->type === 'charge' && $txn->amount > 0)
+                                                        ₦{{ number_format($txn->amount, 2) }}
+                                                    @endif
+                                                </td>
+                                                <td class="text-end small">
+                                                    @if($txn->type === 'payment')
+                                                        ₦{{ number_format(abs($txn->amount), 2) }}
+                                                    @endif
+                                                </td>
+                                                <td class="text-end small fw-bold">
+                                                    ₦{{ number_format($runningBalance, 2) }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="fw-bold">
+                                            <td colspan="4" class="text-end">Outstanding Balance</td>
+                                            <td class="text-end {{ $runningBalance > 0 ? 'text-danger' : 'text-success' }}">
+                                                ₦{{ number_format($runningBalance, 2) }}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        {{-- Security Deposit & Pre-Authorization Section --}}
+                        <div class="mt-3 p-3 bg-light rounded-3">
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="fas fa-shield-alt me-2"></i>Deposits & Pre-Authorizations
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <div class="bg-white rounded p-2 text-center">
+                                        <small class="text-muted d-block">Security Deposit</small>
+                                        <strong class="text-dark">₦{{ number_format($registration->security_deposit_amount ?? 0, 2) }}</strong>
+                                        @if($registration->security_deposit_status === 'collected')
+                                            <span class="badge bg-success d-block mt-1">Collected</span>
+                                            @if(in_array($registration->stay_status, ['checked_in', 'checked_out']))
+                                                <div class="mt-2 d-flex gap-1 justify-content-center">
+                                                    <form action="{{ route('frontdesk.registrations.security-deposit.refund', $registration) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('Refund security deposit?')">
+                                                            <i class="fas fa-undo"></i> Refund
+                                                        </button>
+                                                    </form>
+                                                    <form action="{{ route('frontdesk.registrations.security-deposit.forfeit', $registration) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Forfeit security deposit? This cannot be undone.')">
+                                                            <i class="fas fa-times"></i> Forfeit
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            @endif
+                                        @elseif($registration->security_deposit_status === 'refunded')
+                                            <span class="badge bg-secondary d-block mt-1">Refunded</span>
+                                        @elseif($registration->security_deposit_status === 'forfeited')
+                                            <span class="badge bg-danger d-block mt-1">Forfeited</span>
+                                        @else
+                                            <span class="badge bg-warning text-dark d-block mt-1">Pending</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="bg-white rounded p-2 text-center">
+                                        <small class="text-muted d-block">Deposit Required</small>
+                                        @if($registration->deposit_required)
+                                            <strong class="text-dark">₦{{ number_format($registration->deposit_amount ?? 0, 2) }}</strong>
+                                            <span class="badge bg-info d-block mt-1">
+                                                @if($registration->total_deposit_paid >= ($registration->deposit_amount ?? 0))
+                                                    Fulfilled
+                                                @else
+                                                    Outstanding (₦{{ number_format(($registration->deposit_amount ?? 0) - $registration->total_deposit_paid, 2) }})
+                                                @endif
+                                            </span>
+                                        @else
+                                            <span class="text-muted">Not Required</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="bg-white rounded p-2 text-center">
+                                        <small class="text-muted d-block">Pre-Authorization</small>
+                                        <strong class="text-dark">₦{{ number_format($registration->pre_authorization_amount ?? 0, 2) }}</strong>
+                                        @if($registration->pre_authorization_reference)
+                                            <small class="d-block text-muted">Ref: {{ $registration->pre_authorization_reference }}</small>
+                                        @endif
+                                        @if($registration->pre_authorization_status)
+                                            <span class="badge bg-{{ $registration->pre_authorization_status === 'approved' || $registration->pre_authorization_status === 'active' ? 'primary' : ($registration->pre_authorization_status === 'captured' ? 'success' : 'secondary') }} d-block mt-1">
+                                                {{ ucfirst($registration->pre_authorization_status) }}
+                                            </span>
+                                            @if(in_array($registration->pre_authorization_status, ['approved', 'active']))
+                                                <div class="mt-2 d-flex gap-1 justify-content-center flex-wrap">
+                                                    <form action="{{ route('frontdesk.registrations.pre-auth.update', [$registration, 'capture']) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Capture pre-authorization of ₦{{ number_format($registration->pre_authorization_amount, 2) }}?')">
+                                                            <i class="fas fa-check"></i> Capture
+                                                        </button>
+                                                    </form>
+                                                    <form action="{{ route('frontdesk.registrations.pre-auth.update', [$registration, 'void']) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-warning" onclick="return confirm('Void pre-authorization?')">
+                                                            <i class="fas fa-ban"></i> Void
+                                                        </button>
+                                                    </form>
+                                                    <form action="{{ route('frontdesk.registrations.pre-auth.update', [$registration, 'expire']) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('Mark pre-authorization as expired?')">
+                                                            <i class="fas fa-clock"></i> Expire
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            @endif
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="bg-white rounded p-2 text-center">
+                                        <small class="text-muted d-block">Discount Applied</small>
+                                        @if($registration->total_discount > 0)
+                                            <strong class="text-success">-₦{{ number_format($registration->total_discount, 2) }}</strong>
+                                            <small class="d-block text-muted">{{ $registration->discount_reason ?? '—' }}</small>
+                                        @else
+                                            <span class="text-muted">None</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         @if ($registration->stay_status === 'checked_in')
                             {{-- Progress Bar --}}
                             <div class="mt-4">
@@ -424,14 +627,12 @@ $checkoutConfirmMsg = $isGroupLead
                                     data-bs-target="#paymentModal">
                                     <i class="fas fa-money-bill-wave me-1"></i> Record a Payment
                                 </button>
-                                <form action="{{ route('frontdesk.registrations.checkout', $registration) }}"
-                                    method="POST" class="d-inline"
-                                    onsubmit="return confirm('{{ $checkoutConfirmMsg }}');">
-                                    @csrf
-                                    <button type="submit" class="btn btn-danger">
-                                        <i class="fas fa-sign-out-alt me-1"></i> Check Out
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#upgradeModal">
+                                    <i class="fas fa-arrow-up me-1"></i> Upgrade Room
+                                </button>
+                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#checkoutModal">
+                                    <i class="fas fa-sign-out-alt me-1"></i> Check Out
+                                </button>
                             </div>
                         @endif
                     </div>
@@ -647,11 +848,11 @@ $checkoutConfirmMsg = $isGroupLead
                             <ul class="list-unstyled mb-0 mt-2">
                                 <li class="mb-2 d-flex">
                                     <i class="fas fa-user-shield text-muted mt-1 me-3" style="width: 16px;"></i>
-                                    <span>{{ $registration->emergency_name ?? $registration->guest->emergency_name ?? 'N/A' }}</span>
+                                    <span>{{ $registration->emergency_name ?? $registration->guest?->emergency_name ?? 'N/A' }}</span>
                                 </li>
                                 <li class="d-flex">
                                     <i class="fas fa-phone-alt text-muted mt-1 me-3" style="width: 16px;"></i>
-                                    <span>{{ $registration->emergency_contact ?? $registration->guest->emergency_contact ?? 'N/A' }}</span>
+                                    <span>{{ $registration->emergency_contact ?? $registration->guest?->emergency_contact ?? 'N/A' }}</span>
                                 </li>
                             </ul>
                         </div>
@@ -661,10 +862,10 @@ $checkoutConfirmMsg = $isGroupLead
                             <small class="text-muted text-uppercase fw-bold">History</small>
                             <div class="mt-2 d-flex align-items-center">
                                 <i class="fas fa-history text-muted me-3" style="width: 16px;"></i>
-                                <span class="badge {{ ($registration->guest->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }}">
-                                    {{ ($registration->guest->visit_count ?? 1) > 1 ? 'Returning Guest' : 'New Guest' }}
+                                <span class="badge {{ ($registration->guest?->visit_count ?? 1) > 1 ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ ($registration->guest?->visit_count ?? 1) > 1 ? 'Returning Guest' : 'New Guest' }}
                                 </span>
-                                <small class="text-muted ms-2">({{ $registration->guest->visit_count ?? 1 }} visits)</small>
+                                <small class="text-muted ms-2">({{ $registration->guest?->visit_count ?? 1 }} visits)</small>
                             </div>
                         </div>
                     </div>
@@ -787,14 +988,27 @@ $checkoutConfirmMsg = $isGroupLead
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Date</label>
-                            <input type="date" name="payment_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                            <label class="form-label">Payment Type</label>
+                            <select name="payment_type" class="form-select">
+                                <option value="payment">Regular Payment</option>
+                                <option value="deposit">Deposit</option>
+                                <option value="advance">Advance Payment</option>
+                                <option value="security_deposit">Security Deposit</option>
+                                <option value="pre_authorization">Pre-Authorization</option>
+                                <option value="refund">Refund</option>
+                            </select>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Reference / Receipt No. (Optional)</label>
-                        <input type="text" name="reference" class="form-control" placeholder="e.g. POS-123456">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="payment_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Reference / Receipt No. (Optional)</label>
+                            <input type="text" name="reference" class="form-control" placeholder="e.g. POS-123456">
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -810,5 +1024,368 @@ $checkoutConfirmMsg = $isGroupLead
         </div>
     </div>
 </div>
+
+{{-- Post Charge Modal --}}
+@php $chargeTypes = \Modules\Frontdeskcrm\Models\ChargeType::active()->ordered()->get(); @endphp
+<div class="modal fade" id="chargeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold"><i class="fas fa-receipt me-2"></i>Post Charge to Folio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('frontdesk.registrations.charges.store', $registration) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Charge Type <span class="text-danger">*</span></label>
+                        <select name="charge_type_id" class="form-select" required>
+                            <option value="">Select charge type...</option>
+                            @foreach($chargeTypes as $ct)
+                                <option value="{{ $ct->id }}" {{ old('charge_type_id') == $ct->id ? 'selected' : '' }}>
+                                    @if($ct->icon)<i class="{{ $ct->icon }} me-1"></i>@endif
+                                    {{ $ct->name }} ({{ $ct->code }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <input type="text" name="description" class="form-control" placeholder="e.g. Mini Bar - Whisky" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-4">
+                            <label class="form-label">Qty</label>
+                            <input type="number" name="quantity" class="form-control" value="1" min="1" max="999" required>
+                        </div>
+                        <div class="col-8">
+                            <label class="form-label">Unit Price (₦) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="unit_price" class="form-control" placeholder="0.00" min="0" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning fw-bold"><i class="fas fa-plus"></i> Post Charge</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{{-- Checkout Confirmation Modal --}}
+@php
+    $checkoutRoomCharges = $roomCharges + ($extensionDays > 0 ? $extensionDays * $roomRate : 0);
+    $checkoutExtraCharges = $registration->folioCharges()->sum('amount');
+    $checkoutDiscount = $registration->total_discount * $nights;
+    $checkoutTotalCharges = $checkoutRoomCharges + $checkoutExtraCharges;
+    $checkoutTotalPaid = $registration->total_paid;
+    $checkoutBalance = $checkoutTotalCharges - $checkoutDiscount - $checkoutTotalPaid;
+    $taxRate = app(\App\Services\PropertyService::class)->taxRate();
+    $taxAmount = round(($checkoutTotalCharges - $checkoutDiscount) * $taxRate / 100, 2);
+    $grandTotal = $checkoutTotalCharges - $checkoutDiscount + $taxAmount;
+@endphp
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ route('frontdesk.registrations.checkout', $registration) }}" method="POST">
+                @csrf
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-sign-out-alt me-2"></i>Check Out: {{ $registration->full_name }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{-- Folio Summary --}}
+                    <div class="bg-light rounded p-3 mb-3">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-receipt me-2"></i>Final Bill Summary</h6>
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <td>Room Charges ({{ $nights }} {{ Str::plural('night', $nights) }} @ ₦{{ number_format($roomRate) }})</td>
+                                <td class="text-end">₦{{ number_format($checkoutRoomCharges, 2) }}</td>
+                            </tr>
+                            @if($checkoutExtraCharges > 0)
+                            <tr>
+                                <td>Extra Charges ({{ $registration->folioCharges->count() }} items)</td>
+                                <td class="text-end">₦{{ number_format($checkoutExtraCharges, 2) }}</td>
+                            </tr>
+                            @endif
+                            @if($checkoutDiscount > 0)
+                            <tr class="text-success">
+                                <td><i class="fas fa-tag me-1"></i>Discount{{ $registration->discount_reason ? ' ('.$registration->discount_reason.')' : '' }}</td>
+                                <td class="text-end">- ₦{{ number_format($checkoutDiscount, 2) }}</td>
+                            </tr>
+                            @endif
+                            <tr>
+                                <td>Subtotal</td>
+                                <td class="text-end">₦{{ number_format($checkoutTotalCharges, 2) }}</td>
+                            </tr>
+                            <tr>
+                                <td>VAT ({{ $taxRate }}%)</td>
+                                <td class="text-end">₦{{ number_format($taxAmount, 2) }}</td>
+                            </tr>
+                            <tr class="fw-bold border-top">
+                                <td>Total Charges (incl. tax)</td>
+                                <td class="text-end">₦{{ number_format($grandTotal, 2) }}</td>
+                            </tr>
+                            <tr class="text-success">
+                                <td><i class="fas fa-money-bill-wave me-1"></i>Total Paid</td>
+                                <td class="text-end">- ₦{{ number_format($checkoutTotalPaid, 2) }}</td>
+                            </tr>
+                            <tr class="fw-bold {{ $checkoutBalance > 0 ? 'text-danger' : 'text-success' }}" style="font-size: 1.1rem;">
+                                <td>{{ $checkoutBalance > 0 ? 'Balance Due' : ($checkoutBalance < 0 ? 'Guest Credit' : 'Fully Paid') }}</td>
+                                <td class="text-end">₦{{ number_format(abs($checkoutBalance), 2) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    {{-- Loyalty Points Preview --}}
+                    @if($registration->guest && $guest = $registration->guest)
+                    <div class="bg-white border rounded p-3 mb-3">
+                        <h6 class="fw-bold mb-1"><i class="fas fa-star text-gold me-2"></i>Loyalty Points</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">
+                                    {{ $guest->loyaltyTier?->name ?? 'Bronze' }} Member
+                                    @if($guest->loyaltyTier?->multiplier && $guest->loyaltyTier->multiplier > 1)
+                                        ({{ number_format($guest->loyaltyTier->multiplier, 1) }}x multiplier)
+                                    @endif
+                                </small>
+                                <small class="text-muted">Available: {{ number_format($guest->total_points) }} pts</small>
+                            </div>
+                            <div class="text-end">
+                                @php
+                                    $estPoints = (int) floor($grandTotal * ($guest->loyaltyTier?->multiplier ?? 1.0));
+                                @endphp
+                                <span class="h5 fw-bold text-gold mb-0 d-block">+{{ number_format($estPoints) }}</span>
+                                <small class="text-muted">estimated points</small>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Security Deposit Handling --}}
+                    @if($registration->security_deposit_status === 'collected' && $registration->security_deposit_amount > 0)
+                    <div class="bg-warning bg-opacity-10 border border-warning rounded p-3 mb-3">
+                        <h6 class="fw-bold mb-2"><i class="fas fa-shield-alt me-2 text-warning"></i>Security Deposit: ₦{{ number_format($registration->security_deposit_amount, 2) }}</h6>
+                        <p class="small text-muted mb-2">Choose how to handle the collected security deposit:</p>
+                        <div class="d-flex gap-3">
+                            <label class="form-check-label d-flex align-items-center gap-1">
+                                <input type="radio" name="security_deposit_action" value="refund" checked>
+                                <i class="fas fa-undo text-secondary"></i> Refund to guest
+                            </label>
+                            <label class="form-check-label d-flex align-items-center gap-1">
+                                <input type="radio" name="security_deposit_action" value="forfeit">
+                                <i class="fas fa-times text-danger"></i> Forfeit (damages)
+                            </label>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Final Payment (if balance > 0) --}}
+                    @if($checkoutBalance > 0)
+                    <div class="bg-white border rounded p-3 mb-3">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-cash-register me-2"></i>Record Final Payment</h6>
+
+                        @if($registration->corporate_account_id)
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="billing_to_account" id="billingToAccount" value="1">
+                            <label class="form-check-label fw-medium" for="billingToAccount">
+                                <i class="fas fa-building me-1 text-muted"></i>
+                                Bill to Account ({{ $registration->corporateAccount?->company_name ?? 'Corporate Account' }})
+                            </label>
+                        </div>
+                        @endif
+
+                        <div id="checkoutPaymentFields">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Amount</label>
+                                    <input type="number" step="0.01" name="payment_amount" class="form-control" value="{{ number_format($checkoutBalance, 2, '.', '') }}" min="0">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Method</label>
+                                    <select name="payment_method" class="form-select">
+                                        <option value="Cash">Cash</option>
+                                        <option value="POS">POS / Card</option>
+                                        <option value="Transfer">Bank Transfer</option>
+                                        <option value="Cheque">Cheque</option>
+                                        <option value="Complimentary">Complimentary</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Reference</label>
+                                    <input type="text" name="payment_reference" class="form-control" placeholder="Optional">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Options --}}
+                    <div class="bg-white border rounded p-3">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>Checkout Options</h6>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="email_receipt" id="emailReceipt" value="1" checked>
+                            <label class="form-check-label" for="emailReceipt">
+                                <i class="fas fa-envelope me-1 text-muted"></i>
+                                Email receipt to {{ $registration->email ?? $registration->guest?->email ?? 'guest' }}
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="print_receipt" id="printReceipt" value="1">
+                            <label class="form-check-label" for="printReceipt">
+                                <i class="fas fa-print me-1 text-muted"></i>
+                                Open receipt for printing after checkout
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-bold btn-lg">
+                        <i class="fas fa-check-circle me-1"></i> Confirm Checkout
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Upgrade Room Modal --}}
+<div class="modal fade" id="upgradeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-arrow-up me-2"></i>Upgrade Room</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-4" id="upgrade-loading">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Checking available upgrades...</p>
+                </div>
+                <div id="upgrade-content" style="display: none;">
+                    <p class="text-muted mb-3">
+                        Current room: <strong>{{ $registration->roomUnit?->room_number ?? 'N/A' }}</strong>
+                        (₦{{ number_format($registration->room_rate ?? 0) }}/night)
+                    </p>
+                    <div id="upgrade-options"></div>
+                    <div id="upgrade-none" class="text-center py-4" style="display: none;">
+                        <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No upgrade options available at this time.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
     </div>
 @endsection
+
+@push('page-scripts')
+<script>
+    $('#upgradeModal').on('show.bs.modal', function () {
+        var modal = $(this);
+        $('#upgrade-loading').show();
+        $('#upgrade-content').hide();
+        $('#upgrade-options').empty();
+        $('#upgrade-none').hide();
+
+        $.get('{{ route("frontdesk.registrations.upgrade-options", $registration) }}', function (res) {
+            $('#upgrade-loading').hide();
+            $('#upgrade-content').show();
+
+            if (!res.upgrades || res.upgrades.length === 0) {
+                $('#upgrade-none').show();
+                return;
+            }
+
+            var html = '';
+            res.upgrades.forEach(function (opt) {
+                var unitsHtml = '';
+                opt.available_units.forEach(function (u) {
+                    unitsHtml += '<button class="btn btn-sm btn-outline-primary upgrade-unit" ' +
+                        'data-unit-id="' + u.id + '" ' +
+                        'data-room-number="' + u.room_number + '" ' +
+                        'data-type-name="' + opt.room_type.name + '" ' +
+                        'data-price-diff="' + opt.price_difference + '" ' +
+                        'data-price-diff-night="' + opt.price_difference_per_night + '">' +
+                        'Room ' + u.room_number + (u.floor ? ' (Floor ' + u.floor + ')' : '') +
+                        '</button>';
+                });
+
+                html += '<div class="card border-0 shadow-sm mb-3">' +
+                    '<div class="card-body">' +
+                    '<div class="d-flex justify-content-between align-items-start">' +
+                    '<div>' +
+                    '<h6 class="fw-bold mb-1">' + opt.room_type.name + '</h6>' +
+                    (opt.room_type.description ? '<small class="text-muted d-block">' + opt.room_type.description + '</small>' : '') +
+                    (opt.room_type.size ? '<small class="text-muted d-block">' + opt.room_type.size + ' m²</small>' : '') +
+                    (opt.room_type.bed_type ? '<small class="text-muted">' + opt.room_type.bed_type + '</small>' : '') +
+                    '</div>' +
+                    '<div class="text-end">' +
+                    '<span class="fw-bold text-primary">₦' + opt.room_type.price.toLocaleString() + '<small class="text-muted fw-normal">/night</small></span>' +
+                    '<br><span class="text-success small fw-bold">+₦' + opt.price_difference_per_night.toLocaleString() + '/night</span>' +
+                    '<br><span class="text-primary small fw-bold">Total: +₦' + opt.price_difference.toLocaleString() + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '<hr class="my-2">' +
+                    '<div class="d-flex gap-2 flex-wrap">' + unitsHtml + '</div>' +
+                    '</div>' +
+                    '</div>';
+            });
+
+            $('#upgrade-options').html(html);
+        }).fail(function () {
+            $('#upgrade-loading').hide();
+            $('#upgrade-content').show();
+            $('#upgrade-options').html('<div class="alert alert-danger">Failed to load upgrade options.</div>');
+        });
+    });
+
+    $(document).on('click', '.upgrade-unit', function () {
+        var btn = $(this);
+        var unitId = btn.data('unit-id');
+        var roomNumber = btn.data('room-number');
+        var typeName = btn.data('type-name');
+        var priceDiff = btn.data('price-diff');
+
+        if (!confirm('Upgrade to ' + typeName + ' - Room ' + roomNumber + '?\n\nAdditional charge: ₦' + priceDiff.toLocaleString() + '\n\nThis will be posted to the folio.')) return;
+
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+        $.ajax({
+            url: '{{ route("frontdesk.registrations.upgrade", $registration) }}',
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': $('meta[name=\'csrf-token\']').attr('content') },
+            data: { room_unit_id: unitId },
+            success: function () {
+                location.reload();
+            },
+            error: function (xhr) {
+                alert(xhr.responseJSON?.error || xhr.responseJSON?.message || 'Upgrade failed.');
+                btn.prop('disabled', false).text('Room ' + roomNumber);
+            }
+        });
+    });
+
+    // Bill to Account toggle
+    $('#billingToAccount').on('change', function () {
+        if ($(this).is(':checked')) {
+            $('#checkoutPaymentFields').slideUp();
+        } else {
+            $('#checkoutPaymentFields').slideDown();
+        }
+    });
+</script>
+@if(session('printInvoice'))
+<script>
+    window.open('{{ session('printInvoice') }}', '_blank');
+</script>
+@endif
+@endpush

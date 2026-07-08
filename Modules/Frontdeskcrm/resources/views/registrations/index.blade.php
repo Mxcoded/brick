@@ -99,6 +99,136 @@
 
 
        
+        {{-- ✅ EXPECTED ARRIVALS (Bookings due today or future) --}}
+        @if(isset($expectedArrivals) && $expectedArrivals->count() > 0)
+        <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-4 border-info">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="fas fa-calendar-day text-info me-2"></i>Expected Arrivals
+                    </h5>
+                    <span class="badge bg-info rounded-pill">{{ $expectedArrivals->count() }} upcoming</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Guest</th>
+                                <th>Room</th>
+                                <th>Check-In</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($expectedArrivals as $booking)
+                            @php
+                                $daysUntil = now()->startOfDay()->diffInDays($booking->check_in_date, false);
+                            @endphp
+                            <tr>
+                                <td class="fw-bold">{{ $booking->guest_name }}
+                                    <br><small class="text-muted">{{ $booking->booking_reference }}</small>
+                                </td>
+                                <td>{{ $booking->roomType?->name ?? ($booking->room?->name ?? 'N/A') }}</td>
+                                <td>{{ $booking->check_in_date->format('M d, Y') }}
+                                    @if($daysUntil == 0)
+                                        <span class="badge bg-success ms-1">Today</span>
+                                    @elseif($daysUntil == 1)
+                                        <span class="badge bg-warning text-dark ms-1">Tomorrow</span>
+                                    @else
+                                        <br><small class="text-muted">in {{ $daysUntil }} days</small>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($booking->status === 'confirmed')
+                                        <span class="badge bg-success">Confirmed</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ route('frontdesk.registrations.create', ['ref' => $booking->booking_reference]) }}"
+                                       class="btn btn-sm btn-info text-white">
+                                        <i class="fas fa-sign-in-alt me-1"></i> Check In
+                                    </a>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- ✅ OVERDUE CHECK-INS (Bookings past check-in date, not converted) --}}
+        @if(isset($overdueBookings) && $overdueBookings->count() > 0)
+        <div class="card border-0 shadow-sm rounded-3 mb-4 border-start border-4 border-danger">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>Overdue Check-Ins
+                    </h5>
+                    <span class="badge bg-danger rounded-pill">{{ $overdueBookings->count() }} overdue</span>
+                </div>
+                <p class="text-muted small mb-3">These guests were due to check in but haven't arrived yet.</p>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Guest</th>
+                                <th>Room</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($overdueBookings as $booking)
+                            @php
+                                $daysOverdue = now()->startOfDay()->diffInDays($booking->check_in_date, false);
+                            @endphp
+                            <tr class="table-danger">
+                                <td class="fw-bold">{{ $booking->guest_name }}
+                                    <br><small class="text-muted">{{ $booking->booking_reference }}</small>
+                                </td>
+                                <td>{{ $booking->roomType?->name ?? ($booking->room?->name ?? 'N/A') }}</td>
+                                <td>
+                                    {{ $booking->check_in_date->format('M d, Y') }}
+                                    <br><small class="text-danger fw-bold">{{ $daysOverdue }} day(s) ago</small>
+                                </td>
+                                <td>
+                                    @if($booking->status === 'confirmed')
+                                        <span class="badge bg-success">Confirmed</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex gap-1 justify-content-end">
+                                        <a href="{{ route('frontdesk.registrations.create', ['ref' => $booking->booking_reference]) }}"
+                                           class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-sign-in-alt me-1"></i> Check In
+                                        </a>
+                                        <form action="{{ route('frontdesk.bookings.no-show', $booking) }}"
+                                              method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Mark {{ $booking->guest_name }} as no-show?')">
+                                                <i class="fas fa-user-slash me-1"></i> No-Show
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Search & Filter Card --}}
         <div class="card border-0 shadow-sm rounded-3 mb-4">
             <div class="card-body p-4">

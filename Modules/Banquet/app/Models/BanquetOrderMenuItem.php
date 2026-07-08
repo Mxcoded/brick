@@ -2,8 +2,8 @@
 
 namespace Modules\Banquet\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class BanquetOrderMenuItem extends Model
 {
@@ -16,7 +16,7 @@ class BanquetOrderMenuItem extends Model
         'quantity',
         'unit_price',
         'total_price',
-        'dietary_restrictions'
+        'dietary_restrictions',
     ];
 
     protected $casts = [

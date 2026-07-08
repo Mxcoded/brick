@@ -2,15 +2,16 @@
 
 namespace Modules\Frontdeskcrm\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class GuestType extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     protected $fillable = [
         'name',
@@ -42,6 +43,7 @@ class GuestType extends Model
         if (Schema::hasColumn('registrations', 'stay_status')) {
             $query->where('stay_status', 'checked_out');
         }
+
         return $query->sum(DB::raw('room_rate * no_of_nights'));
     }
 }

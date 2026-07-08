@@ -9,10 +9,10 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Modules\Website\Models\Newsletter;
-use Modules\Website\Models\NewsletterSubscriber;
-use Modules\Website\Models\NewsletterDeliveryLog;
 use Modules\Website\Emails\NewsletterMail;
+use Modules\Website\Models\Newsletter;
+use Modules\Website\Models\NewsletterDeliveryLog;
+use Modules\Website\Models\NewsletterSubscriber;
 
 class SendNewsletterJob implements ShouldQueue
 {
@@ -59,14 +59,15 @@ class SendNewsletterJob implements ShouldQueue
         $deliveryLog = $this->getOrCreateDeliveryLog();
 
         // Skip if subscriber is no longer active
-        if (!$this->subscriber->is_active) {
+        if (! $this->subscriber->is_active) {
             Log::info('Skipping inactive subscriber', [
                 'newsletter_id' => $this->newsletter->id,
                 'subscriber_id' => $this->subscriber->id,
             ]);
-            
+
             // Mark as failed in delivery log
             $deliveryLog->markAsFailed('Subscriber is no longer active');
+
             return;
         }
 
@@ -156,7 +157,7 @@ class SendNewsletterJob implements ShouldQueue
     {
         // Ensure the delivery log is marked as failed
         $deliveryLog = $this->getOrCreateDeliveryLog();
-        
+
         if ($deliveryLog->status !== NewsletterDeliveryLog::STATUS_FAILED) {
             $deliveryLog->markAsFailed($exception->getMessage());
             $this->newsletter->incrementFailedCount();

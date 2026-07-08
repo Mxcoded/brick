@@ -1,4 +1,4 @@
-@extends('restaurant::layouts.master')
+@extends('restaurant::layouts.admin')
 @section('title', 'Admin Dashboard')
 @section('content')
     <div class="container-fluid">

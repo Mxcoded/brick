@@ -2,12 +2,12 @@
 
 namespace Modules\Frontdeskcrm\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use App\Models\User;
 
 class Guest extends Model
 {
@@ -18,8 +18,8 @@ class Guest extends Model
         'title',
         'full_name',
         'nationality',
-        'zip_code',       // ✅ Added
-        'identification_type',   // ✅ Added
+        'zip_code',
+        'identification_type',
         'identification_number',
         'contact_number',
         'birthday',
@@ -28,7 +28,7 @@ class Guest extends Model
         'occupation',
         'company_name',
         'home_address',
-        'city',           // ✅ Added
+        'city',
         'state',
         'emergency_name',
         'emergency_relationship',
@@ -36,6 +36,9 @@ class Guest extends Model
         'last_visit_at',
         'visit_count',
         'opt_in_data_save',
+        'loyalty_tier_id',
+        'total_points',
+        'lifetime_points',
     ];
 
     protected $casts = [
@@ -43,6 +46,8 @@ class Guest extends Model
         'last_visit_at' => 'datetime',
         'opt_in_data_save' => 'boolean',
         'visit_count' => 'integer',
+        'total_points' => 'integer',
+        'lifetime_points' => 'integer',
     ];
 
     // Relationships
@@ -51,14 +56,47 @@ class Guest extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(GuestDocument::class);
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(GuestMessage::class);
+    }
+
     public function preference(): HasOne
     {
         return $this->hasOne(GuestPreference::class);
+    }
+
+    public function loyaltyTier(): BelongsTo
+    {
+        return $this->belongsTo(LoyaltyTier::class, 'loyalty_tier_id');
+    }
+
+    public function loyaltyPoints(): HasMany
+    {
+        return $this->hasMany(LoyaltyPoint::class);
+    }
+
+    public function recalculateTier(): void
+    {
+        $tier = LoyaltyTier::where('is_active', true)
+            ->where('min_points', '<=', $this->lifetime_points)
+            ->orderByDesc('min_points')
+            ->first();
+
+        if ($tier && $tier->id !== $this->loyalty_tier_id) {
+            $this->update(['loyalty_tier_id' => $tier->id]);
+        }
     }
 
     // Scopes
@@ -75,7 +113,7 @@ class Guest extends Model
             'contact' => $this->contact_number,
             'email' => $this->email,
             'address' => $this->home_address,
-            'emergency' => $this->emergency_name . ' (' . $this->emergency_relationship . ')',
+            'emergency' => $this->emergency_name.' ('.$this->emergency_relationship.')',
             'preferences' => $this->preference?->preferences ?? [],
         ];
     }

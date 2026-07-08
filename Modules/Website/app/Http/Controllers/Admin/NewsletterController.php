@@ -5,10 +5,12 @@ namespace Modules\Website\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Facades\Excel;
+use Modules\Website\Emails\NewsletterMail;
+use Modules\Website\Imports\NewsletterSubscriberImport;
 use Modules\Website\Models\Newsletter;
-use Modules\Website\Models\NewsletterSubscriber;
 use Modules\Website\Models\NewsletterDeliveryLog;
-use Modules\Website\Jobs\SendNewsletterJob;
+use Modules\Website\Models\NewsletterSubscriber;
 
 class NewsletterController extends Controller
 {
@@ -30,7 +32,11 @@ class NewsletterController extends Controller
 
         // Search
         if ($request->filled('search')) {
-            $query->where('email', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('email', 'like', '%'.$search.'%')
+                    ->orWhere('name', 'like', '%'.$search.'%');
+            });
         }
 
         $subscribers = $query->paginate(20)->withQueryString();
@@ -51,24 +57,95 @@ class NewsletterController extends Controller
     {
         $subscribers = NewsletterSubscriber::active()->get();
 
-        $filename = 'newsletter_subscribers_' . date('Y-m-d') . '.csv';
+        $filename = 'newsletter_subscribers_'.date('Y-m-d').'.csv';
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function() use ($subscribers) {
+        $callback = function () use ($subscribers) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Email', 'Subscribed At', 'Status']);
-            
+            fputcsv($file, ['Name', 'Email', 'Subscribed At', 'Status']);
+
             foreach ($subscribers as $sub) {
                 fputcsv($file, [
+                    $sub->name ?? '',
                     $sub->email,
                     $sub->subscribed_at?->format('Y-m-d H:i:s'),
                     $sub->is_active ? 'Active' : 'Inactive',
                 ]);
             }
-            
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Import subscribers from Excel/CSV.
+     */
+    public function importSubscribers(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        $import = new NewsletterSubscriberImport;
+        Excel::import($import, $request->file('file'));
+
+        $imported = $import->getImportedCount();
+        $reactivated = $import->getReactivatedCount();
+        $skipped = $import->getSkippedCount();
+
+        $parts = [];
+        if ($imported > 0) {
+            $parts[] = "{$imported} new subscribers added";
+        }
+        if ($reactivated > 0) {
+            $parts[] = "{$reactivated} reactivated";
+        }
+        if ($skipped > 0) {
+            $parts[] = "{$skipped} already existed";
+        }
+
+        $message = 'Import completed. '.(empty($parts) ? 'No changes made.' : implode(', ', $parts).'.');
+
+        $failures = $import->failures();
+        $failureCount = $failures->count();
+
+        if ($failureCount > 0) {
+            Log::warning('Newsletter import had failures', [
+                'count' => $failureCount,
+                'failures' => $failures->map(fn ($f) => [
+                    'row' => $f->row(),
+                    'attribute' => $f->attribute(),
+                    'errors' => $f->errors(),
+                    'values' => $f->values(),
+                ])->toArray(),
+            ]);
+        }
+
+        return redirect()->route('website.admin.newsletter.subscribers')
+            ->with('success', $message)
+            ->with('import_failures', $failureCount);
+    }
+
+    /**
+     * Download a sample CSV template for importing subscribers.
+     */
+    public function downloadSampleImport()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="newsletter_import_sample.csv"',
+        ];
+
+        $callback = function () {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['name', 'email']);
+            fputcsv($file, ['John Doe', 'john@example.com']);
+            fputcsv($file, ['Jane Smith', 'jane@example.com']);
             fclose($file);
         };
 
@@ -81,6 +158,7 @@ class NewsletterController extends Controller
     public function destroySubscriber(NewsletterSubscriber $subscriber)
     {
         $subscriber->delete();
+
         return redirect()->route('website.admin.newsletter.subscribers')
             ->with('success', 'Subscriber removed successfully.');
     }
@@ -91,11 +169,12 @@ class NewsletterController extends Controller
     public function toggleSubscriberStatus(NewsletterSubscriber $subscriber)
     {
         $subscriber->update([
-            'is_active' => !$subscriber->is_active,
+            'is_active' => ! $subscriber->is_active,
             'unsubscribed_at' => $subscriber->is_active ? now() : null,
         ]);
 
         $status = $subscriber->is_active ? 'activated' : 'deactivated';
+
         return redirect()->back()->with('success', "Subscriber {$status} successfully.");
     }
 
@@ -117,7 +196,7 @@ class NewsletterController extends Controller
 
         // Search by subject
         if ($request->filled('search')) {
-            $query->where('subject', 'like', '%' . $request->search . '%');
+            $query->where('subject', 'like', '%'.$request->search.'%');
         }
 
         $newsletters = $query->paginate(15)->withQueryString();
@@ -140,6 +219,7 @@ class NewsletterController extends Controller
     public function create()
     {
         $subscriberCount = NewsletterSubscriber::active()->count();
+
         return view('website::admin.newsletter.campaigns.compose', compact('subscriberCount'));
     }
 
@@ -170,8 +250,9 @@ class NewsletterController extends Controller
                 'status' => Newsletter::STATUS_SCHEDULED,
                 'scheduled_at' => $validated['scheduled_at'],
             ]);
+
             return redirect()->route('website.admin.newsletter.campaigns.index')
-                ->with('success', 'Newsletter scheduled for ' . $newsletter->scheduled_at->format('M d, Y \a\t h:i A'));
+                ->with('success', 'Newsletter scheduled for '.$newsletter->scheduled_at->format('M d, Y \a\t h:i A'));
         }
 
         if ($validated['action'] === 'send') {
@@ -195,12 +276,13 @@ class NewsletterController extends Controller
      */
     public function edit(Newsletter $campaign)
     {
-        if (!$campaign->canEdit()) {
+        if (! $campaign->canEdit()) {
             return redirect()->route('website.admin.newsletter.campaigns.index')
                 ->with('error', 'This newsletter cannot be edited.');
         }
 
         $subscriberCount = NewsletterSubscriber::active()->count();
+
         return view('website::admin.newsletter.campaigns.compose', [
             'newsletter' => $campaign,
             'subscriberCount' => $subscriberCount,
@@ -212,7 +294,7 @@ class NewsletterController extends Controller
      */
     public function update(Request $request, Newsletter $campaign)
     {
-        if (!$campaign->canEdit()) {
+        if (! $campaign->canEdit()) {
             return redirect()->route('website.admin.newsletter.campaigns.index')
                 ->with('error', 'This newsletter cannot be edited.');
         }
@@ -237,8 +319,9 @@ class NewsletterController extends Controller
                 'status' => Newsletter::STATUS_SCHEDULED,
                 'scheduled_at' => $validated['scheduled_at'],
             ]);
+
             return redirect()->route('website.admin.newsletter.campaigns.index')
-                ->with('success', 'Newsletter scheduled for ' . $campaign->fresh()->scheduled_at->format('M d, Y \a\t h:i A'));
+                ->with('success', 'Newsletter scheduled for '.$campaign->fresh()->scheduled_at->format('M d, Y \a\t h:i A'));
         }
 
         if ($validated['action'] === 'send') {
@@ -247,6 +330,7 @@ class NewsletterController extends Controller
 
         // Save as draft
         $campaign->update(['status' => Newsletter::STATUS_DRAFT, 'scheduled_at' => null]);
+
         return redirect()->route('website.admin.newsletter.campaigns.index')
             ->with('success', 'Newsletter draft updated successfully.');
     }
@@ -257,6 +341,7 @@ class NewsletterController extends Controller
     public function destroy(Newsletter $campaign)
     {
         $campaign->delete();
+
         return redirect()->route('website.admin.newsletter.campaigns.index')
             ->with('success', 'Newsletter deleted successfully.');
     }
@@ -286,7 +371,7 @@ class NewsletterController extends Controller
      */
     public function send(Newsletter $campaign)
     {
-        if (!$campaign->canSend()) {
+        if (! $campaign->canSend()) {
             return redirect()->route('website.admin.newsletter.campaigns.index')
                 ->with('error', 'This newsletter cannot be sent.');
         }
@@ -300,6 +385,7 @@ class NewsletterController extends Controller
     public function duplicate(Newsletter $campaign)
     {
         $newCampaign = $campaign->duplicate();
+
         return redirect()->route('website.admin.newsletter.campaigns.edit', $newCampaign)
             ->with('success', 'Newsletter duplicated. You can now edit and send it.');
     }
@@ -316,20 +402,21 @@ class NewsletterController extends Controller
         try {
             $subscriber = new NewsletterSubscriber([
                 'email' => $request->email,
-                'unsubscribe_token' => 'test-' . bin2hex(random_bytes(16)),
+                'unsubscribe_token' => 'test-'.bin2hex(random_bytes(16)),
             ]);
 
             \Mail::to($request->email)->send(
-                new \Modules\Website\Emails\NewsletterMail($campaign, $subscriber)
+                new NewsletterMail($campaign, $subscriber)
             );
 
-            return response()->json(['success' => true, 'message' => 'Test email sent to ' . $request->email]);
+            return response()->json(['success' => true, 'message' => 'Test email sent to '.$request->email]);
         } catch (\Exception $e) {
             Log::error('Failed to send test newsletter', [
                 'email' => $request->email,
                 'error' => $e->getMessage(),
             ]);
-            return response()->json(['success' => false, 'message' => 'Failed to send: ' . $e->getMessage()], 500);
+
+            return response()->json(['success' => false, 'message' => 'Failed to send: '.$e->getMessage()], 500);
         }
     }
 
@@ -369,9 +456,9 @@ class NewsletterController extends Controller
             try {
                 // Send email directly for immediate delivery
                 $subscriber->ensureUnsubscribeToken();
-                
+
                 \Mail::to($subscriber->email)->send(
-                    new \Modules\Website\Emails\NewsletterMail($newsletter, $subscriber)
+                    new NewsletterMail($newsletter, $subscriber)
                 );
 
                 // Mark as sent
@@ -408,7 +495,7 @@ class NewsletterController extends Controller
 
         // Redirect to delivery status page showing results
         return redirect()->route('website.admin.newsletter.campaigns.delivery-status', $newsletter)
-            ->with('success', "Newsletter sent! {$sentCount} delivered" . ($failedCount > 0 ? ", {$failedCount} failed" : "") . ".");
+            ->with('success', "Newsletter sent! {$sentCount} delivered".($failedCount > 0 ? ", {$failedCount} failed" : '').'.');
     }
 
     /**
@@ -448,8 +535,8 @@ class NewsletterController extends Controller
         ];
 
         // Calculate progress percentage
-        $stats['progress'] = $stats['total'] > 0 
-            ? round((($stats['sent'] + $stats['failed']) / $stats['total']) * 100, 1) 
+        $stats['progress'] = $stats['total'] > 0
+            ? round((($stats['sent'] + $stats['failed']) / $stats['total']) * 100, 1)
             : 0;
 
         // Check if all emails have been processed
@@ -503,9 +590,9 @@ class NewsletterController extends Controller
             try {
                 // Send email directly
                 $log->subscriber->ensureUnsubscribeToken();
-                
+
                 \Mail::to($log->email)->send(
-                    new \Modules\Website\Emails\NewsletterMail($campaign, $log->subscriber)
+                    new NewsletterMail($campaign, $log->subscriber)
                 );
 
                 $log->markAsSent();
@@ -542,7 +629,7 @@ class NewsletterController extends Controller
         }
 
         return redirect()->route('website.admin.newsletter.campaigns.delivery-status', $campaign)
-            ->with('success', $message . '.');
+            ->with('success', $message.'.');
     }
 
     // ==========================================
@@ -556,14 +643,14 @@ class NewsletterController extends Controller
     {
         $subscriber = NewsletterSubscriber::where('unsubscribe_token', $token)->first();
 
-        if (!$subscriber) {
+        if (! $subscriber) {
             return view('website::newsletter.unsubscribe', [
                 'success' => false,
                 'message' => 'Invalid unsubscribe link.',
             ]);
         }
 
-        if (!$subscriber->is_active) {
+        if (! $subscriber->is_active) {
             return view('website::newsletter.unsubscribe', [
                 'success' => true,
                 'message' => 'You have already been unsubscribed.',

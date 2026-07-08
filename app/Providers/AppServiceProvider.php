@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\Gate;
-use App\Enums\RoleEnum;
-use Illuminate\Support\ServiceProvider;
+use App\Listeners\LogSuccessfulLogin;
+use App\Listeners\LogSuccessfulLogout;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,10 +27,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Schema::defaultStringLength(191);
-        // Implicitly grant "Super Admin" role all permissions
-        Gate::before(function ($user, $ability) {
-            return $user->hasRole(RoleEnum::SUPER_ADMIN->value) ? true : null;
-        });
-     Paginator::useBootstrapFive();
+
+        Paginator::useBootstrapFive();
+
+        // Register login tracking listeners
+        Event::listen(Login::class, LogSuccessfulLogin::class);
+        Event::listen(Logout::class, LogSuccessfulLogout::class);
     }
 }

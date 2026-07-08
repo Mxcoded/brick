@@ -2,9 +2,8 @@
 
 @section('title', 'Booking Details')
 
-@push('styles')
+@section('styles')
 <style>
-    /* Brickspoint Brand Colors */
     :root {
         --bp-gold: #C8A165;
         --bp-gold-light: #D4B87A;
@@ -15,19 +14,16 @@
         --bp-neutral-dark: #E8E4DC;
     }
 
-    /* Font Family */
     .booking-details {
         font-family: 'Proxima Nova', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    /* Gold Accent Elements */
     .text-bp-gold { color: var(--bp-gold) !important; }
     .bg-bp-gold { background-color: var(--bp-gold) !important; }
     .border-bp-gold { border-color: var(--bp-gold) !important; }
     .text-bp-charcoal { color: var(--bp-charcoal) !important; }
     .bg-bp-neutral { background-color: var(--bp-neutral) !important; }
 
-    /* Card Styling */
     .bp-card {
         border: none;
         border-radius: 12px;
@@ -51,11 +47,11 @@
         color: var(--bp-gold);
     }
 
-    /* Status Card */
     .status-card {
         background: linear-gradient(135deg, var(--bp-charcoal) 0%, #1a1a1a 100%);
         color: var(--bp-white);
         border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.08);
     }
 
     .status-card .status-icon {
@@ -66,46 +62,151 @@
         align-items: center;
         justify-content: center;
         margin: 0 auto 1rem;
+        border: 2px solid rgba(255,255,255,0.15);
     }
 
-    .status-confirmed { background: rgba(40, 167, 69, 0.2); color: #28a745; }
-    .status-pending { background: rgba(200, 161, 101, 0.2); color: var(--bp-gold); }
-    .status-cancelled { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+    .status-confirmed { background: rgba(40, 167, 69, 0.25); color: #4ade80; border-color: rgba(74, 222, 128, 0.3); }
+    .status-pending { background: rgba(200, 161, 101, 0.25); color: var(--bp-gold); border-color: rgba(200, 161, 101, 0.3); }
+    .status-cancelled { background: rgba(220, 53, 69, 0.25); color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
 
-    /* Action Buttons */
-    .btn-bp-gold {
-        background: linear-gradient(135deg, var(--bp-gold) 0%, var(--bp-gold-dark) 100%);
+    .status-card .status-label {
+        color: rgba(255,255,255,0.55);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-card .status-value {
+        color: #fff;
+        font-weight: 700;
+    }
+
+    .status-card .status-divider {
+        border-color: rgba(255,255,255,0.08);
+        margin: 0.75rem 0;
+        opacity: 1;
+    }
+
+    .badge-payment-paid {
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.3);
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .badge-payment-unpaid {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0.85rem 1rem;
         border: none;
-        color: var(--bp-white);
+        border-radius: 10px;
+        text-align: left;
         font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        transition: all 0.3s ease;
+        font-size: 0.85rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.25s ease;
     }
 
-    .btn-bp-gold:hover {
-        background: linear-gradient(135deg, var(--bp-gold-light) 0%, var(--bp-gold) 100%);
-        color: var(--bp-white);
+    .action-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(200, 161, 101, 0.4);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        text-decoration: none;
     }
 
-    .btn-bp-outline {
-        border: 2px solid var(--bp-gold);
-        color: var(--bp-gold);
-        background: transparent;
-        font-weight: 600;
-        padding: 0.65rem 1.25rem;
-        border-radius: 8px;
-        transition: all 0.3s ease;
+    .action-btn:active {
+        transform: translateY(0);
     }
 
-    .btn-bp-outline:hover {
-        background: var(--bp-gold);
-        color: var(--bp-white);
+    .action-btn i {
+        width: 20px;
+        text-align: center;
+        font-size: 1rem;
     }
 
-    /* Guest Avatar */
+    .action-btn-gold {
+        background: linear-gradient(135deg, #C8A165, #B8915A);
+        color: #fff;
+    }
+    .action-btn-gold:hover {
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(200, 161, 101, 0.4);
+    }
+
+    .action-btn-teal {
+        background: linear-gradient(135deg, #0EA5E9, #0284C7);
+        color: #fff;
+    }
+    .action-btn-teal:hover {
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+    }
+
+    .action-btn-purple {
+        background: linear-gradient(135deg, #A855F7, #7C3AED);
+        color: #fff;
+    }
+    .action-btn-purple:hover {
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4);
+    }
+
+    .action-btn-amber {
+        background: linear-gradient(135deg, #F59E0B, #D97706);
+        color: #fff;
+    }
+    .action-btn-amber:hover {
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+    }
+
+    .action-btn-blue {
+        background: linear-gradient(135deg, #3B82F6, #2563EB);
+        color: #fff;
+    }
+    .action-btn-blue:hover {
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    }
+
+    .action-btn-red {
+        background: linear-gradient(135deg, #EF4444, #DC2626);
+        color: #fff;
+    }
+    .action-btn-red:hover {
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    .action-btn-destroy {
+        justify-content: center;
+        background: none;
+        color: #999;
+        font-weight: 400;
+        font-size: 0.78rem;
+        padding: 0.5rem;
+        margin-top: 0.25rem;
+    }
+    .action-btn-destroy:hover {
+        color: #EF4444;
+        background: rgba(239, 68, 68, 0.06);
+        transform: none;
+        box-shadow: none;
+    }
+
     .guest-avatar {
         width: 80px;
         height: 80px;
@@ -118,7 +219,6 @@
         font-size: 2rem;
     }
 
-    /* Info Labels */
     .info-label {
         font-size: 0.75rem;
         text-transform: uppercase;
@@ -132,7 +232,6 @@
         color: var(--bp-charcoal);
     }
 
-    /* Date Box */
     .date-box {
         background: var(--bp-neutral);
         border-radius: 10px;
@@ -140,7 +239,6 @@
         border-left: 4px solid var(--bp-gold);
     }
 
-    /* Financial Summary */
     .financial-row {
         padding: 0.75rem 0;
         border-bottom: 1px solid var(--bp-neutral-dark);
@@ -163,7 +261,6 @@
         color: var(--bp-gold);
     }
 
-    /* Badge Styles */
     .badge-bp {
         background: var(--bp-gold);
         color: var(--bp-white);
@@ -172,14 +269,12 @@
         border-radius: 20px;
     }
 
-    /* Section Divider */
     .section-divider {
         height: 2px;
         background: linear-gradient(90deg, var(--bp-gold), transparent);
         margin: 1.5rem 0;
     }
 
-    /* Alert Styling */
     .alert-bp-info {
         background: rgba(200, 161, 101, 0.1);
         border: 1px solid var(--bp-gold);
@@ -191,7 +286,7 @@
         color: var(--bp-gold);
     }
 </style>
-@endpush
+@endsection
 
 @section('page-content')
 <div class="container-fluid py-4 booking-details">
@@ -589,88 +684,91 @@
                         @endif
                     </h4>
 
-                    <div class="d-flex justify-content-between px-3 mb-2">
-                        <span class="text-white-50">Payment Status</span>
-                        <span class="fw-bold {{ $booking->payment_status === 'paid' ? 'text-success' : 'text-warning' }}">
+                    <hr class="status-divider">
+
+                    <div class="d-flex justify-content-between align-items-center px-3 mb-2">
+                        <span class="status-label">Payment Status</span>
+                        <span class="badge-payment-{{ $booking->payment_status === 'paid' ? 'paid' : 'unpaid' }}">
+                            <i class="fas fa-{{ $booking->payment_status === 'paid' ? 'check-circle' : 'hourglass-half' }} me-1"></i>
                             {{ ucfirst($booking->payment_status) }}
                         </span>
                     </div>
                     <div class="d-flex justify-content-between px-3">
-                        <span class="text-white-50">Created</span>
-                        <span>{{ $booking->created_at->format('M d, Y') }}</span>
+                        <span class="status-label">Created</span>
+                        <span class="status-value">{{ $booking->created_at->format('M d, Y') }}</span>
                     </div>
                 </div>
             </div>
 
             {{-- Actions Card --}}
-            <div class="card bp-card">
-                <div class="card-header">
-                    <h6 class="m-0"><i class="fas fa-cogs me-2"></i>Actions</h6>
-                </div>
+            <div class="card bp-card actions-card">
                 <div class="card-body">
+                    <div class="card-title">
+                        <i class="fas fa-bolt"></i>
+                        Quick Actions
+                    </div>
+
                     <div class="d-grid gap-2">
 
                         {{-- Confirm Booking (Only for Pending) --}}
                         @if ($booking->status === 'pending')
                             <form action="{{ route('website.admin.bookings.confirm', $booking->id) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="btn btn-bp-gold w-100">
-                                    <i class="fas fa-check-circle me-2"></i> Confirm Booking
+                                <button type="submit" class="action-btn action-btn-gold">
+                                    <i class="fas fa-check-circle"></i>
+                                    Confirm Booking
                                 </button>
                             </form>
-                            
-                            <div class="alert alert-bp-info small mb-0 mt-2">
-                                <i class="fas fa-info-circle me-1"></i> Confirming will verify room availability and mark as paid.
-                            </div>
                         @endif
 
                         {{-- Assign Room --}}
-                        <button type="button" class="btn btn-bp-outline w-100" data-bs-toggle="modal" data-bs-target="#assignRoomModal">
-                            <i class="fas fa-door-open me-2"></i> 
+                        <button type="button" class="action-btn action-btn-teal" data-bs-toggle="modal" data-bs-target="#assignRoomModal">
+                            <i class="fas fa-door-open"></i>
                             {{ $booking->roomUnit ? 'Change Room' : 'Assign Room' }}
                         </button>
 
                         {{-- Change Room Type --}}
-                        <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#changeRoomTypeModal">
-                            <i class="fas fa-exchange-alt me-2"></i> Change Room Type
+                        <button type="button" class="action-btn action-btn-purple" data-bs-toggle="modal" data-bs-target="#changeRoomTypeModal">
+                            <i class="fas fa-exchange-alt"></i>
+                            Change Room Type
                         </button>
 
                         {{-- Resend Confirmation --}}
-                        <form action="{{ route('website.admin.bookings.resend', $booking->id) }}" method="POST"
-                            onsubmit="return confirm('Resend confirmation email to {{ $booking->guest_email }}?');">
+                        <form action="{{ route('website.admin.bookings.resend', $booking->id) }}" method="POST">
                             @csrf
-                            <button type="submit" class="btn btn-outline-secondary w-100">
-                                <i class="fas fa-envelope me-2"></i> Resend Email
+                            <button type="submit" class="action-btn action-btn-amber">
+                                <i class="fas fa-envelope"></i>
+                                Resend Confirmation
                             </button>
                         </form>
 
                         {{-- Edit --}}
-                        <a href="{{ route('website.admin.bookings.edit', $booking->id) }}" class="btn btn-outline-secondary w-100">
-                            <i class="fas fa-edit me-2"></i> Edit Details
+                        <a href="{{ route('website.admin.bookings.edit', $booking->id) }}" class="action-btn action-btn-blue">
+                            <i class="fas fa-pen"></i>
+                            Edit Details
                         </a>
 
                         {{-- Cancel --}}
                         @if ($booking->status !== 'cancelled')
-                            <form action="{{ route('website.admin.bookings.cancel', $booking->id) }}" method="POST"
-                                onsubmit="return confirm('Are you sure you want to cancel this booking?');">
+                            <form action="{{ route('website.admin.bookings.cancel', $booking->id) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="btn btn-outline-danger w-100">
-                                    <i class="fas fa-ban me-2"></i> Cancel Booking
+                                <button type="submit" class="action-btn action-btn-red">
+                                    <i class="fas fa-ban"></i>
+                                    Cancel Booking
                                 </button>
                             </form>
                         @endif
 
-                        <hr class="my-2">
-
                         {{-- Delete --}}
-                        <form action="{{ route('website.admin.bookings.destroy', $booking->id) }}" method="POST"
-                            onsubmit="return confirm('WARNING: This will permanently delete this booking record. This action cannot be undone. Are you sure?');">
+                        <form action="{{ route('website.admin.bookings.destroy', $booking->id) }}" method="POST">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-link text-danger text-decoration-none w-100 small">
-                                <i class="fas fa-trash-alt me-1"></i> Delete Permanently
+                            <button type="submit" class="action-btn action-btn-destroy">
+                                <i class="fas fa-trash-alt"></i>
+                                Delete permanently
                             </button>
                         </form>
+
                     </div>
                 </div>
             </div>
@@ -837,7 +935,7 @@
                             <select name="room_type_id" id="newRoomTypeSelect" class="form-select" required>
                                 <option value="">-- Select Room Type --</option>
                                 @php
-                                    $allRoomTypes = \Modules\Website\Models\RoomType::active()->ordered()->get();
+                                    $allRoomTypes = \App\Models\RoomType::active()->ordered()->get();
                                     $nights = $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1;
                                 @endphp
                                 @foreach($allRoomTypes as $type)

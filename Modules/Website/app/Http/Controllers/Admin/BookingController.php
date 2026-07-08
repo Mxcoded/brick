@@ -3,14 +3,17 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Modules\Website\Models\Room;
-use Modules\Website\Models\Booking;
-use Illuminate\Support\Str;
+use App\Models\Room;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Mail;
-use Modules\Website\Emails\BookingConfirmation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Website\Emails\BookingConfirmation;
+use Modules\Website\Models\Booking;
 
 class BookingController extends Controller
 {
@@ -54,6 +57,7 @@ class BookingController extends Controller
     public function create()
     {
         $rooms = Room::where('status', 'available')->get();
+
         return view('website::admin.bookings.create', compact('rooms'));
     }
 
@@ -65,7 +69,7 @@ class BookingController extends Controller
         $validated = $request->validate([
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
-            'guest_phone' => 'required|string|max:20',
+            'guest_phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
             'room_id' => 'required|exists:rooms,id',
             'check_in_date' => 'required|date|after_or_equal:today',
             'check_out_date' => 'required|date|after:check_in_date',
@@ -73,7 +77,7 @@ class BookingController extends Controller
             'children' => 'nullable|integer|min:0',
             'payment_status' => 'required|in:pending,paid,failed,partial',
             'status' => 'required|in:pending,confirmed,cancelled',
-            'admin_notes' => 'nullable|string'
+            'admin_notes' => 'nullable|string',
         ]);
 
         // 1. Availability Check (Unified Logic)
@@ -83,7 +87,7 @@ class BookingController extends Controller
             $validated['check_out_date']
         );
 
-        if (!$isAvailable) {
+        if (! $isAvailable) {
             return back()->withErrors(['room_id' => 'This room is not available for the selected dates (overlaps with another booking or active guest).'])->withInput();
         }
 
@@ -98,7 +102,7 @@ class BookingController extends Controller
 
         // 3. Create Booking
         Booking::create([
-            'booking_reference' => 'BK-' . strtoupper(Str::random(8)),
+            'booking_reference' => 'BK-'.strtoupper(Str::random(8)),
             'room_id' => $validated['room_id'],
             'guest_name' => $validated['guest_name'],
             'guest_email' => $validated['guest_email'],
@@ -123,6 +127,7 @@ class BookingController extends Controller
     public function show($id)
     {
         $booking = Booking::with(['roomType', 'roomUnit', 'room', 'user', 'guest'])->findOrFail($id);
+
         return view('website::admin.bookings.show', compact('booking'));
     }
 
@@ -133,6 +138,7 @@ class BookingController extends Controller
     {
         $booking = Booking::findOrFail($id);
         $rooms = Room::all();
+
         return view('website::admin.bookings.edit', compact('booking', 'rooms'));
     }
 
@@ -149,7 +155,7 @@ class BookingController extends Controller
             'check_out_date' => 'required|date|after:check_in_date',
             'payment_status' => 'required|in:pending,paid,failed,partial',
             'status' => 'required|in:pending,confirmed,cancelled,checked_in,completed',
-            'admin_notes' => 'nullable|string'
+            'admin_notes' => 'nullable|string',
         ]);
 
         // 1. Availability Check (Only if dates or room changed)
@@ -165,7 +171,7 @@ class BookingController extends Controller
                 $id // Ignore current booking ID
             );
 
-            if (!$isAvailable) {
+            if (! $isAvailable) {
                 return back()->withErrors(['room_id' => 'Room unavailable for these new dates.'])->withInput();
             }
 
@@ -189,7 +195,7 @@ class BookingController extends Controller
 
         // Check availability based on booking type (new room type system vs legacy)
         $isAvailable = true;
-        
+
         if ($booking->room_type_id) {
             // New room type system - check if assigned room unit is still available
             if ($booking->roomUnit) {
@@ -216,7 +222,7 @@ class BookingController extends Controller
             );
         }
 
-        if (!$isAvailable) {
+        if (! $isAvailable) {
             return back()->with('error', 'Cannot confirm: The room/room type is no longer available for these dates.');
         }
 
@@ -232,7 +238,7 @@ class BookingController extends Controller
             Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
             $message = 'Booking confirmed, marked as PAID, and email sent.';
         } catch (\Exception $e) {
-            Log::error("Manual Confirm Email Failed: " . $e->getMessage());
+            Log::error('Manual Confirm Email Failed: '.$e->getMessage());
             $message = 'Booking confirmed and marked as PAID, but email failed to send.';
         }
 
@@ -263,9 +269,11 @@ class BookingController extends Controller
     {
         $booking = Booking::findOrFail($id);
         $booking->delete();
+
         return redirect()->route('website.admin.bookings.index')
             ->with('success', 'Booking deleted successfully.');
     }
+
     /**
      * Resend the confirmation email manually.
      */
@@ -276,9 +284,10 @@ class BookingController extends Controller
         try {
             Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
 
-            return back()->with('success', 'Confirmation email sent successfully to ' . $booking->guest_email);
+            return back()->with('success', 'Confirmation email sent successfully to '.$booking->guest_email);
         } catch (\Exception $e) {
-            Log::error("Admin Resend Email Failed: " . $e->getMessage());
+            Log::error('Admin Resend Email Failed: '.$e->getMessage());
+
             return back()->with('error', 'Failed to send email. Check mail server logs.');
         }
     }
@@ -294,7 +303,7 @@ class BookingController extends Controller
         if ($request->has('unassign') && $request->unassign == '1') {
             $oldRoom = $booking->roomUnit?->room_number;
             $booking->update(['room_unit_id' => null]);
-            
+
             Log::info('Room unassigned from booking:', [
                 'booking_id' => $booking->id,
                 'booking_reference' => $booking->booking_reference,
@@ -305,12 +314,12 @@ class BookingController extends Controller
         }
 
         $request->validate([
-            'room_unit_id' => 'required|exists:room_units,id'
+            'room_unit_id' => 'required|exists:room_units,id',
         ]);
 
         // Verify the room unit belongs to the booked room type
-        $roomUnit = \Modules\Website\Models\RoomUnit::findOrFail($request->room_unit_id);
-        
+        $roomUnit = RoomUnit::findOrFail($request->room_unit_id);
+
         if ($booking->room_type_id && $roomUnit->room_type_id != $booking->room_type_id) {
             return back()->with('error', 'Selected room does not belong to the booked room type.');
         }
@@ -322,7 +331,7 @@ class BookingController extends Controller
             $booking->id
         );
 
-        if (!$isAvailable) {
+        if (! $isAvailable) {
             return back()->with('error', 'Selected room is not available for the booking dates.');
         }
 
@@ -336,7 +345,7 @@ class BookingController extends Controller
             'new_room' => $roomUnit->room_number,
         ]);
 
-        return back()->with('success', 'Room ' . $roomUnit->room_number . ' has been assigned to this booking.');
+        return back()->with('success', 'Room '.$roomUnit->room_number.' has been assigned to this booking.');
     }
 
     /**
@@ -347,7 +356,7 @@ class BookingController extends Controller
         $booking = Booking::findOrFail($id);
 
         $request->validate([
-            'new_room_id' => 'required|exists:rooms,id|different:old_room_id'
+            'new_room_id' => 'required|exists:rooms,id|different:old_room_id',
         ]);
 
         // Availability Check for the NEW room
@@ -358,7 +367,7 @@ class BookingController extends Controller
             $booking->id // Ignore self
         );
 
-        if (!$isAvailable) {
+        if (! $isAvailable) {
             return back()->with('error', 'Target room is not available for these dates.');
         }
 
@@ -380,15 +389,15 @@ class BookingController extends Controller
             'recalculate_price' => 'nullable|boolean',
         ]);
 
-        $newRoomType = \Modules\Website\Models\RoomType::findOrFail($request->room_type_id);
+        $newRoomType = RoomType::findOrFail($request->room_type_id);
         $oldRoomType = $booking->roomType;
         $oldRoomUnit = $booking->roomUnit;
 
         // If a room unit is selected, verify it belongs to the selected room type
         $newRoomUnitId = null;
         if ($request->filled('room_unit_id')) {
-            $roomUnit = \Modules\Website\Models\RoomUnit::findOrFail($request->room_unit_id);
-            
+            $roomUnit = RoomUnit::findOrFail($request->room_unit_id);
+
             if ($roomUnit->room_type_id != $request->room_type_id) {
                 return back()->with('error', 'Selected room does not belong to the selected room type.');
             }
@@ -400,7 +409,7 @@ class BookingController extends Controller
                 $booking->id
             );
 
-            if (!$isAvailable) {
+            if (! $isAvailable) {
                 return back()->with('error', 'Selected room is not available for the booking dates.');
             }
 
@@ -433,14 +442,14 @@ class BookingController extends Controller
             'new_amount' => $newTotalAmount,
         ]);
 
-        $message = 'Room type changed to ' . $newRoomType->name;
+        $message = 'Room type changed to '.$newRoomType->name;
         if ($newRoomUnitId) {
-            $message .= ' (Room ' . $roomUnit->room_number . ')';
+            $message .= ' (Room '.$roomUnit->room_number.')';
         }
         if ($newTotalAmount != $booking->getOriginal('total_amount')) {
-            $message .= '. Price updated to ₦' . number_format($newTotalAmount, 2);
+            $message .= '. Price updated to ₦'.number_format($newTotalAmount, 2);
         }
 
-        return back()->with('success', $message . '.');
+        return back()->with('success', $message.'.');
     }
 }

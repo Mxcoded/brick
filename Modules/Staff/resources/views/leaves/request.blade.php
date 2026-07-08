@@ -14,13 +14,13 @@
                     @csrf
                     <div class="row g-3">
                         
-                        @can('manage-leaves')
+                        @can('leaves.manage')
                             <div class="col-md-6">
                                 <label for="staff_code" class="form-label">Staff Code</label>
                                 <input type="number" name="staff_code" id="staff_code"  placeholder="Enter Staff Code" class="form-control" required>
                             </div>
                         @endcan
-                        @cannot('manage-leaves')
+                        @cannot('leaves.manage')
                             <div class="col-md-6">
                                 <label for="staff_code" class="form-label">Staff Code</label>
                                 <input type="hidden" name="staff_code" id="staff_code" value="{{ $employee->staff_code }}"readonly>

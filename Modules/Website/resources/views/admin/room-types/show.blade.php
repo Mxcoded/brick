@@ -4,7 +4,7 @@
 
 @php
     // Get all room types for the move dropdown (excluding current)
-    $allRoomTypes = \Modules\Website\Models\RoomType::where('id', '!=', $roomType->id)
+    $allRoomTypes = \App\Models\RoomType::where('id', '!=', $roomType->id)
         ->active()
         ->ordered()
         ->get();

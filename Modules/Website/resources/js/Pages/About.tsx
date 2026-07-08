@@ -229,7 +229,7 @@ const About = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/rooms"
+              href="/frontend/room"
               className="btn-primary inline-flex items-center space-x-2 text-lg"
             >
               <span>Book Your Stay</span>

@@ -3,6 +3,7 @@
 namespace Modules\Restaurant\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
 
 class MenuItemSeeder extends Seeder
@@ -12,18 +13,29 @@ class MenuItemSeeder extends Seeder
      */
     public function run(): void
     {
-        MenuItem::create([
-            'restaurant_menu_categories_id' => 1, // Make sure this ID exists in MenuCategory table
-            'name' => 'Spicy Jollof Rice',
-            'description' => 'Delicious Nigerian-style rice with a spicy tomato base.',
-            'price' => 1500.00
-        ]);
+        $appetizersId = MenuCategory::where('name', 'Appetizers')->value('id');
+        $mainCoursesId = MenuCategory::where('name', 'Main Courses')->value('id');
 
-        MenuItem::create([
-            'restaurant_menu_categories_id' => 2,
-            'name' => 'Grilled Chicken',
-            'description' => 'Juicy grilled chicken served with side salad.',
-            'price' => 2000.00
-        ]);
+        if ($appetizersId) {
+            MenuItem::updateOrCreate(
+                ['name' => 'Spicy Jollof Rice'],
+                [
+                    'restaurant_menu_categories_id' => $appetizersId,
+                    'description' => 'Delicious Nigerian-style rice with a spicy tomato base.',
+                    'price' => 1500.00,
+                ]
+            );
+        }
+
+        if ($mainCoursesId) {
+            MenuItem::updateOrCreate(
+                ['name' => 'Grilled Chicken'],
+                [
+                    'restaurant_menu_categories_id' => $mainCoursesId,
+                    'description' => 'Juicy grilled chicken served with side salad.',
+                    'price' => 2000.00,
+                ]
+            );
+        }
     }
 }

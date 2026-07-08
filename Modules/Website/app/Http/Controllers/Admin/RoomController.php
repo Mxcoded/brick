@@ -3,22 +3,19 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Room;
 use App\Services\ImageService;
+use App\Services\RoomCalendarService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Modules\Website\Models\Room;
-use Modules\Website\Models\RoomType;
-use Modules\Website\Models\RoomUnit;
-use Modules\Website\Models\RoomImage;
-use Modules\Website\Models\Amenity;
-use Modules\Website\Models\Booking;
-use Modules\Website\Services\RoomCalendarService;
-use Modules\Frontdeskcrm\Models\Registration;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Modules\Website\Models\Amenity;
+use Modules\Website\Models\RoomImage;
 
 class RoomController extends Controller
 {
     protected ImageService $imageService;
+
     protected RoomCalendarService $calendarService;
 
     public function __construct(ImageService $imageService, RoomCalendarService $calendarService)
@@ -26,9 +23,11 @@ class RoomController extends Controller
         $this->imageService = $imageService;
         $this->calendarService = $calendarService;
     }
+
     public function index()
     {
         $rooms = Room::latest()->paginate(10);
+
         return view('website::admin.rooms.index', compact('rooms'));
     }
 
@@ -36,6 +35,7 @@ class RoomController extends Controller
     {
         // Fetch dynamic amenities from DB
         $amenities = Amenity::all();
+
         return view('website::admin.rooms.create', compact('amenities'));
     }
 
@@ -54,7 +54,7 @@ class RoomController extends Controller
             'is_featured' => 'boolean',
             'status' => 'required|in:available,maintenance,booked',
             'image' => 'required|image|max:20480', // 20MB - will be compressed to <5MB
-            'gallery_images.*' => 'nullable|image|max:20480'
+            'gallery_images.*' => 'nullable|image|max:20480',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -71,7 +71,7 @@ class RoomController extends Controller
         $room = Room::create($validated);
 
         // SYNC AMENITIES (The Pivot Table Magic)
-        if (!empty($validated['amenities'])) {
+        if (! empty($validated['amenities'])) {
             $room->amenities()->sync($validated['amenities']);
         }
 
@@ -82,7 +82,7 @@ class RoomController extends Controller
                 RoomImage::create([
                     'room_id' => $room->id,
                     'image_url' => $result['url'],
-                    'path' => $result['path']
+                    'path' => $result['path'],
                 ]);
             }
         }
@@ -95,6 +95,7 @@ class RoomController extends Controller
     {
         $room = Room::with('images', 'amenities')->findOrFail($id);
         $amenities = Amenity::all(); // Pass all available options
+
         return view('website::admin.rooms.edit', compact('room', 'amenities'));
     }
 
@@ -103,7 +104,7 @@ class RoomController extends Controller
         $room = Room::findOrFail($id);
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:rooms,name,' . $id,
+            'name' => 'required|string|max:255|unique:rooms,name,'.$id,
             'price' => 'required|numeric|min:0',
             'capacity' => 'required|integer|min:1',
             'size' => 'nullable|string',
@@ -115,7 +116,7 @@ class RoomController extends Controller
             'is_featured' => 'boolean',
             'status' => 'required|in:available,maintenance,Booked',
             'image' => 'nullable|image|max:20480', // 20MB - will be compressed to <5MB
-            'gallery_images.*' => 'nullable|image|max:20480'
+            'gallery_images.*' => 'nullable|image|max:20480',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
@@ -150,7 +151,7 @@ class RoomController extends Controller
                 RoomImage::create([
                     'room_id' => $room->id,
                     'image_url' => $result['url'],
-                    'path' => $result['path']
+                    'path' => $result['path'],
                 ]);
             }
         }
@@ -162,6 +163,7 @@ class RoomController extends Controller
     public function show($id)
     {
         $room = Room::with(['images', 'amenities'])->findOrFail($id);
+
         return view('website::admin.rooms.show', compact('room'));
     }
 
@@ -172,29 +174,30 @@ class RoomController extends Controller
             $this->imageService->delete($image->path);
         }
         $image->delete();
+
         return back()->with('success', 'Gallery image deleted.');
     }
 
     public function destroy($id)
     {
         $room = Room::findOrFail($id);
-        
+
         // Clean up primary image
         if ($room->image_url) {
             $this->imageService->deleteByUrl($room->image_url);
         }
-        
+
         // Clean up gallery images
         foreach ($room->images as $img) {
             if ($img->path) {
                 $this->imageService->delete($img->path);
             }
         }
-        
+
         $room->delete();
+
         return back()->with('success', 'Room deleted.');
     }
-
 
     /**
      * Display the Monthly Tape Chart (Calendar).
@@ -203,8 +206,8 @@ class RoomController extends Controller
     {
         // 1. Determine Month/Year (Default to current)
         $date = $request->filled('date')
-            ? \Carbon\Carbon::parse($request->date)
-            : \Carbon\Carbon::now();
+            ? Carbon::parse($request->date)
+            : Carbon::now();
 
         $startOfMonth = $date->copy()->startOfMonth();
         $endOfMonth = $date->copy()->endOfMonth();
@@ -212,7 +215,7 @@ class RoomController extends Controller
 
         // 2. Fetch Rooms with Bookings overlapping this month
         // We eagerly load bookings to avoid "N+1" query performance issues
-        $rooms = \Modules\Website\Models\Room::with(['bookings' => function ($query) use ($startOfMonth, $endOfMonth) {
+        $rooms = Room::with(['bookings' => function ($query) use ($startOfMonth, $endOfMonth) {
             $query->where('status', '!=', 'cancelled')
                 ->where(function ($q) use ($startOfMonth, $endOfMonth) {
                     $q->whereBetween('check_in_date', [$startOfMonth, $endOfMonth])
@@ -227,6 +230,7 @@ class RoomController extends Controller
         // 3. Prepare View Data
         return view('website::admin.rooms.calendar', compact('rooms', 'date', 'daysInMonth', 'startOfMonth'));
     }
+
     /**
      * API: Live Room Rack Data (uses RoomCalendarService)
      */
@@ -240,8 +244,8 @@ class RoomController extends Controller
      */
     public function getCalendarData(Request $request)
     {
-        $start = $request->input('start') ? \Carbon\Carbon::parse($request->input('start')) : now()->startOfMonth();
-        $end = $request->input('end') ? \Carbon\Carbon::parse($request->input('end')) : now()->endOfMonth();
+        $start = $request->input('start') ? Carbon::parse($request->input('start')) : now()->startOfMonth();
+        $end = $request->input('end') ? Carbon::parse($request->input('end')) : now()->endOfMonth();
 
         return response()->json($this->calendarService->getCalendarData($start, $end));
     }

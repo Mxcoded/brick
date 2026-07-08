@@ -2,9 +2,9 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Room;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-// use Modules\Website\Database\Factories\AmenityFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Amenity extends Model
 {

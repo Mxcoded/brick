@@ -3,8 +3,8 @@
 namespace Modules\Website\Models;
 
 use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ContactMessageReply extends Model
 {
@@ -83,6 +83,7 @@ class ContactMessageReply extends Model
         if ($this->direction === 'outgoing') {
             return $this->user->name ?? 'Staff';
         }
+
         return $this->contactMessage->name ?? 'Guest';
     }
 
@@ -94,6 +95,7 @@ class ContactMessageReply extends Model
         if ($this->direction === 'outgoing') {
             return $this->user->email ?? config('mail.from.address');
         }
+
         return $this->contactMessage->email ?? '';
     }
 

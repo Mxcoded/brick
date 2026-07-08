@@ -13,7 +13,8 @@ class BookingSourceController extends Controller
     {
         $sources = BookingSource::withCount(['registrations' => function ($query) {
             $query->where('stay_status', 'checked_out'); // For revenue filter
-        }])->when($request->type, fn($q) => $q->where('type', $request->type))->paginate(10);
+        }])->when($request->type, fn ($q) => $q->where('type', $request->type))->paginate(10);
+
         return view('frontdeskcrm::booking-sources.index', compact('sources'));
     }
 
@@ -25,6 +26,7 @@ class BookingSourceController extends Controller
     public function store(StoreBookingSourceRequest $request)
     {
         BookingSource::create($request->validated());
+
         return redirect()->route('frontdesk.booking-sources.index')->with('success', 'Booking source added.');
     }
 
@@ -33,6 +35,7 @@ class BookingSourceController extends Controller
         $bookingSource->load(['registrations' => function ($query) {
             $query->with('guest')->where('stay_status', 'checked_out');
         }]);
+
         return view('frontdeskcrm::booking-sources.show', compact('bookingSource'));
     }
 
@@ -44,6 +47,7 @@ class BookingSourceController extends Controller
     public function update(UpdateBookingSourceRequest $request, BookingSource $bookingSource)
     {
         $bookingSource->update($request->validated());
+
         return redirect()->route('frontdesk.booking-sources.index')->with('success', 'Booking source updated.');
     }
 
@@ -53,6 +57,7 @@ class BookingSourceController extends Controller
             return back()->with('error', 'Cannot delete source with existing bookings.');
         }
         $bookingSource->delete();
+
         return redirect()->route('frontdesk.booking-sources.index')->with('success', 'Booking source deleted.');
     }
 }

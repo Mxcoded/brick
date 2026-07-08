@@ -88,7 +88,7 @@
                                         <span class="badge 
                                             @if($request->status == 'approved') bg-success
                                             @elseif($request->status == 'rejected') bg-danger
-                                            @elseif($request->status == 'cancelled') bg-secondary
+                                            @elseif($request->status == 'cancelled') bg-danger
                                             @else bg-warning text-dark @endif">
                                             {{ ucfirst($request->status) }}
                                         </span>

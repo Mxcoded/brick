@@ -20,6 +20,12 @@
                 <div class="col-12">
                     <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                         <h1 class="display-4 fw-bold mb-0">{{ $roomType->name }}</h1>
+                        @php $__prop = $allProperties->firstWhere('id', $roomType->property_id); @endphp
+                        @if ($__prop)
+                        <span class="badge bg-dark fs-6 py-2 px-3">
+                            <i class="fas fa-hotel me-1"></i>{{ $__prop->name }}
+                        </span>
+                        @endif
                         <span class="badge bg-info fs-6 py-2 px-3">
                             <i class="fas fa-door-open me-1"></i>
                             {{ $roomType->units->count() }} {{ Str::plural('Room', $roomType->units->count()) }}

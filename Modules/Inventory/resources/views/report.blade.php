@@ -63,8 +63,9 @@
                         <tbody>
                             @foreach ($items as $item)
                                 @php
-                                    $lowStockItems = $item->storeItems->filter(function($storeItem) {
-                                        return $storeItem->quantity < 10; // Restock threshold
+                                    $threshold = $item->min_stock ?? 10;
+                                    $lowStockItems = $item->storeItems->filter(function($storeItem) use ($threshold) {
+                                        return $storeItem->quantity < $threshold;
                                     });
                                 @endphp
                                 @foreach ($lowStockItems as $storeItem)
@@ -76,7 +77,7 @@
                                     </tr>
                                 @endforeach
                             @endforeach
-                            @if ($items->isEmpty() || $items->pluck('storeItems')->flatten()->where('quantity', '<', 10)->isEmpty())
+                            @if ($items->isEmpty() || $items->filter(fn($i) => $i->storeItems->contains(fn($si) => $si->quantity < ($i->min_stock ?? 10)))->isEmpty())
                                 <tr><td colspan="4" class="text-center">No items currently require restocking.</td></tr>
                             @endif
                         </tbody>
@@ -119,14 +120,17 @@
                                 <tr><td colspan="7" class="text-center">No usage logs found.</td></tr>
                             @endif
                         </tbody>
-                    </table>
+                        </table>
+                    </div>
+                    <div class="mt-2 d-flex justify-content-center">
+                        {{ $usageLogs->links() }}
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="card shadow border-0 mb-4">
-            <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
-                <h5 class="mb-0 text-dark fw-bold">Item Restock History</h5>
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 text-dark fw-bold">Item Restock History</h5>
             </div>
             <div class="card-body p-4">
                 <div class="table-responsive">
@@ -156,14 +160,17 @@
                                 <tr><td colspan="6" class="text-center">No restock logs found.</td></tr>
                             @endif
                         </tbody>
-                    </table>
+                        </table>
+                    </div>
+                    <div class="mt-2 d-flex justify-content-center">
+                        {{ $restockLogs->links() }}
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="card shadow border-0 mb-4">
-            <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
-                <h5 class="mb-0 text-dark fw-bold">Item Transfer History</h5>
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 text-dark fw-bold">Item Transfer History</h5>
             </div>
             <div class="card-body p-4">
                 <div class="table-responsive">
@@ -193,14 +200,17 @@
                                 <tr><td colspan="6" class="text-center">No transfer logs found.</td></tr>
                             @endif
                         </tbody>
-                    </table>
+                        </table>
+                    </div>
+                    <div class="mt-2 d-flex justify-content-center">
+                        {{ $transferLogs->links() }}
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="card shadow border-0 mb-4">
-            <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
-                <h5 class="mb-0 text-dark fw-bold">Item Price History</h5>
+            <div class="card shadow border-0 mb-4">
+                <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 text-dark fw-bold">Item Price History</h5>
             </div>
             <div class="card-body p-4">
                 <div class="table-responsive">
@@ -226,12 +236,15 @@
                                 <tr><td colspan="4" class="text-center">No price history records found.</td></tr>
                             @endif
                         </tbody>
-                    </table>
+                        </table>
+                    </div>
+                    <div class="mt-2 d-flex justify-content-center">
+                        {{ $priceHistory->links() }}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-@endsection
+    @endsection
 
 @section('scripts')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -239,8 +252,8 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script>
         $(document).ready(function() {
-            // Initialize all DataTables
-            $('#restockAlertTable, #usageReportTable, #restockReportTable, #transferReportTable, #priceHistoryTable').DataTable();
+            // Initialize DataTable for alert table only (other tables use server-side pagination)
+            $('#restockAlertTable').DataTable();
 
             // Handle Current Stock Report based on a button click
             $('#loadStockBtn').on('click', function() {

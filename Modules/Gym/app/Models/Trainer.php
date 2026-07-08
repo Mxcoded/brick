@@ -2,8 +2,9 @@
 
 namespace Modules\Gym\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 // use Modules\Gym\Database\Factories\TrainerFactory;
 
 class Trainer extends Model

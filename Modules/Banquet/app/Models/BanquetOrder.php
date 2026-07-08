@@ -2,10 +2,9 @@
 
 namespace Modules\Banquet\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Modules\Banquet\Models\BanquetPayment;
 
 class BanquetOrder extends Model
 {
@@ -34,9 +33,11 @@ class BanquetOrder extends Model
         'status',
         'hall_rental_fees',
     ];
+
     protected $casts = [
         'preparation_date' => 'date',
     ];
+
     public function payments()
     {
         return $this->hasMany(BanquetPayment::class);
@@ -55,10 +56,16 @@ class BanquetOrder extends Model
 
     public function getPaymentStatusAttribute()
     {
-        if ($this->paid_amount <= 0) return 'Unpaid';
-        if ($this->balance_due <= 0) return 'Fully Paid';
+        if ($this->paid_amount <= 0) {
+            return 'Unpaid';
+        }
+        if ($this->balance_due <= 0) {
+            return 'Fully Paid';
+        }
+
         return 'Partial';
     }
+
     /**
      * Get the customer that owns the banquet order.
      */
@@ -74,6 +81,7 @@ class BanquetOrder extends Model
     {
         return $this->hasMany(BanquetOrderDay::class);
     }
+
     /**
      * Get the route key for the model.
      */
@@ -81,6 +89,7 @@ class BanquetOrder extends Model
     {
         return 'order_id'; // Use order_id instead of id for route binding
     }
+
     /**
      * Scope to fetch upcoming banquet events.
      */

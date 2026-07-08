@@ -49,4 +49,16 @@ return [
         'site_key' => env('RECAPTCHA_SITE_KEY'),
         'secret' => env('RECAPTCHA_SECRET_KEY'),
     ],
+
+    'bulksmsnigeria' => [
+        'api_token' => env('BULKSMSNIGERIA_API_TOKEN'),
+        'sender' => env('BULKSMSNIGERIA_SENDER', 'Brickspoint'),
+        'base_url' => env('BULKSMSNIGERIA_BASE_URL', 'https://www.bulksmsnigeria.com/api/sandbox/v2'),
+        'verify_ssl' => env('BULKSMSNIGERIA_VERIFY_SSL', false),
+    ],
+
+    'whatsapp' => [
+        'api_token' => env('WHATSAPP_API_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+    ],
 ];

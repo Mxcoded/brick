@@ -25,7 +25,7 @@ class ContactMessageReceived extends Mailable
      */
     public function build()
     {
-        return $this->subject('New Inquiry from ' . $this->data['name'])
+        return $this->subject('New Inquiry from '.$this->data['name'])
             ->replyTo($this->data['email']) // Allow admin to reply directly to guest
             ->view('website::emails.contact-message');
     }

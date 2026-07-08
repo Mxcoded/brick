@@ -5,243 +5,145 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Response from Brickspoint Boutique Aparthotel</title>
     <style>
-        body, html {
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0;
+            mso-table-rspace: 0;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+        body {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.7;
-            color: #2D2D2D;
-            background-color: #F8F6F3;
+            width: 100% !important;
+            height: 100% !important;
         }
-        .email-wrapper {
+        .ExternalClass, .ReadMsgBody {
             width: 100%;
-            background: linear-gradient(180deg, #F8F6F3 0%, #EDE8E1 100%);
-            padding: 40px 20px;
         }
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #FFFFFF;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 8px 40px rgba(45, 45, 45, 0.12);
-        }
-        .email-header {
-            background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%);
-            padding: 40px;
-            text-align: center;
-        }
-        .logo-text {
-            color: #C9A962;
-            font-size: 28px;
-            font-weight: 300;
-            letter-spacing: 5px;
-            margin: 0 0 5px 0;
-            text-transform: uppercase;
-        }
-        .tagline {
-            color: #888888;
-            font-size: 11px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin: 0;
-        }
-        .response-banner {
-            background: linear-gradient(90deg, #C9A962 0%, #D4B978 100%);
-            padding: 14px 30px;
-            text-align: center;
-        }
-        .response-banner p {
-            margin: 0;
-            color: #1A1A1A;
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-        .email-content {
-            padding: 40px;
-        }
-        .greeting {
-            font-size: 18px;
-            color: #2D2D2D;
-            margin: 0 0 20px 0;
-        }
-        .intro-text {
-            color: #555555;
-            font-size: 15px;
-            margin: 0 0 25px 0;
-        }
-        .reply-box {
-            background: linear-gradient(135deg, #FAF8F5 0%, #F5F2ED 100%);
-            border-left: 4px solid #C9A962;
-            border-radius: 0 12px 12px 0;
-            padding: 25px;
-            margin: 25px 0;
-        }
-        .reply-text {
-            margin: 0;
-            color: #3D3D3D;
-            font-size: 15px;
-            line-height: 1.8;
-            white-space: pre-wrap;
-        }
-        .signature-section {
-            margin-top: 35px;
-            padding-top: 25px;
-            border-top: 1px solid #EDE8E1;
-        }
-        .signature-text {
-            color: #555555;
-            font-size: 15px;
-            margin: 0;
-            line-height: 1.8;
-        }
-        .signature-name {
-            color: #C9A962;
-            font-weight: 600;
-        }
-        .original-section {
-            margin-top: 35px;
-            padding-top: 25px;
-            border-top: 1px solid #EDE8E1;
-        }
-        .original-label {
-            font-size: 11px;
-            font-weight: 600;
-            color: #888888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 0 0 12px 0;
-        }
-        .original-date {
-            color: #AAAAAA;
-            font-weight: 400;
-        }
-        .original-box {
-            background: #F8F6F3;
-            border-radius: 8px;
-            padding: 20px;
-        }
-        .original-text {
-            margin: 0;
-            color: #777777;
-            font-size: 14px;
-            font-style: italic;
-            line-height: 1.7;
-        }
-        .email-footer {
-            background: linear-gradient(180deg, #1A1A1A 0%, #0D0D0D 100%);
-            padding: 35px 40px;
-            text-align: center;
-        }
-        .footer-logo {
-            color: #C9A962;
-            font-size: 18px;
-            font-weight: 300;
-            letter-spacing: 3px;
-            margin: 0 0 5px 0;
-        }
-        .footer-tagline {
-            color: #666666;
-            font-size: 10px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin: 0 0 20px 0;
-        }
-        .footer-note {
-            color: #888888;
-            font-size: 12px;
-            line-height: 1.7;
-            margin: 0 0 20px 0;
-        }
-        .footer-links {
-            margin: 20px 0;
-        }
-        .footer-links a {
-            color: #C9A962;
-            text-decoration: none;
-            font-size: 12px;
-            margin: 0 10px;
-        }
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
-        .copyright {
-            color: #555555;
-            font-size: 11px;
-            margin: 20px 0 0 0;
-            padding-top: 20px;
-            border-top: 1px solid #333333;
-        }
-        @media only screen and (max-width: 600px) {
-            .email-wrapper { padding: 20px 10px; }
-            .email-header { padding: 30px 25px; }
-            .email-content { padding: 30px 25px; }
-            .email-footer { padding: 30px 25px; }
+        .ExternalClass, .ExternalClass p, .ExternalClass span, .ExternalClass td, .ExternalClass div {
+            line-height: 100%;
         }
     </style>
 </head>
-<body>
-    <div class="email-wrapper">
-        <div class="email-container">
-            <div class="email-header">
-                <h1 class="logo-text">Brickspoint</h1>
-                <p class="tagline">Boutique Aparthotel</p>
-            </div>
-            
-            <div class="response-banner">
-                <p>✉️ Response to Your Inquiry</p>
-            </div>
-            
-            <div class="email-content">
-                <p class="greeting">Dear <strong>{{ $contactMessage->name }}</strong>,</p>
-                
-                <p class="intro-text">
-                    Thank you for reaching out to us. We're pleased to respond to your inquiry:
-                </p>
-                
-                <div class="reply-box">
-                    <p class="reply-text">{!! nl2br(e($reply->message)) !!}</p>
-                </div>
-                
-                <div class="signature-section">
-                    <p class="signature-text">
-                        Warm regards,<br>
-                        <span class="signature-name">{{ $staffName }}</span><br>
-                        Brickspoint Boutique Aparthotel
-                    </p>
-                </div>
-                
-                <div class="original-section">
-                    <p class="original-label">
-                        Your Original Message 
-                        <span class="original-date">• {{ $contactMessage->created_at->format('F d, Y \a\t h:i A') }}</span>
-                    </p>
-                    <div class="original-box">
-                        <p class="original-text">{!! nl2br(e($contactMessage->message)) !!}</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="email-footer">
-                <p class="footer-logo">Brickspoint</p>
-                <p class="footer-tagline">Boutique Aparthotel</p>
-                
-                <p class="footer-note">
-                    This email was sent in response to your inquiry.<br>
-                    If you have any further questions, simply reply to this email.
-                </p>
-                
-                <div class="footer-links">
-                    <a href="{{ config('app.url') }}">Visit Website</a>
-                    <a href="mailto:{{ config('mail.from.address') }}">Contact Us</a>
-                </div>
-                
-                <p class="copyright">
-                    © {{ date('Y') }} Brickspoint Boutique Aparthotel. All rights reserved.
-                </p>
-            </div>
-        </div>
-    </div>
+<body style="margin:0; padding:0; background-color:#F2EFEA; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F2EFEA; padding:30px 15px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%;">
+                    <tr>
+                        <td style="background-color:#1A1A1A; padding:30px 30px; text-align:center;">
+                            <!--[if mso]>
+                            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;">
+                            <v:fill type="gradient" color="#1A1A1A" color2="#2D2D2D" angle="135" />
+                            <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
+                            <![endif]-->
+                            <h1 style="color:#C9A962; font-size:24px; font-weight:300; letter-spacing:5px; text-transform:uppercase; margin:0 0 3px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Brickspoint</h1>
+                            <p style="color:#888888; font-size:10px; letter-spacing:3px; text-transform:uppercase; margin:0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Boutique Aparthotel</p>
+                            <!--[if mso]>
+                            </v:textbox>
+                            </v:rect>
+                            <![endif]-->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color:#C9A962; padding:14px 20px; text-align:center;">
+                            <!--[if mso]>
+                            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;">
+                            <v:fill type="gradient" color="#C9A962" color2="#D4B978" angle="0" />
+                            <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
+                            <![endif]-->
+                            <p style="margin:0; color:#1A1A1A; font-size:13px; font-weight:700; letter-spacing:0.5px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">&#9993; Response to Your Inquiry</p>
+                            <!--[if mso]>
+                            </v:textbox>
+                            </v:rect>
+                            <![endif]-->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color:#FFFFFF; padding:35px 30px 20px 30px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+                                        <p style="font-size:16px; color:#2D2D2D; margin:0 0 15px 0; line-height:1.5;">Dear <strong>{{ $contactMessage->name }}</strong>,</p>
+                                        <p style="color:#555555; font-size:14px; margin:0 0 25px 0; line-height:1.6;">Thank you for reaching out to us. We're pleased to respond to your inquiry:</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FAF8F5; border-left:4px solid #C9A962; margin-bottom:25px;">
+                                <tr>
+                                    <td style="padding:22px 24px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:14px; color:#3D3D3D; line-height:1.8;">{!! nl2br(e($reply->message)) !!}</td>
+                                </tr>
+                            </table>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:25px 0 25px 0; padding-top:25px; border-top:1px solid #EDE8E1;">
+                                <tr>
+                                    <td style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+                                        <p style="color:#555555; font-size:14px; margin:0; line-height:1.8;">
+                                            Warm regards,<br>
+                                            <strong style="color:#C9A962;">{{ $staffName }}</strong><br>
+                                            Brickspoint Boutique Aparthotel
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:25px 0 0 0; padding-top:25px; border-top:1px solid #EDE8E1;">
+                                <tr>
+                                    <td style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+                                        <p style="font-size:10px; font-weight:600; color:#888888; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px 0;">
+                                            Your Original Message
+                                            <span style="color:#AAAAAA; font-weight:400;">&bull; {{ $contactMessage->created_at->format('F d, Y \a\t h:i A') }}</span>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F8F6F3;">
+                                <tr>
+                                    <td style="padding:18px 20px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:13px; color:#777777; font-style:italic; line-height:1.7;">{!! nl2br(e($contactMessage->message)) !!}</td>
+                                </tr>
+                            </table>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:30px 0 0 0;">
+                                <tr>
+                                    <td style="border-top:1px solid #EDE8E1;"></td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background-color:#1A1A1A; padding:28px 30px; text-align:center;">
+                            <!--[if mso]>
+                            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;">
+                            <v:fill type="gradient" color="#1A1A1A" color2="#0D0D0D" angle="180" />
+                            <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
+                            <![endif]-->
+                            <p style="color:#C9A962; font-size:14px; font-weight:300; letter-spacing:3px; margin:0 0 3px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Brickspoint</p>
+                            <p style="color:#666666; font-size:9px; letter-spacing:2px; text-transform:uppercase; margin:0 0 15px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Boutique Aparthotel</p>
+                            <p style="color:#888888; font-size:11px; margin:0 0 15px 0; line-height:1.7; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
+                                This email was sent in response to your inquiry.<br>
+                                If you have any further questions, simply reply to this email.
+                            </p>
+                            <p style="margin:15px 0;">
+                                <a href="{{ config('app.url') }}" style="color:#C9A962; text-decoration:none; font-size:11px; margin:0 8px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Visit Website</a>
+                                <a href="mailto:{{ config('mail.from.address') }}" style="color:#C9A962; text-decoration:none; font-size:11px; margin:0 8px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Contact Us</a>
+                            </p>
+                            <p style="color:#555555; font-size:10px; margin:15px 0 0 0; padding-top:15px; border-top:1px solid #333333; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">&copy; {{ date('Y') }} Brickspoint Boutique Aparthotel. All rights reserved.</p>
+                            <!--[if mso]>
+                            </v:textbox>
+                            </v:rect>
+                            <![endif]-->
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

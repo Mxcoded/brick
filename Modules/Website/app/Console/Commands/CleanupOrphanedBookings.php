@@ -2,12 +2,11 @@
 
 namespace Modules\Website\Console\Commands;
 
+use App\Models\RoomType;
 use Illuminate\Console\Command;
-use Modules\Website\Models\Booking;
-use Modules\Website\Models\RoomUnit;
-use Modules\Website\Models\RoomType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Modules\Website\Models\Booking;
 
 class CleanupOrphanedBookings extends Command
 {
@@ -61,6 +60,7 @@ class CleanupOrphanedBookings extends Command
 
         if ($orphanedBookings->isEmpty()) {
             $this->info('✅ No orphaned bookings found. All bookings are correctly linked to their unit\'s room type.');
+
             return Command::SUCCESS;
         }
 
@@ -88,11 +88,13 @@ class CleanupOrphanedBookings extends Command
 
         if ($dryRun) {
             $this->info('To fix these bookings, run the command without --dry-run');
+
             return Command::SUCCESS;
         }
 
-        if (!$this->confirm('Do you want to update these bookings to match their unit\'s room type?')) {
+        if (! $this->confirm('Do you want to update these bookings to match their unit\'s room type?')) {
             $this->info('Operation cancelled.');
+
             return Command::SUCCESS;
         }
 
@@ -138,6 +140,7 @@ class CleanupOrphanedBookings extends Command
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return Command::FAILURE;
         }
 
@@ -151,7 +154,7 @@ class CleanupOrphanedBookings extends Command
 
         if ($deletedRoomTypeBookings->isNotEmpty()) {
             $this->warn("Found {$deletedRoomTypeBookings->count()} booking(s) linked to deleted room types:");
-            
+
             foreach ($deletedRoomTypeBookings as $booking) {
                 $this->line("  - Booking #{$booking->id} ({$booking->booking_reference}) - Room Type ID: {$booking->room_type_id}");
             }
@@ -176,7 +179,7 @@ class CleanupOrphanedBookings extends Command
         if ($emptyRoomTypes->isNotEmpty()) {
             $this->info('');
             $this->info('Room types with no units:');
-            
+
             foreach ($emptyRoomTypes as $rt) {
                 $canDelete = $rt->bookings_count === 0;
                 $status = $canDelete ? '✅ Can delete' : "⚠️ Has {$rt->bookings_count} booking(s)";

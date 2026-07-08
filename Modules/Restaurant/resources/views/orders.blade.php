@@ -162,7 +162,5 @@
                 padding: 0.5em 0.75em;
             }
         </style>
-
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     </div>
 @endsection

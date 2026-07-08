@@ -31,7 +31,7 @@ return new class extends Migration
             $table->string('contact_number');
             $table->string('email')->nullable();
             $table->string('occupation')->nullable();
-            $table->string('identification_type')->nullable();  
+            $table->string('identification_type')->nullable();
             $table->string('identification_number')->nullable();
             $table->string('company_name')->nullable();
             $table->text('home_address')->nullable();
@@ -71,7 +71,7 @@ return new class extends Migration
                 'checked_in',
                 'checked_out',
                 'no_show',
-                'cancelled'
+                'cancelled',
             ])->default('draft_by_guest');
 
             $table->decimal('total_amount', 10, 2)->nullable();

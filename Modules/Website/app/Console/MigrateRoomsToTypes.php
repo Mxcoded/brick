@@ -2,15 +2,15 @@
 
 namespace Modules\Website\Console;
 
+use App\Models\Room;
+use App\Models\RoomType;
+use App\Models\RoomUnit;
 use Illuminate\Console\Command;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Modules\Website\Models\Room;
-use Modules\Website\Models\RoomType;
-use Modules\Website\Models\RoomUnit;
-use Modules\Website\Models\RoomTypeImage;
-use Modules\Website\Models\Booking;
+use Illuminate\Support\Str;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Website\Models\Booking;
+use Modules\Website\Models\RoomTypeImage;
 
 class MigrateRoomsToTypes extends Command
 {
@@ -33,18 +33,19 @@ class MigrateRoomsToTypes extends Command
     {
         $this->info('🏨 Room Migration Tool');
         $this->info('======================');
-        
+
         $isDryRun = $this->option('dry-run');
-        
+
         if ($isDryRun) {
             $this->warn('DRY RUN MODE - No changes will be made');
         }
 
         // 1. Get all existing rooms
         $rooms = Room::with(['amenities', 'images'])->get();
-        
+
         if ($rooms->isEmpty()) {
             $this->info('No rooms found to migrate.');
+
             return 0;
         }
 
@@ -60,12 +61,14 @@ class MigrateRoomsToTypes extends Command
         if ($isDryRun) {
             $this->newLine();
             $this->info('Dry run complete. Run without --dry-run to apply changes.');
+
             return 0;
         }
 
         // 4. Confirm and execute
-        if (!$this->option('force') && !$this->confirm('Proceed with migration?')) {
+        if (! $this->option('force') && ! $this->confirm('Proceed with migration?')) {
             $this->info('Migration cancelled.');
+
             return 0;
         }
 
@@ -73,7 +76,7 @@ class MigrateRoomsToTypes extends Command
 
         $this->newLine();
         $this->info('✅ Migration complete!');
-        
+
         return 0;
     }
 
@@ -87,8 +90,8 @@ class MigrateRoomsToTypes extends Command
         foreach ($rooms as $room) {
             // Extract base name by removing Roman numerals and numbers at end
             $baseName = $this->extractBaseName($room->name);
-            
-            if (!isset($grouped[$baseName])) {
+
+            if (! isset($grouped[$baseName])) {
                 $grouped[$baseName] = [
                     'type_data' => null,
                     'rooms' => [],
@@ -125,13 +128,13 @@ class MigrateRoomsToTypes extends Command
     private function extractBaseName($name)
     {
         $baseName = $name;
-        
+
         // Remove Roman numerals (case-insensitive at end of string)
         $baseName = preg_replace('/\s+(I{1,3}|IV|V|VI{0,3}|IX|X{0,3}|XI{0,3}|XII|XIII|XIV|XV)$/i', '', $baseName);
-        
+
         // Remove trailing numbers
         $baseName = preg_replace('/\s+\d+$/', '', $baseName);
-        
+
         return trim($baseName);
     }
 
@@ -146,7 +149,7 @@ class MigrateRoomsToTypes extends Command
         foreach ($groupedRooms as $typeName => $data) {
             $unitCount = count($data['rooms']);
             $this->line("  <fg=cyan>{$typeName}</> → {$unitCount} unit(s)");
-            
+
             foreach ($data['rooms'] as $room) {
                 $unitNumber = $this->generateUnitNumber($room);
                 $this->line("      └─ Unit: {$unitNumber} (from \"{$room->name}\")");
@@ -155,8 +158,8 @@ class MigrateRoomsToTypes extends Command
         }
 
         $typeCount = count($groupedRooms);
-        $totalUnits = array_sum(array_map(fn($g) => count($g['rooms']), $groupedRooms));
-        
+        $totalUnits = array_sum(array_map(fn ($g) => count($g['rooms']), $groupedRooms));
+
         $this->table(
             ['Summary', 'Count'],
             [
@@ -173,15 +176,15 @@ class MigrateRoomsToTypes extends Command
     {
         // Try to extract number/Roman numeral from name
         if (preg_match('/\s+(I{1,3}|IV|V|VI{0,3}|IX|X|XI{0,3}|XII|XIII|XIV|XV)$/i', $room->name, $matches)) {
-            return 'Unit ' . strtoupper($matches[1]);
+            return 'Unit '.strtoupper($matches[1]);
         }
-        
+
         if (preg_match('/\s+(\d+)$/', $room->name, $matches)) {
-            return 'Unit ' . $matches[1];
+            return 'Unit '.$matches[1];
         }
-        
+
         // Use room ID as fallback
-        return 'Unit ' . $room->id;
+        return 'Unit '.$room->id;
     }
 
     /**
@@ -193,13 +196,13 @@ class MigrateRoomsToTypes extends Command
 
         try {
             $this->info('Starting migration...');
-            
+
             $roomToUnitMap = []; // Maps old room_id to new room_unit_id
             $roomToTypeMap = []; // Maps old room_id to new room_type_id
 
             foreach ($groupedRooms as $typeName => $data) {
                 $this->line("  Creating type: {$typeName}");
-                
+
                 // Create RoomType
                 $roomType = RoomType::create([
                     'name' => $data['type_data']['name'],
@@ -216,7 +219,7 @@ class MigrateRoomsToTypes extends Command
                 ]);
 
                 // Attach amenities
-                if (!empty($data['type_data']['amenities'])) {
+                if (! empty($data['type_data']['amenities'])) {
                     $roomType->amenities()->attach($data['type_data']['amenities']);
                 }
 
@@ -232,7 +235,7 @@ class MigrateRoomsToTypes extends Command
                 // Create RoomUnits
                 foreach ($data['rooms'] as $room) {
                     $unitNumber = $this->generateUnitNumber($room);
-                    
+
                     $unit = RoomUnit::create([
                         'room_type_id' => $roomType->id,
                         'room_number' => $unitNumber,
@@ -243,7 +246,7 @@ class MigrateRoomsToTypes extends Command
 
                     $roomToUnitMap[$room->id] = $unit->id;
                     $roomToTypeMap[$room->id] = $roomType->id;
-                    
+
                     $this->line("    Created unit: {$unitNumber}");
                 }
             }
@@ -251,7 +254,7 @@ class MigrateRoomsToTypes extends Command
             // Update existing bookings
             $this->info('Updating bookings...');
             $bookingsUpdated = 0;
-            
+
             foreach (Booking::whereNotNull('room_id')->cursor() as $booking) {
                 if (isset($roomToTypeMap[$booking->room_id])) {
                     $booking->update([
@@ -267,7 +270,7 @@ class MigrateRoomsToTypes extends Command
             if (class_exists(Registration::class)) {
                 $this->info('Updating registrations...');
                 $registrationsUpdated = 0;
-                
+
                 foreach (Registration::whereNotNull('room_id')->cursor() as $registration) {
                     if (isset($roomToTypeMap[$registration->room_id])) {
                         $registration->update([
@@ -281,10 +284,10 @@ class MigrateRoomsToTypes extends Command
             }
 
             DB::commit();
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error('Migration failed: ' . $e->getMessage());
+            $this->error('Migration failed: '.$e->getMessage());
             throw $e;
         }
     }

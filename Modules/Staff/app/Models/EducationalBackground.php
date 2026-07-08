@@ -2,8 +2,9 @@
 
 namespace Modules\Staff\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 // use Modules\Staff\Database\Factories\EducationalBackgroundFactory;
 
 class EducationalBackground extends Model

@@ -119,7 +119,7 @@
                                            data-bs-toggle="tooltip" title="View Details">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        @can('manage-gym')
+                                        @can('gym.manage')
                                         <a href="{{ route('gym.memberships.edit', $membership->id) }}" 
                                            class="btn btn-sm btn-secondary btn-outline-dark"
                                            data-bs-toggle="tooltip" title="Edit Membership">

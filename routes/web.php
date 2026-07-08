@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,8 +17,8 @@ use App\Http\Controllers\ProfileController;
 
 // 1. Public Landing Page
 Route::get('/', function () {
-    // return redirect()->route('website.home');
-    return view('welcome');
+    return redirect()->route('website.home');
+    // return view('welcome');
 });
 
 // 2. Authentication Routes (Login, Register, Password Reset)

@@ -2,8 +2,9 @@
 
 namespace Modules\Frontdeskcrm\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class RegistrationPayment extends Model
 {
@@ -13,6 +14,8 @@ class RegistrationPayment extends Model
         'registration_id',
         'amount',
         'payment_method',
+        'payment_type',
+        'payment_category',
         'reference',
         'notes',
         'received_by',
@@ -31,6 +34,6 @@ class RegistrationPayment extends Model
 
     public function receiver()
     {
-        return $this->belongsTo(\App\Models\User::class, 'received_by');
+        return $this->belongsTo(User::class, 'received_by');
     }
 }

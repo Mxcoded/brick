@@ -2,8 +2,8 @@
 
 namespace Modules\Banquet\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class BanquetVenue extends Model
 {
@@ -14,7 +14,7 @@ class BanquetVenue extends Model
         'capacity',
         'rate_per_hour',
         'description',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
