@@ -65,7 +65,9 @@ class StaffServiceProvider extends ServiceProvider
             $schedule = $this->app->make(Schedule::class);
             $schedule->command('staff:send-birthday-sms')->dailyAt('08:00');
             $schedule->command('documents:cleanup')->dailyAt('03:00');
-            $schedule->command('attendance:import-hikvision')->everyFiveMinutes();
+            $schedule->command('attendance:import-hikvision')
+                ->everyFiveMinutes()
+                ->when(fn () => \Modules\Staff\Models\StaffSetting::get('hikvision_device_type', 'attendance') === 'attendance');
         });
     }
 

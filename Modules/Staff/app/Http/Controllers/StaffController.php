@@ -595,10 +595,12 @@ class StaffController extends Controller
         $hikvisionPassword = StaffSetting::get('hikvision_password');
         $hikvisionPort = StaffSetting::get('hikvision_port', 80);
         $hikvisionTimeout = StaffSetting::get('hikvision_timeout', 30);
+        $hikvisionDeviceType = StaffSetting::get('hikvision_device_type', 'attendance');
 
         return view('staff::settings', compact(
             'message',
             'hikvisionIp', 'hikvisionUsername', 'hikvisionPassword', 'hikvisionPort', 'hikvisionTimeout',
+            'hikvisionDeviceType',
         ));
     }
 
@@ -610,13 +612,14 @@ class StaffController extends Controller
             $rules['birthday_sms_message'] = 'required|string|max:160';
         }
 
-        if ($request->hasAny(['hikvision_ip', 'hikvision_username', 'hikvision_password', 'hikvision_port', 'hikvision_timeout'])) {
+        if ($request->hasAny(['hikvision_ip', 'hikvision_username', 'hikvision_password', 'hikvision_port', 'hikvision_timeout', 'hikvision_device_type'])) {
             $rules = array_merge($rules, [
                 'hikvision_ip' => 'nullable|string|max:255',
                 'hikvision_username' => 'nullable|string|max:255',
                 'hikvision_password' => 'nullable|string|max:255',
                 'hikvision_port' => 'nullable|integer|min:1|max:65535',
                 'hikvision_timeout' => 'nullable|integer|min:5|max:120',
+                'hikvision_device_type' => 'nullable|string|in:attendance,access_control',
             ]);
         }
 
@@ -626,12 +629,13 @@ class StaffController extends Controller
             StaffSetting::set('birthday_sms_message', $request->input('birthday_sms_message'));
         }
 
-        if ($request->hasAny(['hikvision_ip', 'hikvision_username', 'hikvision_password', 'hikvision_port', 'hikvision_timeout'])) {
+        if ($request->hasAny(['hikvision_ip', 'hikvision_username', 'hikvision_password', 'hikvision_port', 'hikvision_timeout', 'hikvision_device_type'])) {
             StaffSetting::set('hikvision_ip', $request->input('hikvision_ip'));
             StaffSetting::set('hikvision_username', $request->input('hikvision_username', 'admin'));
             StaffSetting::set('hikvision_password', $request->input('hikvision_password'));
             StaffSetting::set('hikvision_port', $request->input('hikvision_port', 80));
             StaffSetting::set('hikvision_timeout', $request->input('hikvision_timeout', 30));
+            StaffSetting::set('hikvision_device_type', $request->input('hikvision_device_type', 'attendance'));
         }
 
         return redirect()->route('staff.settings')

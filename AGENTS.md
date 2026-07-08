@@ -100,6 +100,35 @@ Module status controlled via `modules_statuses.json`.
 
 **PDFs**: Generated via `barryvdh/laravel-dompdf` (invoices, function sheets, registration forms).
 
+## Hikvision DS-K1A802AMF-B Attendance Middleware (Windows PC)
+
+This device is a **face recognition access control terminal** — it does NOT support
+ISAPI event search (`AcsEvent/Search` returns `invalidID`). Event data must be
+captured via the Hikvision HCNetSDK on a Windows PC on the same LAN.
+
+Location: `scripts/HikvisionMiddleware.ps1` + `scripts/HikvisionSDKHelper.cs`
+Config:  `scripts/HikvisionConfig.json` (auto-generated on first run)
+
+### Quick Start (ISAPI Poll — limited)
+
+```powershell
+cd scripts
+.\HikvisionMiddleware.ps1 -Mode once
+```
+
+### Full Setup (HCNetSDK — recommended)
+
+1. Download HCNetSDK from Hikvision, extract `HCNetSDK.dll` + `HCCore.dll` into `scripts/`
+2. Compile the C# helper:
+   ```powershell
+   & "$env:windir\Microsoft.NET\Framework\v4.0.30319\csc.exe" `
+       -target:exe -platform:x86 -out:HikvisionSDKHelper.exe HikvisionSDKHelper.cs
+   ```
+3. Run listener:
+   ```powershell
+   .\HikvisionMiddleware.ps1 -Mode listen
+   ```
+
 ### Creating New Modules
 
 ```powershell

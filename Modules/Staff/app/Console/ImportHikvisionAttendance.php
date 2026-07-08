@@ -5,6 +5,7 @@ namespace Modules\Staff\Console;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Modules\Staff\Models\HikvisionAttendanceRecord;
+use Modules\Staff\Models\StaffSetting;
 use Modules\Staff\Services\HikvisionService;
 
 class ImportHikvisionAttendance extends Command
@@ -22,6 +23,21 @@ class ImportHikvisionAttendance extends Command
             $this->error('Hikvision machine is not configured. Set IP, username, and password in Staff Settings.');
 
             return 1;
+        }
+
+        $deviceType = StaffSetting::get('hikvision_device_type', 'attendance');
+
+        if ($deviceType === 'access_control') {
+            $this->warn('Device type is "Access Control Terminal" — ISAPI event search is not supported on this model.');
+            $this->line('Events arrive in real-time via the EventStreamListener middleware running on the Windows PC.');
+            $total = HikvisionAttendanceRecord::count();
+            $this->line("Database currently has {$total} record(s) from the webhook.");
+            if ($total > 0) {
+                $latest = HikvisionAttendanceRecord::latest('punch_time')->first();
+                $this->line("Latest record: {$latest?->punch_time?->format('Y-m-d H:i:s')}");
+            }
+
+            return 0;
         }
 
         $latest = HikvisionAttendanceRecord::latest('punch_time')->first();

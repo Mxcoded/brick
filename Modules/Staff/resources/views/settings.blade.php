@@ -125,18 +125,28 @@
                     @error('hikvision_port')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     <div class="form-text">Default <code>80</code>. Use <code>8443</code> for HTTPS.</div>
                 </div>
-                <div class="col-md-2">
-                    <label for="hikvision_timeout" class="form-label">Timeout (sec)</label>
-                    <input type="number" class="form-control @error('hikvision_timeout') is-invalid @enderror"
-                           id="hikvision_timeout" name="hikvision_timeout"
-                           value="{{ old('hikvision_timeout', $hikvisionTimeout) }}"
-                           min="5" max="120">
-                    @error('hikvision_timeout')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="col-md-2">
+                        <label for="hikvision_timeout" class="form-label">Timeout (sec)</label>
+                        <input type="number" class="form-control @error('hikvision_timeout') is-invalid @enderror"
+                               id="hikvision_timeout" name="hikvision_timeout"
+                               value="{{ old('hikvision_timeout', $hikvisionTimeout) }}"
+                               min="5" max="120">
+                        @error('hikvision_timeout')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-md-2">
+                        <label for="hikvision_device_type" class="form-label">Device Type</label>
+                        <select class="form-select @error('hikvision_device_type') is-invalid @enderror"
+                                id="hikvision_device_type" name="hikvision_device_type">
+                            <option value="attendance" {{ $hikvisionDeviceType === 'attendance' ? 'selected' : '' }}>Attendance Machine</option>
+                            <option value="access_control" {{ $hikvisionDeviceType === 'access_control' ? 'selected' : '' }}>Access Control Terminal</option>
+                        </select>
+                        @error('hikvision_device_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="form-text">Select <strong>Access Control</strong> for DS-K1A/DS-K2T series.</div>
+                    </div>
                 </div>
-            </div>
-            <div class="mt-3">
-                <span id="hikvisionTestResult" class="small"></span>
-            </div>
+                <div class="mt-3">
+                    <span id="hikvisionTestResult" class="small"></span>
+                </div>
             <hr>
             <div class="text-muted small">
                 <i class="fas fa-info-circle me-1"></i>
