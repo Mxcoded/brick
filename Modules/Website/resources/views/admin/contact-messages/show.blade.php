@@ -202,13 +202,35 @@
                         @csrf
                         @method('PUT')
                         <label for="status" class="text-muted small d-block mb-1">Update Status</label>
-                        <div class="input-group">
+                        <div class="input-group mb-2">
                             <select class="form-select" id="status" name="status">
                                 <option value="unread" {{ $contactMessage->status === 'unread' ? 'selected' : '' }}>Unread</option>
                                 <option value="read" {{ $contactMessage->status === 'read' ? 'selected' : '' }}>Read</option>
                                 <option value="replied" {{ $contactMessage->status === 'replied' ? 'selected' : '' }}>Replied</option>
                             </select>
                             <button type="submit" class="btn btn-outline-primary">Update</button>
+                        </div>
+
+                        <label for="assigned_to" class="text-muted small d-block mb-1">Assign To</label>
+                        <div class="input-group mb-2">
+                            <select class="form-select" id="assigned_to" name="assigned_to">
+                                <option value="">Unassigned</option>
+                                @foreach($staffUsers as $user)
+                                    <option value="{{ $user->id }}" {{ $contactMessage->assigned_to == $user->id ? 'selected' : '' }}>
+                                        {{ $user->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <label for="follow_up_status" class="text-muted small d-block mb-1">Follow-up Status</label>
+                        <div class="input-group">
+                            <select class="form-select" id="follow_up_status" name="follow_up_status">
+                                <option value="pending" {{ ($contactMessage->follow_up_status ?? 'pending') === 'pending' ? 'selected' : '' }}>Pending</option>
+                                <option value="followed_up" {{ $contactMessage->follow_up_status === 'followed_up' ? 'selected' : '' }}>Followed Up</option>
+                                <option value="closed" {{ $contactMessage->follow_up_status === 'closed' ? 'selected' : '' }}>Closed</option>
+                            </select>
+                            <button type="submit" class="btn btn-outline-primary">Save</button>
                         </div>
                     </form>
 

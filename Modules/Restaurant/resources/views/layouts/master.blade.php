@@ -18,10 +18,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    @vite(['resources/sass/app.scss'])
-
-    <script src="https://unpkg.com/alpinejs@3.12.0/dist/cdn.min.js" defer></script>
-    <script src="https://unpkg.com/@alpinejs/persist@3.12.0/dist/cdn.min.js" defer></script>
+    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
     <style>
         :root {
@@ -341,7 +338,7 @@
     @yield('head')
 </head>
 
-<body x-data="appData" x-bind:class="{ 'dark-mode': $store.persist.isDarkMode }">
+<body x-data="appData" x-bind:class="{ 'dark-mode': $store.darkMode.isDarkMode }">
     @php
         $type = $type ?? 'online';
         $sourceId = $sourceModel->id ?? null;
@@ -349,7 +346,7 @@
         $routeParams = $type !== 'online' ? ['type' => $type, 'source' => $sourceId] : [];
     @endphp
 
-    @if (View::getSection('title') !== 'Welcome')
+    @if (View::getSection('title') !== 'Welcome' && !View::getSection('hideNav'))
         <nav class="navbar navbar-expand-lg">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{{ route('restaurant.landing') }}">Taste Restaurant</a>
@@ -370,10 +367,10 @@
                         </li>
                         <li class="nav-item">
                             <button class="btn btn-outline-primary btn-sm rounded-pill"
-                                @click="$store.persist.isDarkMode = !$store.persist.isDarkMode"
+                                @click="$store.darkMode.toggle()"
                                 aria-label="Toggle dark mode">
-                                <i class="fas" :class="$store.persist.isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
-                                <span x-text="$store.persist.isDarkMode ? 'Light Mode' : 'Dark Mode'"></span>
+                                <i class="fas" :class="$store.darkMode.isDarkMode ? 'fa-sun' : 'fa-moon'"></i>
+                                <span x-text="$store.darkMode.isDarkMode ? 'Light Mode' : 'Dark Mode'"></span>
                             </button>
                         </li>
                     </ul>
@@ -381,6 +378,7 @@
             </div>
         </nav>
     @endif
+    @if (!View::getSection('hideNav'))
     <div class="floating-elements">
         <div class="floating-element"
             style="left: 10%; top: 20%; width: 50px; height: 50px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
@@ -415,9 +413,10 @@
             <i class="fas fa-cookie" style="color: #fff; font-size: 20px;"></i>
         </div>
     </div>
+    @endif
 
     @yield('content')
-    @if (View::getSection('title') !== 'Welcome')
+    @if (View::getSection('title') !== 'Welcome' && !View::getSection('hideNav'))
         <button class="cart-indicator" data-bs-toggle="modal" data-bs-target="#cartModal">
             <i class="fas fa-shopping-cart"></i>
             <span class="cart-count" x-show="$store.cart.items.length > 0" x-text="$store.cart.items.length"></span>
@@ -510,146 +509,16 @@
             </div>
         </div>
 
-        @vite(['resources/js/app.js'])
         <script>
-            document.addEventListener('alpine:init', () => {
-                Alpine.store('persist', {
-                    isDarkMode: false
-                });
-
-                Alpine.store('cart', {
-                    items: [],
-                    isLoading: true,
-                    isSubmitting: false,
-                    routes: {
-                        add:    '{{ route($type === 'online' ? 'restaurant.online.cart.add' : 'restaurant.cart.add', $routeParams) }}',
-                        update: '{{ route($type === 'online' ? 'restaurant.online.cart.update' : 'restaurant.cart.update', $routeParams) }}',
-                        remove: '{{ route($type === 'online' ? 'restaurant.online.cart.remove' : 'restaurant.cart.remove', $routeParams) }}',
-                        get:    '{{ route($type === 'online' ? 'restaurant.online.cart.get' : 'restaurant.cart.get', $routeParams) }}',
-                        cart:   "{{ route($type === 'online' ? 'restaurant.online.cart' : 'restaurant.cart', $routeParams) }}"
-                    },
-                    
-                    init() {
-                        
-                        this.refreshCart();
-                    },
-                    
-                    get totalPrice() {
-                        return this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                    },
-                    redirectTo() {
-                        window.location.href = this.routes.cart;
-                    },
-                    async fetchApi(route, method, body) {
-                        try {
-                            const response = await fetch(route, {
-                                method: method,
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                                },
-                                body: JSON.stringify(body)
-                            });
-                            if (!response.ok) throw new Error('Network response was not ok');
-                            return await response.json();
-                        } catch (error) {
-                            console.error('API Error:', error);
-                            this.showAlert('danger', 'An error occurred. Please try again.');
-                            return null;
-                        }
-                    },
-                    
-                    async addToCart(itemId, name, price, quantity, instructions) {
-                        this.isSubmitting = true;
-                        if (this.items.some(item => item.item_id === itemId)) {
-                            this.showAlert('info', `${name} is already in your cart.`);
-                            new bootstrap.Modal(document.getElementById('cartModal')).show();
-                            this.isSubmitting = false;
-                            return;
-                        }
-                        const data = await this.fetchApi(this.routes.add, 'POST', { item_id: itemId, quantity, instructions });
-                        if (data && data.success) {
-                            this.items = data.cart;
-                            this.showAlert('success', `${name} has been added to your cart.`);
-                            new bootstrap.Modal(document.getElementById('cartModal')).show();
-                        } else {
-                            this.showAlert('danger', data?.message || 'Failed to add item.');
-                        }
-                        this.isSubmitting = false;
-                    },
-
-                    async updateQuantity(index, quantity) {
-                        const originalQuantity = this.items[index].quantity;
-                        if (quantity < 1) return;
-
-                        this.items[index].quantity = quantity;
-                        this.isSubmitting = true;
-
-                        const data = await this.fetchApi(this.routes.update, 'POST', { index, quantity });
-                        if (data && data.success) {
-                            this.items = data.cart;
-                        } else {
-                            this.items[index].quantity = originalQuantity; // Revert on failure
-                            this.showAlert('danger', data?.message || 'Failed to update cart.');
-                        }
-                        this.isSubmitting = false;
-                    },
-
-                    async removeItem(index) {
-                        const originalItems = [...this.items];
-                        this.items.splice(index, 1);
-                        this.isSubmitting = true;
-                        
-                        const data = await this.fetchApi(this.routes.remove, 'POST', { index });
-                        if (data && data.success) {
-                            this.items = data.cart;
-                            this.showAlert('info', 'Item removed from cart.');
-                        } else {
-                            this.items = originalItems; // Revert on failure
-                            this.showAlert('danger', data?.message || 'Failed to remove item.');
-                        }
-                        this.isSubmitting = false;
-                    },
-
-                    async refreshCart() {
-                        this.isLoading = true;
-                        try {
-                            const response = await fetch(this.routes.get, { headers: { 'Accept': 'application/json' }});
-                            if (!response.ok) throw new Error('Network error');
-                            const data = await response.json();
-                            if (data.success) {
-                                this.items = data.cart;
-                            }
-                        } catch(error) {
-                            console.log('Cart refreshed:', error);
-                             console.error('Error refreshing cart:', error);
-                        } finally {
-                            this.isLoading = false;
-                        }
-                    },
-                    
-                    showAlert(type, message) {
-                        const alertContainer = document.getElementById('cart-alerts');
-                        if (!alertContainer) return;
-                        
-                        const alert = document.createElement('div');
-                        alert.className = `alert alert-${type} alert-dismissible fade show`;
-                        alert.role = 'alert';
-                        alert.innerHTML = `
-                            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-                            ${message}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        `;
-                        alertContainer.appendChild(alert);
-                        setTimeout(() => alert.remove(), 4000);
-                    }
-                });
-
-                Alpine.data('appData', () => ({
-                    showMobileMenu: false
-                }));
-            });
+            window.restaurantConfig = {
+                routes: {
+                    add:    '{{ route($type === 'online' ? 'restaurant.online.cart.add' : 'restaurant.cart.add', $routeParams) }}',
+                    update: '{{ route($type === 'online' ? 'restaurant.online.cart.update' : 'restaurant.cart.update', $routeParams) }}',
+                    remove: '{{ route($type === 'online' ? 'restaurant.online.cart.remove' : 'restaurant.cart.remove', $routeParams) }}',
+                    get:    '{{ route($type === 'online' ? 'restaurant.online.cart.get' : 'restaurant.cart.get', $routeParams) }}',
+                    cart:   "{{ route($type === 'online' ? 'restaurant.online.cart' : 'restaurant.cart', $routeParams) }}"
+                }
+            };
         </script>
     @endif
     @stack('scripts')

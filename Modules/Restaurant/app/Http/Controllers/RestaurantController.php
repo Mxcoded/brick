@@ -3,16 +3,24 @@
 namespace Modules\Restaurant\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Room;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
+use Modules\Restaurant\Models\Customer;
 use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
 use Modules\Restaurant\Models\Order;
 use Modules\Restaurant\Models\OrderItem;
+use Modules\Restaurant\Models\Payment;
+use Modules\Restaurant\Models\RecipeItem;
+use Modules\Restaurant\Models\RestaurantSetting;
+use Modules\Restaurant\Models\StockItem;
+use Modules\Restaurant\Models\StockMovement;
 use Modules\Restaurant\Models\Table;
+
+use Modules\Restaurant\Models\WaiterShift;
+use Modules\Website\Models\Room;
 
 class RestaurantController extends Controller
 {
@@ -83,17 +91,30 @@ class RestaurantController extends Controller
         }
 
         try {
+            $itemFilter = $type === 'online'
+                ? fn ($q) => $q->where('is_available', true)
+                : fn ($q) => $q;
+
             $categoryId = $request->query('category');
             if ($categoryId) {
-                $category = MenuCategory::with(['menuItems', 'childrenRecursive.menuItems'])->find($categoryId);
+                $category = MenuCategory::with([
+                    'menuItems' => $itemFilter,
+                    'childrenRecursive.menuItems' => $itemFilter,
+                ])->find($categoryId);
                 if (! $category) {
                     Session::flash('error', 'The selected category is not available.');
-                    $categories = MenuCategory::with(['menuItems', 'childrenRecursive.menuItems'])->get();
+                    $categories = MenuCategory::with([
+                        'menuItems' => $itemFilter,
+                        'childrenRecursive.menuItems' => $itemFilter,
+                    ])->get();
                 } else {
                     $categories = collect([$category]);
                 }
             } else {
-                $categories = MenuCategory::with(['menuItems', 'childrenRecursive.menuItems'])
+                $categories = MenuCategory::with([
+                    'menuItems' => $itemFilter,
+                    'childrenRecursive.menuItems' => $itemFilter,
+                ])
                     ->whereNull('parent_id')
                     ->get();
             }
@@ -133,6 +154,14 @@ class RestaurantController extends Controller
             'quantity' => 'required|integer|min:1',
             'instructions' => 'nullable|string|max:255',
         ]);
+
+        // Check availability for online orders
+        if ($type === 'online') {
+            $menuItem = MenuItem::find($validated['item_id']);
+            if (! $menuItem || ! $menuItem->is_available) {
+                return response()->json(['success' => false, 'message' => 'This item is currently unavailable.'], 422);
+            }
+        }
 
         // Validate source if required
         if ($type === 'table' && ! Table::find($sourceId)) {
@@ -379,16 +408,34 @@ class RestaurantController extends Controller
         }
 
         $itemIds = array_column($cart, 'item_id');
-        $validItems = MenuItem::whereIn('id', $itemIds)->pluck('id')->toArray();
-        $invalidItems = array_diff($itemIds, $validItems);
+        $menuItems = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
+        $invalidItems = array_diff($itemIds, $menuItems->pluck('id')->toArray());
         if (! empty($invalidItems)) {
             return redirect()->back()->with('error', 'Some items in your cart are no longer available.');
         }
+
+        // Check availability for online
+        if ($type === 'online') {
+            $unavailable = $menuItems->filter(fn ($i) => ! $i->is_available);
+            if ($unavailable->isNotEmpty()) {
+                $names = $unavailable->pluck('name')->implode(', ');
+
+                return redirect()->back()->with('error', "Some items are unavailable: {$names}");
+            }
+        }
+
+        $subtotal = collect($cart)->sum(fn ($i) => ($menuItems[$i['item_id']]->price ?? 0) * $i['quantity']);
+        $vatRate = (float) (RestaurantSetting::getValue('vat_rate', '7.5'));
+        $vat = $subtotal * $vatRate / 100;
 
         $orderData = [
             'type' => $type,
             'status' => 'pending',
             'tracking_status' => $type === 'online' || $type === 'room' ? 'pending' : null,
+            'subtotal' => $subtotal,
+            'vat' => $vat,
+            'vat_rate' => $vatRate,
+            'grand_total' => $subtotal + $vat,
         ];
 
         if ($type === 'table' || $type === 'room') {
@@ -465,19 +512,325 @@ class RestaurantController extends Controller
     /** Waiter Dashboard and Order Management start */
     public function waiterDashboard()
     {
-        // Separate orders into pending and active for the new tabs
         $pendingOrders = Order::where('status', 'pending')
-            ->whereIn('type', ['table', 'room'])
+            ->whereIn('type', ['table', 'room', 'walk_in'])
             ->with('orderItems.menuItem')
             ->get();
 
         $activeOrders = Order::where('status', 'accepted')
             ->whereIn('tracking_status', ['preparing', 'ready', 'served'])
-            ->whereIn('type', ['table', 'room'])
+            ->whereIn('type', ['table', 'room', 'walk_in'])
             ->with('orderItems.menuItem')
             ->get();
 
-        return view('restaurant::waiter.dashboard', compact('pendingOrders', 'activeOrders'));
+        $paidOrders = Order::where('status', 'completed')
+            ->where('tracking_status', 'paid')
+            ->whereIn('type', ['table', 'room', 'walk_in'])
+            ->with('orderItems.menuItem')
+            ->latest()
+            ->limit(50)
+            ->get();
+
+        $categories = MenuCategory::with(['menuItems', 'childrenRecursive.menuItems'])
+            ->whereNull('parent_id')
+            ->get();
+
+        $tables = Table::all();
+        $occupiedTableIds = Order::whereIn('status', ['pending', 'accepted'])
+            ->where('type', 'table')
+            ->pluck('source_id')
+            ->unique()
+            ->toArray();
+
+        return view('restaurant::waiter.dashboard', compact('pendingOrders', 'activeOrders', 'paidOrders', 'categories', 'tables', 'occupiedTableIds'));
+    }
+
+    public function posAddToCart(Request $request)
+    {
+        $validated = $request->validate([
+            'item_id' => 'required|exists:restaurant_menu_items,id',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $cart = session()->get('pos_cart', []);
+
+        $existing = null;
+        foreach ($cart as $i => $item) {
+            if ($item['item_id'] == $validated['item_id']) {
+                $existing = $i;
+                break;
+            }
+        }
+
+        if ($existing !== null) {
+            $cart[$existing]['quantity'] += $validated['quantity'];
+        } else {
+            $menuItem = MenuItem::find($validated['item_id']);
+            $cart[] = [
+                'item_id' => $menuItem->id,
+                'name' => $menuItem->name,
+                'price' => (float) $menuItem->price,
+                'quantity' => $validated['quantity'],
+            ];
+        }
+
+        session()->put('pos_cart', $cart);
+
+        return response()->json(['success' => true, 'cart' => $cart]);
+    }
+
+    public function posUpdateCart(Request $request)
+    {
+        $validated = $request->validate([
+            'index' => 'required|integer|min:0',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $cart = session()->get('pos_cart', []);
+        if (isset($cart[$validated['index']])) {
+            $cart[$validated['index']]['quantity'] = $validated['quantity'];
+            session()->put('pos_cart', $cart);
+        }
+
+        return response()->json(['success' => true, 'cart' => array_values($cart)]);
+    }
+
+    public function posRemoveFromCart(Request $request)
+    {
+        $validated = $request->validate([
+            'index' => 'required|integer',
+        ]);
+
+        $cart = session()->get('pos_cart', []);
+
+        if ($validated['index'] === -1) {
+            $cart = [];
+        } elseif (isset($cart[$validated['index']])) {
+            unset($cart[$validated['index']]);
+            $cart = array_values($cart);
+        }
+
+        session()->put('pos_cart', $cart);
+
+        return response()->json(['success' => true, 'cart' => $cart]);
+    }
+
+    public function posGetCart()
+    {
+        $cart = session()->get('pos_cart', []);
+        $total = array_reduce($cart, fn ($sum, $item) => $sum + ($item['price'] * $item['quantity']), 0);
+
+        return response()->json(['success' => true, 'cart' => $cart, 'total' => $total]);
+    }
+
+    public function posSubmitOrder(Request $request)
+    {
+        $validated = $request->validate([
+            'source_type' => 'required|in:table,walk_in',
+            'source_id' => 'required_if:source_type,table|nullable|integer',
+            'customer_name' => 'nullable|string|max:255',
+            'discount' => 'nullable|numeric|min:0',
+            'discount_type' => 'nullable|in:percentage,fixed',
+        ]);
+
+        $cart = session()->get('pos_cart', []);
+        if (empty($cart)) {
+            return response()->json(['success' => false, 'message' => 'Cart is empty.'], 422);
+        }
+
+        $itemIds = array_column($cart, 'item_id');
+        $validItems = MenuItem::whereIn('id', $itemIds)->pluck('id')->toArray();
+        $invalidItems = array_diff($itemIds, $validItems);
+        if (! empty($invalidItems)) {
+            return response()->json(['success' => false, 'message' => 'Some items are no longer available.'], 422);
+        }
+
+        $subtotal = collect($cart)->sum(fn ($i) => $i['price'] * $i['quantity']);
+
+        $discount = (float) ($validated['discount'] ?? 0);
+        $discountType = $validated['discount_type'] ?? null;
+        $discountAmount = $discountType === 'percentage' ? $subtotal * $discount / 100 : $discount;
+
+        $vatRate = (float) (RestaurantSetting::getValue('vat_rate', '7.5'));
+        $vat = ($subtotal - $discountAmount) * $vatRate / 100;
+
+        $serviceChargeRate = (float) (RestaurantSetting::getValue('service_charge_rate', '0'));
+        $serviceCharge = $serviceChargeRate > 0 ? ($subtotal - $discountAmount) * $serviceChargeRate / 100 : 0;
+
+        $grandTotal = $subtotal - $discountAmount + $vat + $serviceCharge;
+
+        $shift = WaiterShift::where('user_id', auth()->id())->where('status', 'open')->first();
+
+        $orderData = [
+            'type' => $validated['source_type'],
+            'source_id' => $validated['source_type'] === 'table' ? $validated['source_id'] : null,
+            'status' => 'pending',
+            'tracking_status' => 'pending',
+            'customer_name' => $validated['customer_name'] ?? ($validated['source_type'] === 'table' ? 'Table '.Table::find($validated['source_id'])?->number : 'Walk-in'),
+            'shift_id' => $shift?->id,
+            'subtotal' => $subtotal,
+            'discount' => $discountAmount,
+            'discount_type' => $discountType,
+            'vat' => $vat,
+            'vat_rate' => $vatRate,
+            'grand_total' => $grandTotal,
+        ];
+
+        $order = Order::create($orderData);
+
+        foreach ($cart as $item) {
+            OrderItem::create([
+                'restaurant_order_id' => $order->id,
+                'restaurant_menu_item_id' => $item['item_id'],
+                'quantity' => $item['quantity'],
+                'instructions' => null,
+            ]);
+        }
+
+        if ($shift) {
+            $shift->total_sales = $shift->total_sales + $grandTotal;
+            $shift->save();
+        }
+
+        session()->forget('pos_cart');
+
+        return response()->json(['success' => true, 'order_id' => $order->id]);
+    }
+
+    public function currentShift()
+    {
+        $shift = WaiterShift::where('user_id', auth()->id())
+            ->where('status', 'open')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'shift' => $shift ? [
+                'id' => $shift->id,
+                'clock_in' => $shift->clock_in->format('Y-m-d H:i:s'),
+                'starting_cash' => $shift->starting_cash,
+                'total_sales' => $shift->total_sales,
+                'status' => $shift->status,
+            ] : null,
+        ]);
+    }
+
+    public function startShift(Request $request)
+    {
+        $validated = $request->validate([
+            'starting_cash' => 'nullable|numeric|min:0',
+        ]);
+
+        $existing = WaiterShift::where('user_id', auth()->id())
+            ->where('status', 'open')
+            ->first();
+
+        if ($existing) {
+            return response()->json(['success' => false, 'message' => 'You already have an open shift.'], 422);
+        }
+
+        $todayShift = WaiterShift::where('user_id', auth()->id())
+            ->whereDate('clock_in', today())
+            ->exists();
+
+        if ($todayShift) {
+            return response()->json(['success' => false, 'message' => 'You already clocked in today.'], 422);
+        }
+
+        $startTime = RestaurantSetting::getValue('shift_start_time', '06:00');
+        $endTime = RestaurantSetting::getValue('shift_end_time', '22:00');
+        $now = now()->format('H:i');
+
+        if ($now < $startTime || $now > $endTime) {
+            return response()->json([
+                'success' => false,
+                'message' => "Shifts can only be started between {$startTime} and {$endTime}.",
+            ], 422);
+        }
+
+        $shift = WaiterShift::create([
+            'user_id' => auth()->id(),
+            'clock_in' => now(),
+            'starting_cash' => $validated['starting_cash'] ?? 0,
+            'status' => 'open',
+        ]);
+
+        return response()->json(['success' => true, 'shift' => [
+            'id' => $shift->id,
+            'clock_in' => $shift->clock_in->format('Y-m-d H:i:s'),
+            'starting_cash' => $shift->starting_cash,
+        ]]);
+    }
+
+    public function endShift(Request $request)
+    {
+        $validated = $request->validate([
+            'ending_cash' => 'required|numeric|min:0',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $shift = WaiterShift::where('user_id', auth()->id())
+            ->where('status', 'open')
+            ->first();
+
+        if (! $shift) {
+            return response()->json(['success' => false, 'message' => 'No open shift found.'], 404);
+        }
+
+        $shift->clock_out = now();
+        $shift->ending_cash = $validated['ending_cash'];
+        $shift->notes = $validated['notes'] ?? null;
+        $shift->status = 'closed';
+        $shift->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function posSettings()
+    {
+        return response()->json([
+            'success' => true,
+            'settings' => [
+                'vat_rate' => RestaurantSetting::getValue('vat_rate', '7.5'),
+                'service_charge_rate' => RestaurantSetting::getValue('service_charge_rate', '0'),
+                'discount_limit' => RestaurantSetting::getValue('discount_limit', '10000'),
+                'shift_start_time' => RestaurantSetting::getValue('shift_start_time', '06:00'),
+                'shift_end_time' => RestaurantSetting::getValue('shift_end_time', '22:00'),
+                'paystack_public_key' => config('services.paystack.public'),
+            ],
+        ]);
+    }
+
+    public function adminSettings()
+    {
+        $settings = [
+            'vat_rate' => RestaurantSetting::getValue('vat_rate', '7.5'),
+            'service_charge_rate' => RestaurantSetting::getValue('service_charge_rate', '0'),
+            'discount_limit' => RestaurantSetting::getValue('discount_limit', '10000'),
+            'shift_start_time' => RestaurantSetting::getValue('shift_start_time', '06:00'),
+            'shift_end_time' => RestaurantSetting::getValue('shift_end_time', '22:00'),
+        ];
+
+        return view('restaurant::admin.settings', compact('settings'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'vat_rate' => 'required|numeric|min:0|max:100',
+            'service_charge_rate' => 'required|numeric|min:0|max:100',
+            'discount_limit' => 'required|numeric|min:0',
+            'shift_start_time' => 'required|date_format:H:i',
+            'shift_end_time' => 'required|date_format:H:i|after:shift_start_time',
+        ]);
+
+        RestaurantSetting::setValue('vat_rate', $validated['vat_rate']);
+        RestaurantSetting::setValue('service_charge_rate', $validated['service_charge_rate']);
+        RestaurantSetting::setValue('discount_limit', $validated['discount_limit']);
+        RestaurantSetting::setValue('shift_start_time', $validated['shift_start_time']);
+        RestaurantSetting::setValue('shift_end_time', $validated['shift_end_time']);
+
+        return redirect()->route('restaurant.admin.settings')->with('success', 'Settings updated successfully.');
     }
 
     // method to handle accepted orders
@@ -545,6 +898,13 @@ class RestaurantController extends Controller
         return redirect()->route('restaurant.waiter.dashboard')->with('success', "Order #{$order->id} has been voided.");
     }
 
+    public function printReceipt(Order $order)
+    {
+        $order->load('orderItems.menuItem', 'shift.user', 'payments');
+
+        return view('restaurant::waiter.receipt', compact('order'));
+    }
+
     /**
      * Admin function starting the dashboard
      */
@@ -554,8 +914,10 @@ class RestaurantController extends Controller
         $parent_categories = $categories->whereNull('parent_id');
         $menuItems = MenuItem::with('category')->get();
         $orders = Order::with('orderItems.menuItem')->latest()->get();
+        $trashedItems = MenuItem::onlyTrashed()->with('category')->get();
+        $trashedCategories = MenuCategory::onlyTrashed()->withCount('menuItems')->get();
 
-        return view('restaurant::admin.dashboard', compact('categories', 'parent_categories', 'menuItems', 'orders'));
+        return view('restaurant::admin.dashboard', compact('categories', 'parent_categories', 'menuItems', 'orders', 'trashedItems', 'trashedCategories'));
     }
 
     public function addMenuCategory(Request $request)
@@ -570,7 +932,7 @@ class RestaurantController extends Controller
             'parent_id' => $request->input('parent_category'),
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Menu category added successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu category added successfully!');
     }
 
     // New Method
@@ -596,20 +958,22 @@ class RestaurantController extends Controller
 
         $category->update($request->all());
 
-        return redirect()->route('dashboard')->with('success', 'Menu category updated successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu category updated successfully!');
     }
 
-    // New Method
     public function deleteMenuCategory(MenuCategory $category)
     {
-        // Prevent deletion if the category has items or subcategories
-        if ($category->menuItems()->count() > 0 || $category->children()->count() > 0) {
-            return redirect()->route('dashboard')->with('error', 'Cannot delete category. It contains items or subcategories.');
-        }
-
         $category->delete();
 
-        return redirect()->route('dashboard')->with('success', 'Menu category deleted successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu category deleted successfully!');
+    }
+
+    public function restoreMenuCategory($id)
+    {
+        $category = MenuCategory::withTrashed()->findOrFail($id);
+        $category->restore();
+
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu category restored successfully!');
     }
 
     // New Method
@@ -626,6 +990,7 @@ class RestaurantController extends Controller
             'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'is_available' => 'nullable|boolean',
         ]);
 
         $menuItem = new MenuItem;
@@ -633,6 +998,7 @@ class RestaurantController extends Controller
         $menuItem->name = $request->input('name');
         $menuItem->description = $request->input('description');
         $menuItem->price = $request->input('price');
+        $menuItem->is_available = $request->boolean('is_available', true);
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('dishes', 'public');
@@ -646,7 +1012,7 @@ class RestaurantController extends Controller
 
     public function editMenuItem(MenuItem $item)
     {
-        $categories = MenuCategory::all();
+        $categories = MenuCategory::withTrashed()->get();
 
         return view('restaurant::admin.edit_item', compact('item', 'categories'));
     }
@@ -660,12 +1026,14 @@ class RestaurantController extends Controller
             'description' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'is_available' => 'nullable|boolean',
         ]);
 
         $item->restaurant_menu_categories_id = $request->input('restaurant_menu_categories_id');
         $item->name = $request->input('name');
         $item->description = $request->input('description');
         $item->price = $request->input('price');
+        $item->is_available = $request->boolean('is_available', $item->is_available);
 
         if ($request->hasFile('image')) {
             if ($item->image) {
@@ -677,18 +1045,22 @@ class RestaurantController extends Controller
 
         $item->save();
 
-        return redirect()->route('dashboard')->with('success', 'Menu item updated successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu item updated successfully!');
     }
 
-    // New Method
     public function deleteMenuItem(MenuItem $item)
     {
-        if ($item->image) {
-            Storage::disk('public')->delete($item->image);
-        }
         $item->delete();
 
-        return redirect()->route('dashboard')->with('success', 'Menu item deleted successfully!');
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu item deleted successfully!');
+    }
+
+    public function restoreMenuItem($id)
+    {
+        $item = MenuItem::withTrashed()->findOrFail($id);
+        $item->restore();
+
+        return redirect()->route('restaurant.admin.dashboard')->with('success', 'Menu item restored successfully!');
     }
 
     public function updateOrder(Request $request, $order)
@@ -706,5 +1078,610 @@ class RestaurantController extends Controller
         $order->save();
 
         return redirect()->back()->with('success', 'Order updated successfully!');
+    }
+
+    public function showOrder(Order $order)
+    {
+        $order->load('orderItems.menuItem', 'shift.user');
+        $statuses = ['pending', 'accepted', 'completed', 'rejected', 'void'];
+
+        return view('restaurant::admin.order_detail', compact('order', 'statuses'));
+    }
+
+    // ─── Phase 1: Payment Processing ─────────────────────────────────
+
+    public function processPayment(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'amount_tendered' => 'nullable|numeric|min:0',
+            'method' => 'required|in:cash,card,mobile_money,transfer',
+            'reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $tendered = $validated['amount_tendered'] ?? $order->grand_total;
+        $change = max(0, $tendered - $order->grand_total);
+
+        $payment = Payment::create([
+            'restaurant_order_id' => $order->id,
+            'amount' => $order->grand_total,
+            'method' => $validated['method'],
+            'reference' => $validated['reference'] ?? null,
+            'change_due' => $change,
+            'status' => 'completed',
+            'paid_at' => now(),
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        $order->status = 'completed';
+        $order->tracking_status = 'paid';
+        $order->save();
+
+        // Track customer if phone exists
+        if ($order->customer_phone) {
+            $customer = Customer::firstOrCreate(
+                ['phone' => $order->customer_phone],
+                ['name' => $order->customer_name ?? 'Unknown']
+            );
+            $customer->increment('visit_count');
+            $customer->increment('total_spent', $order->grand_total);
+            $customer->increment('loyalty_points', (int) floor($order->grand_total / 100));
+        }
+
+        $order->load('payments');
+
+        return response()->json([
+            'success' => true,
+            'payment' => $payment,
+            'change' => $change,
+            'order' => $order,
+        ]);
+    }
+
+    // ─── Phase 2: Reports & Analytics ────────────────────────────────
+
+    public function salesReport(Request $request)
+    {
+        $request->validate([
+            'period' => 'required|in:today,week,month,custom',
+            'date_from' => 'required_if:period,custom|date',
+            'date_to' => 'required_if:period,custom|date|after_or_equal:date_from',
+        ]);
+
+        $now = now();
+        $from = match ($request->period) {
+            'today' => $now->copy()->startOfDay(),
+            'week' => $now->copy()->startOfWeek(),
+            'month' => $now->copy()->startOfMonth(),
+            'custom' => $request->date('date_from')->startOfDay(),
+        };
+        $to = match ($request->period) {
+            'today', 'week', 'month' => $now->copy()->endOfDay(),
+            'custom' => $request->date('date_to')->endOfDay(),
+        };
+
+        $orders = Order::with('payments', 'orderItems.menuItem', 'shift.user')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->get();
+
+        $totalSales = $orders->sum('grand_total');
+        $totalDiscounts = $orders->sum('discount');
+        $totalVat = $orders->sum('vat');
+        $orderCount = $orders->count();
+        $averageOrder = $orderCount > 0 ? $totalSales / $orderCount : 0;
+
+        // Payment method breakdown
+        $paymentMethods = Payment::whereIn('restaurant_order_id', $orders->pluck('id'))
+            ->completed()
+            ->get()
+            ->groupBy('method')
+            ->map(fn ($items) => [
+                'count' => $items->count(),
+                'total' => $items->sum('amount'),
+            ]);
+
+        // Hourly breakdown
+        $hourly = $orders->groupBy(fn ($o) => $o->created_at->format('H'))
+            ->map(fn ($items, $hour) => [
+                'hour' => $hour.':00',
+                'count' => $items->count(),
+                'total' => $items->sum('grand_total'),
+            ])->values();
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_sales' => $totalSales,
+                'total_discounts' => $totalDiscounts,
+                'total_vat' => $totalVat,
+                'order_count' => $orderCount,
+                'average_order' => $averageOrder,
+                'period' => ['from' => $from, 'to' => $to],
+            ],
+            'payment_methods' => $paymentMethods,
+            'hourly' => $hourly,
+        ]);
+    }
+
+    public function popularItems(Request $request)
+    {
+        $request->validate([
+            'period' => 'required|in:week,month,custom',
+            'date_from' => 'required_if:period,custom|date',
+            'date_to' => 'required_if:period,custom|date|after_or_equal:date_from',
+            'limit' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        $now = now();
+        $from = match ($request->period) {
+            'week' => $now->copy()->startOfWeek(),
+            'month' => $now->copy()->startOfMonth(),
+            'custom' => $request->date('date_from')->startOfDay(),
+        };
+        $to = match ($request->period) {
+            'week', 'month' => $now->copy()->endOfDay(),
+            'custom' => $request->date('date_to')->endOfDay(),
+        };
+        $limit = $request->integer('limit', 20);
+
+        $items = OrderItem::selectRaw('restaurant_menu_item_id, SUM(quantity) as total_qty, SUM(quantity * mi.price) as total_revenue')
+            ->join('restaurant_menu_items as mi', 'mi.id', '=', 'restaurant_order_items.restaurant_menu_item_id')
+            ->join('restaurant_orders as o', 'o.id', '=', 'restaurant_order_items.restaurant_order_id')
+            ->whereBetween('o.created_at', [$from, $to])
+            ->where('o.status', 'completed')
+            ->groupBy('restaurant_menu_item_id')
+            ->orderByDesc('total_qty')
+            ->limit($limit)
+            ->get()
+            ->load('menuItem.category');
+
+        return response()->json([
+            'success' => true,
+            'items' => $items->map(fn ($i) => [
+                'id' => $i->restaurant_menu_item_id,
+                'name' => $i->menuItem?->name ?? 'Deleted',
+                'category' => $i->menuItem?->category?->name ?? '',
+                'quantity' => (int) $i->total_qty,
+                'revenue' => (float) $i->total_revenue,
+            ]),
+        ]);
+    }
+
+    public function waiterPerformance(Request $request)
+    {
+        $request->validate([
+            'period' => 'required|in:today,week,month',
+            'date_from' => 'required_if:period,custom|date',
+            'date_to' => 'required_if:period,custom|date|after_or_equal:date_from',
+        ]);
+
+        $now = now();
+        $from = match ($request->period) {
+            'today' => $now->copy()->startOfDay(),
+            'week' => $now->copy()->startOfWeek(),
+            'month' => $now->copy()->startOfMonth(),
+        };
+        $to = match ($request->period) {
+            'today', 'week', 'month' => $now->copy()->endOfDay(),
+        };
+
+        $waiters = WaiterShift::with('user')
+            ->withCount(['orders' => fn ($q) => $q->where('status', 'completed')])
+            ->withSum(['orders' => fn ($q) => $q->where('status', 'completed')], 'grand_total')
+            ->whereBetween('clock_in', [$from, $to])
+            ->get()
+            ->map(fn ($s) => [
+                'waiter_id' => $s->user_id,
+                'waiter_name' => $s->user?->name ?? 'Deleted',
+                'shifts' => 1,
+                'orders_taken' => $s->orders_count,
+                'total_sales' => (float) $s->orders_sum_grand_total,
+                'hours_worked' => $s->clock_out
+                    ? round($s->clock_out->diffInHours($s->clock_in), 1)
+                    : null,
+            ]);
+
+        // Aggregate by waiter
+        $aggregated = $waiters->groupBy('waiter_id')->map(fn ($items) => [
+            'waiter_name' => $items->first()['waiter_name'],
+            'shifts' => $items->sum('shifts'),
+            'orders_taken' => $items->sum('orders_taken'),
+            'total_sales' => $items->sum('total_sales'),
+            'hours_worked' => $items->sum('hours_worked'),
+        ])->values();
+
+        return response()->json([
+            'success' => true,
+            'waiters' => $aggregated,
+        ]);
+    }
+
+    public function shiftReport(Request $request, $shiftId)
+    {
+        $shift = WaiterShift::with('user', 'orders.payments')->findOrFail($shiftId);
+        $completedOrders = $shift->orders->where('status', 'completed');
+        $totalSales = $completedOrders->sum('grand_total');
+        $paymentMethods = Payment::whereIn('restaurant_order_id', $completedOrders->pluck('id'))
+            ->completed()
+            ->get()
+            ->groupBy('method')
+            ->map(fn ($items) => [
+                'count' => $items->count(),
+                'total' => $items->sum('amount'),
+            ]);
+        $expectedEndingCash = $shift->starting_cash + $totalSales;
+        $discrepancy = $shift->ending_cash ? $shift->ending_cash - $expectedEndingCash : null;
+
+        return response()->json([
+            'success' => true,
+            'shift' => [
+                'id' => $shift->id,
+                'waiter' => $shift->user?->name ?? 'N/A',
+                'clock_in' => $shift->clock_in,
+                'clock_out' => $shift->clock_out,
+                'starting_cash' => $shift->starting_cash,
+                'ending_cash' => $shift->ending_cash,
+                'expected_ending_cash' => $expectedEndingCash,
+                'discrepancy' => $discrepancy,
+                'total_sales' => $totalSales,
+                'order_count' => $completedOrders->count(),
+                'status' => $shift->status,
+            ],
+            'payment_methods' => $paymentMethods,
+            'orders' => $completedOrders->map(fn ($o) => [
+                'id' => $o->id,
+                'type' => $o->type,
+                'customer' => $o->customer_name ?? 'Walk-in',
+                'total' => $o->grand_total,
+                'paid_at' => $o->updated_at,
+            ]),
+        ]);
+    }
+
+    // ─── Table CRUD ───────────────────────────────────────────────────
+
+    public function tableIndex()
+    {
+        $tables = Table::all();
+
+        return view('restaurant::admin.tables', compact('tables'));
+    }
+
+    public function tableStore(Request $request)
+    {
+        $validated = $request->validate([
+            'number' => 'required|string|max:50|unique:restaurant_tables,number',
+            'capacity' => 'nullable|integer|min:1',
+            'section' => 'nullable|string|max:100',
+        ]);
+
+        Table::create($validated);
+
+        return redirect()->route('restaurant.admin.tables')->with('success', 'Table added successfully.');
+    }
+
+    public function tableUpdate(Request $request, Table $table)
+    {
+        $validated = $request->validate([
+            'number' => 'required|string|max:50|unique:restaurant_tables,number,'.$table->id,
+            'capacity' => 'nullable|integer|min:1',
+            'section' => 'nullable|string|max:100',
+        ]);
+
+        $table->update($validated);
+
+        return redirect()->route('restaurant.admin.tables')->with('success', 'Table updated successfully.');
+    }
+
+    public function tableDestroy(Table $table)
+    {
+        $table->delete();
+
+        return redirect()->route('restaurant.admin.tables')->with('success', 'Table deleted successfully.');
+    }
+
+    // ─── Phase 3: Kitchen Display ────────────────────────────────────
+
+    public function kdsOrders()
+    {
+        $orders = Order::with('orderItems.menuItem.category')
+            ->where(function ($q) {
+                $q->whereIn('tracking_status', ['pending', 'preparing', 'ready'])
+                    ->orWhere(function ($q2) {
+                        $q2->whereNull('tracking_status')->where('status', 'pending');
+                    });
+            })
+            ->orderBy('created_at')
+            ->get()
+            ->groupBy(function ($o) {
+                return $o->tracking_status ?? 'unaccepted';
+            });
+
+        return view('restaurant::admin.kitchen_display', compact('orders'));
+    }
+
+    public function kdsData()
+    {
+        $orders = Order::with('orderItems.menuItem.category')
+            ->where(function ($q) {
+                $q->whereIn('tracking_status', ['pending', 'preparing', 'ready'])
+                    ->orWhere(function ($q2) {
+                        $q2->whereNull('tracking_status')->where('status', 'pending');
+                    });
+            })
+            ->orderBy('created_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'orders' => $orders,
+            'now' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function kdsAcceptOrder(Order $order)
+    {
+        if ($order->status !== 'pending') {
+            return response()->json(['success' => false, 'message' => 'Order is not pending.'], 422);
+        }
+
+        $order->status = 'accepted';
+        $order->tracking_status = 'preparing';
+        $order->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    // ─── Phase 4: Inventory / Stock Control ──────────────────────────
+
+    public function stockIndex()
+    {
+        $items = StockItem::withCount('recipeItems')->get();
+        $lowStock = $items->filter(fn ($i) => $i->isLowStock());
+
+        return view('restaurant::admin.stock_index', compact('items', 'lowStock'));
+    }
+
+    public function stockStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'unit' => 'required|string|max:50',
+            'stock_quantity' => 'required|numeric|min:0',
+            'min_stock_level' => 'required|numeric|min:0',
+            'unit_cost' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        StockItem::create($validated);
+
+        return redirect()->route('restaurant.admin.stock.index')->with('success', 'Stock item created.');
+    }
+
+    public function stockUpdate(Request $request, StockItem $stockItem)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'unit' => 'required|string|max:50',
+            'stock_quantity' => 'required|numeric|min:0',
+            'min_stock_level' => 'required|numeric|min:0',
+            'unit_cost' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $stockItem->update($validated);
+
+        return redirect()->route('restaurant.admin.stock.index')->with('success', 'Stock item updated.');
+    }
+
+    public function stockDestroy(StockItem $stockItem)
+    {
+        $stockItem->delete();
+
+        return redirect()->route('restaurant.admin.stock.index')->with('success', 'Stock item deleted.');
+    }
+
+    public function recipeStore(Request $request, MenuItem $menuItem)
+    {
+        $validated = $request->validate([
+            'restaurant_stock_item_id' => 'required|exists:restaurant_stock_items,id',
+            'quantity' => 'required|numeric|min:0.001',
+        ]);
+
+        RecipeItem::updateOrCreate(
+            [
+                'restaurant_menu_item_id' => $menuItem->id,
+                'restaurant_stock_item_id' => $validated['restaurant_stock_item_id'],
+            ],
+            ['quantity' => $validated['quantity']]
+        );
+
+        return redirect()->back()->with('success', 'Recipe ingredient added.');
+    }
+
+    public function recipeDestroy(RecipeItem $recipeItem)
+    {
+        $recipeItem->delete();
+
+        return redirect()->back()->with('success', 'Ingredient removed from recipe.');
+    }
+
+    public function stockMovementStore(Request $request)
+    {
+        $validated = $request->validate([
+            'restaurant_stock_item_id' => 'required|exists:restaurant_stock_items,id',
+            'type' => 'required|in:purchase,usage,wastage,adjustment',
+            'quantity' => 'required|numeric|min:0.001',
+            'unit_cost' => 'nullable|numeric|min:0',
+            'reference' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $stockItem = StockItem::findOrFail($validated['restaurant_stock_item_id']);
+
+        if (in_array($validated['type'], ['usage', 'wastage'])) {
+            $validated['quantity'] = -abs($validated['quantity']);
+        }
+
+        $stockItem->increment('stock_quantity', $validated['quantity']);
+
+        $validated['user_id'] = auth()->id();
+        StockMovement::create($validated);
+
+        return redirect()->back()->with('success', 'Stock movement recorded.');
+    }
+
+    // ─── Phase 5: Customer CRM ───────────────────────────────────────
+
+    public function customerIndex()
+    {
+        $customers = Customer::withCount('orders')
+            ->orderByDesc('total_spent')
+            ->paginate(20);
+
+        return view('restaurant::admin.customers', compact('customers'));
+    }
+
+    public function customerShow(Customer $customer)
+    {
+        $customer->loadCount('orders');
+        $orders = Order::where('customer_phone', $customer->phone)
+            ->with('orderItems.menuItem', 'payments')
+            ->latest()
+            ->paginate(10);
+
+        return view('restaurant::admin.customer_show', compact('customer', 'orders'));
+    }
+
+    public function customerStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20|unique:restaurant_customers,phone',
+            'email' => 'nullable|email|max:255',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        Customer::create($validated);
+
+        return redirect()->route('restaurant.admin.customers')->with('success', 'Customer created.');
+    }
+
+    // ─── Admin report views ─────────────────────────────────────────
+
+    public function reportSales()
+    {
+        return view('restaurant::admin.reports.sales');
+    }
+
+    public function exportSalesCsv(Request $request)
+    {
+        $request->validate([
+            'period' => 'required|in:today,week,month,custom',
+            'date_from' => 'required_if:period,custom|date',
+            'date_to' => 'required_if:period,custom|date|after_or_equal:date_from',
+        ]);
+
+        $now = now();
+        $from = match ($request->period) {
+            'today' => $now->copy()->startOfDay(),
+            'week' => $now->copy()->startOfWeek(),
+            'month' => $now->copy()->startOfMonth(),
+            'custom' => $request->date('date_from')->startOfDay(),
+        };
+        $to = match ($request->period) {
+            'today', 'week', 'month' => $now->copy()->endOfDay(),
+            'custom' => $request->date('date_to')->endOfDay(),
+        };
+
+        $orders = Order::with('payments', 'orderItems.menuItem', 'shift.user')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->get();
+
+        $filename = 'sales-report-'.$from->format('Y-m-d').'-to-'.$to->format('Y-m-d').'.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ];
+
+        $callback = function () use ($orders) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Order #', 'Date', 'Type', 'Customer', 'Items', 'Subtotal', 'Discount', 'VAT', 'Total', 'Payment Method', 'Cashier']);
+
+            foreach ($orders as $order) {
+                fputcsv($handle, [
+                    $order->id,
+                    $order->created_at->format('Y-m-d H:i'),
+                    $order->type,
+                    $order->customer_name ?? 'Walk-in',
+                    $order->orderItems->sum('quantity'),
+                    $order->subtotal,
+                    $order->discount,
+                    $order->vat,
+                    $order->grand_total,
+                    $order->payments->first()?->method ?? 'N/A',
+                    $order->shift?->user?->name ?? 'N/A',
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportPopularCsv(Request $request)
+    {
+        $request->validate([
+            'period' => 'required|in:week,month,custom',
+            'date_from' => 'required_if:period,custom|date',
+            'date_to' => 'required_if:period,custom|date|after_or_equal:date_from',
+        ]);
+
+        $now = now();
+        $from = match ($request->period) {
+            'week' => $now->copy()->startOfWeek(),
+            'month' => $now->copy()->startOfMonth(),
+            'custom' => $request->date('date_from')->startOfDay(),
+        };
+        $to = match ($request->period) {
+            'week', 'month' => $now->copy()->endOfDay(),
+            'custom' => $request->date('date_to')->endOfDay(),
+        };
+
+        $items = OrderItem::selectRaw('restaurant_menu_item_id, SUM(quantity) as total_qty')
+            ->join('restaurant_menu_items as mi', 'mi.id', '=', 'restaurant_order_items.restaurant_menu_item_id')
+            ->join('restaurant_orders as o', 'o.id', '=', 'restaurant_order_items.restaurant_order_id')
+            ->whereBetween('o.created_at', [$from, $to])
+            ->where('o.status', 'completed')
+            ->groupBy('restaurant_menu_item_id')
+            ->orderByDesc('total_qty')
+            ->get()
+            ->load('menuItem.category');
+
+        $filename = 'popular-items-'.$from->format('Y-m-d').'-to-'.$to->format('Y-m-d').'.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ];
+
+        $callback = function () use ($items) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Item', 'Category', 'Quantity Sold']);
+
+            foreach ($items as $item) {
+                fputcsv($handle, [
+                    $item->menuItem?->name ?? 'Deleted',
+                    $item->menuItem?->category?->name ?? '',
+                    (int) $item->total_qty,
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

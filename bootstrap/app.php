@@ -8,6 +8,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Modules\Restaurant\Http\Middleware\RedirectToWaiterLogin;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use App\Http\Middleware\HandleInertiaRequests;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -27,6 +28,7 @@ return Application::configure(basePath: __DIR__.'/../')
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'website.property' => \App\Http\Middleware\DetectWebsiteProperty::class,
+            'waiter-auth' => RedirectToWaiterLogin::class,
         ]);
 
         // Track user activity for login session monitoring
@@ -37,6 +39,10 @@ return Application::configure(basePath: __DIR__.'/../')
 
         // Set the current property context from session/query parameter
         $middleware->appendToGroup('web', SetPropertyContext::class);
+        // Exclude Hikvision webhook from CSRF (machine-to-machine)
+        $middleware->validateCsrfTokens(except: [
+            'staff/attendance/hikvision-webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

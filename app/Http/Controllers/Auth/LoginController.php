@@ -55,7 +55,7 @@ class LoginController extends Controller
         }
 
         // 3. HR Dashboard (only for users with employee management permissions)
-        if ($user->can('access_staff_dashboard') && $user->can('view_employees')) {
+        if ($user->can('access_staff_dashboard') && $user->can('employees.read')) {
             return redirect()->route('staff.dashboard');
         }
 

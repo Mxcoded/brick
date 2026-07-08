@@ -154,6 +154,7 @@ Route::prefix('banquet')
             Route::get('/', [EventLeadController::class, 'index'])->name('index');
             Route::get('/datatable', [EventLeadController::class, 'datatable'])->name('datatable');
             Route::get('/export', [EventLeadController::class, 'export'])->name('export');
+            Route::post('/clean-duplicates', [EventLeadController::class, 'cleanDuplicates'])->name('clean-duplicates');
             Route::get('/{id}', [EventLeadController::class, 'show'])->name('show');
             Route::patch('/{id}/status', [EventLeadController::class, 'updateStatus'])->name('update-status');
             Route::put('/{id}/notes', [EventLeadController::class, 'updateNotes'])->name('update-notes');

@@ -146,16 +146,16 @@ Route::prefix('frontdesk')
 
         // --- GUEST DIRECTORY MANAGEMENT ---
         Route::prefix('guests')->name('guests.')->group(function () {
-            Route::get('/', [GuestController::class, 'index'])->name('index');
-            Route::get('/datatable', [GuestController::class, 'datatable'])->name('datatable');
-            Route::get('/create', [GuestController::class, 'create'])->name('create');
-            Route::post('/', [GuestController::class, 'store'])->name('store');
-            Route::get('/import', [GuestController::class, 'showImportForm'])->name('import');
-            Route::post('/import', [GuestController::class, 'import'])->name('import.process');
-            Route::get('/{guest}', [GuestController::class, 'show'])->name('show');
-            Route::get('/{guest}/edit', [GuestController::class, 'edit'])->name('edit');
-            Route::put('/{guest}', [GuestController::class, 'update'])->name('update');
-            Route::delete('/{guest}', [GuestController::class, 'destroy'])->name('destroy');
+            Route::get('/', [GuestController::class, 'index'])->name('index')->middleware('can:guests.read');
+            Route::get('/datatable', [GuestController::class, 'datatable'])->name('datatable')->middleware('can:guests.read');
+            Route::get('/create', [GuestController::class, 'create'])->name('create')->middleware('can:guests.create');
+            Route::post('/', [GuestController::class, 'store'])->name('store')->middleware('can:guests.create');
+            Route::get('/import', [GuestController::class, 'showImportForm'])->name('import')->middleware('can:guests.create');
+            Route::post('/import', [GuestController::class, 'import'])->name('import.process')->middleware('can:guests.create');
+            Route::get('/{guest}', [GuestController::class, 'show'])->name('show')->middleware('can:guests.read');
+            Route::get('/{guest}/edit', [GuestController::class, 'edit'])->name('edit')->middleware('can:guests.update');
+            Route::put('/{guest}', [GuestController::class, 'update'])->name('update')->middleware('can:guests.update');
+            Route::delete('/{guest}', [GuestController::class, 'destroy'])->name('destroy')->middleware('can:guests.delete');
         });
 
         Route::prefix('rooms')->name('rooms.')->group(function () {

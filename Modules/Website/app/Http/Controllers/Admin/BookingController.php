@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Website\Emails\BookingCancellation;
 use Modules\Website\Emails\BookingConfirmation;
 use Modules\Website\Models\Booking;
 
@@ -257,9 +258,15 @@ class BookingController extends Controller
             'payment_status' => 'void',
         ]);
 
-        // Optional: Send Cancellation Email
+        try {
+            Mail::to($booking->guest_email)->send(new BookingCancellation($booking));
+            $message = 'Booking cancelled successfully. Cancellation email sent.';
+        } catch (\Exception $e) {
+            Log::error('Cancel Email Failed: '.$e->getMessage());
+            $message = 'Booking cancelled, but cancellation email failed to send.';
+        }
 
-        return back()->with('success', 'Booking cancelled successfully.');
+        return back()->with('success', $message);
     }
 
     /**

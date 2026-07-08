@@ -115,6 +115,28 @@ class EventLeadController extends Controller
             ->with('success', 'Lead deleted successfully.');
     }
 
+    public function cleanDuplicates(Request $request)
+    {
+        $duplicates = EventLead::select('event_id', 'email')
+            ->selectRaw('MIN(id) as keep_id')
+            ->selectRaw('COUNT(*) as dup_count')
+            ->groupBy('event_id', 'email')
+            ->having('dup_count', '>', 1)
+            ->get();
+
+        $removed = 0;
+
+        foreach ($duplicates as $dup) {
+            $removed += EventLead::where('event_id', $dup->event_id)
+                ->where('email', $dup->email)
+                ->where('id', '!=', $dup->keep_id)
+                ->delete();
+        }
+
+        return redirect()->route('banquet.event-leads.index')
+            ->with('success', "Cleaned up {$removed} duplicate lead".($removed !== 1 ? 's' : '').'.');
+    }
+
     public function export(Request $request)
     {
         $query = EventLead::with('leadEvent')->orderBy('created_at', 'desc');

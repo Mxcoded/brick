@@ -32,7 +32,7 @@ class WebsiteAdminController extends Controller
             'today_departures' => Booking::whereDate('check_out_date', $today)
                 ->whereIn('status', ['confirmed', 'checked_in'])
                 ->count(),
-            'unread_messages' => ContactMessage::where('status', false)->count(),
+            'unread_messages' => ContactMessage::unread()->count(),
         ];
 
         // 2. Room Status
@@ -70,7 +70,7 @@ class WebsiteAdminController extends Controller
 
         // 3. Recent Activity
         $recentBookings = Booking::with(['roomType', 'roomUnit'])->latest()->take(5)->get();
-        $recentMessages = ContactMessage::where('status', false)->latest()->take(5)->get();
+        $recentMessages = ContactMessage::unread()->latest()->take(5)->get();
 
         return view('website::admin.dashboard', compact('stats', 'rooms', 'recentBookings', 'recentMessages'));
     }

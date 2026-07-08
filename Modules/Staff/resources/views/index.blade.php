@@ -18,7 +18,8 @@
                 
                 {{-- Export Dropdown --}}
                 <div class="dropdown">
-                    <button class="btn btn-outline-gold dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-file-excel me-1"></i> Export
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
@@ -258,7 +259,7 @@
                         @endif
                     </div>
                     <div class="modal-footer">
-                        <a href="{{ route('staff.leaves.admin.history') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('staff.leaves.admin.history') }}" class="btn btn-outline-primary">
                             <i class="fas fa-history me-1"></i> View Full Leave History
                         </a>
                         <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Close</button>
@@ -305,7 +306,7 @@
                                     @if ($employee->status == 'approved') bg-success
                                     @elseif($employee->status == 'rejected') bg-danger
                                     @elseif($employee->status == 'pending') bg-warning
-                                    @else bg-secondary @endif">
+                                    @else bg-dark @endif">
                                     @if($employee->status == 'rejected')
                                         Exited
                                     @else

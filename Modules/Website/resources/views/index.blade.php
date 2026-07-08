@@ -1,29 +1,51 @@
 @extends('website::layouts.master')
 
-@section('title', 'Welcome to ' . ($currentProperty?->name ?? 'Brickspoint Boutique Aparthotel'))
+@section('title', 'Home')
+
+@push('head')
+    <link rel="preload" as="image" href="{{ Storage::url($settings['hero_poster'] ?? 'images/hero-fallback.jpg') }}" fetchpriority="high">
+    <style>img,video{max-width:100%;height:auto}</style>
+    <style>
+        .hero-section { position: relative; height: 100vh; min-height: 800px; }
+        .video-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: -1; }
+        .video-background video { width: 100%; height: 100%; object-fit: cover; }
+        .hero-loading-placeholder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%); z-index: 0; animation: heroShimmer 2s ease-in-out infinite; }
+        @keyframes heroShimmer { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        .video-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%); }
+        .hotel-logo { max-width: 300px; height: auto; }
+        .hero-slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .hero-content h1, .hero-content .display-3, .hero-content h4 { text-shadow: 0 2px 20px rgba(0,0,0,0.3); }
+        .quick-booking-form { z-index: 10; }
+        .scroll-down-indicator { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.7); font-size: 24px; animation: scrollBounce 2.5s ease-in-out infinite; z-index: 5; cursor: pointer; transition: color 0.3s ease; }
+        .scroll-down-indicator:hover { color: #C8A165; }
+        @keyframes scrollBounce { 0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.7; } 50% { transform: translateX(-50%) translateY(10px); opacity: 1; } }
+        @media (max-width: 768px) {
+            .hero-section { height: auto; min-height: 550px; }
+            .hotel-logo { max-width: 180px; }
+            .scroll-down-indicator { bottom: 15px; }
+            .scroll-down-indicator .fa-2x { font-size: 1.25rem !important; }
+        }
+        @media (max-width: 576px) {
+            .hero-section { min-height: auto; padding-bottom: 2rem; }
+            .hotel-logo { max-width: 140px; }
+        }
+        @media (max-width: 400px) {
+            .hero-section { min-height: 450px; }
+            .hotel-logo { max-width: 120px; }
+        }
+    </style>
+@endpush
 
 @section('content')
-    <!-- Scroll Progress Bar -->
-    <div id="scroll-progress" role="progressbar" aria-label="Page scroll progress"></div>
-
     <!-- Hero Section with Video Background -->
-    @php
-        $prop = $currentProperty;
-        $propName = $prop?->name ?? 'Brickspoint Boutique Aparthotel';
-        $propLocation = $prop?->city ?? 'Abuja';
-        $heroTagline = $settings['hero_tagline'] ?? ($prop ? ($prop->name . ' — Luxury Meets Comfort') : 'Experience Unmatched Luxury');
-        $heroSubtext = $settings['hero_subtext'] ?? ($prop
-            ? ('Discover ' . $prop->name . ' in the heart of ' . $propLocation . '. Premium short and long stays.')
-            : 'Discover our exquisite accommodations across prime locations in Abuja.');
-        $heroCtaText = $prop ? 'Explore ' . $prop->name . ' Rooms' : 'Explore Rooms';
-    @endphp
     <section class="hero-section position-relative overflow-hidden">
         <div id="heroCarousel" class="carousel slide h-100" data-bs-ride="carousel">
             <div class="carousel-inner h-100">
                 <!-- Video Slide -->
                 <div class="carousel-item active h-100">
                     <div class="video-background h-100">
-                        <video autoplay loop muted playsinline class="w-100 h-100">
+                        <div class="hero-loading-placeholder"></div>
+                        <video autoplay loop muted playsinline class="w-100 h-100" poster="{{ Storage::url($settings['hero_poster'] ?? 'images/hero-fallback.jpg') }}"
                             <source
                                 src="{{ Storage::url($settings['hero_video'] ?? 'images/myvideo1.79ba4195a28673379baa.mp4') }}"
                                 type="video/mp4">
@@ -34,15 +56,19 @@
                     <div class="container h-100 d-flex align-items-center position-relative z-index-1">
                         <div class="hero-content text-white text-center w-100 pt-5 pb-6">
                             <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
-                                alt="{{ $propName }} Logo" class="mb-4 hotel-logo">
+                                alt="Brickspoint Logo" class="mb-4 hotel-logo" width="300" height="100">
                             <h4 class="display-3 fw-light mb-4 text-white"
-                                style="text-transform: uppercase;">{{ $heroTagline }}</h4>
-                            <p class="lead mb-5">{{ $heroSubtext }}</p>
+                                style="text-transform: uppercase;">Experience Unmatched Luxury</h4>
+                            <p class="lead mb-5">Discover our
+                                exquisite accommodations in the heart of Abuja</p>
                             <div
                                 class="d-flex justify-content-center gap-3 mb-5">
                                 <a href="{{ route('website.rooms.index') }}" class="btn btn-primary btn-lg px-5 py-3">
-                                    <i class="fas fa-bed me-2"></i>{{ $heroCtaText }}
+                                    <i class="fas fa-bed me-2"></i>Explore Rooms
                                 </a>
+                                {{-- <a href={{url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1')}} class="btn btn-primary btn-lg px-5 py-3">
+                                    <i class="fas fa-bed me-2"></i>Explore Rooms
+                                </a> --}}
                                 <a href="{{ route('website.book') }}" class="btn btn-outline-light btn-lg px-5 py-3">
                                     <i class="fas fa-calendar-check me-2"></i>Book Direct
                                 </a>
@@ -164,144 +190,23 @@
         </div>
     </section>
 
-    <!-- Stats Section -->
-    <section id="stats" class="py-5" style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);">
-        <div class="container">
-            <div class="row g-4 text-center">
-                @php
-                    $statProperties = $allProperties->count();
-                    $statRooms = $featuredRooms->count();
-                    $statReviews = $testimonials->count();
-                    $statYears = 10;
-                @endphp
-                <div class="col-6 col-lg-3">
-                    <div class="stat-item">
-                        <div class="stat-icon mb-2">
-                            <i class="fas fa-building"></i>
-                        </div>
-                        <div class="stat-number h2 fw-bold mb-1 text-white" data-count="{{ $statProperties }}">0</div>
-                        <div class="stat-label small text-uppercase" style="color: rgba(255,255,255,0.6); letter-spacing: 1px;">Properties</div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="stat-item">
-                        <div class="stat-icon mb-2">
-                            <i class="fas fa-bed"></i>
-                        </div>
-                        <div class="stat-number h2 fw-bold mb-1 text-white" data-count="{{ $statRooms }}">0</div>
-                        <div class="stat-label small text-uppercase" style="color: rgba(255,255,255,0.6); letter-spacing: 1px;">Signature Rooms</div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="stat-item">
-                        <div class="stat-icon mb-2">
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <div class="stat-number h2 fw-bold mb-1 text-white" data-count="{{ $statReviews }}">0</div>
-                        <div class="stat-label small text-uppercase" style="color: rgba(255,255,255,0.6); letter-spacing: 1px;">Guest Reviews</div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="stat-item">
-                        <div class="stat-icon mb-2">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <div class="stat-number h2 fw-bold mb-1 text-white" data-count="{{ $statYears }}">0</div>
-                        <div class="stat-label small text-uppercase" style="color: rgba(255,255,255,0.6); letter-spacing: 1px;">Years of Excellence</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Our Properties Section (main domain only) -->
-    @if (!$currentProperty && $allProperties->count() > 1)
-        <section id="our-properties" class="py-5 py-lg-7">
-            <div class="container">
-                <div class="section-header text-center mb-5 reveal">
-                    <h2 class="display-5 fw-bold mb-3" style="text-transform: uppercase;">Our Locations</h2>
-                    <div class="section-accent"></div>
-                    <p class="text-muted mx-auto" style="max-width: 700px;">Choose from our premium properties across Abuja. Each location offers a unique experience with the same commitment to luxury and comfort.</p>
-                </div>
-
-                <div class="row g-4 justify-content-center">
-                    @foreach ($allProperties as $property)
-                        @php
-                            $roomCount = \App\Models\RoomType::where('property_id', $property->id)->where('is_active', true)->count();
-                            $propertyUrl = $property->domain ? 'https://' . $property->domain . '.' . request()->getHost() : route('website.rooms.index', ['property_id' => $property->id]);
-                        @endphp
-                        <div class="col-lg-5 col-md-6">
-                            <div class="property-card card border-0 shadow-sm h-100 overflow-hidden">
-                                <div class="property-card-body p-4 p-lg-5 text-center">
-                                    <div class="property-icon mb-4">
-                                        <i class="fas fa-map-marker-alt fa-3x" style="color: #C8A165;"></i>
-                                    </div>
-                                    <h3 class="h4 fw-bold mb-2">{{ $property->name }}</h3>
-                                    <p class="text-muted mb-3">
-                                        <i class="fas fa-location-dot me-1" style="color: #C8A165;"></i>
-                                        {{ $property->address }}, {{ $property->city }}
-                                    </p>
-                                    <div class="d-flex justify-content-center gap-3 mb-4">
-                                        <span class="badge bg-light text-dark border px-3 py-2">
-                                            <i class="fas fa-bed me-1" style="color: #C8A165;"></i> {{ $roomCount }} Room Types
-                                        </span>
-                                        <span class="badge bg-light text-dark border px-3 py-2">
-                                            <i class="fas fa-building me-1" style="color: #C8A165;"></i> {{ $property->is_headquarters ? 'Headquarters' : 'Satellite' }}
-                                        </span>
-                                    </div>
-                                    @if ($property->contact_phone)
-                                        <p class="small text-muted mb-4">
-                                            <i class="fas fa-phone me-1" style="color: #C8A165;"></i> {{ $property->contact_phone }}
-                                        </p>
-                                    @endif
-                                    <div class="d-flex justify-content-center gap-2">
-                                        <a href="{{ $propertyUrl }}" class="btn btn-primary px-4">
-                                            <i class="fas fa-bed me-2"></i>View Rooms
-                                        </a>
-                                        <a href="{{ route('website.contact') }}?property={{ $property->slug }}" class="btn btn-outline-primary px-4">
-                                            <i class="fas fa-envelope me-2"></i>Contact
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-    @endif
-
     <!-- Featured Rooms Section -->
-    <section id="featured-rooms" class="py-5 py-lg-7 @if (!$currentProperty && $allProperties->count() > 1) bg-light @else bg-light @endif">
+    <section id="featured-rooms" class="py-5 py-lg-7 bg-light">
         <div class="container">
             <div class="section-header text-center mb-5 reveal">
-                <h2 class="display-5 fw-bold mb-3" style="text-transform: uppercase;">
-                    @if ($currentProperty)
-                        {{ $currentProperty->name }} — Signature Rooms
-                    @else
-                        Our Signature Rooms & Suites
-                    @endif
-                </h2>
+                <h2 class="display-5 fw-bold mb-3" style="text-transform: uppercase;">Our Signature Rooms & Suites</h2>
                 <div class="section-accent"></div>
                 <p class="text-muted mx-auto" style="max-width: 700px;">Each of our accommodations is designed to provide
                     the ultimate comfort and luxury experience.</p>
             </div>
 
             <div class="row g-4">
-                @foreach ($featuredRooms as $roomType)
-                    @php
-                        $roomProperty = $allProperties->firstWhere('id', $roomType->property_id);
-                    @endphp
+                @foreach ($featuredRooms ?? [] as $roomType)
                     <div class="col-md-6 col-lg-4">
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
                                 <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
-                                    class="card-img-top room-image" alt="{{ $roomType->name }}">
-                                @if (!$currentProperty && $roomProperty)
-                                    <span class="position-absolute top-0 start-0 m-2 badge" style="background: rgba(200, 161, 101, 0.9); backdrop-filter: blur(4px);">
-                                        <i class="fas fa-building me-1"></i>{{ $roomProperty->name }}
-                                    </span>
-                                @endif
+                                    class="card-img-top room-image" alt="{{ $roomType->name }}" loading="lazy" width="400" height="300">
                                 <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
                                     ₦{{ number_format($roomType->price, 2) }} <small>/ night</small>
                                 </div>
@@ -338,6 +243,10 @@
                                     class="btn btn-primary w-100">
                                     <i class="fas fa-arrow-right me-2"></i>Select Room
                                 </a>
+                                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-primary w-100">
+                                    <i class="fas fa-arrow-right me-2"></i>Select Room
+                                </a> --}}
+
                             </div>
                         </div>
                     </div>
@@ -347,6 +256,8 @@
             <div class="text-center mt-5">
                 <a href="{{ route('website.rooms.index') }}" class="btn btn-outline-primary btn-lg px-5">View All
                     Rooms</a>
+                {{-- <a href="{{ url('https://guest.reservations.ng/BRICKSPOINTBOUTIQUEAPARTHOTELAS0/step1') }}" class="btn btn-outline-primary btn-lg px-5">View All
+                    Rooms</a> --}}
             </div>
         </div>
     </section>
@@ -405,7 +316,7 @@
                         <img src="{{ !empty($settings['hotel_feature_image'])
                             ? asset($settings['hotel_feature_image'])
                             : asset('images/default-hotel.jpg') }}"
-                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover">
+                            alt="Hotel Feature" class="img-fluid w-100 h-100 object-fit-cover" loading="lazy" width="800" height="450">
                     </div>
                 </div>
             </div>
@@ -424,11 +335,11 @@
             </div>
 
             <div class="row g-4">
-                @foreach ($dining as $option)
+                @foreach ($dining ?? [] as $option)
                     <div class="col-md-4">
                         <div class="card border-0 shadow-sm h-100 overflow-hidden dining-card">
                             <img src="{{ $option->image_url }}" class="card-img-top dining-image"
-                                alt="{{ $option->name }}">
+                                alt="{{ $option->name }}" loading="lazy" width="400" height="300">
                             <div class="card-body">
                                 <h3 class="h5 card-title">{{ $option->name }}</h3>
                                 <p class="card-text text-muted">{{ Str::limit($option->description, 100) }}</p>
@@ -493,7 +404,7 @@
                 <div class="col-lg-6 order-lg-1 mb-4 mb-lg-0 reveal-left">
                     <div class="ratio ratio-16x9 rounded overflow-hidden shadow-lg">
                         <img src="{{ asset('images/spa.jpg') }}" alt="Spa"
-                            class="img-fluid w-100 h-100 object-fit-cover">
+                            class="img-fluid w-100 h-100 object-fit-cover" loading="lazy" width="800" height="450">
                     </div>
                 </div>
             </div>
@@ -627,67 +538,149 @@
     </section>
 
     <!-- Testimonials Section -->
-    <section id="testimonials" class="py-5 py-lg-7 bg-dark text-white">
+    <section class="py-5 py-lg-7 bg-dark text-white">
         <div class="container">
             <div class="section-header text-center mb-5 reveal">
                 <h2 class="display-5 fw-bold mb-3">What Our Guests Say</h2>
                 <div class="section-accent"></div>
-                <p class="text-light mx-auto" style="max-width: 700px; opacity: 0.8;">Don't just take our word for it &mdash; hear from our satisfied guests.</p>
+                <p class="text-light mx-auto" style="max-width: 700px; opacity: 0.8;">Don't just take our word for it -
+                    hear from our satisfied guests.</p>
             </div>
 
-            @if ($testimonials->count() > 0)
-                <div id="testimonialsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
-                    <div class="carousel-indicators">
-                        @foreach ($testimonials as $index => $testimonial)
-                            <button type="button" data-bs-target="#testimonialsCarousel"
-                                data-bs-slide-to="{{ $index }}" class="{{ $index === 0 ? 'active' : '' }}"
-                                aria-label="Testimonial {{ $index + 1 }}"></button>
-                        @endforeach
-                    </div>
+            @php
+                $testiList = ($testimonials ?? collect())->take(8);
+            @endphp
+            @if ($testiList->count() > 0)
+                <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
                     <div class="carousel-inner">
-                        @foreach ($testimonials as $index => $testimonial)
-                            <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                                <div class="row justify-content-center">
-                                    <div class="col-lg-8 text-center px-4">
-                                        <div class="testimonial-card py-4 px-3">
-                                            <div class="rating mb-3 text-warning">
-                                                @for ($i = 0; $i < 5; $i++)
-                                                    <i class="fas fa-star{{ $i < $testimonial->rating ? '' : '-empty' }}"></i>
-                                                @endfor
-                                            </div>
-                                            <p class="lead mb-4 px-lg-4" style="font-style: italic; line-height: 1.8;">&ldquo;{{ $testimonial->comment }}&rdquo;</p>
-                                            <div class="d-flex align-items-center justify-content-center">
-                                                <img src="{{ $testimonial->guest_image }}"
-                                                    class="rounded-circle me-3" width="56" height="56"
-                                                    alt="{{ $testimonial->guest_name }}"
-                                                    style="object-fit: cover; border: 2px solid rgba(200,161,101,0.3); padding: 2px;">
-                                                <div class="text-start">
-                                                    <h5 class="mb-0 text-white">{{ $testimonial->guest_name }}</h5>
-                                                    <small style="color: rgba(255,255,255,0.5);">{{ $testimonial->guest_type }}</small>
+                        @foreach ($testiList->chunk(3) as $chunkIndex => $chunk)
+                            <div class="carousel-item {{ $chunkIndex === 0 ? 'active' : '' }}">
+                                <div class="row g-4">
+                                    @foreach ($chunk as $testimonial)
+                                        <div class="col-md-4">
+                                            <div class="testimonial-card bg-gray-800 p-4 h-100 rounded">
+                                                <div class="rating mb-3">
+                                                    @for ($i = 0; $i < 5; $i++)
+                                                        <i class="fa{{ $i < $testimonial->rating ? 's' : 'r' }} fa-star text-warning"></i>
+                                                    @endfor
+                                                </div>
+                                                <p class="mb-4">"{{ $testimonial->text }}"</p>
+                                                <div class="d-flex align-items-center pt-3 border-top border-secondary border-opacity-25">
+                                                    <div class="position-relative me-3 flex-shrink-0">
+                                                        @if ($testimonial->guest_image)
+                                                            <img src="{{ $testimonial->guest_image }}" class="rounded-circle" width="50" height="50" alt="{{ $testimonial->guest_name }}" loading="lazy" style="border: 2px solid rgba(200, 161, 101, 0.4); padding: 2px; object-fit: cover;">
+                                                        @else
+                                                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:50px;height:50px;background:rgba(200,161,101,0.2);border:2px solid rgba(200,161,101,0.3);color:#C8A165;font-size:1.1rem;">{{ substr($testimonial->guest_name, 0, 1) }}</div>
+                                                        @endif
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-0 fw-semibold" style="color: #e8d5b5;">{{ $testimonial->guest_name }}</h5>
+                                                        <small class="text-white-50" style="font-size: 0.8rem;"><i class="fas fa-check-circle me-1" style="color: #C8A165; font-size: 0.65rem;"></i> {{ $testimonial->stay_type ?? 'Verified Guest' }}</small>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    @endforeach
                                 </div>
                             </div>
                         @endforeach
                     </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#testimonialsCarousel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Previous</span>
-                    </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#testimonialsCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        <span class="visually-hidden">Next</span>
-                    </button>
+                    <div class="carousel-indicators position-relative mt-4">
+                        @foreach ($testiList->chunk(3) as $chunkIndex => $chunk)
+                            <button type="button" data-bs-target="#testimonialCarousel" data-bs-slide-to="{{ $chunkIndex }}"
+                                class="{{ $chunkIndex === 0 ? 'active' : '' }} bg-secondary"
+                                aria-label="Slide {{ $chunkIndex + 1 }}"></button>
+                        @endforeach
+                    </div>
                 </div>
             @else
-                <div class="text-center py-4">
-                    <p class="text-light" style="opacity: 0.6;">No testimonials available yet.</p>
+                <div class="text-center py-5">
+                    <i class="fas fa-comment-dots fa-3x mb-3 opacity-50"></i>
+                    <p class="text-muted mb-0">Testimonials coming soon.</p>
                 </div>
+            @endif
+            <div class="text-center mt-4">
+                <a href="{{ route('website.testimonials') }}" class="btn btn-outline-light btn-lg px-5">
+                    <i class="fas fa-pen me-2"></i>Write a Review
+                </a>
+            </div>
+        </div>
+    </section>
+
+    @php
+        $googlePlaceId = $settings['google_place_id'] ?? null;
+        $googleReviewLink = $googlePlaceId ? 'https://search.google.com/local/writereview?placeid=' . $googlePlaceId : null;
+        $gr = $googleReviewsData ?? [];
+        $grRating = $gr['rating'] ?? null;
+        $grCount = $gr['count'] ?? 0;
+        $grReviews = $gr['reviews'] ?? [];
+    @endphp
+    @if ($googlePlaceId)
+    <!-- Google Reviews Section -->
+    <section class="py-5 py-lg-7 bg-light">
+        <div class="container">
+            <div class="section-header text-center mb-5 reveal">
+                <h2 class="display-5 fw-bold mb-3">Google Reviews</h2>
+                <div class="section-accent"></div>
+                <p class="text-muted mx-auto" style="max-width: 700px;">See what our guests are saying on Google.</p>
+            </div>
+
+            @if ($grRating)
+            <div class="text-center mb-5">
+                <div class="mb-2">
+                    @for ($i = 0; $i < 5; $i++)
+                        <i class="fa{{ $i < round($grRating) ? 's' : 'r' }} fa-star text-warning fa-lg"></i>
+                    @endfor
+                </div>
+                <p class="h3 mb-0">{{ number_format($grRating, 1) }} out of 5</p>
+                <p class="text-muted">Based on {{ $grCount }} Google reviews</p>
+                @if ($googleReviewLink)
+                <a href="{{ $googleReviewLink }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark">
+                    <i class="fab fa-google me-2"></i> Write a Review
+                </a>
+                @endif
+            </div>
+            @endif
+
+            @if (count($grReviews) > 0)
+            <div class="row g-4">
+                @foreach (array_slice($grReviews, 0, 6) as $review)
+                <div class="col-md-4 d-flex">
+                    <div class="bg-white p-4 rounded shadow-sm d-flex flex-column w-100">
+                        <div class="mb-2">
+                        @for ($i = 0; $i < 5; $i++)
+                            <i class="fa{{ $i < $review['rating'] ? 's' : 'r' }} fa-star text-warning" style="font-size:0.85rem"></i>
+                        @endfor
+                        </div>
+                        <div class="review-text flex-grow-1">
+                            <p class="mb-0 review-text-clamp">"{{ $review['text'] }}"</p>
+                            @if (strlen($review['text']) > 150)
+                            <button class="btn btn-sm btn-link p-0 review-toggle" onclick="toggleReview(this)">Read more</button>
+                            @endif
+                        </div>
+                        <div class="d-flex align-items-center mt-3 pt-2 border-top">
+                            @if ($review['photo'])
+                            <img src="{{ $review['photo'] }}" class="rounded-circle me-2" width="36" height="36" alt="{{ $review['author'] }}">
+                            @else
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width:36px;height:36px;">
+                                <i class="fas fa-user text-white small"></i>
+                            </div>
+                            @endif
+                            <div>
+                                <small class="fw-semibold d-block">{{ $review['author'] }}</small>
+                                @if ($review['time'])
+                                <small class="text-muted">{{ $review['time'] }}</small>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
             @endif
         </div>
     </section>
+    @endif
 
     <!-- Call to Action Section -->
     <section class="py-5 py-lg-7 cta-section text-white">
@@ -709,40 +702,33 @@
         </div>
     </section>
 
-    <!-- Back to Top -->
-    <button id="back-to-top" aria-label="Back to top" title="Back to top">
-        <i class="fas fa-chevron-up"></i>
-    </button>
-
-    @push('styles')
+    @push('deferred-styles')
         <style>
             /* ===== SCROLL REVEAL ===== */
-            .reveal {
-                opacity: 0;
-                transform: translateY(40px);
-                transition: opacity 0.7s ease, transform 0.7s ease;
-            }
-            .reveal.visible {
-                opacity: 1;
-                transform: translateY(0);
-            }
-            .reveal-left {
-                opacity: 0;
-                transform: translateX(-40px);
-                transition: opacity 0.7s ease, transform 0.7s ease;
-            }
-            .reveal-left.visible {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            .reveal,
+            .reveal-left,
             .reveal-right {
                 opacity: 0;
-                transform: translateX(40px);
-                transition: opacity 0.7s ease, transform 0.7s ease;
+                transform: translateY(40px);
+                transition: opacity 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             }
+            .reveal-left {
+                transform: translateX(-40px);
+            }
+            .reveal-right {
+                transform: translateX(40px);
+            }
+            .reveal.visible,
+            .reveal-left.visible,
             .reveal-right.visible {
                 opacity: 1;
-                transform: translateX(0);
+                transform: translateY(0) translateX(0);
+            }
+
+            /* ===== STAGGER REVEAL ITEMS ===== */
+            .reveal-item.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             /* ===== SECTION ACCENT ===== */
@@ -761,88 +747,17 @@
                 border-radius: 2px;
             }
 
-            /* ===== HERO SECTION ===== */
-            .hero-section {
-                position: relative;
-                height: 100vh;
-                min-height: 800px;
-            }
-
-            .video-background {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-                z-index: -1;
-            }
-
-            .video-background video {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-            }
-
-            .video-overlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%);
-            }
-
-            .hotel-logo {
-                max-width: 300px;
-                height: auto;
-            }
-
-            .hero-slide {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: -1;
-            }
-
-            .hero-content h1,
-            .hero-content .display-3,
-            .hero-content h4 {
-                text-shadow: 0 2px 20px rgba(0,0,0,0.3);
-            }
-
-            .quick-booking-form {
-                z-index: 10;
-            }
-
-            .scroll-down-indicator {
-                position: absolute;
-                bottom: 30px;
-                left: 50%;
-                transform: translateX(-50%);
-                color: rgba(255,255,255,0.7);
-                font-size: 24px;
-                animation: scrollBounce 2.5s ease-in-out infinite;
-                z-index: 5;
-                cursor: pointer;
-                transition: color 0.3s ease;
-            }
-            .scroll-down-indicator:hover {
-                color: #C8A165;
-            }
-
-            @keyframes scrollBounce {
-                0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.7; }
-                50% { transform: translateX(-50%) translateY(10px); opacity: 1; }
-            }
-
             /* ===== ROOM CARDS ===== */
             .room-card {
-                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 border-radius: 12px !important;
                 overflow: hidden;
+                border: 1px solid rgba(0,0,0,0.04);
+            }
+
+            .room-card.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             .room-card:hover {
@@ -930,75 +845,24 @@
                 transition: all 0.3s ease;
             }
 
-                .room-card .card-footer .btn:hover {
-                    background: #b8924f;
-                    border-color: #b8924f;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(200, 161, 101, 0.4);
-                }
-
-                .property-card-body { padding: 1.5rem !important; }
-                .property-icon { width: 60px; height: 60px; }
-                .property-icon i { font-size: 1.75rem !important; }
-                .property-card .h4 { font-size: 1.1rem; }
-                .property-card .badge { font-size: 0.75rem; padding: 0.3rem 0.6rem !important; }
-
-            /* ===== PROPERTY CARDS ===== */
-            .property-card {
-                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-                border-radius: 16px !important;
-                overflow: hidden;
-                border: 1px solid rgba(200, 161, 101, 0.1) !important;
-            }
-
-            .property-card:hover {
-                transform: translateY(-8px);
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
-                border-color: rgba(200, 161, 101, 0.3) !important;
-            }
-
-            .property-card-body {
-                position: relative;
-            }
-
-            .property-card-body::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: 4px;
-                background: linear-gradient(90deg, #C8A165, #d4b07a, #C8A165);
-                opacity: 0;
-                transition: opacity 0.3s ease;
-            }
-
-            .property-card:hover .property-card-body::before {
-                opacity: 1;
-            }
-
-            .property-icon {
-                width: 80px;
-                height: 80px;
-                margin: 0 auto;
-                background: rgba(200, 161, 101, 0.08);
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                transition: transform 0.3s ease, background 0.3s ease;
-            }
-
-            .property-card:hover .property-icon {
-                transform: scale(1.1);
-                background: rgba(200, 161, 101, 0.15);
+            .room-card .card-footer .btn:hover {
+                background: #b8924f;
+                border-color: #b8924f;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(200, 161, 101, 0.4);
             }
 
             /* ===== DINING CARDS ===== */
             .dining-card {
-                transition: all 0.3s ease;
+                transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
                 border-radius: 12px !important;
                 overflow: hidden;
+                border: 1px solid rgba(0,0,0,0.04);
+            }
+
+            .dining-card.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
             }
 
             .dining-card:hover {
@@ -1119,6 +983,14 @@
                 border: 1px solid rgba(255,255,255,0.06);
             }
 
+            .testimonial-card {
+                transition: opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
+            }
+            .testimonial-card.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important;
+            }
+
             .testimonial-card::before {
                 content: '\201C';
                 position: absolute;
@@ -1136,6 +1008,11 @@
                 border-color: rgba(200, 161, 101, 0.2);
             }
 
+            .testimonial-card:hover h5 {
+                color: #C8A165 !important;
+                transition: color 0.3s ease;
+            }
+
             .testimonial-card p {
                 font-style: italic;
                 line-height: 1.7;
@@ -1148,10 +1025,36 @@
                 letter-spacing: 2px;
             }
 
-            .testimonial-card img {
-                border: 2px solid rgba(200, 161, 101, 0.3);
-                padding: 2px;
-                object-fit: cover;
+            .testimonial-card .rating .fa-star {
+                filter: drop-shadow(0 0 2px rgba(255, 193, 7, 0.4));
+            }
+
+            .testimonial-card .rating .far.fa-star {
+                opacity: 0.55;
+                filter: none;
+            }
+
+            .testimonial-card .border-top {
+                transition: border-color 0.3s ease;
+            }
+
+            .testimonial-card:hover .border-top {
+                border-color: rgba(200, 161, 101, 0.3) !important;
+            }
+
+            .testimonial-card h5 {
+                transition: color 0.3s ease;
+            }
+
+            /* ===== GOOGLE REVIEWS ===== */
+            .review-text-clamp {
+                display: -webkit-box;
+                -webkit-line-clamp: 4;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .review-text-clamp.expanded {
+                -webkit-line-clamp: unset;
             }
 
             /* ===== CTA SECTION ===== */
@@ -1233,11 +1136,6 @@
 
             .bg-primary {
                 background-color: #C8A165 !important;
-            }
-
-            /* ===== STAR RATING ===== */
-            .fa-star-empty {
-                color: rgba(255,255,255,0.15);
             }
 
             /* ===== SECTION DIVIDER ===== */
@@ -1369,181 +1267,7 @@
                 .g-4 { --bs-gutter-y: 1rem; --bs-gutter-x: 1rem; }
                 .ratio.ratio-16x9 { margin-bottom: 1.5rem; }
                 .text-center.mt-5 { margin-top: 1.5rem !important; }
-                                .btn-outline-primary.btn-lg.px-5 { padding: 0.6rem 2rem !important; font-size: 0.9rem; }
-
-                .stat-number { font-size: 1.75rem !important; }
-                .stat-icon i { font-size: 1.25rem !important; }
-                .stat-label { font-size: 0.65rem !important; }
-
-                #testimonials .testimonial-card p { font-size: 0.95rem !important; }
-                #testimonials .carousel-control-prev,
-                #testimonials .carousel-control-next { display: none; }
-
-                #back-to-top { bottom: 16px; right: 16px; width: 42px; height: 42px; font-size: 0.9rem; }
-            }
-
-            /* ===== SCROLL PROGRESS BAR ===== */
-            #scroll-progress {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 0%;
-                height: 3px;
-                background: linear-gradient(90deg, #C8A165, #d4b07a);
-                z-index: 9999;
-                transition: width 0.1s linear;
-                box-shadow: 0 0 6px rgba(200, 161, 101, 0.5);
-            }
-
-            /* ===== BACK TO TOP ===== */
-            #back-to-top {
-                position: fixed;
-                bottom: 30px;
-                right: 30px;
-                width: 48px;
-                height: 48px;
-                border-radius: 50%;
-                background: #C8A165;
-                color: #fff;
-                border: none;
-                font-size: 1.1rem;
-                cursor: pointer;
-                opacity: 0;
-                visibility: hidden;
-                transform: translateY(12px);
-                transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease, box-shadow 0.3s ease;
-                z-index: 999;
-                box-shadow: 0 4px 12px rgba(200, 161, 101, 0.35);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            #back-to-top.visible {
-                opacity: 1;
-                visibility: visible;
-                transform: translateY(0);
-            }
-
-            #back-to-top:hover {
-                background: #b8924f;
-                transform: translateY(-3px);
-                box-shadow: 0 6px 20px rgba(200, 161, 101, 0.5);
-            }
-
-            /* ===== STATS SECTION ===== */
-            .stat-item {
-                padding: 1.5rem 0.5rem;
-                transition: transform 0.3s ease;
-            }
-
-            .stat-item:hover {
-                transform: translateY(-4px);
-            }
-
-            .stat-icon i {
-                font-size: 1.75rem;
-                color: #C8A165;
-                opacity: 0.9;
-            }
-
-            .stat-number {
-                font-size: 2.25rem;
-                font-weight: 700;
-            }
-
-            .stat-label {
-                font-size: 0.75rem;
-                font-weight: 600;
-            }
-
-            /* ===== TESTIMONIALS CAROUSEL ===== */
-            #testimonials .testimonial-card {
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                transform: none !important;
-            }
-
-            #testimonials .testimonial-card p {
-                font-size: 1.1rem;
-            }
-
-            #testimonials .carousel-indicators {
-                bottom: -20px;
-            }
-
-            #testimonials .carousel-indicators button {
-                width: 10px;
-                height: 10px;
-                border-radius: 50%;
-                background: rgba(255,255,255,0.3);
-                border: none;
-                margin: 0 5px;
-                transition: all 0.3s ease;
-            }
-
-            #testimonials .carousel-indicators button.active {
-                background: #C8A165;
-                width: 28px;
-                border-radius: 5px;
-            }
-
-            #testimonials .carousel-control-prev,
-            #testimonials .carousel-control-next {
-                width: 48px;
-                height: 48px;
-                top: 50%;
-                transform: translateY(-50%);
-                background: rgba(200,161,101,0.15);
-                border-radius: 50%;
-                opacity: 0;
-                transition: opacity 0.3s ease, background 0.3s ease;
-            }
-
-            #testimonials:hover .carousel-control-prev,
-            #testimonials:hover .carousel-control-next {
-                opacity: 1;
-            }
-
-            #testimonials .carousel-control-prev:hover,
-            #testimonials .carousel-control-next:hover {
-                background: rgba(200,161,101,0.3);
-            }
-
-            #testimonials .carousel-control-prev { left: -60px; }
-            #testimonials .carousel-control-next { right: -60px; }
-
-            /* ===== LAZY LOADING IMAGES ===== */
-            img.lazy {
-                opacity: 0;
-                transition: opacity 0.5s ease;
-            }
-
-            img.lazy.loaded {
-                opacity: 1;
-            }
-
-            /* ===== ROOM & DINING CARD VISIBLE STATE ===== */
-            .room-card.visible,
-            .dining-card.visible {
-                opacity: 1 !important;
-                transform: translateY(0) !important;
-            }
-
-            /* ===== FOCUS & ACCESSIBILITY ===== */
-            a:focus-visible,
-            button:focus-visible,
-            input:focus-visible,
-            select:focus-visible,
-            textarea:focus-visible {
-                outline: 2px solid #C8A165;
-                outline-offset: 2px;
-                border-radius: 4px;
-            }
-
-            .carousel-item {
-                transition: transform 0.7s ease, opacity 0.7s ease !important;
+                .btn-outline-primary.btn-lg.px-5 { padding: 0.6rem 2rem !important; font-size: 0.9rem; }
             }
 
             /* ===== RESPONSIVE - EXTRA SMALL ===== */
@@ -1558,13 +1282,6 @@
                 .room-img-container { height: 150px; }
                 .price-tag { font-size: 0.75rem; padding: 0.25rem 0.5rem !important; }
                 .auth-tabs .nav-link { font-size: 0.75rem; padding: 0.35rem 0.5rem !important; }
-                .stat-number { font-size: 1.25rem !important; }
-                .stat-icon i { font-size: 1rem !important; }
-                .stat-label { font-size: 0.6rem !important; }
-                .col-6.col-lg-3 { padding-left: 0.25rem; padding-right: 0.25rem; }
-                #back-to-top { bottom: 12px; right: 12px; width: 38px; height: 38px; font-size: 0.85rem; }
-                #testimonials .carousel-control-prev,
-                #testimonials .carousel-control-next { display: none; }
             }
         </style>
     @endpush
@@ -1572,7 +1289,7 @@
     @push('scripts')
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                /* ----- SMOOTH SCROLL FOR ANCHOR LINKS ----- */
+                // Smooth scroll for anchor links
                 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                     anchor.addEventListener('click', function(e) {
                         const target = document.querySelector(this.getAttribute('href'));
@@ -1583,161 +1300,55 @@
                     });
                 });
 
-                /* ----- INTERSECTION OBSERVER FOR SCROLL REVEAL ----- */
+                // Intersection Observer for scroll reveal with stagger
                 const revealObserver = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
+                    entries.forEach((entry, index) => {
                         if (entry.isIntersecting) {
-                            entry.target.classList.add('visible');
+                            const parent = entry.target.closest('.row') || entry.target.parentElement;
+                            const siblings = parent.querySelectorAll('.reveal-item, .room-card, .dining-card, .testimonial-card');
+                            if (siblings.length > 1) {
+                                siblings.forEach((el, i) => {
+                                    setTimeout(() => el.classList.add('visible'), i * 100);
+                                });
+                                revealObserver.unobserve(parent);
+                            } else {
+                                setTimeout(() => entry.target.classList.add('visible'), 100);
+                                revealObserver.unobserve(entry.target);
+                            }
                         }
                     });
-                }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+                }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
 
                 document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .room-card, .dining-card').forEach(el => {
-                    if (!el.classList.contains('reveal') && !el.classList.contains('reveal-left') && !el.classList.contains('reveal-right')) {
-                        el.style.opacity = '0';
-                        el.style.transform = 'translateY(30px)';
-                        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                    }
+                    el.classList.add('reveal-item');
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(30px)';
+                    el.style.transition = 'opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                     revealObserver.observe(el);
                 });
 
-                /* ----- VIDEO AUTOPLAY ----- */
+                // Force video autoplay
                 const video = document.querySelector('video');
                 if (video) {
                     video.play().catch(() => {});
-                }
-
-                /* ----- SCROLL PROGRESS BAR ----- */
-                const progressBar = document.getElementById('scroll-progress');
-                if (progressBar) {
-                    window.addEventListener('scroll', function() {
-                        const scrollTop = window.scrollY;
-                        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-                        const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-                        progressBar.style.width = progress + '%';
-                    }, { passive: true });
-                }
-
-                /* ----- BACK TO TOP BUTTON ----- */
-                const backToTop = document.getElementById('back-to-top');
-                if (backToTop) {
-                    window.addEventListener('scroll', function() {
-                        if (window.scrollY > 500) {
-                            backToTop.classList.add('visible');
-                        } else {
-                            backToTop.classList.remove('visible');
-                        }
-                    }, { passive: true });
-
-                    backToTop.addEventListener('click', function() {
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    video.addEventListener('loadeddata', function() {
+                        document.querySelector('.hero-loading-placeholder')?.remove();
                     });
+                } else {
+                    document.querySelector('.hero-loading-placeholder')?.remove();
                 }
 
-                /* ----- STATS COUNTER ANIMATION ----- */
-                const statsSection = document.getElementById('stats');
-                if (statsSection) {
-                    const statNumbers = statsSection.querySelectorAll('.stat-number');
-                    const counterObserver = new IntersectionObserver((entries) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                statNumbers.forEach(counter => {
-                                    const target = parseInt(counter.getAttribute('data-count'));
-                                    if (isNaN(target)) return;
-                                    const duration = 1500;
-                                    const startTime = performance.now();
-
-                                    function updateCounter(currentTime) {
-                                        const elapsed = currentTime - startTime;
-                                        const progress = Math.min(elapsed / duration, 1);
-                                        const easeOut = 1 - Math.pow(1 - progress, 3);
-                                        const current = Math.floor(easeOut * target);
-                                        counter.textContent = current.toLocaleString();
-                                        if (progress < 1) {
-                                            requestAnimationFrame(updateCounter);
-                                        } else {
-                                            counter.textContent = target.toLocaleString();
-                                        }
-                                    }
-                                    requestAnimationFrame(updateCounter);
-                                });
-                                counterObserver.unobserve(entry.target);
-                            }
-                        });
-                    }, { threshold: 0.5 });
-
-                    counterObserver.observe(statsSection);
-                }
-
-                /* ----- HERO PARALLAX ----- */
-                const heroSection = document.querySelector('.hero-section');
-                if (heroSection) {
-                    const heroContent = heroSection.querySelector('.hero-content');
-                    const videoBg = heroSection.querySelector('.video-background');
-                    let ticking = false;
-
-                    window.addEventListener('scroll', function() {
-                        if (!ticking) {
-                            window.requestAnimationFrame(function() {
-                                const scrollY = window.scrollY;
-                                const heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
-                                if (scrollY <= heroBottom) {
-                                    const offset = scrollY * 0.4;
-                                    if (heroContent) {
-                                        heroContent.style.transform = 'translateY(' + offset + 'px)';
-                                        heroContent.style.transition = 'transform 0.1s linear';
-                                    }
-                                    if (videoBg) {
-                                        videoBg.style.transform = 'translateY(' + (scrollY * 0.15) + 'px)';
-                                    }
-                                }
-                                ticking = false;
-                            });
-                            ticking = true;
-                        }
-                    }, { passive: true });
-                }
-
-                /* ----- LAZY LOADING IMAGES WITH FADE-IN ----- */
-                if ('IntersectionObserver' in window) {
-                    const lazyImages = document.querySelectorAll('img[loading="lazy"], img.lazy-load');
-                    if (lazyImages.length > 0) {
-                        const imageObserver = new IntersectionObserver((entries) => {
-                            entries.forEach(entry => {
-                                if (entry.isIntersecting) {
-                                    const img = entry.target;
-                                    img.classList.add('loaded');
-                                    imageObserver.unobserve(img);
-                                }
-                            });
-                        }, { rootMargin: '100px 0px' });
-
-                        lazyImages.forEach(img => {
-                            img.classList.add('lazy');
-                            imageObserver.observe(img);
-                        });
+                // Read more toggles
+                window.toggleReview = function(btn) {
+                    const text = btn.closest('.review-text').querySelector('.review-text-clamp');
+                    if (text.classList.contains('expanded')) {
+                        text.classList.remove('expanded');
+                        btn.textContent = 'Read more';
+                    } else {
+                        text.classList.add('expanded');
+                        btn.textContent = 'Show less';
                     }
-                }
-
-                /* ----- ADD lazy-load CLASS TO ROOM IMAGES ----- */
-                document.querySelectorAll('.room-image, .dining-image').forEach(img => {
-                    if (!img.hasAttribute('loading')) {
-                        img.setAttribute('loading', 'lazy');
-                    }
-                    img.classList.add('lazy');
-                    img.classList.add('lazy-load');
-                    if ('IntersectionObserver' in window) {
-                        const imgObserver = new IntersectionObserver((entries) => {
-                            entries.forEach(entry => {
-                                if (entry.isIntersecting) {
-                                    entry.target.classList.add('loaded');
-                                    imgObserver.unobserve(entry.target);
-                                }
-                            });
-                        }, { rootMargin: '100px 0px' });
-                        imgObserver.observe(img);
-                    }
-                });
+                };
             });
         </script>
     @endpush

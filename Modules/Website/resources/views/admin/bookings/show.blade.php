@@ -697,6 +697,12 @@
                         <span class="status-label">Created</span>
                         <span class="status-value">{{ $booking->created_at->format('M d, Y') }}</span>
                     </div>
+                    @if($booking->source)
+                    <div class="d-flex justify-content-between px-3 mt-2">
+                        <span class="status-label">Source</span>
+                        <span class="badge bg-secondary">{{ ucfirst($booking->source) }}</span>
+                    </div>
+                    @endif
                 </div>
             </div>
 

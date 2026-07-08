@@ -5,7 +5,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white">
+                <div class="card-header bg-dark text-white">
                     <h5 class="mb-0">Apply Leave on Behalf of an Employee</h5>
                 </div>
                 <div class="card-body">
@@ -64,6 +64,22 @@
                             <label for="reason" class="form-label"><strong>Reason for Leave</strong></label>
                             <textarea class="form-control @error('reason') is-invalid @enderror" id="reason" name="reason" rows="3">{{ old('reason') }}</textarea>
                             @error('reason')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="covered_by" class="form-label"><strong>Covered By (optional)</strong></label>
+                            <select class="form-select @error('covered_by') is-invalid @enderror" id="covered_by" name="covered_by">
+                                <option value="">— Not assigned —</option>
+                                @foreach ($employees as $candidate)
+                                    <option value="{{ $candidate->id }}" {{ old('covered_by') == $candidate->id ? 'selected' : '' }}>
+                                        {{ $candidate->name }} ({{ $candidate->department ?? 'No Dept' }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Select the employee covering duties during this leave.</small>
+                            @error('covered_by')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>

@@ -16,19 +16,25 @@ class LeaveRequest extends Model
      */
     protected $fillable = [
         'employee_id',
-        'staff_code', // Added staff_code to fillable attributes
+        'covered_by',
+        'staff_code',
         'leave_type',
         'start_date',
         'end_date',
         'reason',
         'status',
         'admin_note',
-        'days_count', // New field for the number of leave days
+        'days_count',
     ];
 
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function coverEmployee()
+    {
+        return $this->belongsTo(Employee::class, 'covered_by');
     }
 
     // // Calculate number of leave days

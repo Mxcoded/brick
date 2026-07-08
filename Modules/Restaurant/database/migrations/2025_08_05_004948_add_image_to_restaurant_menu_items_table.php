@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('restaurant_menu_items', 'image')) {
+            return;
+        }
+
         Schema::table('restaurant_menu_items', function (Blueprint $table) {
             $table->string('image')->nullable()->after('description');
         });

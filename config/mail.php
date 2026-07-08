@@ -125,4 +125,16 @@ return [
 
     'reservations_email' => env('MAIL_RESERVATIONS_EMAIL'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Maintenance Notification Recipients
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated email addresses that receive maintenance request
+    | notifications. Can be set via MAINTENANCE_RECIPIENTS in .env.
+    |
+    */
+
+    'maintenance_recipients' => explode(',', env('MAINTENANCE_RECIPIENTS', 'gm@brickspoint.com,fm@brickspoint.com,it@brickspoint.com')),
+
 ];

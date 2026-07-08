@@ -25,8 +25,15 @@ class Order extends Model
         'customer_phone',
         'delivery_address',
         'status',
-        'reason', // New field for reason
+        'reason',
         'tracking_status',
+        'shift_id',
+        'subtotal',
+        'discount',
+        'discount_type',
+        'vat',
+        'vat_rate',
+        'grand_total',
     ];
 
     protected $table = 'restaurant_orders';
@@ -37,6 +44,16 @@ class Order extends Model
         return $this->hasMany(OrderItem::class, 'restaurant_order_id');
     }
 
+
+    public function shift()
+    {
+        return $this->belongsTo(WaiterShift::class, 'shift_id');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'restaurant_order_id');
+    }
 
     public function getSourceAttribute()
     {

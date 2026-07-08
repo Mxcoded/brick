@@ -19,7 +19,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="h3 fw-bold mb-1" style="color: #1a1a2e;"><i class="fas fa-upload me-2" style="color: #C8A165;"></i>Upload Files</h1>
-            <p class="text-secondary small mb-0">Share documents with the team — max 300 MB per file</p>
+            <p class="text-muted small mb-0">Share documents with the team — max 300 MB per file</p>
         </div>
         <a href="{{ route('staff.documents.index') }}" class="btn btn-sm px-3 fw-semibold" style="color: #2c3e50; border: 1px solid #d0d0d0; border-radius: 8px;">
             <i class="fas fa-arrow-left me-1"></i> Back to Files

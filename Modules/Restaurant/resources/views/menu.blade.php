@@ -2,6 +2,31 @@
 @section('title', 'Menu')
 
 @section('content')
+    @auth
+    @canany(['access_restaurant_dashboard', 'take_orders', 'menu.read', 'menu.create', 'menu.update', 'menu.delete'])
+    <div class="admin-quick-bar">
+        <div class="d-flex align-items-center gap-2 px-3 py-2">
+            <span class="text-white-50 small me-2"><i class="bi bi-person-badge me-1"></i>Staff</span>
+            @can('take_orders')
+            <a href="{{ route('restaurant.waiter.dashboard') }}" class="btn btn-sm btn-outline-light rounded-pill">
+                <i class="bi bi-calculator me-1"></i>POS
+            </a>
+            @endcan
+            @canany(['menu.create', 'menu.update', 'menu.delete', 'menu.read'])
+            <a href="{{ route('restaurant.admin.dashboard') }}" class="btn btn-sm btn-outline-light rounded-pill">
+                <i class="bi bi-gear me-1"></i>Manage Menu
+            </a>
+            @endcanany
+            <span class="ms-auto">
+                <a href="{{ route('restaurant.landing') }}" class="btn btn-sm btn-outline-light rounded-pill">
+                    <i class="bi bi-house me-1"></i>Home
+                </a>
+            </span>
+        </div>
+    </div>
+    @endcanany
+    @endauth
+
     <div class="container-fluid py-5" x-data="{
         search: '',
         sortBy: 'name',
@@ -169,6 +194,13 @@
             .menu-item-card .card-img-top {
                 height: 200px;
                 object-fit: cover;
+            }
+            .admin-quick-bar {
+                background: #1a1a2e;
+                position: sticky;
+                top: 0;
+                z-index: 1020;
+                border-radius: 0 0 0.5rem 0.5rem;
             }
         </style>
     </div>

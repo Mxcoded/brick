@@ -33,6 +33,11 @@ php artisan db:seed        # Seed roles, admin, settings
 # Linting
 php artisan pint           # Laravel Pint code style fixer
 
+# Hikvision Attendance
+php artisan attendance:import-hikvision                        # Manual import
+php artisan attendance:import-hikvision --dry-run              # Preview before import
+php artisan attendance:import-hikvision --from="2026-07-01 00:00:00" --to="2026-07-04 23:59:59"  # Date range
+
 # Testing
 php artisan test                           # All tests
 php artisan test --filter=TestName         # Single test
@@ -95,6 +100,7 @@ Module status controlled via `modules_statuses.json`.
 
 **PDFs**: Generated via `barryvdh/laravel-dompdf` (invoices, function sheets, registration forms).
 
+<<<<<<< HEAD
 ## Multi-Property Architecture
 
 Multi-property support uses:
@@ -206,6 +212,36 @@ php artisan hotel:send-pre-arrival-reminders --registration-id=1
 php artisan tinker
 >>> \Modules\Frontdeskcrm\Models\GuestMessage::all();
 ```
+=======
+## Hikvision DS-K1A802AMF-B Attendance Middleware (Windows PC)
+
+This device is a **face recognition access control terminal** — it does NOT support
+ISAPI event search (`AcsEvent/Search` returns `invalidID`). Event data must be
+captured via the Hikvision HCNetSDK on a Windows PC on the same LAN.
+
+Location: `scripts/HikvisionMiddleware.ps1` + `scripts/HikvisionSDKHelper.cs`
+Config:  `scripts/HikvisionConfig.json` (auto-generated on first run)
+
+### Quick Start (ISAPI Poll — limited)
+
+```powershell
+cd scripts
+.\HikvisionMiddleware.ps1 -Mode once
+```
+
+### Full Setup (HCNetSDK — recommended)
+
+1. Download HCNetSDK from Hikvision, extract `HCNetSDK.dll` + `HCCore.dll` into `scripts/`
+2. Compile the C# helper:
+   ```powershell
+   & "$env:windir\Microsoft.NET\Framework\v4.0.30319\csc.exe" `
+       -target:exe -platform:x86 -out:HikvisionSDKHelper.exe HikvisionSDKHelper.cs
+   ```
+3. Run listener:
+   ```powershell
+   .\HikvisionMiddleware.ps1 -Mode listen
+   ```
+>>>>>>> 028f43090958fcfb8dab5fc3dcf10f38e8c68629
 
 ### Creating New Modules
 

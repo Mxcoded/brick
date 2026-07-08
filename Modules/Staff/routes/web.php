@@ -1,9 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Staff\Http\Controllers\AttendanceController;
 use Modules\Staff\Http\Controllers\LeaveController;
+use Modules\Staff\Http\Controllers\PerformanceController;
+use Modules\Staff\Http\Controllers\ReportsController;
 use Modules\Staff\Http\Controllers\SharedDocumentController;
 use Modules\Staff\Http\Controllers\StaffController;
+use Modules\Staff\Http\Controllers\TrainingController;
 
 // Import the Enum
 
@@ -25,7 +29,7 @@ Route::prefix('staff')
     ->middleware(['web', 'auth', 'can:access_staff_dashboard']) // Updated
     ->name('staff.')
     ->group(function () {
-        Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard')->middleware('can:view_employees');
+        Route::get('/dashboard', [StaffController::class, 'dashboard'])->name('dashboard')->middleware('can:employees.read');
         // **Leave Management Routes** - NOW HANDLED BY LeaveController
         Route::prefix('leaves')->group(function () {
             // User Leave Routes
@@ -74,7 +78,52 @@ Route::prefix('staff')
 
             Route::get('/admin/history', [LeaveController::class, 'showLeaveHistory'])
                 ->name('leaves.admin.history');
+
+            Route::get('/calendar', [LeaveController::class, 'leaveCalendar'])
+                ->name('leaves.calendar');
         });
+        // ** Attendance Routes **
+        Route::prefix('attendance')->group(function () {
+            Route::get('/', [AttendanceController::class, 'index'])->name('attendance.index');
+            Route::get('/clock', [AttendanceController::class, 'clockInForm'])->name('attendance.clock');
+            Route::post('/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
+            Route::post('/clock-out', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
+            Route::get('/report', [AttendanceController::class, 'report'])->name('attendance.report');
+            Route::post('/hikvision-webhook', [AttendanceController::class, 'hikvisionWebhook'])->name('attendance.hikvision-webhook');
+            Route::post('/hikvision-test', [AttendanceController::class, 'hikvisionTest'])->name('attendance.hikvision-test');
+        });
+
+        // ** Performance & Training Routes **
+        Route::prefix('performance')->group(function () {
+            Route::get('/', [PerformanceController::class, 'index'])->name('performance.index');
+            Route::get('/create', [PerformanceController::class, 'create'])->name('performance.create');
+            Route::post('/', [PerformanceController::class, 'store'])->name('performance.store');
+
+            // Skills routes must come BEFORE the wildcard {performanceReview} route
+            Route::get('/skills', [PerformanceController::class, 'skillsIndex'])->name('performance.skills');
+            Route::get('/skills/create', [PerformanceController::class, 'skillsCreate'])->name('performance.skills-create');
+            Route::post('/skills', [PerformanceController::class, 'skillsStore'])->name('performance.skills-store');
+            Route::delete('/skills/{employeeSkill}', [PerformanceController::class, 'skillsDestroy'])->name('performance.skills-destroy');
+
+            Route::get('/{performanceReview}', [PerformanceController::class, 'show'])->name('performance.show');
+            Route::get('/{performanceReview}/edit', [PerformanceController::class, 'edit'])->name('performance.edit');
+            Route::put('/{performanceReview}', [PerformanceController::class, 'update'])->name('performance.update');
+        });
+
+        Route::prefix('training')->group(function () {
+            Route::get('/', [TrainingController::class, 'index'])->name('training.index');
+            Route::get('/create', [TrainingController::class, 'create'])->name('training.create');
+            Route::post('/', [TrainingController::class, 'store'])->name('training.store');
+            Route::get('/{trainingRecord}/edit', [TrainingController::class, 'edit'])->name('training.edit');
+            Route::put('/{trainingRecord}', [TrainingController::class, 'update'])->name('training.update');
+            Route::delete('/{trainingRecord}', [TrainingController::class, 'destroy'])->name('training.destroy');
+        });
+
+        // ** Reports Routes **
+        Route::prefix('reports')->group(function () {
+            Route::get('/', [ReportsController::class, 'index'])->name('reports.index')->middleware('permission:employees.read');
+        });
+
         // ** Staff Approval Routes (Admin Only)**
         Route::prefix('approvals')->group(function () {
             Route::get('/', [StaffController::class, 'approvalIndex'])
@@ -95,7 +144,7 @@ Route::prefix('staff')
         // ** EXPORT ROUTE **
         Route::get('/export', [StaffController::class, 'export'])
             ->name('export')
-            ->middleware('permission:view_employees');
+            ->middleware('permission:employees.read');
 
         // ** Shared Documents Routes **
         Route::prefix('documents')->group(function () {
@@ -107,25 +156,13 @@ Route::prefix('staff')
             Route::delete('/{document}', [SharedDocumentController::class, 'destroy'])->name('documents.destroy');
         });
 
-        Route::resource('/', StaffController::class)->names([
-            'index' => 'index',
-            'create' => 'create',
-            'store' => 'store',
-            'show' => 'show', // <--- This was missing!
-            'edit' => 'edit',
-            'update' => 'update',
-            'destroy' => 'destroy',
-        ])->parameters([
-            '' => 'staff', // <--- THIS FIXES THE {} ISSUE
-        ])->middleware([
-            'index' => 'permission:view_employees',
-            'show' => 'permission:view_employees',
-            'create' => 'permission:manage_employees',
-            'store' => 'permission:manage_employees',
-            'edit' => 'permission:manage_employees',
-            'update' => 'permission:manage_employees',
-            'destroy' => 'permission:manage_employees',
-        ]);
+        Route::get('/', [StaffController::class, 'index'])->name('index')->middleware('permission:employees.read');
+        Route::get('/create', [StaffController::class, 'create'])->name('create')->middleware('permission:employees.create');
+        Route::post('/', [StaffController::class, 'store'])->name('store')->middleware('permission:employees.create');
+        Route::get('/{staff}', [StaffController::class, 'show'])->name('show')->middleware('permission:employees.read');
+        Route::get('/{staff}/edit', [StaffController::class, 'edit'])->name('edit')->middleware('permission:employees.update');
+        Route::put('/{staff}', [StaffController::class, 'update'])->name('update')->middleware('permission:employees.update');
+        Route::delete('/{staff}', [StaffController::class, 'destroy'])->name('destroy')->middleware('permission:employees.delete');
     });
 
 // **Public Routes**
