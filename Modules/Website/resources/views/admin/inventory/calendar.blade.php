@@ -276,9 +276,10 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitBlockForm()">
+                <button type="button" class="btn btn-primary" id="btn-apply-changes" onclick="submitBlockForm()">
                     <i class="fas fa-save me-1"></i> Apply Changes
                 </button>
+                <button type="button" id="modal-open-trigger" style="display:none" data-bs-toggle="modal" data-bs-target="#blockModal"></button>
             </div>
         </div>
     </div>
@@ -1358,7 +1359,16 @@ function showBlockModal() {
     document.getElementById('modal-room-type').value = selection.roomTypes[0];
     document.getElementById('modal-start-date').value = selection.startDate;
     document.getElementById('modal-end-date').value = selection.endDate;
-    new bootstrap.Modal(document.getElementById('blockModal')).show();
+    document.getElementById('modal-block-type').value = 'manual';
+    toggleBlockFields();
+    document.getElementById('modal-notes').value = '';
+    document.getElementById('modal-blocked-count').value = 0;
+    document.getElementById('modal-min-stay').value = '';
+    document.getElementById('modal-max-stay').value = '';
+    document.getElementById('modal-stop-sell').checked = false;
+    document.getElementById('modal-cta').checked = false;
+    document.getElementById('modal-ctd').checked = false;
+    document.getElementById('modal-open-trigger').click();
 }
 
 function toggleBlockFields() {
@@ -1390,18 +1400,24 @@ function submitBlockForm() {
         payload.block_type = blockType;
     }
     
+    document.getElementById('btn-apply-changes').disabled = true;
+    document.getElementById('btn-apply-changes').innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Applying...';
+
     apiRequest(url, { method: 'POST', body: JSON.stringify(payload) })
         .then(result => {
             if (result.success) {
-                bootstrap.Modal.getInstance(document.getElementById('blockModal')).hide();
+                document.querySelector('#blockModal .btn-close').click();
                 clearSelection();
                 loadInventoryData();
-                alert('Changes applied successfully!');
             } else {
                 alert('Failed: ' + result.message);
             }
         })
-        .catch(err => alert('Error: ' + err.message));
+        .catch(err => alert('Error: ' + err.message))
+        .finally(() => {
+            document.getElementById('btn-apply-changes').disabled = false;
+            document.getElementById('btn-apply-changes').innerHTML = '<i class="fas fa-save me-1"></i> Apply Changes';
+        });
 }
 
 function showCellTooltip(e) {

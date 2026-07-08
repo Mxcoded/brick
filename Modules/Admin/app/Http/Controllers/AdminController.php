@@ -313,6 +313,9 @@ class AdminController extends Controller
                     case 'maintenance':
                         $group = 'Maintenance';
                         break;
+                    case 'website':
+                        $group = 'Website';
+                        break;
                     default:
                         $group = 'Other';
                         break;
