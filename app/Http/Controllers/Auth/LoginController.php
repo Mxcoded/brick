@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Foundation\Auth\ThrottlesLogins;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 
 class LoginController extends Controller
 {
-    use AuthenticatesUsers;
+    use AuthenticatesUsers, ThrottlesLogins;
 
     public function __construct()
     {
@@ -17,19 +18,27 @@ class LoginController extends Controller
         $this->middleware('auth')->only('logout');
     }
 
+    protected function decayMinutes()
+    {
+        return 15;
+    }
+
     public function showLoginForm()
     {
-        $remaining = 5;
+        $remaining = $this->maxAttempts();
         $retryAfter = 0;
 
         $email = old('email', request()->input('email'));
         if ($email) {
-            $key = 'login:' . strtolower($email) . '|' . request()->ip();
-            if (RateLimiter::tooManyAttempts($key, 5)) {
+            $request = request();
+            $request->merge(['email' => $email]);
+            $key = $this->throttleKey($request);
+
+            if (RateLimiter::tooManyAttempts($key, $this->maxAttempts())) {
                 $remaining = 0;
                 $retryAfter = RateLimiter::availableIn($key);
             } else {
-                $remaining = max(0, 5 - RateLimiter::attempts($key));
+                $remaining = max(0, $this->maxAttempts() - RateLimiter::attempts($key));
             }
         }
 
@@ -92,23 +101,26 @@ class LoginController extends Controller
         return redirect()->route('guest.dashboard');
     }
 
+    protected function sendLockoutResponse(Request $request)
+    {
+        $seconds = RateLimiter::availableIn($this->throttleKey($request));
+
+        return redirect()->back()
+            ->withInput($request->only('email', 'remember'))
+            ->withErrors([
+                'email' => trans('auth.throttle', [
+                    'seconds' => $seconds,
+                    'minutes' => ceil($seconds / 60),
+                ]),
+            ]);
+    }
+
     protected function sendFailedLoginResponse(Request $request)
     {
-        $key = 'login:' . strtolower($request->input('email')) . '|' . $request->ip();
+        $key = $this->throttleKey($request);
+        $max = $this->maxAttempts();
 
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $seconds = RateLimiter::availableIn($key);
-            return redirect()->back()
-                ->withInput($request->only('email', 'remember'))
-                ->withErrors([
-                    'email' => trans('auth.throttle', [
-                        'seconds' => $seconds,
-                        'minutes' => ceil($seconds / 60),
-                    ]),
-                ]);
-        }
-
-        $remaining = max(0, 5 - RateLimiter::attempts($key));
+        $remaining = max(0, $max - RateLimiter::attempts($key));
 
         return redirect()->back()
             ->withInput($request->only('email', 'remember'))
