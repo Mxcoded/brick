@@ -2,13 +2,29 @@
 
 @section('title', 'Guest Reviews')
 
+@push('head')
+    @if ($settings['testimonials_backdrop'] ?? null)
+    <link rel="preload" as="image" href="{{ Storage::url($settings['testimonials_backdrop']) }}" fetchpriority="high">
+    @endif
+@endpush
+
 @section('content')
-    <section class="hero-section position-relative overflow-hidden"
-        style="background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('{{ asset('images/contact-hero.jpg') }}') center/cover no-repeat; height: 50vh;">
-        <div class="container h-100 d-flex align-items-center justify-content-center">
+    <section class="hero-section position-relative overflow-hidden d-flex align-items-center justify-content-center" style="min-height: 50vh;">
+        {{-- Backdrop --}}
+        <div class="position-absolute top-0 start-0 w-100 h-100" style="background-image: url('{{ ($settings['testimonials_backdrop'] ?? null) ? Storage::url($settings['testimonials_backdrop']) : 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=1600&q=80' }}'); background-size: cover; background-position: center 35%;"></div>
+        {{-- Overlay --}}
+        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.6) 100%);"></div>
+        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: radial-gradient(ellipse at 30% 50%, rgba(200,161,101,0.1) 0%, transparent 60%);"></div>
+        {{-- Content --}}
+        <div class="container position-relative">
             <div class="text-center text-white">
-                <h1 class="display-4 fw-bold mb-3">Share Your Experience</h1>
-                <p class="lead mb-0">We value your feedback</p>
+                <div class="mb-3">
+                    <span class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill" style="background: rgba(200,161,101,0.15); border: 1px solid rgba(200,161,101,0.25); font-size: 0.85rem; letter-spacing: 0.5px;">
+                        <i class="fas fa-star text-warning" style="font-size: 0.7rem;"></i> We value every voice
+                    </span>
+                </div>
+                <h1 class="display-4 fw-bold mb-3" style="text-shadow: 0 2px 20px rgba(53, 53, 53, 0.758); color: #fff;">Share Your Experience</h1>
+                <p class="lead mb-0" style="text-shadow: 0 1px 10px rgba(0,0,0,0.2);">Tell us about your stay at Brickspoint</p>
             </div>
         </div>
     </section>

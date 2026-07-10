@@ -538,8 +538,11 @@
     </section>
 
     <!-- Testimonials Section -->
-    <section class="py-5 py-lg-7 bg-dark text-white position-relative overflow-hidden">
-        <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" style="background: radial-gradient(ellipse at 20% 50%, rgba(200,161,101,0.3) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(200,161,101,0.15) 0%, transparent 60%);"></div>
+    <section class="py-5 py-lg-7 text-white position-relative overflow-hidden" style="background: #0a0a12;">
+        {{-- Background image with overlays --}}
+        <div class="position-absolute top-0 start-0 w-100 h-100" style="background-image: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1600&q=80'); background-size: cover; background-position: center 30%; background-attachment: fixed; opacity: 0.2;"></div>
+        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(135deg, rgba(10,10,18,0.92) 0%, rgba(10,10,18,0.7) 40%, rgba(10,10,18,0.85) 100%);"></div>
+        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: radial-gradient(ellipse at 20% 50%, rgba(200,161,101,0.12) 0%, transparent 60%), radial-gradient(ellipse at 80% 0%, rgba(200,161,101,0.08) 0%, transparent 50%);"></div>
         <div class="container position-relative">
             <div class="section-header text-center mb-5 reveal">
                 <h2 class="display-5 fw-bold mb-3">What Our Guests Say</h2>
@@ -1137,6 +1140,12 @@
                 background: rgba(200,161,101,0.2) !important;
                 border-color: rgba(200,161,101,0.4) !important;
                 opacity: 1 !important;
+            }
+
+            @media (max-width: 767.98px) {
+                section [style*="background-attachment: fixed"] {
+                    background-attachment: scroll !important;
+                }
             }
 
             /* ===== GOOGLE REVIEWS ===== */
