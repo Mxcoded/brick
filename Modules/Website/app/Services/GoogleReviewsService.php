@@ -14,7 +14,7 @@ class GoogleReviewsService
         $placeId = $settings['google_place_id'] ?? null;
         $apiKey = $settings['google_api_key'] ?? null;
 
-        if (!$placeId || !$apiKey) {
+        if (! $placeId || ! $apiKey) {
             return ['rating' => null, 'count' => 0, 'reviews' => []];
         }
 
@@ -26,7 +26,7 @@ class GoogleReviewsService
                     'key' => $apiKey,
                 ]);
 
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     return ['rating' => null, 'count' => 0, 'reviews' => []];
                 }
 
@@ -43,7 +43,7 @@ class GoogleReviewsService
                     ];
                 }, $result['reviews'] ?? []);
 
-                usort($reviews, fn($a, $b) => $b['timestamp'] - $a['timestamp']);
+                usort($reviews, fn ($a, $b) => $b['timestamp'] - $a['timestamp']);
 
                 return [
                     'rating' => $result['rating'] ?? null,

@@ -34,14 +34,24 @@
                                 <span class="fw-semibold">{{ $testimonial->guest_name }}</span>
                             </div>
                         </dd>
+                        <dt class="col-sm-3">Email</dt>
+                        <dd class="col-sm-9">{{ $testimonial->email ?? 'N/A' }}</dd>
                         <dt class="col-sm-3">Rating</dt>
                         <dd class="col-sm-9">
                             @for ($i = 0; $i < 5; $i++)
                                 <i class="fa{{ $i < $testimonial->rating ? 's' : 'r' }} fa-star text-warning"></i>
                             @endfor
                         </dd>
-                        <dt class="col-sm-3">Stay Type</dt>
-                        <dd class="col-sm-9">{{ $testimonial->stay_type ?? 'N/A' }}</dd>
+                        <dt class="col-sm-3">Type</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge rounded-pill px-3"
+                                  style="background: {{ $testimonial->type === 'restaurant' ? 'rgba(40,167,69,0.12)' : ($testimonial->type === 'event' ? 'rgba(0,123,255,0.12)' : 'rgba(200,161,101,0.12)') }};
+                                         color: {{ $testimonial->type === 'restaurant' ? '#28a745' : ($testimonial->type === 'event' ? '#007bff' : 'var(--theme-primary-dark)') }};">
+                                {{ $testimonial->typeLabel() }}
+                            </span>
+                        </dd>
+                        <dt class="col-sm-3">{{ $testimonial->type === 'restaurant' ? 'Dining Venue' : ($testimonial->type === 'event' ? 'Event Name' : 'Stay Type') }}</dt>
+                        <dd class="col-sm-9">{{ $testimonial->stay_type ?? $testimonial->dining_venue ?? $testimonial->event_name ?? 'N/A' }}</dd>
                         <dt class="col-sm-3">Status</dt>
                         <dd class="col-sm-9">
                             @if ($testimonial->approved)

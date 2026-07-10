@@ -8,11 +8,18 @@ use Modules\Website\Models\Testimonial;
 
 class TestimonialController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $testimonials = Testimonial::latest()->get();
+        $type = $request->get('type', 'all');
+        $query = Testimonial::latest();
 
-        return view('website::admin.testimonials.index', compact('testimonials'));
+        if (in_array($type, Testimonial::TYPES)) {
+            $query->where('type', $type);
+        }
+
+        $testimonials = $query->get();
+
+        return view('website::admin.testimonials.index', compact('testimonials', 'type'));
     }
 
     public function create()
@@ -24,10 +31,14 @@ class TestimonialController extends Controller
     {
         $validated = $request->validate([
             'guest_name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
             'text' => 'required|string',
             'rating' => 'required|integer|min:1|max:5',
             'guest_image' => 'nullable|string|max:255',
             'stay_type' => 'nullable|string|max:255',
+            'type' => 'required|in:'.implode(',', Testimonial::TYPES),
+            'dining_venue' => 'nullable|string|max:255',
+            'event_name' => 'nullable|string|max:255',
             'approved' => 'nullable|boolean',
         ]);
 
@@ -53,10 +64,14 @@ class TestimonialController extends Controller
     {
         $validated = $request->validate([
             'guest_name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
             'text' => 'required|string',
             'rating' => 'required|integer|min:1|max:5',
             'guest_image' => 'nullable|string|max:255',
             'stay_type' => 'nullable|string|max:255',
+            'type' => 'required|in:'.implode(',', Testimonial::TYPES),
+            'dining_venue' => 'nullable|string|max:255',
+            'event_name' => 'nullable|string|max:255',
             'approved' => 'nullable|boolean',
         ]);
 
@@ -70,7 +85,7 @@ class TestimonialController extends Controller
 
     public function toggleApprove(Testimonial $testimonial)
     {
-        $testimonial->update(['approved' => !$testimonial->approved]);
+        $testimonial->update(['approved' => ! $testimonial->approved]);
 
         return redirect()->route('website.admin.testimonials.index')
             ->with('success', $testimonial->approved

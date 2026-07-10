@@ -353,4 +353,35 @@
         @endif
     </div>
 </section>
+
+@if (($restaurantReviews ?? collect())->isNotEmpty())
+<section class="py-5" style="background: #f8f9fa;">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-2">Diner Reviews</h2>
+            <p class="text-muted">See what our guests are saying about their dining experience.</p>
+        </div>
+        <div class="row g-4">
+            @foreach ($restaurantReviews as $rr)
+            <div class="col-md-6 col-lg-4">
+                <div class="bg-white p-4 rounded-4 shadow-sm h-100 d-flex flex-column">
+                    <div class="mb-2">
+                        @for ($i = 0; $i < 5; $i++)
+                            <i class="fa{{ $i < $rr->rating ? 's' : 'r' }} fa-star text-warning" style="font-size:0.85rem"></i>
+                        @endfor
+                    </div>
+                    <p class="mb-3 text-muted flex-grow-1">"{{ $rr->text }}"</p>
+                    <div class="d-flex align-items-center border-top pt-3">
+                        <div class="fw-semibold small">{{ $rr->guest_name }}</div>
+                        @if ($rr->dining_venue)
+                        <span class="ms-auto small text-muted">{{ $rr->dining_venue }}</span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
 @endsection

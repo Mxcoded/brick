@@ -5,6 +5,7 @@ namespace Modules\Website\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Models\MeetingGallery;
 use Modules\Website\Models\MeetingPage;
 use Modules\Website\Models\MeetingRoom;
@@ -138,7 +139,7 @@ class MeetingPageController extends Controller
         $page = MeetingPage::firstOrCreate(['id' => 1]);
 
         $validated = $request->validate([
-            'contact_phone' => ['nullable', 'string', 'max:30', new \Modules\Frontdeskcrm\Rules\ValidPhoneNumber],
+            'contact_phone' => ['nullable', 'string', 'max:30', new ValidPhoneNumber],
             'contact_email' => 'nullable|email|max:255',
             'seo_title' => 'nullable|string|max:255',
             'seo_description' => 'nullable|string|max:500',

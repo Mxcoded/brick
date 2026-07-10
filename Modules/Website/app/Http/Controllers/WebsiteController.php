@@ -24,7 +24,8 @@ use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Emails\BookingConfirmation;
-use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Mail Facade
+use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Contact Mail
+use Modules\Website\Emails\ReviewSubmitted;
 use Modules\Website\Models\Amenity;
 use Modules\Website\Models\Booking; // ✅ Import Booking Mail
 use Modules\Website\Models\ContactMessage;
@@ -54,21 +55,22 @@ class WebsiteController extends Controller
             ->ordered()
             ->get();
 
-        $testimonials = Testimonial::where('approved', true)
-            ->latest()
-            ->get();
+        $stayReviews = Testimonial::approved()->stay()->latest()->get();
+        $restaurantReviews = Testimonial::approved()->restaurant()->latest()->get();
+        $eventReviews = Testimonial::approved()->event()->latest()->get();
+        $testimonials = $stayReviews; // keep backward compat for testimonials section
 
         $dining = Dining::all();
 
         $googleReviewsData = $googleReviews->fetch();
-        $averageRating = round($testimonials->avg('rating'), 1);
-        $reviewCount = $testimonials->count();
+        $averageRating = round($stayReviews->avg('rating'), 1);
+        $reviewCount = $stayReviews->count();
 
         $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays in Abuja, Nigeria. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
         $meta_keywords = 'boutique hotel Abuja, apart-hotel Abuja, luxury accommodation Abuja, short let Abuja, best hotel Abuja, Brickspoint, apart-hotel Nigeria';
         $og_title = config('app.name', 'Brickspoint Boutique Aparthotel').' — Luxury Short & Long Stays in Abuja';
 
-        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'googleReviewsData', 'averageRating', 'reviewCount', 'meta_description', 'meta_keywords', 'og_title'));
+        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'restaurantReviews', 'eventReviews', 'dining', 'googleReviewsData', 'averageRating', 'reviewCount', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     /**
@@ -1005,11 +1007,24 @@ class WebsiteController extends Controller
         return view('website::about', compact('settings'));
     }
 
-    public function testimonials()
+    public function testimonials(Request $request)
     {
         $settings = $this->getSettings();
 
-        return view('website::testimonials', compact('settings'));
+        $type = $request->get('type', 'stay');
+        if (! in_array($type, Testimonial::TYPES)) {
+            $type = 'stay';
+        }
+
+        $reviews = Testimonial::approved()->where('type', $type)->latest()->get();
+        $typeLabel = ucfirst($type);
+
+        $stayCount = Testimonial::approved()->stay()->count();
+        $restaurantCount = Testimonial::approved()->restaurant()->count();
+        $eventCount = Testimonial::approved()->event()->count();
+        $totalCount = $stayCount + $restaurantCount + $eventCount;
+
+        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount'));
     }
 
     public function storeTestimonial(Request $request)
@@ -1021,18 +1036,34 @@ class WebsiteController extends Controller
 
         $validated = $request->validate([
             'guest_name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
             'text' => 'required|string|max:2000',
             'rating' => 'required|integer|min:1|max:5',
+            'type' => 'required|in:'.implode(',', Testimonial::TYPES),
             'stay_type' => 'nullable|string|max:255',
+            'dining_venue' => 'nullable|string|max:255',
+            'event_name' => 'nullable|string|max:255',
         ]);
 
-        Testimonial::create([
+        $testimonial = Testimonial::create([
             'guest_name' => $validated['guest_name'],
+            'email' => $validated['email'] ?? null,
             'text' => $validated['text'],
             'rating' => $validated['rating'],
+            'type' => $validated['type'],
             'stay_type' => $validated['stay_type'] ?? null,
+            'dining_venue' => $validated['dining_venue'] ?? null,
+            'event_name' => $validated['event_name'] ?? null,
             'approved' => false,
         ]);
+
+        if ($testimonial->email) {
+            try {
+                Mail::to($testimonial->email)->send(new ReviewSubmitted($testimonial));
+            } catch (\Exception $e) {
+                Log::error('Review Confirmation Email Failed: '.$e->getMessage());
+            }
+        }
 
         return redirect()->route('website.testimonials')
             ->with('success', 'Thank you for your feedback! Your review has been submitted and will appear after review.');
@@ -1057,11 +1088,13 @@ class WebsiteController extends Controller
 
         $diningOptions = Dining::all();
 
+        $restaurantReviews = Testimonial::approved()->restaurant()->latest()->get();
+
         $meta_description = 'Explore dining at Brickspoint Boutique Aparthotel. Enjoy exquisite cuisine at our on-site restaurant, bar, and dining venues in Abuja.';
         $meta_keywords = 'dining Abuja, restaurant Abuja, Brickspoint restaurant, fine dining Abuja, apart-hotel dining';
         $og_title = 'Dining — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
-        return view('website::dining', compact('settings', 'diningOptions', 'meta_description', 'meta_keywords', 'og_title'));
+        return view('website::dining', compact('settings', 'diningOptions', 'restaurantReviews', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function diningMenu(Dining $dining)

@@ -142,7 +142,7 @@ Route::middleware(['web'])->group(function () {
         ->group(function () {
 
             // Helper: permission shortcut for website resource actions
-            $p = fn($resource, $action) => 'permission:access_website_dashboard|website.' . $resource . '.' . $action;
+            $p = fn ($resource, $action) => 'permission:access_website_dashboard|website.'.$resource.'.'.$action;
 
             // Dashboard
             Route::get('/', [WebsiteAdminController::class, 'index'])->name('dashboard')->middleware($p('dashboard', 'read'));
