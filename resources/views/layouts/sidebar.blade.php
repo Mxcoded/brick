@@ -2,7 +2,10 @@
 
     <div class="sidebar-heading">
         <div class="brand-wrapper">
-            <a href="{{ route('home') }}" class="brand-link">
+            <a href="{{ route('home') }}" class="brand-link d-flex align-items-center gap-2">
+                @if($logoSetting ?? null)
+                    <img src="{{ Storage::url($logoSetting) }}" alt="Logo" style="height: 28px; width: auto; object-fit: contain;">
+                @endif
                 BRICKSPOINT<sup>&trade;</sup><sub class="brand-sub">ERP</sub>
             </a>
         </div>

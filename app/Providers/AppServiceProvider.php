@@ -10,7 +10,9 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Modules\Website\Models\Settings;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +32,17 @@ class AppServiceProvider extends ServiceProvider
         Schema::defaultStringLength(191);
 
         Paginator::useBootstrapFive();
+
+        // Share active theme and logo with base layout
+        View::composer('layouts.base', function ($view) {
+            $theme = cache()->remember('app.theme', 3600, function () {
+                return Settings::where('key', 'theme')->value('value') ?? 'gold-legacy';
+            });
+            $logo = cache()->remember('app.logo', 3600, function () {
+                return Settings::where('key', 'logo')->value('value');
+            });
+            $view->with('theme', $theme)->with('logoSetting', $logo);
+        });
 
         // Register login tracking listeners
         Event::listen(Login::class, LogSuccessfulLogin::class);

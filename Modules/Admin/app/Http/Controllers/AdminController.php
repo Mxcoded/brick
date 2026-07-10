@@ -31,6 +31,8 @@ use Modules\Tasks\Models\Task;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\RoomUnit;
+use Modules\Website\Models\Settings;
+use Illuminate\Support\Facades\Storage;
 use Nwidart\Modules\Facades\Module;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -782,5 +784,62 @@ class AdminController extends Controller
         $users = User::orderBy('name')->get(['id', 'name']);
 
         return view('admin::activity-logs.index', compact('logs', 'actions', 'users'));
+    }
+
+    public function appearance()
+    {
+        $theme = Settings::where('key', 'theme')->value('value') ?? 'gold-legacy';
+        $logoSetting = Settings::where('key', 'logo')->value('value');
+
+        return view('admin::appearance', compact('theme', 'logoSetting'));
+    }
+
+    public function updateAppearance(Request $request)
+    {
+        $validated = $request->validate([
+            'theme' => 'required|in:gold-legacy,platinum-noir,sapphire-regal',
+        ]);
+
+        Settings::updateOrCreate(
+            ['key' => 'theme'],
+            ['value' => $validated['theme'], 'type' => 'string']
+        );
+
+        cache()->forget('app.theme');
+
+        return redirect()->route('admin.appearance')
+            ->with('success', 'Theme updated successfully.');
+    }
+
+    public function updateLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:png,jpg,jpeg,svg|max:2048',
+        ]);
+
+        $path = $request->file('logo')->store('settings', 'public');
+
+        Settings::updateOrCreate(
+            ['key' => 'logo'],
+            ['value' => $path, 'type' => 'image']
+        );
+
+        cache()->forget('app.logo');
+
+        return redirect()->route('admin.appearance')
+            ->with('success', 'Logo uploaded successfully.');
+    }
+
+    public function removeLogo()
+    {
+        $logo = Settings::where('key', 'logo')->first();
+        if ($logo) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($logo->value);
+            $logo->delete();
+            cache()->forget('app.logo');
+        }
+
+        return redirect()->route('admin.appearance')
+            ->with('success', 'Logo removed successfully.');
     }
 }

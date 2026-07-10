@@ -22,24 +22,15 @@
                 </button>
             @endauth
 
-            <footer class="bg-light p-3 mt-auto border-top">
+            <footer class="p-3 mt-auto border-top" style="background-color: var(--theme-card-bg); border-color: var(--theme-border) !important;">
                 <div class="container-fluid text-center">
-                    <div
-                        style="display: inline-block; padding: 10px 20px;   border-radius: 12px; background: var(--glass-effect); border: 1px solid var(--glass-border);box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), 
-                            -4px -4px 15px rgba(255, 255, 255, 0.05); transform: perspective(600px) rotateX(2deg); transition: var(--transition); margin-right: 15px;">
-                        <p class="mb-0 text-muted">&copy; {{ date('Y') }}
-
-                            <a href="home"
-                                style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif; font-weight: 800; font-size: 1.4rem; color: #C8A165;  text-decoration: none; letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                 ">
-                                BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub
-                                    style="font-size:8pt;">v1.0</sub>
-                            </a>
-                            . All rights reserved.
-                    </div>
+                    <p class="mb-0" style="color: var(--theme-text-muted);">
+                        &copy; {{ date('Y') }}
+                        <span class="fw-bold" style="color: var(--sidebar-brand);">
+                            BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub>
+                        </span>
+                        . All rights reserved.
                     </p>
-                    <p class="mb-0 text-muted" style="font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;">™
-                        Developed with ❤️ by IT Team </p>
                 </div>
             </footer>
         </div>
@@ -51,7 +42,7 @@
 <div class="modal fade" id="fabReportModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header border-0" style="background: #C8A165; color: #fff;">
+            <div class="modal-header border-0" style="background: var(--theme-primary); color: #fff;">
                 <h5 class="modal-title fw-bold fs-6"><i class="fas fa-wrench me-2"></i>Report Issue</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -111,13 +102,12 @@
 
 <style>
     .modal-loading { position: absolute; inset: 0; background: rgba(0,0,0,0.6); border-radius: inherit; z-index: 10; }
-    .fab-maintenance { position: fixed; bottom: 30px; right: 30px; z-index: 9999; background: #C8A165; color: #fff; border: none; border-radius: 50px; padding: 14px 22px; box-shadow: 0 6px 20px rgba(200, 161, 101, 0.4); transition: all 0.2s; display: flex; align-items: center; gap: 8px; cursor: pointer; }
-    .fab-maintenance:hover { background: #b08c54; color: #fff; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(200,161,101,0.5); }
+    .fab-maintenance { position: fixed; bottom: 30px; right: 30px; z-index: 9999; background: var(--theme-primary); color: #fff; border: none; border-radius: 50px; padding: 14px 22px; box-shadow: 0 6px 20px rgba(var(--theme-primary-rgb), 0.4); transition: all 0.2s; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .fab-maintenance:hover { background: var(--theme-primary-hover); color: #fff; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(var(--theme-primary-rgb), 0.5); }
     .fab-maintenance i { font-size: 1.2rem; }
     .fab-label { font-weight: 600; font-size: 0.85rem; }
     @media (max-width: 576px) { .fab-maintenance { padding: 12px 16px; bottom: 20px; right: 20px; } }
-    
-    
+
 </style>
 
 @endauth

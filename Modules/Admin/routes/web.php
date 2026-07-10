@@ -53,6 +53,11 @@ Route::prefix('admin')
 
         Route::get('/activity-logs', [AdminController::class, 'activityLogs'])->name('activity-logs.index');
 
+        Route::get('/appearance', [AdminController::class, 'appearance'])->name('appearance');
+        Route::put('/appearance', [AdminController::class, 'updateAppearance'])->name('appearance.update');
+        Route::put('/appearance/logo', [AdminController::class, 'updateLogo'])->name('appearance.logo');
+        Route::delete('/appearance/logo', [AdminController::class, 'removeLogo'])->name('appearance.logo.remove');
+
         // Login Logs / User Activity Tracking
         Route::prefix('login-logs')->name('login-logs.')->group(function () {
             Route::get('/', [LoginLogController::class, 'index'])->name('index');

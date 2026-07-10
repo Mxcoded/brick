@@ -538,44 +538,105 @@
     </section>
 
     <!-- Testimonials Section -->
-    <section class="py-5 py-lg-7 bg-dark text-white">
-        <div class="container">
+    <section class="py-5 py-lg-7 bg-dark text-white position-relative overflow-hidden">
+        <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" style="background: radial-gradient(ellipse at 20% 50%, rgba(200,161,101,0.3) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(200,161,101,0.15) 0%, transparent 60%);"></div>
+        <div class="container position-relative">
             <div class="section-header text-center mb-5 reveal">
                 <h2 class="display-5 fw-bold mb-3">What Our Guests Say</h2>
                 <div class="section-accent"></div>
-                <p class="text-light mx-auto" style="max-width: 700px; opacity: 0.8;">Don't just take our word for it -
+                <p class="text-light mx-auto" style="max-width: 700px; opacity: 0.8;">Don't just take our word for it &mdash;
                     hear from our satisfied guests.</p>
             </div>
 
             @php
                 $testiList = ($testimonials ?? collect())->take(8);
+                $avgRating = $averageRating ?? round($testiList->avg('rating'), 1);
+                $totalReviews = $reviewCount ?? $testiList->count();
             @endphp
+
+            {{-- Trust Bar --}}
+            <div class="d-flex flex-wrap justify-content-center gap-4 gap-lg-5 mb-5 reveal">
+                <div class="text-center">
+                    <div class="d-flex align-items-center justify-content-center gap-1 mb-1">
+                        <span class="display-6 fw-bold" style="color: #C8A165;">{{ $avgRating }}</span>
+                        <div style="font-size: 0.85rem;">
+                            @for ($i = 0; $i < 5; $i++)
+                                <i class="fa{{ $i < round($avgRating) ? 's' : 'r' }} fa-star text-warning d-block" style="line-height: 1;"></i>
+                            @endfor
+                        </div>
+                    </div>
+                    <small class="text-white-50">{{ $totalReviews }} verified reviews</small>
+                </div>
+                <div class="vr d-none d-lg-block opacity-25"></div>
+                <div class="text-center">
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                        <i class="fas fa-shield-alt" style="color: #C8A165; font-size: 1.5rem;"></i>
+                        <span class="fw-bold h4 mb-0">TrustScore {{ $avgRating }}</span>
+                    </div>
+                    <small class="text-white-50">Based on real guest experiences</small>
+                </div>
+                <div class="vr d-none d-lg-block opacity-25"></div>
+                <div class="text-center">
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+                        <i class="fas fa-calendar-check" style="color: #C8A165; font-size: 1.3rem;"></i>
+                        <span class="fw-bold h4 mb-0">100% Verified</span>
+                    </div>
+                    <small class="text-white-50">Every review from a real stay</small>
+                </div>
+            </div>
+
             @if ($testiList->count() > 0)
-                <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+                <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="6000" data-bs-wrap="true">
                     <div class="carousel-inner">
                         @foreach ($testiList->chunk(3) as $chunkIndex => $chunk)
                             <div class="carousel-item {{ $chunkIndex === 0 ? 'active' : '' }}">
                                 <div class="row g-4">
                                     @foreach ($chunk as $testimonial)
-                                        <div class="col-md-4">
-                                            <div class="testimonial-card bg-gray-800 p-4 h-100 rounded">
-                                                <div class="rating mb-3">
-                                                    @for ($i = 0; $i < 5; $i++)
-                                                        <i class="fa{{ $i < $testimonial->rating ? 's' : 'r' }} fa-star text-warning"></i>
-                                                    @endfor
+                                        <div class="col-md-6 col-lg-4">
+                                            <div class="testimonial-card p-4 h-100">
+                                                {{-- Quote icon --}}
+                                                <div class="testimonial-quote-icon">
+                                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(200,161,101,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
                                                 </div>
-                                                <p class="mb-4">"{{ $testimonial->text }}"</p>
-                                                <div class="d-flex align-items-center pt-3 border-top border-secondary border-opacity-25">
+                                                {{-- Stars + date --}}
+                                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                                    <div class="rating">
+                                                        @for ($i = 0; $i < 5; $i++)
+                                                            <i class="fa{{ $i < $testimonial->rating ? 's' : 'r' }} fa-star text-warning"></i>
+                                                        @endfor
+                                                    </div>
+                                                    @if ($testimonial->created_at)
+                                                        <small class="text-white-50" style="font-size: 0.7rem; letter-spacing: 0.3px;">{{ $testimonial->created_at->diffForHumans() }}</small>
+                                                    @endif
+                                                </div>
+                                                {{-- Review text --}}
+                                                <div class="testimonial-text mb-4">
+                                                    <p class="mb-0">"{{ $testimonial->text }}"</p>
+                                                </div>
+                                                {{-- Guest info --}}
+                                                <div class="d-flex align-items-center pt-3 mt-auto border-top" style="border-color: rgba(255,255,255,0.06) !important;">
                                                     <div class="position-relative me-3 flex-shrink-0">
                                                         @if ($testimonial->guest_image)
-                                                            <img src="{{ $testimonial->guest_image }}" class="rounded-circle" width="50" height="50" alt="{{ $testimonial->guest_name }}" loading="lazy" style="border: 2px solid rgba(200, 161, 101, 0.4); padding: 2px; object-fit: cover;">
+                                                            <img src="{{ $testimonial->guest_image }}" class="rounded-circle" width="46" height="46" alt="{{ $testimonial->guest_name }}" loading="lazy" style="border: 2px solid rgba(200, 161, 101, 0.3); padding: 2px; object-fit: cover;">
                                                         @else
-                                                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:50px;height:50px;background:rgba(200,161,101,0.2);border:2px solid rgba(200,161,101,0.3);color:#C8A165;font-size:1.1rem;">{{ substr($testimonial->guest_name, 0, 1) }}</div>
+                                                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width:46px;height:46px;background:rgba(200,161,101,0.15);border:2px solid rgba(200,161,101,0.25);color:#C8A165;font-size:1.1rem;">{{ substr($testimonial->guest_name, 0, 1) }}</div>
                                                         @endif
+                                                        <div class="position-absolute" style="bottom: -2px; right: -2px; width: 18px; height: 18px; background: #1a1a2e; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid rgba(200,161,101,0.3);">
+                                                            <i class="fas fa-check-circle" style="color: #C8A165; font-size: 0.6rem;"></i>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h5 class="mb-0 fw-semibold" style="color: #e8d5b5;">{{ $testimonial->guest_name }}</h5>
-                                                        <small class="text-white-50" style="font-size: 0.8rem;"><i class="fas fa-check-circle me-1" style="color: #C8A165; font-size: 0.65rem;"></i> {{ $testimonial->stay_type ?? 'Verified Guest' }}</small>
+                                                    <div class="flex-grow-1 min-w-0">
+                                                        <h6 class="mb-0 fw-semibold text-truncate" style="color: #e8d5b5;">{{ $testimonial->guest_name }}</h6>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">
+                                                                <i class="fas fa-check-circle" style="color: #C8A165; font-size: 0.55rem;"></i>
+                                                                {{ $testimonial->stay_type ?? 'Verified Guest' }}
+                                                            </span>
+                                                            @if ($testimonial->stay_type)
+                                                                <span style="width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,0.2);"></span>
+                                                                <span style="font-size: 0.7rem; color: rgba(255,255,255,0.4);">{{ ucfirst($testimonial->stay_type) }}</span>
+                                                            @endif
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -585,10 +646,21 @@
                             </div>
                         @endforeach
                     </div>
-                    <div class="carousel-indicators position-relative mt-4">
+
+                    {{-- Arrow controls --}}
+                    <button class="carousel-control-prev d-none d-md-flex" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev" style="width: 48px; height: 48px; top: 50%; transform: translateY(-50%); left: -20px; background: rgba(200,161,101,0.1); border: 1px solid rgba(200,161,101,0.15); border-radius: 50%; opacity: 0.8;">
+                        <i class="fas fa-chevron-left" style="color: #C8A165; font-size: 1rem;"></i>
+                    </button>
+                    <button class="carousel-control-next d-none d-md-flex" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next" style="width: 48px; height: 48px; top: 50%; transform: translateY(-50%); right: -20px; background: rgba(200,161,101,0.1); border: 1px solid rgba(200,161,101,0.15); border-radius: 50%; opacity: 0.8;">
+                        <i class="fas fa-chevron-right" style="color: #C8A165; font-size: 1rem;"></i>
+                    </button>
+
+                    {{-- Indicators --}}
+                    <div class="carousel-indicators position-relative mt-4" style="bottom: 0;">
                         @foreach ($testiList->chunk(3) as $chunkIndex => $chunk)
                             <button type="button" data-bs-target="#testimonialCarousel" data-bs-slide-to="{{ $chunkIndex }}"
-                                class="{{ $chunkIndex === 0 ? 'active' : '' }} bg-secondary"
+                                class="{{ $chunkIndex === 0 ? 'active' : '' }}"
+                                style="width: 28px; height: 4px; border-radius: 2px; border: none; background: rgba(255,255,255,0.15); margin: 0 4px; transition: all 0.3s ease;"
                                 aria-label="Slide {{ $chunkIndex + 1 }}"></button>
                         @endforeach
                     </div>
@@ -599,9 +671,9 @@
                     <p class="text-muted mb-0">Testimonials coming soon.</p>
                 </div>
             @endif
-            <div class="text-center mt-4">
-                <a href="{{ route('website.testimonials') }}" class="btn btn-outline-light btn-lg px-5">
-                    <i class="fas fa-pen me-2"></i>Write a Review
+            <div class="text-center mt-5">
+                <a href="{{ route('website.testimonials') }}" class="btn btn-outline-light btn-lg px-5 rounded-pill">
+                    <i class="fas fa-pen me-2"></i>Share Your Experience
                 </a>
             </div>
         </div>
@@ -643,8 +715,11 @@
             @endif
 
             @if (count($grReviews) > 0)
+            @php
+                $recentReviews = collect($grReviews)->sortByDesc('timestamp')->take(6);
+            @endphp
             <div class="row g-4">
-                @foreach (array_slice($grReviews, 0, 6) as $review)
+                @foreach ($recentReviews as $review)
                 <div class="col-md-4 d-flex">
                     <div class="bg-white p-4 rounded shadow-sm d-flex flex-column w-100">
                         <div class="mb-2">
@@ -977,51 +1052,53 @@
             .testimonial-card {
                 position: relative;
                 border-radius: 16px;
-                overflow: hidden;
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-                background: rgba(255,255,255,0.04) !important;
+                transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s ease;
+                background: rgba(255,255,255,0.04);
                 border: 1px solid rgba(255,255,255,0.06);
+                display: flex;
+                flex-direction: column;
             }
 
-            .testimonial-card {
-                transition: opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s ease;
-            }
             .testimonial-card.visible {
                 opacity: 1 !important;
                 transform: translateY(0) !important;
             }
 
-            .testimonial-card::before {
-                content: '\201C';
+            .testimonial-quote-icon {
                 position: absolute;
-                top: -10px;
-                left: 16px;
-                font-size: 5rem;
-                color: rgba(200, 161, 101, 0.15);
-                font-family: serif;
-                line-height: 1;
+                top: 14px;
+                right: 16px;
+                opacity: 0.3;
+                transition: opacity 0.3s ease;
+            }
+            .testimonial-card:hover .testimonial-quote-icon {
+                opacity: 0.6;
             }
 
             .testimonial-card:hover {
                 transform: translateY(-6px);
-                box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+                box-shadow: 0 16px 40px rgba(0,0,0,0.35);
                 border-color: rgba(200, 161, 101, 0.2);
             }
 
-            .testimonial-card:hover h5 {
+            .testimonial-card:hover h6 {
                 color: #C8A165 !important;
                 transition: color 0.3s ease;
             }
 
-            .testimonial-card p {
+            .testimonial-text p {
                 font-style: italic;
-                line-height: 1.7;
-                position: relative;
-                z-index: 1;
+                line-height: 1.75;
+                font-size: 0.92rem;
+                color: rgba(255,255,255,0.8);
+                display: -webkit-box;
+                -webkit-line-clamp: 5;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
             }
 
             .testimonial-card .rating {
-                font-size: 0.9rem;
+                font-size: 0.8rem;
                 letter-spacing: 2px;
             }
 
@@ -1030,7 +1107,7 @@
             }
 
             .testimonial-card .rating .far.fa-star {
-                opacity: 0.55;
+                opacity: 0.4;
                 filter: none;
             }
 
@@ -1039,11 +1116,27 @@
             }
 
             .testimonial-card:hover .border-top {
-                border-color: rgba(200, 161, 101, 0.3) !important;
+                border-color: rgba(200, 161, 101, 0.2) !important;
             }
 
-            .testimonial-card h5 {
+            .testimonial-card h6 {
                 transition: color 0.3s ease;
+                font-size: 0.95rem;
+            }
+
+            /* Trust bar + carousel refinements */
+            .testimonial-section .vr {
+                align-self: stretch;
+            }
+            .carousel-indicators [data-bs-target].active {
+                background: #C8A165 !important;
+                width: 36px !important;
+            }
+            .carousel-control-prev:hover,
+            .carousel-control-next:hover {
+                background: rgba(200,161,101,0.2) !important;
+                border-color: rgba(200,161,101,0.4) !important;
+                opacity: 1 !important;
             }
 
             /* ===== GOOGLE REVIEWS ===== */
@@ -1250,9 +1343,11 @@
                 #auth-section .row.g-3 .col-md-6 { flex: 0 0 100%; max-width: 100%; }
 
                 .testimonial-card { padding: 1rem !important; }
-                .testimonial-card p { font-size: 0.875rem; }
-                .testimonial-card h5 { font-size: 0.95rem; }
-                .testimonial-card img { width: 40px !important; height: 40px !important; }
+                .testimonial-text p { font-size: 0.85rem; }
+                .testimonial-card h6 { font-size: 0.9rem; }
+                .testimonial-card img { width: 38px !important; height: 38px !important; }
+                .testimonial-card .rounded-circle { width: 38px !important; height: 38px !important; font-size: 0.9rem !important; }
+                .testimonial-card .position-absolute[style*="bottom: -2px"] { width: 14px !important; height: 14px !important; }
 
                 .cta-section .display-5 { font-size: 1.3rem !important; }
                 .cta-section .lead { font-size: 0.9rem !important; margin-bottom: 1.5rem !important; }

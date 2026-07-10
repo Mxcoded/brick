@@ -14,7 +14,7 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-1 fw-bold"><i class="fas fa-users me-2" style="color: #C8A165;"></i>Manage Users</h1>
+            <h1 class="h3 mb-1 fw-bold"><i class="fas fa-users me-2 text-gold"></i>Manage Users</h1>
             <p class="text-muted mb-0">Staff and guest accounts</p>
         </div>
         <div class="d-flex gap-2">
@@ -82,7 +82,7 @@
     {{-- Users Table --}}
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 py-3">
-            <span class="fw-semibold"><i class="fas fa-list me-2" style="color: #C8A165;"></i>All Accounts</span>
+            <span class="fw-semibold"><i class="fas fa-list me-2 text-gold"></i>All Accounts</span>
             <div class="d-flex gap-2" id="typeFilters">
                 <a href="{{ route('admin.users.index') }}" class="btn btn-sm status-filter {{ $currentType === '' ? 'active' : '' }}">All</a>
                 <a href="{{ route('admin.users.index', ['type' => 'staff']) }}" class="btn btn-sm status-filter {{ $currentType === 'staff' ? 'active' : '' }}">Staff</a>
@@ -261,7 +261,7 @@
             <div class="modal-dialog">
                 <div class="modal-content border-0 shadow">
                     <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-exchange-alt me-2" style="color: #C8A165;"></i>Change Account Type</h5>
+                        <h5 class="modal-title"><i class="fas fa-exchange-alt me-2 text-gold"></i>Change Account Type</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <form method="POST" action="{{ route('admin.users.type.update', $user->id) }}">
@@ -409,16 +409,13 @@
 @section('styles')
 <style>
     .card { border-radius: 10px; }
-    .card-header { border-bottom: 2px solid #f0f0f0; }
-    .status-filter { border-radius: 20px; padding: 4px 14px; font-size: 0.82rem; font-weight: 500; border: 1px solid #dee2e6; background: #fff; color: #666; text-decoration: none; transition: all 0.15s; }
-    .status-filter:hover { border-color: #C8A165; color: #C8A165; }
-    .status-filter.active { background: #C8A165; border-color: #C8A165; color: #fff; }
-    table thead th { font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #888; border-bottom: 2px solid #f0f0f0 !important; }
+    .card-header { border-bottom: 2px solid var(--theme-border); }
+    .status-filter { border-radius: 20px; padding: 4px 14px; font-size: 0.82rem; font-weight: 500; border: 1px solid var(--theme-border); background: var(--theme-card-bg); color: var(--theme-text-muted); text-decoration: none; transition: all 0.15s; }
+    .status-filter:hover { border-color: var(--theme-primary); color: var(--theme-primary-dark); }
+    .status-filter.active { background: var(--theme-primary); border-color: var(--theme-primary); color: var(--theme-btn-text); }
+    table thead th { font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--theme-text-muted); border-bottom: 2px solid var(--theme-border) !important; }
     table tbody tr { transition: background-color 0.15s; }
-    table tbody tr:hover { background-color: #f8f9fa !important; }
-    .btn-gold { background-color: #C8A165; border-color: #C8A165; color: #fff; }
-    .btn-gold:hover { background-color: #b08c54; border-color: #b08c54; color: #fff; }
-    .text-gold { color: #C8A165; }
+    table tbody tr:hover { background-color: rgba(var(--theme-primary-rgb), 0.04) !important; }
     .opacity-75 { opacity: 0.75; }
 </style>
 @endsection

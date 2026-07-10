@@ -8,7 +8,7 @@
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="fw-bold mb-1"><i class="fas fa-user-plus me-2" style="color: #C8A165;"></i>Create User Account</h2>
+                <h2 class="fw-bold mb-1"><i class="fas fa-user-plus me-2 text-gold"></i>Create User Account</h2>
                 <p class="text-muted mb-0">Link an employee to a staff portal account with role-based access</p>
             </div>
             <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">
@@ -42,7 +42,7 @@
                 <div class="col-lg-5">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
-                            <h5 class="fw-bold mb-0"><i class="fas fa-user-tie me-2" style="color: #C8A165;"></i>Select Employee</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-user-tie me-2 text-gold"></i>Select Employee</h5>
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
@@ -105,7 +105,7 @@
                 <div class="col-lg-7">
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
-                            <h5 class="fw-bold mb-0"><i class="fas fa-shield-alt me-2" style="color: #C8A165;"></i>Account Settings</h5>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-shield-alt me-2 text-gold"></i>Account Settings</h5>
                         </div>
                         <div class="card-body">
                             {{-- Email --}}
@@ -188,15 +188,14 @@
     .card-header { padding-left: 1.5rem; padding-right: 1.5rem; }
     .card-body { padding: 1.5rem; }
     .form-control, .form-select, .input-group-text { border-color: #e0e0e0; }
-    .form-control:focus, .form-select:focus { border-color: #C8A165; box-shadow: 0 0 0 3px rgba(200,161,101,0.15); }
+    .form-control:focus, .form-select:focus { border-color: var(--theme-primary); box-shadow: 0 0 0 3px rgba(var(--theme-primary-rgb), 0.15); }
     .input-group-text { border-right: none; }
     .input-group .form-control, .input-group .form-select { border-left: none; }
-    .input-group .form-control:focus, .input-group .form-select:focus { box-shadow: none; border-color: #C8A165; }
-    .input-group:focus-within .input-group-text { border-color: #C8A165; }
+    .input-group .form-control:focus, .input-group .form-select:focus { box-shadow: none; border-color: var(--theme-primary); }
+    .input-group:focus-within .input-group-text { border-color: var(--theme-primary); }
     select option { padding: 6px 10px; }
     #employee_id optgroup, #employee_id option { padding: 6px 10px; }
-    #employeeSearch:focus { border-color: #C8A165; box-shadow: 0 0 0 3px rgba(200,161,101,0.15); }
-    .bg-gold { background-color: #C8A165; }
+    #employeeSearch:focus { border-color: var(--theme-primary); box-shadow: 0 0 0 3px rgba(var(--theme-primary-rgb), 0.15); }
 </style>
 @endsection
 
