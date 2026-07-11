@@ -66,9 +66,9 @@ class WebsiteController extends Controller
         $averageRating = round($stayReviews->avg('rating'), 1);
         $reviewCount = $stayReviews->count();
 
-        $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays in Abuja, Nigeria. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
-        $meta_keywords = 'boutique hotel Abuja, apart-hotel Abuja, luxury accommodation Abuja, short let Abuja, best hotel Abuja, Brickspoint, apart-hotel Nigeria';
-        $og_title = config('app.name', 'Brickspoint Boutique Aparthotel').' — Luxury Short & Long Stays in Abuja';
+        $meta_description = 'Brickspoint Boutique Aparthotel — the best boutique hotel in Asokoro, Abuja. Experience luxury short & long stays with world-class amenities, exceptional service, and a home away from home in Nigeria\'s capital.';
+        $meta_keywords = 'best boutique hotel Asokoro Abuja, luxury apart-hotel Nigeria, Brickspoint Abuja, Asokoro hotel, short let Abuja, extended stay Abuja, corporate housing Abuja, Abuja aparthotel, premium accommodation Abuja';
+        $og_title = config('app.name', 'Brickspoint Boutique Aparthotel').' — Best Boutique Hotel in Asokoro, Abuja';
 
         return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'restaurantReviews', 'eventReviews', 'dining', 'googleReviewsData', 'averageRating', 'reviewCount', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -130,9 +130,9 @@ class WebsiteController extends Controller
         $checkIn = $request->check_in;
         $checkOut = $request->check_out;
 
-        $meta_description = 'Browse our premium room types and suites at Brickspoint Boutique Aparthotel. Find the perfect accommodation for your stay in Abuja.';
-        $meta_keywords = 'rooms Abuja, suites Abuja, apart-hotel rooms, luxury accommodation Abuja, Brickspoint rooms';
-        $og_title = 'Rooms & Suites — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'Browse our premium rooms, suites, and serviced apartments at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Find the perfect accommodation — from deluxe rooms to presidential suites — for your stay in Nigeria\'s capital.';
+        $meta_keywords = 'rooms Asokoro Abuja, suites Abuja, serviced apartments Abuja, luxury hotel rooms Abuja, Brickspoint suites, presidential suite Abuja, deluxe room Abuja';
+        $og_title = 'Rooms & Suites — Brickspoint Boutique Aparthotel Asokoro, Abuja';
 
         return view('website::rooms', compact('roomTypes', 'checkIn', 'checkOut', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -179,9 +179,9 @@ class WebsiteController extends Controller
 
         $viewData = compact('guest');
 
-        $meta_description = 'Complete your booking at Brickspoint Boutique Aparthotel. Secure your room with our easy online reservation system.';
-        $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking';
-        $og_title = 'Book Your Stay — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'Book your stay at Brickspoint Boutique Aparthotel in Asokoro, Abuja — the best boutique hotel in Nigeria\'s capital. Secure your room, suite, or apartment with our easy online reservation system.';
+        $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking, Asokoro hotel booking';
+        $og_title = 'Book Your Stay — Brickspoint Boutique Aparthotel Asokoro, Abuja';
         $viewData['meta_description'] = $meta_description;
         $viewData['meta_keywords'] = $meta_keywords;
         $viewData['og_title'] = $og_title;
@@ -663,16 +663,20 @@ class WebsiteController extends Controller
         $amenities = Amenity::all();
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        return view('website::amenities', compact('amenities', 'settings'));
+        $meta_description = 'Discover the world-class amenities at Brickspoint Boutique Aparthotel in Asokoro, Abuja. From free Wi-Fi and fitness centre to restaurant, room service, and airport shuttle — everything you need for a perfect stay.';
+        $meta_keywords = 'amenities Asokoro Abuja, hotel amenities Abuja, apart-hotel services, free Wi-Fi hotel Abuja, fitness centre Abuja, Brickspoint amenities';
+        $og_title = 'Amenities — Brickspoint Boutique Aparthotel Asokoro, Abuja';
+
+        return view('website::amenities', compact('amenities', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function location()
     {
         $settings = $this->getSettings();
 
-        $meta_description = 'Visit Brickspoint Boutique Aparthotel in Abuja, Nigeria. Find directions, map, and information about our prime location.';
-        $meta_keywords = 'Brickspoint location Abuja, apart-hotel Abuja address, map Abuja hotel, Abuja Nigeria hotel location';
-        $og_title = 'Our Location — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'Visit Brickspoint Boutique Aparthotel at 24 Jose Marti Crescent, Asokoro, Abuja — the best boutique hotel in Nigeria\'s capital. Find directions, map, and information about our prime location in the heart of Abuja.';
+        $meta_keywords = 'Brickspoint location Asokoro Abuja, apart-hotel Abuja address, Asokoro hotel, map Abuja hotel, Abuja Nigeria hotel location, 24 Jose Marti Crescent';
+        $og_title = 'Our Location — Brickspoint Boutique Aparthotel Asokoro, Abuja';
 
         return view('website::location', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -681,9 +685,9 @@ class WebsiteController extends Controller
     {
         $settings = $this->getSettings();
 
-        $meta_description = 'Get in touch with Brickspoint Boutique Aparthotel. Contact us for reservations, enquiries, or special requests. We are here to help.';
-        $meta_keywords = 'contact Brickspoint, Abuja hotel contact, apart-hotel enquiries, book hotel Abuja, Brickspoint address';
-        $og_title = 'Contact Us — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'Get in touch with Brickspoint Boutique Aparthotel in Asokoro, Abuja — the best boutique hotel in Nigeria\'s capital. Contact us for reservations at +234 809 999 9627, enquiries, or special requests.';
+        $meta_keywords = 'contact Brickspoint Asokoro, Abuja hotel contact, apart-hotel enquiries, book hotel Abuja, Brickspoint address Asokoro, 24 Jose Marti Crescent';
+        $og_title = 'Contact Us — Brickspoint Boutique Aparthotel Asokoro, Abuja';
 
         return view('website::contact', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1004,7 +1008,11 @@ class WebsiteController extends Controller
     {
         $settings = $this->getSettings();
 
-        return view('website::about', compact('settings'));
+        $meta_description = 'Learn about Brickspoint Boutique Aparthotel — the best boutique hotel in Asokoro, Abuja. Discover our story, our commitment to excellence, and why we are the premier choice for luxury short and long stays in Nigeria\'s capital.';
+        $meta_keywords = 'about Brickspoint Abuja, boutique hotel Asokoro story, Abuja apart-hotel, luxury hotel Abuja, Brickspoint history';
+        $og_title = 'About Us — Brickspoint Boutique Aparthotel Asokoro, Abuja';
+
+        return view('website::about', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function testimonials(Request $request)
@@ -1024,7 +1032,11 @@ class WebsiteController extends Controller
         $eventCount = Testimonial::approved()->event()->count();
         $totalCount = $stayCount + $restaurantCount + $eventCount;
 
-        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount'));
+        $meta_description = "Read genuine $typeLabel reviews from guests at Brickspoint Boutique Aparthotel in Asokoro, Abuja. See why we are rated as the best boutique hotel in Nigeria's capital.";
+        $meta_keywords = "Brickspoint reviews, Asokoro hotel reviews, $typeLabel reviews Abuja, boutique hotel Abuja reviews, guest testimonials Abuja";
+        $og_title = "$typeLabel Reviews — Brickspoint Boutique Aparthotel Asokoro, Abuja";
+
+        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function storeTestimonial(Request $request)
@@ -1090,9 +1102,9 @@ class WebsiteController extends Controller
 
         $restaurantReviews = Testimonial::approved()->restaurant()->latest()->get();
 
-        $meta_description = 'Explore dining at Brickspoint Boutique Aparthotel. Enjoy exquisite cuisine at our on-site restaurant, bar, and dining venues in Abuja.';
-        $meta_keywords = 'dining Abuja, restaurant Abuja, Brickspoint restaurant, fine dining Abuja, apart-hotel dining';
-        $og_title = 'Dining — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'Explore exquisite dining at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Enjoy world-class cuisine at our on-site restaurant, bar, and dining venues — the best dining experience in Abuja.';
+        $meta_keywords = 'dining Asokoro Abuja, restaurant Abuja, Brickspoint restaurant, fine dining Abuja, best restaurant Abuja, apart-hotel dining Abuja';
+        $og_title = 'Dining — Brickspoint Boutique Aparthotel Asokoro, Abuja';
 
         return view('website::dining', compact('settings', 'diningOptions', 'restaurantReviews', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1101,9 +1113,9 @@ class WebsiteController extends Controller
     {
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        $meta_description = 'View the menu for '.$dining->name.' at Brickspoint Boutique Aparthotel.';
-        $meta_keywords = $dining->name.' menu, dining Abuja, restaurant menu';
-        $og_title = $dining->name.' Menu — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'View the menu for '.$dining->name.' at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Explore our carefully curated dishes and culinary offerings.';
+        $meta_keywords = $dining->name.' menu, dining Asokoro Abuja, restaurant menu Abuja, Brickspoint dining';
+        $og_title = $dining->name.' Menu — Brickspoint Boutique Aparthotel Asokoro';
 
         return view('website::menu', compact('settings', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1124,9 +1136,9 @@ class WebsiteController extends Controller
 
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        $meta_description = 'Discover exclusive offers and special packages at Brickspoint Boutique Aparthotel. Save on your next stay in Abuja.';
-        $meta_keywords = 'hotel deals Abuja, apart-hotel offers, Brickspoint promotions, Abuja hotel packages';
-        $og_title = 'Offers & Deals — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'Discover exclusive offers and special packages at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Save on your next luxury stay at the best boutique hotel in Nigeria\'s capital.';
+        $meta_keywords = 'hotel deals Abuja, apart-hotel offers, Brickspoint promotions, Abuja hotel packages, Asokoro hotel deals, luxury stay Abuja';
+        $og_title = 'Offers & Deals — Brickspoint Boutique Aparthotel Asokoro, Abuja';
 
         return view('website::offers', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1147,9 +1159,9 @@ class WebsiteController extends Controller
 
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        $meta_description = 'Explore the premium facilities at Brickspoint Boutique Aparthotel — gym, restaurant, meeting rooms, and more in Abuja.';
-        $meta_keywords = 'hotel facilities Abuja, apart-hotel amenities, Brickspoint gym, meeting rooms Abuja, Abuja hotel services';
-        $og_title = 'Facilities — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'Explore the premium facilities at Brickspoint Boutique Aparthotel in Asokoro, Abuja — state-of-the-art gym, exquisite restaurant, versatile meeting rooms, and world-class amenities. The best boutique hotel experience in Nigeria\'s capital.';
+        $meta_keywords = 'hotel facilities Asokoro Abuja, apart-hotel amenities, Brickspoint gym, meeting rooms Abuja, Abuja hotel services, best hotel facilities Abuja, boutique hotel amenities';
+        $og_title = 'Facilities — Brickspoint Boutique Aparthotel Asokoro, Abuja';
 
         return view('website::facilities', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -1873,7 +1885,11 @@ class WebsiteController extends Controller
 
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        return view('website::meetings', compact('page', 'settings'));
+        $meta_description = 'Host your meetings and events at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Versatile event spaces, modern facilities, and dedicated service for conferences, weddings, and private events in Nigeria\'s capital.';
+        $meta_keywords = 'meeting rooms Asokoro Abuja, event venue Abuja, conference facilities Abuja, Brickspoint meetings, wedding venue Abuja, corporate events Abuja';
+        $og_title = 'Meetings & Events — Brickspoint Boutique Aparthotel Asokoro, Abuja';
+
+        return view('website::meetings', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function meetingEnquiry()

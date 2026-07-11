@@ -9,26 +9,40 @@
 
     <title>{{ config('app.name', 'Brickspoint ApartHotel') }} — @yield('title')</title>
 
-    <meta name="description" content="{{ $meta_description ?? $description ?? 'Experience unparalleled luxury at Brickspoint Boutique Aparthotel. Premium short & long stays in Abuja with world-class amenities.' }}">
-    <meta name="keywords" content="{{ $meta_keywords ?? $keywords ?? 'boutique hotel Abuja, apart-hotel, luxury accommodation, short let Abuja, hotel, vacation, resort' }}">
+    <meta name="description" content="{{ $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays, world-class dining, and exceptional service in the heart of Abuja.' }}">
+    <meta name="keywords" content="{{ $meta_keywords ?? $keywords ?? 'boutique hotel Abuja, best hotel in Asokoro Abuja, luxury apart-hotel Nigeria, short let Abuja, Brickspoint Abuja, Asokoro hotel, luxury accommodation Abuja, apart-hotel Nigeria, Abuja boutique hotel, extended stay Abuja, corporate housing Abuja' }}">
     <meta name="author" content="{{ $author ?? config('app.name') }}">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{{ url()->current() }}">
+
+    <!-- Hreflang -->
+    <link rel="alternate" href="{{ url()->current() }}" hreflang="en-NG">
+    <link rel="alternate" href="{{ url()->current() }}" hreflang="en">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="{{ config('app.name') }}">
     <meta property="og:title" content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
-    <meta property="og:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Premium boutique apart-hotel in Abuja.' }}">
+    <meta property="og:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays with world-class amenities.' }}">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image" content="{{ $og_image ?? asset('images/og-default.jpg') }}">
     <meta property="og:locale" content="en_NG">
+    <meta property="og:phone_number" content="+2348099999627">
+    <meta property="og:street_address" content="24 Jose Marti Crescent">
+    <meta property="og:locality" content="Asokoro, Abuja">
+    <meta property="og:country_name" content="Nigeria">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
-    <meta name="twitter:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Premium boutique apart-hotel in Abuja.' }}">
+    <meta name="twitter:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria.' }}">
     <meta name="twitter:image" content="{{ $og_image ?? asset('images/og-default.jpg') }}">
+
+    <!-- Geo Tags -->
+    <meta name="geo.region" content="NG-FC">
+    <meta name="geo.placename" content="Asokoro, Abuja">
+    <meta name="geo.position" content="9.0387;7.4965">
+    <meta name="ICBM" content="9.0387, 7.4965">
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
@@ -1453,21 +1467,59 @@
     {
         "@@context": "https://schema.org",
         "@@type": "Hotel",
-        "name": "{{ config('app.name', 'Brickspoint ApartHotel') }}",
-        "description": "{{ $meta_description ?? $description ?? 'Premium boutique apart-hotel in Abuja.' }}",
+        "@@id": "{{ url('/') }}#hotel",
+        "name": "Brickspoint Boutique Aparthotel",
+        "alternateName": "Brickspoint ApartHotel",
+        "description": "{{ $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays, world-class dining, and exceptional service in the heart of Abuja.' }}",
         "url": "{{ url('/') }}",
-        "telephone": "+234-XXX-XXX-XXXX",
+        "image": "{{ $og_image ?? asset('images/og-default.jpg') }}",
+        "telephone": "+2348099999627",
+        "email": "rsv@brickspoint.com",
+        "priceRange": "₦₦₦₦",
+        "currenciesAccepted": "NGN",
+        "paymentAccepted": ["Cash", "Credit Card", "Bank Transfer", "POS"],
+        "hasMap": "https://maps.google.com/?q=9.0387,7.4965",
         "address": {
             "@@type": "PostalAddress",
-            "addressLocality": "Abuja",
-            "addressCountry": "NG"
+            "@@id": "{{ url('/') }}#address",
+            "streetAddress": "24 Jose Marti Crescent",
+            "addressLocality": "Asokoro",
+            "addressRegion": "Federal Capital Territory",
+            "addressCountry": "NG",
+            "postalCode": "900231"
+        },
+        "geo": {
+            "@@type": "GeoCoordinates",
+            "latitude": "9.0387",
+            "longitude": "7.4965"
+        },
+        "sameAs": [
+            "https://fb.com/bpaparthotel",
+            "https://instagram.com/brickspoint_asokoro",
+            "https://x.com/bpaparthotel"
+        ],
+        "parentOrganization": {
+            "@@type": "Organization",
+            "name": "Brickspoint Boutique Aparthotel",
+            "url": "{{ url('/') }}"
         },
         "aggregateRating": {
             "@@type": "AggregateRating",
             "ratingValue": "{{ $averageRating ?? '4.5' }}",
             "bestRating": "5",
-            "reviewCount": "{{ $reviewCount ?? '0' }}"
-        }
+            "ratingCount": "{{ $reviewCount ?? '0' }}",
+            "worstRating": "1"
+        },
+        "amenityFeature": [
+            {"@@type": "LocationFeatureSpecification", "name": "Free Wi-Fi", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Restaurant", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Fitness Center", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Room Service", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Airport Shuttle", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Parking", "value": true}
+        ],
+        "checkinTime": "15:00",
+        "checkoutTime": "12:00"
     }
     </script>
     <!--Start of Tawk.to Script-->
