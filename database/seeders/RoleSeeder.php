@@ -255,6 +255,20 @@ class RoleSeeder extends Seeder
             'website.testimonials.read',
             'website.testimonials.update',
             'website.testimonials.delete',
+
+            // ──────────────────────────────────────────
+            // PROCUREMENT – permissions (centralized)
+            // ──────────────────────────────────────────
+            'procurement.create_request',
+            'procurement.view_own_requests',
+            'procurement.view_all_requests',
+            'procurement.review_request',
+            'procurement.approve_request',
+            'procurement.reject_request',
+            'procurement.flag_request',
+            'procurement.attach_invoice',
+            'procurement.audit_request',
+            'procurement.convert_to_po',
         ];
 
         foreach ($permissions as $permission) {

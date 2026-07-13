@@ -1,4 +1,5 @@
 <?php
+
 namespace Modules\Inventory\Database\Seeders;
 
 use App\Models\User;
@@ -74,7 +75,7 @@ class ProcurementRolePermissionSeeder extends Seeder
 
         $admin = User::where('email', 'like', '%admin%')->orWhere('id', 1)->first();
         if ($admin) {
-            $admin->assignRole('line_manager', 'purchaser', 'gm', 'finance', 'auditor', 'ggm');
+            $admin->assignRole('admin');
         }
     }
 }

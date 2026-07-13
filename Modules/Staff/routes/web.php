@@ -42,45 +42,45 @@ Route::prefix('staff')
             Route::post('/{id}/cancel', [LeaveController::class, 'cancelLeaveRequest'])
                 ->name('leaves.cancel');
             // Leave Balance Route
-            Route::get('admin/balance', [LeaveController::class, 'leaveBalance']) // Changed
-                ->name('leaves.balance');
-            Route::post('admin/balance', [LeaveController::class, 'leaveBalanceSubmit']) // Changed
-                ->name('leaves.balance-submit');
+            Route::get('admin/balance', [LeaveController::class, 'leaveBalance'])
+                ->name('leaves.balance')->middleware('can:leaves.approve');
+            Route::post('admin/balance', [LeaveController::class, 'leaveBalanceSubmit'])
+                ->name('leaves.balance-submit')->middleware('can:leaves.approve');
             Route::get('/admin/balances', [LeaveController::class, 'showBalancesAdmin'])
-                ->name('leaves.admin.balances');
+                ->name('leaves.admin.balances')->middleware('can:leaves.manage');
 
             Route::post('/admin/balances', [LeaveController::class, 'updateBalanceAdmin'])
-                ->name('leaves.admin.balances.update');
+                ->name('leaves.admin.balances.update')->middleware('can:leaves.manage');
 
             Route::post('/admin/balances/{id}/reset', [LeaveController::class, 'resetBalance'])
-                ->name('leaves.admin.balances.reset');
+                ->name('leaves.admin.balances.reset')->middleware('can:leaves.manage');
 
             Route::post('/admin/balances/{id}/delete', [LeaveController::class, 'deleteBalance'])
-                ->name('leaves.admin.balances.delete');
+                ->name('leaves.admin.balances.delete')->middleware('can:leaves.manage');
             // Admin Leave Routes
-            Route::get('/admin', [LeaveController::class, 'leaveAdminIndex']) // Changed
-                ->name('leaves.admin');
-            Route::post('/admin/approve/{id}', [LeaveController::class, 'approveLeave']) // Changed
-                ->name('leaves.approve');
-            Route::post('/admin/reject/{id}', [LeaveController::class, 'rejectLeave']) // Changed
-                ->name('leaves.reject');
+            Route::get('/admin', [LeaveController::class, 'leaveAdminIndex'])
+                ->name('leaves.admin')->middleware('can:leaves.approve');
+            Route::post('/admin/approve/{id}', [LeaveController::class, 'approveLeave'])
+                ->name('leaves.approve')->middleware('can:leaves.approve');
+            Route::post('/admin/reject/{id}', [LeaveController::class, 'rejectLeave'])
+                ->name('leaves.reject')->middleware('can:leaves.approve');
             Route::post('/admin/{id}/cancel', [LeaveController::class, 'adminCancelLeaveRequest'])
-                ->name('leaves.admin.cancel');
+                ->name('leaves.admin.cancel')->middleware('can:leaves.approve');
             // Leave Report Route
-            Route::get('/report', [LeaveController::class, 'leaveReport']) // Changed
-                ->name('leaves.report');
+            Route::get('/report', [LeaveController::class, 'leaveReport'])
+                ->name('leaves.report')->middleware('can:leaves.approve');
             // HR routes for applying on behalf of others
             Route::get('/admin/apply', [LeaveController::class, 'showApplyForOtherForm'])
-                ->name('leaves.admin.apply');
+                ->name('leaves.admin.apply')->middleware('can:leaves.apply-for-others');
 
             Route::post('/admin/apply', [LeaveController::class, 'submitLeaveForOther'])
-                ->name('leaves.admin.submit');
+                ->name('leaves.admin.submit')->middleware('can:leaves.apply-for-others');
 
             Route::get('/admin/history', [LeaveController::class, 'showLeaveHistory'])
-                ->name('leaves.admin.history');
+                ->name('leaves.admin.history')->middleware('can:leaves.approve');
 
             Route::get('/calendar', [LeaveController::class, 'leaveCalendar'])
-                ->name('leaves.calendar');
+                ->name('leaves.calendar')->middleware('can:leaves.approve');
         });
         // ** Attendance Routes **
         Route::prefix('attendance')->group(function () {

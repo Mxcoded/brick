@@ -4,7 +4,9 @@ use Illuminate\Support\Facades\Route;
 use Modules\Inventory\Http\Controllers\CycleCountController;
 use Modules\Inventory\Http\Controllers\DepartmentController;
 use Modules\Inventory\Http\Controllers\InventoryController;
+use Modules\Inventory\Http\Controllers\ProcurementController;
 use Modules\Inventory\Http\Controllers\PurchaseOrderController;
+use Modules\Inventory\Http\Controllers\PurchaseRequestController;
 use Modules\Inventory\Http\Controllers\StockTakeController;
 use Modules\Inventory\Http\Controllers\StoreController;
 use Modules\Inventory\Http\Controllers\SupplierController;
@@ -155,21 +157,21 @@ Route::group(['prefix' => 'inventory', 'as' => 'inventory.', 'middleware' => ['a
 });
 
 // ─── Procurement / Purchase Requests (separate from inventory dashboard gate) ───
-Route::prefix('inventory/procurement')->as('inventory.procurement.')->middleware(['auth'])->group(function () {
-    Route::get('/dashboard', [\Modules\Inventory\Http\Controllers\ProcurementController::class, 'dashboard'])->name('dashboard');
+Route::prefix('inventory/procurement')->as('inventory.procurement.')->middleware(['auth', 'procurement.role'])->group(function () {
+    Route::get('/dashboard', [ProcurementController::class, 'dashboard'])->name('dashboard');
 
-    Route::get('/requests', [\Modules\Inventory\Http\Controllers\PurchaseRequestController::class, 'index'])->name('requests.index');
-    Route::get('/requests/create', [\Modules\Inventory\Http\Controllers\PurchaseRequestController::class, 'create'])->name('requests.create');
-    Route::post('/requests', [\Modules\Inventory\Http\Controllers\PurchaseRequestController::class, 'store'])->name('requests.store');
-    Route::get('/requests/{purchaseRequest}', [\Modules\Inventory\Http\Controllers\PurchaseRequestController::class, 'show'])->name('requests.show');
-    Route::get('/requests/{purchaseRequest}/edit', [\Modules\Inventory\Http\Controllers\PurchaseRequestController::class, 'edit'])->name('requests.edit');
-    Route::put('/requests/{purchaseRequest}', [\Modules\Inventory\Http\Controllers\PurchaseRequestController::class, 'update'])->name('requests.update');
+    Route::get('/requests', [PurchaseRequestController::class, 'index'])->name('requests.index');
+    Route::get('/requests/create', [PurchaseRequestController::class, 'create'])->name('requests.create');
+    Route::post('/requests', [PurchaseRequestController::class, 'store'])->name('requests.store');
+    Route::get('/requests/{purchaseRequest}', [PurchaseRequestController::class, 'show'])->name('requests.show');
+    Route::get('/requests/{purchaseRequest}/edit', [PurchaseRequestController::class, 'edit'])->name('requests.edit');
+    Route::put('/requests/{purchaseRequest}', [PurchaseRequestController::class, 'update'])->name('requests.update');
 
-    Route::post('/requests/{purchaseRequest}/submit', [\Modules\Inventory\Http\Controllers\ProcurementController::class, 'submit'])->name('submit');
-    Route::post('/requests/{purchaseRequest}/review', [\Modules\Inventory\Http\Controllers\ProcurementController::class, 'review'])->name('review');
-    Route::post('/requests/{purchaseRequest}/approve', [\Modules\Inventory\Http\Controllers\ProcurementController::class, 'approve'])->name('approve');
-    Route::post('/requests/{purchaseRequest}/reject', [\Modules\Inventory\Http\Controllers\ProcurementController::class, 'reject'])->name('reject');
-    Route::post('/requests/{purchaseRequest}/flag', [\Modules\Inventory\Http\Controllers\ProcurementController::class, 'flag'])->name('flag');
-    Route::post('/requests/{purchaseRequest}/upload-invoice', [\Modules\Inventory\Http\Controllers\ProcurementController::class, 'uploadInvoice'])->name('upload-invoice');
-    Route::post('/requests/{purchaseRequest}/convert-to-po', [\Modules\Inventory\Http\Controllers\ProcurementController::class, 'convertToPo'])->name('convert-to-po');
+    Route::post('/requests/{purchaseRequest}/submit', [ProcurementController::class, 'submit'])->name('submit');
+    Route::post('/requests/{purchaseRequest}/review', [ProcurementController::class, 'review'])->name('review');
+    Route::post('/requests/{purchaseRequest}/approve', [ProcurementController::class, 'approve'])->name('approve');
+    Route::post('/requests/{purchaseRequest}/reject', [ProcurementController::class, 'reject'])->name('reject');
+    Route::post('/requests/{purchaseRequest}/flag', [ProcurementController::class, 'flag'])->name('flag');
+    Route::post('/requests/{purchaseRequest}/upload-invoice', [ProcurementController::class, 'uploadInvoice'])->name('upload-invoice');
+    Route::post('/requests/{purchaseRequest}/convert-to-po', [ProcurementController::class, 'convertToPo'])->name('convert-to-po');
 });

@@ -16,4 +16,10 @@ enum RoleEnum: string
     case MAINTENANCE_ENGINEER = 'maintenance_engineer';
     case EVENT_MANAGER = 'event_manager';
     case WEBSITE_ADMIN = 'website_admin';
+    case LINE_MANAGER = 'line_manager';
+    case PURCHASER = 'purchaser';
+    case GM = 'gm';
+    case FINANCE = 'finance';
+    case AUDITOR = 'auditor';
+    case GGM = 'ggm';
 }

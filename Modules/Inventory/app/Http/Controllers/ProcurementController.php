@@ -6,13 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Modules\Inventory\Models\PurchaseOrder;
 use Modules\Inventory\Models\PurchaseOrderItem;
 use Modules\Inventory\Models\PurchaseRequest;
 use Modules\Inventory\Models\PurchaseRequestApproval;
 use Modules\Inventory\Models\Store;
-use Modules\Inventory\Models\Supplier;
 
 class ProcurementController extends Controller
 {
@@ -193,6 +191,9 @@ class ProcurementController extends Controller
 
     public function submit(PurchaseRequest $purchaseRequest)
     {
+        if (! auth()->user()->hasRole('line_manager')) {
+            return back()->with('error', 'Only line managers can submit purchase requests.');
+        }
         if ($purchaseRequest->requester_id !== auth()->id()) {
             return back()->with('error', 'You can only submit your own requests.');
         }
@@ -228,6 +229,10 @@ class ProcurementController extends Controller
 
     public function review(Request $request, PurchaseRequest $purchaseRequest)
     {
+        if (! auth()->user()->hasRole('purchaser')) {
+            return back()->with('error', 'Only purchasers can review purchase requests.');
+        }
+
         $validated = $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
             'gl_code' => 'nullable|string|max:255',
@@ -287,6 +292,10 @@ class ProcurementController extends Controller
 
     public function uploadInvoice(Request $request, PurchaseRequest $purchaseRequest)
     {
+        if (! auth()->user()->hasRole('purchaser')) {
+            return back()->with('error', 'Only purchasers can upload invoices.');
+        }
+
         $validated = $request->validate([
             'invoice' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
@@ -312,6 +321,12 @@ class ProcurementController extends Controller
     public function approve(PurchaseRequest $purchaseRequest)
     {
         $user = auth()->user();
+
+        $allowedRoles = ['gm', 'finance', 'auditor', 'ggm'];
+        if (! $user->hasAnyRole($allowedRoles)) {
+            return back()->with('error', 'You are not authorized to approve purchase requests.');
+        }
+
         $roleMap = [
             'gm' => ['pending_gm', 'pending_finance', 'gm'],
             'finance' => ['pending_finance', 'pending_auditor', 'finance'],
@@ -369,6 +384,12 @@ class ProcurementController extends Controller
         ]);
 
         $user = auth()->user();
+
+        $allowedRoles = ['purchaser', 'gm', 'finance', 'auditor', 'ggm'];
+        if (! $user->hasAnyRole($allowedRoles)) {
+            return back()->with('error', 'You are not authorized to reject purchase requests.');
+        }
+
         $roleStepMap = [
             'purchaser' => ['pending_purchaser', 'draft', 'line_manager'],
             'gm' => ['pending_gm', 'pending_purchaser', 'purchaser'],
@@ -481,9 +502,7 @@ class ProcurementController extends Controller
 
         DB::beginTransaction();
         try {
-            $lastOrder = PurchaseOrder::latest()->first();
-            $nextNumber = $lastOrder ? intval(substr($lastOrder->po_number, -4)) + 1 : 1;
-            $poNumber = 'PO-'.now()->format('Ymd').'-'.str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $poNumber = $this->generatePoNumber();
 
             $order = PurchaseOrder::create([
                 'po_number' => $poNumber,
@@ -498,7 +517,7 @@ class ProcurementController extends Controller
                 PurchaseOrderItem::create([
                     'purchase_order_id' => $order->id,
                     'item_id' => null,
-                    'quantity_ordered' => $item->quantity,
+                    'quantity_ordered' => (int) round((float) $item->quantity),
                     'quantity_received' => 0,
                     'unit_price' => $item->estimated_unit_price ?? 0,
                 ]);
@@ -523,5 +542,19 @@ class ProcurementController extends Controller
 
             return back()->with('error', 'Error converting to purchase order.');
         }
+    }
+
+    /**
+     * Generate a unique PO number.
+     */
+    protected function generatePoNumber(): string
+    {
+        $prefix = 'PO-'.now()->format('Ymd');
+        $lastOrder = PurchaseOrder::where('po_number', 'like', "{$prefix}%")
+            ->orderByDesc('po_number')
+            ->first();
+        $nextNum = $lastOrder ? intval(substr($lastOrder->po_number, -4)) + 1 : 1;
+
+        return $prefix.'-'.str_pad($nextNum, 4, '0', STR_PAD_LEFT);
     }
 }

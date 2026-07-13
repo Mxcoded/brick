@@ -441,11 +441,14 @@ class LeaveController extends Controller
                 });
             })
             ->whereIn('status', ['pending', 'approved'])
-            ->exists();
+            ->first();
 
         if ($overlappingLeave) {
+            $conflictDates = Carbon::parse($overlappingLeave->start_date)->format('M d, Y')
+                .' to '.Carbon::parse($overlappingLeave->end_date)->format('M d, Y');
+
             return redirect()->back()->withInput()->withErrors([
-                'start_date' => 'This employee already has an overlapping leave request in this date range.',
+                'start_date' => "Overlapping leave request found: {$overlappingLeave->leave_type} ({$conflictDates}) — Status: {$overlappingLeave->status}.",
             ]);
         }
 
@@ -476,7 +479,7 @@ class LeaveController extends Controller
             'status' => 'pending',
         ]);
         // 5. Send notification email to HR/Admin
-        $adminEmail = 'hr@brickspoint.com'; // It's best to store this in a config file this is just for brickspoint.
+        $adminEmail = config('staff.hr_email', 'hr@brickspoint.com');
         Mail::to($adminEmail)->send(new LeaveRequestSubmitted($leaveRequest));
 
         // return redirect()->route('staff.leaves.admin')->with('success', "Leave request for {$employee->name} has been submitted successfully.");

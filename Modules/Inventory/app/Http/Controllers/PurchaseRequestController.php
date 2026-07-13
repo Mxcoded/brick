@@ -6,10 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Modules\Inventory\Models\PurchaseRequest;
-use Modules\Inventory\Models\PurchaseRequestItem;
 use Modules\Inventory\Models\PurchaseRequestApproval;
+use Modules\Inventory\Models\PurchaseRequestItem;
 use Modules\Inventory\Models\Supplier;
 
 class PurchaseRequestController extends Controller
@@ -23,10 +22,12 @@ class PurchaseRequestController extends Controller
                 ->where('requester_id', $user->id)
                 ->latest()
                 ->get();
-        } else {
+        } elseif ($user->hasAnyRole(['purchaser', 'gm', 'finance', 'auditor', 'ggm'])) {
             $requests = PurchaseRequest::with('requester', 'items', 'approvals.user')
                 ->latest()
                 ->get();
+        } else {
+            $requests = collect();
         }
 
         return view('inventory::procurement.requests.index', compact('requests'));
@@ -34,6 +35,10 @@ class PurchaseRequestController extends Controller
 
     public function create()
     {
+        if (! auth()->user()->hasRole('line_manager')) {
+            return back()->with('error', 'Only line managers can create purchase requests.');
+        }
+
         $suppliers = Supplier::all();
 
         return view('inventory::procurement.requests.create', compact('suppliers'));
@@ -41,6 +46,10 @@ class PurchaseRequestController extends Controller
 
     public function store(Request $request)
     {
+        if (! auth()->user()->hasRole('line_manager')) {
+            return back()->with('error', 'Only line managers can create purchase requests.');
+        }
+
         $validated = $request->validate([
             'department' => 'nullable|string|max:255',
             'urgency' => 'required|in:normal,urgent,emergency',
@@ -54,9 +63,7 @@ class PurchaseRequestController extends Controller
 
         DB::beginTransaction();
         try {
-            $lastPr = PurchaseRequest::latest()->first();
-            $nextNumber = $lastPr ? intval(substr($lastPr->pr_number, -4)) + 1 : 1;
-            $prNumber = 'PR-'.now()->format('Ymd').'-'.str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+            $prNumber = $this->generatePrNumber();
 
             $status = $request->boolean('submit_and_send') ? 'pending_purchaser' : 'draft';
             $currentRole = $request->boolean('submit_and_send') ? 'purchaser' : null;
@@ -106,6 +113,12 @@ class PurchaseRequestController extends Controller
 
     public function show(PurchaseRequest $purchaseRequest)
     {
+        $user = auth()->user();
+
+        if ($user->hasRole('line_manager') && $purchaseRequest->requester_id !== $user->id) {
+            abort(403, 'You can only view your own purchase requests.');
+        }
+
         $purchaseRequest->load('requester', 'supplier', 'items', 'approvals.user');
 
         return view('inventory::procurement.requests.show', compact('purchaseRequest'));
@@ -192,5 +205,19 @@ class PurchaseRequestController extends Controller
 
             return back()->with('error', 'Error updating purchase request.');
         }
+    }
+
+    /**
+     * Generate a unique PR number.
+     */
+    protected function generatePrNumber(): string
+    {
+        $prefix = 'PR-'.now()->format('Ymd');
+        $lastPr = PurchaseRequest::where('pr_number', 'like', "{$prefix}%")
+            ->orderByDesc('pr_number')
+            ->first();
+        $nextNum = $lastPr ? intval(substr($lastPr->pr_number, -4)) + 1 : 1;
+
+        return $prefix.'-'.str_pad($nextNum, 4, '0', STR_PAD_LEFT);
     }
 }

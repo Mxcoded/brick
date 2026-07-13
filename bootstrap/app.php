@@ -9,6 +9,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Session\Middleware\AuthenticateSession;
+use Modules\Inventory\Http\Middleware\ProcurementRole;
 use Modules\Restaurant\Http\Middleware\RedirectToWaiterLogin;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
@@ -27,6 +28,7 @@ return Application::configure(basePath: __DIR__.'/../')
             'waiter-auth' => RedirectToWaiterLogin::class,
             'guest' => RedirectIfAuthenticated::class,
             'auth.session' => AuthenticateSession::class,
+            'procurement.role' => ProcurementRole::class,
         ]);
 
         // Track user activity for login session monitoring
