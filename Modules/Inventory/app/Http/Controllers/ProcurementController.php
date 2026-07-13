@@ -19,7 +19,7 @@ class ProcurementController extends Controller
         $user = auth()->user();
         $view = 'inventory::procurement.dashboard';
 
-        if ($user->hasRole('line_manager')) {
+        if ($user->hasAnyRole(['line_manager', 'staff'])) {
             return $this->lineManagerDashboard();
         }
         if ($user->hasRole('purchaser')) {
@@ -191,7 +191,7 @@ class ProcurementController extends Controller
 
     public function submit(PurchaseRequest $purchaseRequest)
     {
-        if (! auth()->user()->hasRole('line_manager')) {
+        if (! auth()->user()->hasAnyRole(['line_manager', 'staff'])) {
             return back()->with('error', 'Only line managers can submit purchase requests.');
         }
         if ($purchaseRequest->requester_id !== auth()->id()) {

@@ -17,7 +17,7 @@ class PurchaseRequestController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('line_manager')) {
+        if ($user->hasAnyRole(['line_manager', 'staff'])) {
             $requests = PurchaseRequest::with('items', 'approvals.user')
                 ->where('requester_id', $user->id)
                 ->latest()
@@ -35,7 +35,7 @@ class PurchaseRequestController extends Controller
 
     public function create()
     {
-        if (! auth()->user()->hasRole('line_manager')) {
+        if (! auth()->user()->hasAnyRole(['line_manager', 'staff'])) {
             return back()->with('error', 'Only line managers can create purchase requests.');
         }
 
@@ -46,7 +46,7 @@ class PurchaseRequestController extends Controller
 
     public function store(Request $request)
     {
-        if (! auth()->user()->hasRole('line_manager')) {
+        if (! auth()->user()->hasAnyRole(['line_manager', 'staff'])) {
             return back()->with('error', 'Only line managers can create purchase requests.');
         }
 
@@ -115,7 +115,7 @@ class PurchaseRequestController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasRole('line_manager') && $purchaseRequest->requester_id !== $user->id) {
+        if ($user->hasAnyRole(['line_manager', 'staff']) && $purchaseRequest->requester_id !== $user->id) {
             abort(403, 'You can only view your own purchase requests.');
         }
 

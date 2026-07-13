@@ -5,10 +5,10 @@ namespace Modules\Inventory\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Modules\Inventory\Models\PurchaseOrder;
 use Modules\Inventory\Models\PurchaseRequest;
 use Modules\Inventory\Models\Store;
 use Modules\Inventory\Models\Supplier;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -17,11 +17,19 @@ class ProcurementApprovalFlowTest extends TestCase
     use DatabaseTransactions;
 
     private User $lineManager;
+
+    private User $staff;
+
     private User $purchaser;
+
     private User $gm;
+
     private User $finance;
+
     private User $auditor;
+
     private User $ggm;
+
     private Supplier $supplier;
 
     protected function setUp(): void
@@ -36,6 +44,9 @@ class ProcurementApprovalFlowTest extends TestCase
 
         $this->lineManager = User::factory()->create();
         $this->lineManager->assignRole('line_manager');
+
+        $this->staff = User::factory()->create();
+        $this->staff->assignRole('staff');
 
         $this->purchaser = User::factory()->create();
         $this->purchaser->assignRole('purchaser');
@@ -80,10 +91,15 @@ class ProcurementApprovalFlowTest extends TestCase
         ];
 
         foreach ($permissions as $perm) {
-            \Spatie\Permission\Models\Permission::findOrCreate($perm);
+            Permission::findOrCreate($perm);
         }
 
         Role::findOrCreate('line_manager')->givePermissionTo([
+            'procurement.create_request',
+            'procurement.view_own_requests',
+        ]);
+
+        Role::findOrCreate('staff')->givePermissionTo([
             'procurement.create_request',
             'procurement.view_own_requests',
         ]);
@@ -448,6 +464,107 @@ class ProcurementApprovalFlowTest extends TestCase
         $this->assertEquals('draft', $pr->fresh()->status);
     }
 
+    /** @test */
+    public function staff_can_create_and_submit_request_like_line_manager()
+    {
+        $this->actingAs($this->staff);
+
+        $response = $this->post(route('inventory.procurement.requests.store'), [
+            'department' => 'Housekeeping',
+            'urgency' => 'urgent',
+            'justification' => 'Staff needs cleaning supplies',
+            'items' => [
+                ['item_name' => 'Mop Set', 'quantity' => 2, 'estimated_unit_price' => 3000, 'notes' => null],
+            ],
+            'submit_and_send' => '1',
+        ]);
+
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('purchase_requests', [
+            'requester_id' => $this->staff->id,
+            'department' => 'Housekeeping',
+            'status' => 'pending_purchaser',
+            'current_role' => 'purchaser',
+        ]);
+
+        $pr = PurchaseRequest::where('requester_id', $this->staff->id)->first();
+        $this->assertNotNull($pr);
+        $this->assertCount(1, $pr->items);
+        $this->assertDatabaseHas('purchase_request_approvals', [
+            'purchase_request_id' => $pr->id,
+            'role' => 'line_manager',
+            'action' => 'submitted',
+        ]);
+    }
+
+    /** @test */
+    public function staff_can_view_own_requests_only()
+    {
+        $this->actingAs($this->staff);
+
+        $this->post(route('inventory.procurement.requests.store'), [
+            'department' => 'Housekeeping',
+            'urgency' => 'normal',
+            'justification' => 'Staff request',
+            'items' => [
+                ['item_name' => 'Broom', 'quantity' => 1, 'estimated_unit_price' => 2000, 'notes' => null],
+            ],
+        ]);
+
+        $pr = PurchaseRequest::where('requester_id', $this->staff->id)->first();
+
+        $response = $this->get(route('inventory.procurement.requests.show', $pr));
+        $response->assertOk();
+
+        $otherPr = $this->createSubmittedRequest();
+        $this->actingAs($this->staff);
+        $response = $this->get(route('inventory.procurement.requests.show', $otherPr));
+        $response->assertStatus(403);
+    }
+
+    /** @test */
+    public function staff_submitted_request_triggers_full_approval_flow()
+    {
+        $this->actingAs($this->staff);
+
+        $response = $this->post(route('inventory.procurement.requests.store'), [
+            'department' => 'Laundry',
+            'urgency' => 'normal',
+            'justification' => 'Staff needs detergent',
+            'items' => [
+                ['item_name' => 'Detergent 5L', 'quantity' => 4, 'estimated_unit_price' => 3500, 'notes' => null],
+            ],
+            'submit_and_send' => '1',
+        ]);
+
+        $pr = PurchaseRequest::where('requester_id', $this->staff->id)->first();
+        $this->assertEquals('pending_purchaser', $pr->status);
+
+        $this->actingAs($this->purchaser);
+        $this->post(route('inventory.procurement.review', $pr), [
+            'supplier_id' => $this->supplier->id,
+            'items' => json_encode([['id' => $pr->items[0]->id, 'unit_price' => 3200]]),
+        ]);
+        $this->assertEquals('pending_gm', $pr->fresh()->status);
+
+        $this->actingAs($this->gm);
+        $this->post(route('inventory.procurement.approve', $pr));
+        $this->assertEquals('pending_finance', $pr->fresh()->status);
+
+        $this->actingAs($this->finance);
+        $this->post(route('inventory.procurement.approve', $pr));
+        $this->assertEquals('pending_auditor', $pr->fresh()->status);
+
+        $this->actingAs($this->auditor);
+        $this->post(route('inventory.procurement.approve', $pr));
+        $this->assertEquals('pending_ggm', $pr->fresh()->status);
+
+        $this->actingAs($this->ggm);
+        $this->post(route('inventory.procurement.approve', $pr));
+        $this->assertEquals('approved', $pr->fresh()->status);
+    }
+
     private function createSubmittedRequest(): PurchaseRequest
     {
         $this->actingAs($this->lineManager);
@@ -495,7 +612,7 @@ class ProcurementApprovalFlowTest extends TestCase
                 $this->post(route('inventory.procurement.review', $pr), [
                     'supplier_id' => $this->supplier->id,
                     'items' => json_encode(
-                        $pr->items->map(fn($item) => ['id' => $item->id, 'unit_price' => 1000])->toArray()
+                        $pr->items->map(fn ($item) => ['id' => $item->id, 'unit_price' => 1000])->toArray()
                     ),
                 ]);
             } else {

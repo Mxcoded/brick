@@ -320,6 +320,8 @@ class RoleSeeder extends Seeder
                 'tasks.delete',
                 'leaves.create',
                 'leaves.read',
+                'procurement.create_request',
+                'procurement.view_own_requests',
             ]);
 
         // ──────────────────────────────────────────

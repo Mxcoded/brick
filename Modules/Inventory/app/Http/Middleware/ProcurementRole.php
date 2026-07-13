@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 class ProcurementRole
 {
     protected array $roles = [
-        'line_manager', 'purchaser', 'gm', 'finance', 'auditor', 'ggm',
+        'line_manager', 'staff', 'purchaser', 'gm', 'finance', 'auditor', 'ggm',
     ];
 
     public function handle(Request $request, Closure $next): Response

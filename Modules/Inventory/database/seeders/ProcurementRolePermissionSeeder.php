@@ -11,7 +11,7 @@ class ProcurementRolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        $roles = ['line_manager', 'purchaser', 'gm', 'finance', 'auditor', 'ggm'];
+        $roles = ['line_manager', 'staff', 'purchaser', 'gm', 'finance', 'auditor', 'ggm'];
 
         $permissions = [
             'procurement.create_request',
@@ -35,6 +35,11 @@ class ProcurementRolePermissionSeeder extends Seeder
         }
 
         Role::findByName('line_manager')->givePermissionTo([
+            'procurement.create_request',
+            'procurement.view_own_requests',
+        ]);
+
+        Role::findByName('staff')->givePermissionTo([
             'procurement.create_request',
             'procurement.view_own_requests',
         ]);

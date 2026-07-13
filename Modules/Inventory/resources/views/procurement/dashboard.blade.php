@@ -14,7 +14,7 @@
             'ggm' => 'Group General Manager',
             default => $role,
         };
-        $canCreate = auth()->user()->hasRole('line_manager');
+        $canCreate = auth()->user()->hasAnyRole(['line_manager', 'staff']);
     @endphp
 
     <div class="d-flex justify-content-between align-items-center mb-4">
