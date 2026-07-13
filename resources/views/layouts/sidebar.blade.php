@@ -56,6 +56,11 @@
             @includeIf('maintenance::layouts.menu')
         @endif
 
+        @canany(['procurement.create_request', 'procurement.view_all_requests'])
+            <div class="sidebar-subheading" style="padding-left: 1rem; padding-top: 1rem;">Procurement</div>
+            @includeIf('inventory::procurement.sidebar')
+        @endcanany
+
         @can('access_banquet_dashboard')
             @includeIf('banquet::layouts.menu')
         @endcan
