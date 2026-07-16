@@ -3,7 +3,6 @@
 use App\Http\Middleware\LogUserActivity;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\TrackUserActivity;
-use App\Models\UserActivityLog;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -50,10 +49,8 @@ return Application::configure(basePath: __DIR__.'/../')
         // Run the overstay process every day at 1:00 PM (13:00).
         $schedule->command('hotel:process-overstays')->dailyAt('18:00');
 
-        // Prune activity logs older than 90 days
-        $schedule->call(function () {
-            UserActivityLog::where('created_at', '<', now()->subDays(90))->delete();
-        })->dailyAt('03:00');
+        // Prune activity logs older than 7 days
+        $schedule->command('activity-logs:prune')->dailyAt('03:00');
     })
     // ** END OF ADDED BLOCK **
     ->create();
