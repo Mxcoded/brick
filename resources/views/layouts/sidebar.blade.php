@@ -57,8 +57,13 @@
         @endif
 
         @canany(['procurement.create_request', 'procurement.view_all_requests'])
-            <div class="sidebar-subheading" style="padding-left: 1rem; padding-top: 1rem;">Procurement</div>
+            <div class="sidebar-subheading {{ request()->routeIs('inventory.procurement.*') ? 'text-primary fw-bold' : '' }}" style="padding-left: 1rem; padding-top: 1rem;">Procurement</div>
             @includeIf('inventory::procurement.sidebar')
+        @endcanany
+
+        @canany(['finance.view_coa', 'finance.view_ledger', 'finance.view_reports'])
+            <div class="sidebar-subheading {{ request()->routeIs('finance.*') ? 'text-primary fw-bold' : '' }}" style="padding-left: 1rem; padding-top: 1rem;">Finance</div>
+            @includeIf('finance::layouts.menu')
         @endcanany
 
         @can('access_banquet_dashboard')

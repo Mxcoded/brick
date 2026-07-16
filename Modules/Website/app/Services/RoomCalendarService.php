@@ -772,6 +772,115 @@ class RoomCalendarService
     }
 
     /**
+     * Open (unblock) a date range for a room type.
+     *
+     * Unlike a plain delete, this only removes the requested range from any
+     * overlapping blocks and preserves the remaining portions by splitting the
+     * original block(s) around the opened range. This lets you open a sub-range
+     * of a previously blocked range while keeping the rest blocked.
+     *
+     * If $openCount is provided, only that many rooms are freed per overlapping
+     * block (the block's blocked_count is reduced by $openCount); otherwise the
+     * whole range is opened. Stop-sell / restrictions on a block are preserved.
+     */
+    public function openRooms(int $roomTypeId, Carbon $startDate, Carbon $endDate, ?int $openCount = null): int
+    {
+        $startDate = $startDate->copy()->startOfDay();
+        $endDate = $endDate->copy()->startOfDay();
+
+        $blocks = RoomInventoryBlock::forRoomType($roomTypeId)
+            ->overlapping($startDate, $endDate)
+            ->get();
+
+        $affected = 0;
+
+        foreach ($blocks as $block) {
+            $blockStart = Carbon::parse($block->start_date)->startOfDay();
+            $blockEnd = Carbon::parse($block->end_date)->startOfDay();
+
+            // Safety: skip if there is no actual overlap.
+            if ($blockEnd->lt($startDate) || $blockStart->gt($endDate)) {
+                continue;
+            }
+
+            // Rooms still blocked in the opened range after this open.
+            $remainingBlocked = $openCount === null
+                ? 0
+                : max(0, $block->blocked_count - $openCount);
+
+            // Keep a (reduced) segment if rooms remain blocked, or if the block
+            // carries other restrictions we must preserve.
+            $hasRestrictions = $block->stop_sell
+                || $block->closed_to_arrival
+                || $block->closed_to_departure
+                || $block->min_stay
+                || $block->max_stay;
+
+            $keepOpenedSegment = $remainingBlocked > 0 || $hasRestrictions;
+
+            // Portion before the opened range (keeps full blocked count).
+            $before = null;
+            if ($blockStart->lt($startDate)) {
+                $before = [
+                    'start_date' => $blockStart->copy(),
+                    'end_date' => $startDate->copy()->subDay(),
+                    'blocked_count' => $block->blocked_count,
+                ];
+            }
+
+            // Portion after the opened range (keeps full blocked count).
+            $after = null;
+            if ($blockEnd->gt($endDate)) {
+                $after = [
+                    'start_date' => $endDate->copy()->addDay(),
+                    'end_date' => $blockEnd->copy(),
+                    'blocked_count' => $block->blocked_count,
+                ];
+            }
+
+            // The opened range itself (reduced count, restrictions preserved).
+            $opened = null;
+            if ($keepOpenedSegment) {
+                $opened = [
+                    'start_date' => $startDate->copy(),
+                    'end_date' => $endDate->copy(),
+                    'blocked_count' => $remainingBlocked,
+                ];
+            }
+
+            // Drop the original block (soft delete) and recreate the survivors.
+            $block->delete();
+            $affected++;
+
+            foreach ([$before, $opened, $after] as $segment) {
+                if (! $segment) {
+                    continue;
+                }
+                if ($segment['start_date']->gt($segment['end_date'])) {
+                    continue;
+                }
+
+                RoomInventoryBlock::create([
+                    'room_type_id' => $block->room_type_id,
+                    'start_date' => $segment['start_date'],
+                    'end_date' => $segment['end_date'],
+                    'blocked_count' => $segment['blocked_count'],
+                    'block_type' => $block->block_type,
+                    'min_stay' => $block->min_stay,
+                    'max_stay' => $block->max_stay,
+                    'stop_sell' => $block->stop_sell,
+                    'closed_to_arrival' => $block->closed_to_arrival,
+                    'closed_to_departure' => $block->closed_to_departure,
+                    'notes' => $block->notes,
+                    'created_by' => $block->created_by,
+                ]);
+            }
+        }
+
+        return $affected;
+    }
+
+    /**
      * Apply restrictions to a room type for a date range.
      */
     public function applyRestrictions(

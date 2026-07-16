@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
+use Modules\Finance\Services\PostingService;
 use Modules\Restaurant\Models\Customer;
 use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
@@ -1115,6 +1116,13 @@ class RestaurantController extends Controller
         $order->status = 'completed';
         $order->tracking_status = 'paid';
         $order->save();
+
+        try {
+            app(PostingService::class)
+                ->recordSale('restaurant', (float) $payment->amount, $payment->method, 'restaurant_payment', $payment->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         // Track customer if phone exists
         if ($order->customer_phone) {

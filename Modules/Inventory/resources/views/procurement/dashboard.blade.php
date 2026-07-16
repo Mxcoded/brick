@@ -14,7 +14,7 @@
             'ggm' => 'Group General Manager',
             default => $role,
         };
-        $canCreate = auth()->user()->hasAnyRole(['line_manager', 'staff']);
+        $canCreate = auth()->user()->isProcurementRequester();
     @endphp
 
     <div class="d-flex justify-content-between align-items-center mb-4">

@@ -2,13 +2,15 @@
 
 namespace App\Providers;
 
-use App\View\Compilers\AtomicBladeCompiler;
 use App\Listeners\LogSuccessfulLogin;
 use App\Listeners\LogSuccessfulLogout;
+use App\Models\User;
+use App\View\Compilers\AtomicBladeCompiler;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -58,6 +60,30 @@ class AppServiceProvider extends ServiceProvider
                 $app['config']->get('view.cache', true),
                 $app['config']->get('view.compiled_extension', 'php'),
             );
+        });
+
+        // Staff access is determined by the account `type` ('staff'), not a Spatie role.
+        // Grant staff-account-type users the permissions the legacy `staff` role carried
+        // so module route middleware (@can) and views keep working without a role.
+        Gate::before(function ($user, $ability) {
+            if ($user instanceof User
+                && $user->isStaff()
+                && in_array($ability, [
+                    'access_staff_dashboard',
+                    'access_tasks_dashboard',
+                    'tasks.create',
+                    'tasks.read',
+                    'tasks.delete',
+                    'leaves.create',
+                    'leaves.read',
+                    'procurement.create_request',
+                    'procurement.view_own_requests',
+                ], true)
+            ) {
+                return true;
+            }
+
+            return null;
         });
     }
 }

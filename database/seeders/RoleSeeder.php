@@ -269,6 +269,15 @@ class RoleSeeder extends Seeder
             'procurement.attach_invoice',
             'procurement.audit_request',
             'procurement.convert_to_po',
+
+            // ──────────────────────────────────────────
+            // FINANCE – double-entry ledger
+            // ──────────────────────────────────────────
+            'finance.view_coa',
+            'finance.manage_coa',
+            'finance.post_journal',
+            'finance.view_ledger',
+            'finance.view_reports',
         ];
 
         foreach ($permissions as $permission) {
@@ -306,22 +315,6 @@ class RoleSeeder extends Seeder
                 'leaves.create',
                 'leaves.read',
                 'leaves.update',
-            ]);
-
-        // ──────────────────────────────────────────
-        // REGULAR STAFF
-        // ──────────────────────────────────────────
-        Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web'])
-            ->syncPermissions([
-                'access_staff_dashboard',
-                'access_tasks_dashboard',
-                'tasks.create',
-                'tasks.read',
-                'tasks.delete',
-                'leaves.create',
-                'leaves.read',
-                'procurement.create_request',
-                'procurement.view_own_requests',
             ]);
 
         // ──────────────────────────────────────────

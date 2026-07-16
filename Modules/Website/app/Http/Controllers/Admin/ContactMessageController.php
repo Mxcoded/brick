@@ -65,8 +65,10 @@ class ContactMessageController extends Controller
         $archivedCount = ContactMessage::archived()->count();
         $unreadCount = ContactMessage::active()->unread()->count();
 
-        $staffUsers = User::whereHas('roles', function ($q) {
-            $q->whereIn('name', ['admin', 'staff', 'super_admin', 'hr_manager']);
+        $staffUsers = User::where(function ($q) {
+            $q->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['admin', 'super_admin', 'hr_manager']);
+            })->orWhere('type', 'staff');
         })->orderBy('name')->get();
 
         return view('website::admin.contact-messages.index', compact(
@@ -92,8 +94,10 @@ class ContactMessageController extends Controller
         // Load replies with staff user info
         $contactMessage->load(['replies.user', 'assignedUser']);
 
-        $staffUsers = User::whereHas('roles', function ($q) {
-            $q->whereIn('name', ['admin', 'staff', 'super_admin', 'hr_manager']);
+        $staffUsers = User::where(function ($q) {
+            $q->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['admin', 'super_admin', 'hr_manager']);
+            })->orWhere('type', 'staff');
         })->orderBy('name')->get();
 
         return view('website::admin.contact-messages.show', compact('contactMessage', 'staffUsers'));

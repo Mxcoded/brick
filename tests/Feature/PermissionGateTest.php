@@ -138,7 +138,9 @@ class PermissionGateTest extends TestCase
     /** @test */
     public function user_without_any_permission_cannot_access_any_module()
     {
-        $user = $this->createUser();
+        // A guest account type has no module permissions and is not granted any
+        // by the account-type gate (which only applies to `staff` types).
+        $user = User::factory()->create(['type' => 'guest', 'status' => 'active']);
         $this->actingAs($user);
 
         $this->get('/admin')->assertStatus(403);
@@ -205,7 +207,16 @@ class PermissionGateTest extends TestCase
     /** @test */
     public function access_tasks_dashboard()
     {
-        $this->assertModuleAccess('/tasks', 'access_tasks_dashboard');
+        // Staff account-type users reach the tasks dashboard by account type alone.
+        $staff = User::factory()->create(['type' => 'staff', 'status' => 'active']);
+        $this->actingAs($staff)->get('/tasks')->assertOk();
+
+        // A non-staff user without the permission is blocked.
+        $guest = User::factory()->create(['type' => 'guest', 'status' => 'active']);
+        $this->actingAs($guest)->get('/tasks')->assertStatus(403);
+
+        // An explicit permission also grants access.
+        $this->assertPasses('/tasks', ['access_tasks_dashboard']);
     }
 
     /** @test */
@@ -487,10 +498,10 @@ class PermissionGateTest extends TestCase
     /** @test */
     public function leaves_apply_for_others_is_checked_in_controller()
     {
-        // leaves.apply-for-others is checked in LeaveController::submitLeaveForOther()
-        // via $user->can('leaves.apply-for-others')
-        $this->assertPasses('/staff/leaves/admin/apply', [
-            'access_staff_dashboard',
-        ]);
+        // The /staff/leaves/admin/apply route is gated by leaves.apply-for-others
+        // (see Modules/Staff/routes/web.php), so it is denied without that permission
+        // and allowed with it (the staff account type covers access_staff_dashboard).
+        $this->assertBlocked('/staff/leaves/admin/apply', []);
+        $this->assertPasses('/staff/leaves/admin/apply', ['leaves.apply-for-others']);
     }
 }

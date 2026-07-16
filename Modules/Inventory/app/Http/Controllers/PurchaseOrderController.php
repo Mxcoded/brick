@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
+use Modules\Finance\Services\PostingService;
 use Modules\Inventory\Exports\PurchaseOrdersExport;
 use Modules\Inventory\Models\Item;
 use Modules\Inventory\Models\PurchaseOrder;
@@ -142,6 +143,7 @@ class PurchaseOrderController extends Controller
         DB::beginTransaction();
         try {
             $allFullyReceived = true;
+            $receivedValue = 0;
 
             foreach ($validated['items'] as $line) {
                 $poItem = PurchaseOrderItem::findOrFail($line['id']);
@@ -153,6 +155,7 @@ class PurchaseOrderController extends Controller
                 $poItem->increment('quantity_received', $newReceived);
 
                 $totalCost = $newReceived * $poItem->unit_price;
+                $receivedValue += $totalCost;
                 $storeItem = StoreItem::firstOrNew([
                     'store_id' => $purchaseOrder->store_id,
                     'item_id' => $poItem->item_id,
@@ -191,6 +194,14 @@ class PurchaseOrderController extends Controller
             $purchaseOrder->update([
                 'status' => $allFullyReceived ? 'received' : 'partially_received',
             ]);
+
+            try {
+                $expenseCode = config('finance.accounts.expense.inventory', '5000');
+                app(PostingService::class)
+                    ->recordApLiability((float) $receivedValue, $expenseCode, 'purchase_order', $purchaseOrder->id);
+            } catch (\Throwable $e) {
+                report($e);
+            }
 
             DB::commit();
 

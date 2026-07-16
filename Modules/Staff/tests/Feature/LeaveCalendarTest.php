@@ -36,12 +36,13 @@ class LeaveCalendarTest extends TestCase
         Permission::firstOrCreate(['name' => 'access_staff_dashboard', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'employees.read', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'leaves.approve', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'leaves.apply-for-others', 'guard_name' => 'web']);
 
         $this->user = User::factory()->create([
             'type' => 'staff', 'status' => 'active',
             'password' => Hash::make('password'),
         ]);
-        $this->user->givePermissionTo(['access_staff_dashboard', 'employees.read', 'leaves.approve']);
+        $this->user->givePermissionTo(['access_staff_dashboard', 'employees.read', 'leaves.approve', 'leaves.apply-for-others']);
 
         $makeEmployee = fn (string $name) => Employee::create([
             'name' => $name,

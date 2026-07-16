@@ -17,13 +17,13 @@ class PurchaseRequestController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasAnyRole(['line_manager', 'staff'])) {
-            $requests = PurchaseRequest::with('items', 'approvals.user')
-                ->where('requester_id', $user->id)
+        if ($user->isProcurementApprover()) {
+            $requests = PurchaseRequest::with('requester', 'items', 'approvals.user')
                 ->latest()
                 ->get();
-        } elseif ($user->hasAnyRole(['purchaser', 'gm', 'finance', 'auditor', 'ggm'])) {
-            $requests = PurchaseRequest::with('requester', 'items', 'approvals.user')
+        } elseif ($user->isProcurementRequester()) {
+            $requests = PurchaseRequest::with('items', 'approvals.user')
+                ->where('requester_id', $user->id)
                 ->latest()
                 ->get();
         } else {
@@ -35,7 +35,7 @@ class PurchaseRequestController extends Controller
 
     public function create()
     {
-        if (! auth()->user()->hasAnyRole(['line_manager', 'staff'])) {
+        if (! auth()->user()->isProcurementRequester()) {
             return back()->with('error', 'Only line managers can create purchase requests.');
         }
 
@@ -46,7 +46,7 @@ class PurchaseRequestController extends Controller
 
     public function store(Request $request)
     {
-        if (! auth()->user()->hasAnyRole(['line_manager', 'staff'])) {
+        if (! auth()->user()->isProcurementRequester()) {
             return back()->with('error', 'Only line managers can create purchase requests.');
         }
 
@@ -115,8 +115,14 @@ class PurchaseRequestController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->hasAnyRole(['line_manager', 'staff']) && $purchaseRequest->requester_id !== $user->id) {
-            abort(403, 'You can only view your own purchase requests.');
+        if ($user->isProcurementApprover()) {
+            // Approvers may view any request in the chain.
+        } elseif ($user->isProcurementRequester()) {
+            if ($purchaseRequest->requester_id !== $user->id) {
+                abort(403, 'You can only view your own purchase requests.');
+            }
+        } else {
+            abort(403, 'You are not authorized to view this request.');
         }
 
         $purchaseRequest->load('requester', 'supplier', 'items', 'approvals.user');

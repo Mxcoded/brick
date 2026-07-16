@@ -84,7 +84,7 @@
                 
                 {{-- Quick Actions (shown when cells selected) --}}
                 <div class="quick-actions-group" id="quick-actions" style="display: none !important;">
-                    <button class="btn btn-action btn-action-success" onclick="quickAction('open')">
+                    <button class="btn btn-action btn-action-success" onclick="showBlockModal('open')">
                         <i class="fas fa-lock-open"></i> Open
                     </button>
                     <button class="btn btn-action btn-action-danger" onclick="quickAction('stop-sell')">
@@ -192,7 +192,7 @@
                             <label class="form-label fw-bold">Room Type</label>
                             <select class="form-select" id="modal-room-type" required>
                                 @foreach($roomTypes as $type)
-                                <option value="{{ $type->id }}">{{ $type->name }} ({{ $type->units->count() }} rooms)</option>
+                                <option value="{{ $type->id }}" data-units="{{ $type->units->count() }}">{{ $type->name }} ({{ $type->units->count() }} rooms)</option>
                                 @endforeach
                             </select>
                         </div>
@@ -202,6 +202,7 @@
                                 <option value="manual">Block Rooms</option>
                                 <option value="maintenance">Maintenance</option>
                                 <option value="stop_sell">Stop Sell</option>
+                                <option value="open">Open Rooms</option>
                                 <option value="restrictions">Set Restrictions</option>
                             </select>
                         </div>
@@ -228,6 +229,23 @@
                         </div>
                     </div>
                     
+                    {{-- Open Options --}}
+                    <div id="open-options" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Rooms to Open</label>
+                                <input type="number" class="form-control" id="modal-open-count" min="0">
+                                <small class="text-muted">Leave at the total to open all blocked rooms in this range, or enter fewer to open only that many.</small>
+                            </div>
+                        </div>
+                        <div class="alert alert-success mb-0">
+                            <i class="fas fa-lock-open me-1"></i>
+                            Opening frees rooms for the selected room type within the date range
+                            below. You can open a sub-range of a previously blocked range — the
+                            remaining dates (and any unopened rooms) stay blocked.
+                        </div>
+                    </div>
+
                     {{-- Restriction Options --}}
                     <div id="restriction-options" style="display: none;">
                         <div class="row mb-3">
@@ -1353,13 +1371,13 @@ function quickAction(action) {
     });
 }
 
-function showBlockModal() {
+function showBlockModal(mode = 'block') {
     const selection = getSelectedInfo();
     if (selection.roomTypes.length === 0) return;
     document.getElementById('modal-room-type').value = selection.roomTypes[0];
     document.getElementById('modal-start-date').value = selection.startDate;
     document.getElementById('modal-end-date').value = selection.endDate;
-    document.getElementById('modal-block-type').value = 'manual';
+    document.getElementById('modal-block-type').value = (mode === 'open') ? 'open' : 'manual';
     toggleBlockFields();
     document.getElementById('modal-notes').value = '';
     document.getElementById('modal-blocked-count').value = 0;
@@ -1368,13 +1386,21 @@ function showBlockModal() {
     document.getElementById('modal-stop-sell').checked = false;
     document.getElementById('modal-cta').checked = false;
     document.getElementById('modal-ctd').checked = false;
+    // Default "Rooms to open" to the room type's total so opening clears all
+    // blocked rooms in the range; the user can lower it to open fewer.
+    const roomTypeSelect = document.getElementById('modal-room-type');
+    const selectedOption = roomTypeSelect.options[roomTypeSelect.selectedIndex];
+    document.getElementById('modal-open-count').value = selectedOption ? selectedOption.dataset.units : '';
     document.getElementById('modal-open-trigger').click();
 }
 
 function toggleBlockFields() {
     const type = document.getElementById('modal-block-type').value;
-    document.getElementById('block-options').style.display = type === 'restrictions' ? 'none' : 'block';
-    document.getElementById('restriction-options').style.display = type === 'restrictions' ? 'block' : 'none';
+    const isRestrictions = type === 'restrictions';
+    const isOpen = type === 'open';
+    document.getElementById('block-options').style.display = (isRestrictions || isOpen) ? 'none' : 'block';
+    document.getElementById('restriction-options').style.display = isRestrictions ? 'block' : 'none';
+    document.getElementById('open-options').style.display = isOpen ? 'block' : 'none';
 }
 
 function submitBlockForm() {
@@ -1387,7 +1413,11 @@ function submitBlockForm() {
     };
     
     let url;
-    if (blockType === 'restrictions') {
+    if (blockType === 'open') {
+        url = OPEN_URL;
+        const openCount = document.getElementById('modal-open-count').value;
+        payload.open_count = openCount === '' ? null : parseInt(openCount, 10);
+    } else if (blockType === 'restrictions') {
         url = RESTRICT_URL;
         payload.min_stay = document.getElementById('modal-min-stay').value || null;
         payload.max_stay = document.getElementById('modal-max-stay').value || null;

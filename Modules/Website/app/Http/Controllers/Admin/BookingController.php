@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Emails\BookingCancellation;
 use Modules\Website\Emails\BookingConfirmation;
@@ -233,6 +234,13 @@ class BookingController extends Controller
             'payment_status' => 'paid',
             'amount_paid' => $booking->total_amount, // ✅ Clear balance due
         ]);
+
+        try {
+            app(PostingService::class)
+                ->recordSale('website', (float) $booking->total_amount, $booking->payment_method ?? 'transfer', 'booking', $booking->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         // 2. Send Confirmation Email
         try {

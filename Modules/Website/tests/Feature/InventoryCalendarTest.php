@@ -185,6 +185,146 @@ class InventoryCalendarTest extends TestCase
         ]);
     }
 
+    public function test_opening_a_sub_range_splits_the_block_and_keeps_the_rest_blocked()
+    {
+        $base = now()->addDays(20);
+        $blockStart = $base->copy()->format('Y-m-d');
+        $blockEnd = $base->copy()->addDays(5)->format('Y-m-d'); // 6-day block
+
+        $block = RoomInventoryBlock::create([
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $blockEnd,
+            'blocked_count' => 2,
+            'block_type' => 'manual',
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Open only the middle 2 days of the 6-day block.
+        $openStart = $base->copy()->addDays(2)->format('Y-m-d');
+        $openEnd = $base->copy()->addDays(3)->format('Y-m-d');
+
+        $response = $this->postJson(route('website.admin.inventory.open'), [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $openStart,
+            'end_date' => $openEnd,
+        ]);
+
+        $response->assertJson(['success' => true]);
+
+        // The originally blocked range is removed (split into the two ends)...
+        $this->assertSoftDeleted($block);
+
+        // ...and replaced by the two remaining segments, each still blocked.
+        $this->assertDatabaseHas('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $base->copy()->addDays(1)->format('Y-m-d'),
+            'blocked_count' => 2,
+        ]);
+
+        $this->assertDatabaseHas('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $base->copy()->addDays(4)->format('Y-m-d'),
+            'end_date' => $blockEnd,
+            'blocked_count' => 2,
+        ]);
+
+        // The opened middle days are no longer blocked.
+        $this->assertDatabaseMissing('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $openStart,
+            'end_date' => $openEnd,
+        ]);
+    }
+
+    public function test_opening_a_count_of_rooms_reduces_blocked_count_instead_of_clearing()
+    {
+        $base = now()->addDays(20);
+        $blockStart = $base->copy()->format('Y-m-d');
+        $blockEnd = $base->copy()->addDays(5)->format('Y-m-d');
+
+        $block = RoomInventoryBlock::create([
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $blockEnd,
+            'blocked_count' => 4,
+            'block_type' => 'manual',
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Open only 1 of the 4 blocked rooms for the whole range.
+        $response = $this->postJson(route('website.admin.inventory.open'), [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $blockEnd,
+            'open_count' => 1,
+        ]);
+
+        $response->assertJson(['success' => true]);
+        $this->assertSoftDeleted($block);
+
+        // The range now stays blocked, but with 1 fewer room (4 - 1 = 3).
+        $this->assertDatabaseHas('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $blockEnd,
+            'blocked_count' => 3,
+        ]);
+    }
+
+    public function test_opening_a_count_on_a_sub_range_keeps_the_rest_fully_blocked()
+    {
+        $base = now()->addDays(20);
+        $blockStart = $base->copy()->format('Y-m-d');
+        $blockEnd = $base->copy()->addDays(5)->format('Y-m-d'); // 6-day block
+
+        $block = RoomInventoryBlock::create([
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $blockEnd,
+            'blocked_count' => 4,
+            'block_type' => 'manual',
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Open 1 room from the middle 2 days only.
+        $openStart = $base->copy()->addDays(2)->format('Y-m-d');
+        $openEnd = $base->copy()->addDays(3)->format('Y-m-d');
+
+        $response = $this->postJson(route('website.admin.inventory.open'), [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $openStart,
+            'end_date' => $openEnd,
+            'open_count' => 1,
+        ]);
+
+        $response->assertJson(['success' => true]);
+        $this->assertSoftDeleted($block);
+
+        // Ends stay fully blocked (4).
+        $this->assertDatabaseHas('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $base->copy()->addDays(1)->format('Y-m-d'),
+            'blocked_count' => 4,
+        ]);
+        $this->assertDatabaseHas('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $base->copy()->addDays(4)->format('Y-m-d'),
+            'end_date' => $blockEnd,
+            'blocked_count' => 4,
+        ]);
+
+        // Middle stays blocked but with 1 fewer room (3).
+        $this->assertDatabaseHas('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $openStart,
+            'end_date' => $openEnd,
+            'blocked_count' => 3,
+        ]);
+    }
+
     public function test_website_admin_can_remove_block()
     {
         $block = RoomInventoryBlock::create([

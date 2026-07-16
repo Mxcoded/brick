@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Emails\RegistrationStatusMail;
 use Modules\Frontdeskcrm\Http\Requests\FinalizeRegistrationRequest;
 use Modules\Frontdeskcrm\Http\Requests\StoreRegistrationRequest;
@@ -1996,7 +1997,7 @@ class RegistrationController extends Controller
         ]);
 
         // Create Payment Record
-        $registration->payments()->create([
+        $payment = $registration->payments()->create([
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'],
             'payment_date' => $validated['payment_date'],
@@ -2004,6 +2005,13 @@ class RegistrationController extends Controller
             'notes' => $validated['notes'],
             'received_by' => Auth::id(),
         ]);
+
+        try {
+            app(PostingService::class)
+                ->recordSale('frontdesk', (float) $payment->amount, $payment->payment_method, 'registration_payment', $payment->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return back()->with('success', 'Payment recorded successfully.');
     }

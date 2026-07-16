@@ -20,17 +20,18 @@ use Modules\Banquet\Models\BanquetEnquiry;
 use Modules\Banquet\Models\EventLead;
 use Modules\Banquet\Models\LeadEvent;
 use Modules\Banquet\Notifications\NewEnquiryNotification;
+use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
-use Modules\Website\Emails\BookingConfirmation;
-use Modules\Website\Emails\ContactMessageReceived; // ✅ Import Contact Mail
+use Modules\Website\Emails\BookingConfirmation; // ✅ Import Contact Mail
+use Modules\Website\Emails\ContactMessageReceived;
 use Modules\Website\Emails\ReviewSubmitted;
-use Modules\Website\Models\Amenity;
-use Modules\Website\Models\Booking; // ✅ Import Booking Mail
+use Modules\Website\Models\Amenity; // ✅ Import Booking Mail
+use Modules\Website\Models\Booking;
 use Modules\Website\Models\ContactMessage;
-use Modules\Website\Models\Dining;
-use Modules\Website\Models\FacilitiesPage; // ✅ Import Contact Mail
+use Modules\Website\Models\Dining; // ✅ Import Contact Mail
+use Modules\Website\Models\FacilitiesPage;
 use Modules\Website\Models\MeetingPage;
 use Modules\Website\Models\NewsletterSubscriber;
 use Modules\Website\Models\OffersPage;
@@ -418,7 +419,7 @@ class WebsiteController extends Controller
                         'gender' => $validated['guest_gender'],
                         'home_address' => $validated['guest_address'],
                         'nationality' => $validated['guest_nationality'],
-                        'birthday' => $validated['guest_dob'],
+                        'birthday' => $validated['guest_dob'] ?? null,
                         'identification_type' => $validated['guest_id_type'],
                         'identification_number' => $validated['guest_id_number'],
                         'user_id' => $userId ?? $guest->user_id,
@@ -432,7 +433,7 @@ class WebsiteController extends Controller
                         'gender' => $validated['guest_gender'],
                         'home_address' => $validated['guest_address'],
                         'nationality' => $validated['guest_nationality'],
-                        'birthday' => $validated['guest_dob'],
+                        'birthday' => $validated['guest_dob'] ?? null,
                         'identification_type' => $validated['guest_id_type'],
                         'identification_number' => $validated['guest_id_number'],
                     ]);
@@ -1489,6 +1490,14 @@ class WebsiteController extends Controller
                                 'payment_method' => $channel,
                                 'status' => 'confirmed',
                             ]);
+
+                            try {
+                                app(PostingService::class)
+                                    ->recordSale('website', (float) $booking->total_amount, $booking->payment_method, 'booking', $booking->id);
+                            } catch (\Throwable $e) {
+                                report($e);
+                            }
+
                             $this->sendConfirmationEmail($booking);
                         }
 
@@ -1511,6 +1520,13 @@ class WebsiteController extends Controller
                             'payment_method' => $channel,
                             'status' => 'confirmed',
                         ]);
+
+                        try {
+                            app(PostingService::class)
+                                ->recordSale('website', (float) $booking->total_amount, $booking->payment_method, 'booking', $booking->id);
+                        } catch (\Throwable $e) {
+                            report($e);
+                        }
 
                         $this->sendConfirmationEmail($booking);
 
@@ -2018,8 +2034,8 @@ class WebsiteController extends Controller
         cache([$dailyCacheKey => $dailySubmissions + 1], now()->addDay());
 
         $managers = User::role(RoleEnum::ADMIN->value)
-            ->orWhereHas('roles', function ($q) {
-                $q->where('name', RoleEnum::STAFF->value)
+            ->orWhere(function ($q) {
+                $q->where('type', 'staff')
                     ->whereHas('permissions', fn ($p) => $p->where('name', 'banquet.update'));
             })
             ->get();

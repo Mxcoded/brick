@@ -45,8 +45,7 @@ class ProcurementApprovalFlowTest extends TestCase
         $this->lineManager = User::factory()->create();
         $this->lineManager->assignRole('line_manager');
 
-        $this->staff = User::factory()->create();
-        $this->staff->assignRole('staff');
+        $this->staff = User::factory()->create(['type' => 'staff']);
 
         $this->purchaser = User::factory()->create();
         $this->purchaser->assignRole('purchaser');
@@ -95,11 +94,6 @@ class ProcurementApprovalFlowTest extends TestCase
         }
 
         Role::findOrCreate('line_manager')->givePermissionTo([
-            'procurement.create_request',
-            'procurement.view_own_requests',
-        ]);
-
-        Role::findOrCreate('staff')->givePermissionTo([
             'procurement.create_request',
             'procurement.view_own_requests',
         ]);
@@ -624,5 +618,21 @@ class ProcurementApprovalFlowTest extends TestCase
         $pr->refresh();
 
         return $pr;
+    }
+
+    /** @test */
+    public function create_page_shows_approval_flow_context()
+    {
+        $this->actingAs($this->lineManager);
+
+        $response = $this->get(route('inventory.procurement.requests.create'));
+
+        $response->assertOk();
+        $response->assertSee('Approval Flow');
+        $response->assertSee('Purchaser');
+        $response->assertSee('sources supplier');
+        $response->assertSee('GGM');
+        $response->assertSee('final sign-off');
+        $response->assertSee('Converted to PO');
     }
 }

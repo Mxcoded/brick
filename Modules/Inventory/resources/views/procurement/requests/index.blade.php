@@ -10,11 +10,11 @@
             <p class="text-muted mb-0">All procurement requests across the workflow</p>
         </div>
         <div>
-            @can('procurement.create_request')
+            @if(auth()->user()->isProcurementRequester())
             <a href="{{ route('inventory.procurement.requests.create') }}" class="btn btn-primary shadow-sm">
                 <i class="fas fa-plus-circle me-2"></i>New Request
             </a>
-            @endcan
+            @endif
             <a href="{{ route('inventory.procurement.dashboard') }}" class="btn btn-outline-secondary shadow-sm">
                 <i class="fas fa-tachometer-alt me-1"></i>Dashboard
             </a>

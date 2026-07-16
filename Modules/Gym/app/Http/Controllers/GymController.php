@@ -8,6 +8,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Modules\Finance\Services\PostingService;
 use Modules\Gym\Models\Member;
 use Modules\Gym\Models\Membership;
 use Modules\Gym\Models\Payment;
@@ -662,6 +663,15 @@ class GymController extends Controller
             'payment_type' => $validated['payment_status'] === 'partial' ? 'partial' : 'full',
         ]);
 
+        if (in_array($payment->payment_status, ['paid', 'partial'])) {
+            try {
+                app(PostingService::class)
+                    ->recordSale('gym', (float) $payment->payment_amount, $payment->payment_mode, 'gym_payment', $payment->id);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         Log::info('Member payment created successfully', [
             'payment_id' => $payment->id,
             'membership_id' => $membership->id,
@@ -697,6 +707,13 @@ class GymController extends Controller
             'payment_type' => $validated['payment_type'],
             'payment_mode' => $validated['payment_mode'],
         ]);
+
+        try {
+            app(PostingService::class)
+                ->recordExpense('gym', (float) $trainerPayment->payment_amount, $trainerPayment->payment_mode, 'gym_trainer_payment', $trainerPayment->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         Log::info('Trainer payment created successfully', [
             'trainer_payment_id' => $trainerPayment->id,

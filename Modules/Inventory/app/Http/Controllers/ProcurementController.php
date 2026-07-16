@@ -19,23 +19,25 @@ class ProcurementController extends Controller
         $user = auth()->user();
         $view = 'inventory::procurement.dashboard';
 
-        if ($user->hasAnyRole(['line_manager', 'staff'])) {
+        if ($user->isProcurementApprover()) {
+            if ($user->hasRole('purchaser')) {
+                return $this->purchaserDashboard();
+            }
+            if ($user->hasRole('gm')) {
+                return $this->gmDashboard();
+            }
+            if ($user->hasRole('finance')) {
+                return $this->financeDashboard();
+            }
+            if ($user->hasRole('auditor')) {
+                return $this->auditorDashboard();
+            }
+            if ($user->hasRole('ggm')) {
+                return $this->ggmDashboard();
+            }
+        }
+        if ($user->isProcurementRequester()) {
             return $this->lineManagerDashboard();
-        }
-        if ($user->hasRole('purchaser')) {
-            return $this->purchaserDashboard();
-        }
-        if ($user->hasRole('gm')) {
-            return $this->gmDashboard();
-        }
-        if ($user->hasRole('finance')) {
-            return $this->financeDashboard();
-        }
-        if ($user->hasRole('auditor')) {
-            return $this->auditorDashboard();
-        }
-        if ($user->hasRole('ggm')) {
-            return $this->ggmDashboard();
         }
 
         return redirect()->route('inventory.procurement.requests.index')
@@ -191,7 +193,7 @@ class ProcurementController extends Controller
 
     public function submit(PurchaseRequest $purchaseRequest)
     {
-        if (! auth()->user()->hasAnyRole(['line_manager', 'staff'])) {
+        if (! auth()->user()->isProcurementRequester()) {
             return back()->with('error', 'Only line managers can submit purchase requests.');
         }
         if ($purchaseRequest->requester_id !== auth()->id()) {
