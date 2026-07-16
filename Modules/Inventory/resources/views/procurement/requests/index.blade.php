@@ -15,7 +15,7 @@
                 <i class="fas fa-plus-circle me-2"></i>New Request
             </a>
             @endif
-            <a href="{{ route('inventory.procurement.dashboard') }}" class="btn btn-outline-secondary shadow-sm">
+            <a href="{{ route('inventory.procurement.dashboard') }}" class="btn btn-outline-gold shadow-sm">
                 <i class="fas fa-tachometer-alt me-1"></i>Dashboard
             </a>
         </div>
@@ -58,7 +58,7 @@
                             <td class="ps-4 fw-bold">{{ $pr->pr_number }}</td>
                             <td>{{ $pr->requester->name ?? 'N/A' }}</td>
                             <td>{{ $pr->department ?? '—' }}</td>
-                            <td class="text-center"><span class="badge bg-secondary rounded-pill">{{ $pr->items->count() }}</span></td>
+                            <td class="text-center"><span class="badge bg-gold rounded-pill">{{ $pr->items->count() }}</span></td>
                             <td class="text-center">
                                 <span class="badge {{ \Modules\Inventory\Models\PurchaseRequest::urgencyBadge($pr->urgency) }}">
                                     {{ ucfirst($pr->urgency) }}

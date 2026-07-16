@@ -28,7 +28,7 @@
                     <i class="fas fa-plus-circle me-2"></i>Create New Request
                 </a>
             @endif
-            <a href="{{ route('inventory.procurement.requests.index') }}" class="btn btn-outline-secondary shadow-sm">
+            <a href="{{ route('inventory.procurement.requests.index') }}" class="btn btn-outline-gold shadow-sm">
                 <i class="fas fa-list me-1"></i>All Requests
             </a>
         </div>
@@ -105,7 +105,7 @@
                             <td class="ps-4 fw-bold">{{ $pr->pr_number }}</td>
                             <td>{{ $pr->requester->name ?? 'N/A' }}</td>
                             <td>{{ $pr->department ?? '—' }}</td>
-                            <td><span class="badge bg-secondary rounded-pill">{{ $pr->items->count() }}</span></td>
+                            <td><span class="badge bg-gold rounded-pill">{{ $pr->items->count() }}</span></td>
                             <td class="text-center">
                                 <span class="badge {{ \Modules\Inventory\Models\PurchaseRequest::urgencyBadge($pr->urgency) }}">
                                     {{ ucfirst($pr->urgency) }}
@@ -155,7 +155,7 @@
                         <tr>
                             <td class="ps-4 fw-bold">{{ $pr->pr_number }}</td>
                             <td>{{ $pr->department ?? '—' }}</td>
-                            <td><span class="badge bg-secondary rounded-pill">{{ $pr->items->count() }}</span></td>
+                            <td><span class="badge bg-gold rounded-pill">{{ $pr->items->count() }}</span></td>
                             <td class="text-truncate" style="max-width:250px;">{{ Str::limit($pr->justification, 60) }}</td>
                             <td class="text-center">
                                 <span class="badge bg-info text-dark">Flagged</span>
@@ -164,7 +164,7 @@
                                 <a href="{{ route('inventory.procurement.requests.edit', $pr) }}" class="btn btn-sm btn-info rounded-pill text-white">
                                     <i class="fas fa-edit me-1"></i>Edit &amp; Resubmit
                                 </a>
-                                <a href="{{ route('inventory.procurement.requests.show', $pr) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                <a href="{{ route('inventory.procurement.requests.show', $pr) }}" class="btn btn-sm btn-outline-gold rounded-pill">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </td>
@@ -203,7 +203,7 @@
                         <tr>
                             <td class="ps-4 fw-bold">{{ $pr->pr_number }}</td>
                             <td>{{ $pr->department ?? '—' }}</td>
-                            <td><span class="badge bg-secondary rounded-pill">{{ $pr->items->count() }}</span></td>
+                            <td><span class="badge bg-gold rounded-pill">{{ $pr->items->count() }}</span></td>
                             <td class="text-center">
                                 <span class="badge {{ \Modules\Inventory\Models\PurchaseRequest::urgencyBadge($pr->urgency) }}">
                                     {{ ucfirst($pr->urgency) }}
@@ -227,7 +227,7 @@
                                     <i class="fas fa-eye me-1"></i>View
                                 </a>
                                 @if(in_array($pr->status, ['draft', 'flagged']))
-                                    <a href="{{ route('inventory.procurement.requests.edit', $pr) }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                                    <a href="{{ route('inventory.procurement.requests.edit', $pr) }}" class="btn btn-sm btn-outline-gold rounded-pill">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 @endif
@@ -273,7 +273,7 @@
                         <tr>
                             <td class="ps-4 fw-bold">{{ $pr->pr_number }}</td>
                             <td>{{ $pr->requester->name ?? 'N/A' }}</td>
-                            <td><span class="badge bg-secondary rounded-pill">{{ $pr->items->count() }}</span></td>
+                            <td><span class="badge bg-gold rounded-pill">{{ $pr->items->count() }}</span></td>
                             <td class="text-center">
                                 <span class="badge {{ \Modules\Inventory\Models\PurchaseRequest::statusBadge($pr->status) }}">
                                     {{ \Modules\Inventory\Models\PurchaseRequest::statusLabel($pr->status) }}
