@@ -28,6 +28,7 @@ class LogSuccessfulLogin
 
         UserLoginLog::create([
             'user_id' => $event->user->id,
+            'session_id' => $this->request->session()->getId(),
             'ip_address' => $this->request->ip(),
             'user_agent' => $userAgent,
             'browser' => $parsedAgent['browser'],

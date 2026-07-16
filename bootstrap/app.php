@@ -51,6 +51,9 @@ return Application::configure(basePath: __DIR__.'/../')
 
         // Prune activity logs older than 7 days
         $schedule->command('activity-logs:prune')->dailyAt('03:00');
+
+        // Auto log out sessions idle for more than 3 hours
+        $schedule->command('auth:logout-idle')->everyThirtyMinutes();
     })
     // ** END OF ADDED BLOCK **
     ->create();
