@@ -39,7 +39,7 @@
                 </div>
                 <div class="col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-gold w-100"><i class="fas fa-filter me-1"></i> Filter</button>
-                    <a href="{{ route('admin.activity-logs.index') }}" class="btn btn-outline-secondary"><i class="fas fa-times"></i></a>
+                    <a href="{{ route('admin.activity-logs.index') }}" class="btn btn-outline-danger"><i class="fas fa-times"></i></a>
                 </div>
             </form>
         </div>
@@ -86,7 +86,7 @@
                                     'delete', 'destroy' => 'danger',
                                     'assign-room', 'assign', 'approve' => 'info',
                                     'reject', 'cancel' => 'warning',
-                                    'page_view' => 'secondary',
+                                    'page_view' => 'gold',
                                     default => 'dark',
                                 };
                             @endphp

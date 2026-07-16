@@ -90,7 +90,7 @@
             </div>
         </div>
         <div class="col-6 col-lg-3 col-xl">
-            <div class="card bg-secondary text-white h-100">
+            <div class="card bg-gold text-white h-100">
                 <div class="card-body py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
