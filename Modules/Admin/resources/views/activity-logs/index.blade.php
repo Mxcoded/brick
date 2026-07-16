@@ -62,29 +62,58 @@
                     </thead>
                     <tbody>
                         @forelse($logs as $log)
-                            <tr>
+                            @php
+                                $parts = explode('.', $log->action);
+                                $verb = end($parts);
+                                $resource = implode(' ', array_slice($parts, 0, -1));
+                                $verbLabel = match ($verb) {
+                                    'create', 'store' => 'Created',
+                                    'update', 'edit' => 'Updated',
+                                    'delete', 'destroy' => 'Deleted',
+                                    'assign-room' => 'Room Assigned',
+                                    'assign' => 'Assigned',
+                                    'approve' => 'Approved',
+                                    'reject' => 'Rejected',
+                                    'cancel' => 'Cancelled',
+                                    'page_view' => 'Viewed',
+                                    'login' => 'Logged In',
+                                    'logout' => 'Logged Out',
+                                    default => ucfirst(str_replace(['-', '_'], ' ', $verb)),
+                                };
+                                $color = match ($verb) {
+                                    'create', 'store' => 'success',
+                                    'update', 'edit' => 'primary',
+                                    'delete', 'destroy' => 'danger',
+                                    'assign-room', 'assign', 'approve' => 'info',
+                                    'reject', 'cancel' => 'warning',
+                                    'page_view' => 'secondary',
+                                    default => 'dark',
+                                };
+                            @endphp
+                            <tr class="border-start border-3 border-{{ $color }}">
                                 <td class="small text-nowrap">{{ $log->created_at->format('M d, H:i') }}</td>
                                 <td class="fw-semibold">
                                     @if($log->user)
                                         <a href="{{ route('admin.activity-logs.index', ['user_id' => $log->user_id]) }}" class="text-decoration-none">{{ $log->user->name }}</a>
                                     @else
-                                        <span class="text-muted">Deleted</span>
+                                        <span class="text-muted">System</span>
                                     @endif
                                 </td>
                                 <td>
-                                    @php
-                                        $badge = match($log->action) {
-                                            'create' => 'success',
-                                            'update' => 'primary',
-                                            'delete' => 'danger',
-                                            'page_view' => 'secondary',
-                                            default => 'info',
-                                        };
-                                    @endphp
-                                    <span class="badge bg-{{ $badge }} rounded-pill">{{ $log->action }}</span>
+                                    <span class="badge bg-{{ $color }} rounded-pill">{{ $verbLabel }}</span>
+                                    @if($resource)
+                                        <div class="small text-muted mt-1 text-capitalize">{{ str_replace(['-', '_'], ' ', $resource) }}</div>
+                                    @endif
                                 </td>
-                                <td class="small">{{ $log->description }}</td>
-                                <td><span class="badge bg-light text-dark">{{ $log->method }}</span></td>
+                                <td class="small">
+                                    {{ $log->description }}
+                                    @if($log->model_type && $log->model_id)
+                                        <span class="badge bg-light text-dark border ms-1" title="{{ $log->model_type }}">
+                                            {{ class_basename($log->model_type) }} #{{ $log->model_id }}
+                                        </span>
+                                    @endif
+                                </td>
+                                <td><span class="badge bg-light text-dark border">{{ $log->method }}</span></td>
                                 <td class="small text-muted font-monospace">{{ $log->ip_address }}</td>
                             </tr>
                         @empty
