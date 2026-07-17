@@ -13,11 +13,11 @@ class WebsiteDatabaseSeeder extends Seeder
     {
         $this->call(AmenitySeeder::class);
         $this->call(DiningSeeder::class);
-        
+
         // Legacy room seeder (for backward compatibility)
         // $this->call(RoomSeeder::class);
         // $this->call(RoomImageSeeder::class);
-        
+
         // NEW: Room Types & Units Architecture
         $this->call(RoomTypeSeeder::class);
     }

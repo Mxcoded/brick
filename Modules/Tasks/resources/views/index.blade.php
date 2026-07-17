@@ -1,417 +1,389 @@
 @extends('layouts.master')
 
-@section('title', 'Tasks List')
+@section('title', 'Tasks')
 @section('current-breadcrumb')
-    <li class="breadcrumb-item active" aria-current="page">Tasks List</li>
+    <li class="breadcrumb-item active" aria-current="page">Tasks</li>
+@endsection
+
+@section('styles')
+<style>
+    .task-card { border-radius: 10px; transition: box-shadow 0.2s, opacity 0.3s; border: 1px solid #f0f0f0 !important; }
+    .task-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important; }
+    .task-card.completed { opacity: 0.6; }
+    .task-card.completed .task-link { text-decoration: line-through !important; color: #999 !important; }
+    .task-link:hover { color: #C8A165 !important; }
+    .btn-gold { background-color: #C8A165; border-color: #C8A165; color: #fff; }
+    .btn-gold:hover { background-color: #b08d55; border-color: #b08d55; color: #fff; }
+    .btn-outline-gold { color: #C8A165; border-color: #C8A165; }
+    .btn-outline-gold:hover { background-color: #C8A165; border-color: #C8A165; color: #fff; }
+
+    .nav-tabs .nav-link { color: #666; border: none; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { color: #C8A165; font-weight: 600; border-bottom: 2px solid #C8A165; background: transparent; }
+    .nav-tabs .nav-link .badge { font-size: 0.7rem; padding: 3px 7px; vertical-align: middle; }
+    .nav-tabs .nav-link.active .badge { background: #C8A165 !important; color: #fff; }
+
+    .min-width-0 { min-width: 0; }
+    .status-toggle { display: inline-flex; border-radius: 20px; overflow: hidden; border: 1px solid #dee2e6; }
+    .status-toggle .st-btn { border: none; padding: 3px 12px; font-size: 0.75rem; cursor: pointer; transition: all 0.15s; font-weight: 500; }
+    .status-toggle .st-btn:not(:last-child) { border-right: 1px solid #dee2e6; }
+    .status-toggle .st-btn.st-pending { background: #fff8e1; color: #8a6d00; }
+    .status-toggle .st-btn.st-in_progress { background: #e3f2fd; color: #0a58ca; }
+    .status-toggle .st-btn.st-completed { background: #e8f5e9; color: #146c43; }
+    .status-toggle .st-btn.active.st-pending { background: #ffc107; color: #212529; }
+    .status-toggle .st-btn.active.st-in_progress { background: #0d6efd; color: #fff; }
+    .status-toggle .st-btn.active.st-completed { background: #198754; color: #fff; }
+    .status-toggle .st-btn:not(.active):hover { filter: brightness(0.92); }
+    .status-toggle .st-btn.readonly { cursor: default; }
+
+    .stat-card { border-radius: 12px; border: 1px solid rgba(0,0,0,0.04); transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .stat-card .stat-number { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .stat-card .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.6px; }
+
+    .kanban-column { min-height: 300px; border-radius: 12px; background: #f8f9fa; padding: 14px; border: 1px solid #eee; }
+    .kanban-column .kanban-header { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 2px solid; }
+    .kanban-column.droppable { background: #f0f7ff; }
+    .kanban-card { cursor: grab; }
+    .kanban-card:active { cursor: grabbing; }
+    .kanban-column.drag-over { background: #e8f4fd; outline: 2px dashed #0d6efd; }
+
+    .filter-bar { background: #fff; border-radius: 12px; padding: 20px; border: 1px solid #f0f0f0; }
+    .filter-bar .form-control, .filter-bar .form-select { font-size: 0.85rem; }
+    .filter-bar label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
+    .bulk-bar { background: #1a1a2e; color: #fff; border-radius: 12px; padding: 10px 18px; display: none; align-items: center; gap: 12px; }
+    .bulk-bar.show { display: flex; }
+    .bulk-bar .bulk-count { font-weight: 600; font-size: 0.85rem; }
+</style>
 @endsection
 
 @section('page-content')
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0">Tasks</h1>
-        <div class="d-flex gap-2">
-            @can('create-task')
-                <a href="{{ route('tasks.create') }}" class="btn btn-primary btn-sm" aria-label="Create New Task">
-                    <i class="fas fa-plus me-1"></i>New Task
-                </a>
-            @endcan
-            <button class="btn btn-outline-secondary btn-sm d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas" aria-label="Open Filters">
-                <i class="fas fa-filter"></i>
-            </button>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-charcoal mb-0"><i class="fas fa-clipboard-list me-2"></i>Tasks</h3>
+        @can('tasks.create')
+            <a href="{{ route('tasks.create') }}" class="btn btn-gold btn-sm">
+                <i class="fas fa-plus me-1"></i>New Task
+            </a>
+        @endcan
     </div>
 
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    <!-- Notification Toast -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="taskToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="me-auto">New Task Assigned</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    <div id="taskToastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
+    {{-- Stats Bar --}}
+    <div class="row g-2 mb-4">
+        @php
+            $statCards = [
+                ['label' => 'Total', 'count' => $stats['total'], 'color' => '#2c3e50', 'bg' => '#f8f9fa', 'status' => ''],
+                ['label' => 'Pending', 'count' => $stats['pending'], 'color' => '#ffc107', 'bg' => '#fff8e1', 'status' => 'pending'],
+                ['label' => 'In Progress', 'count' => $stats['in_progress'], 'color' => '#0d6efd', 'bg' => '#e3f2fd', 'status' => 'in_progress'],
+                ['label' => 'Completed', 'count' => $stats['completed'], 'color' => '#198754', 'bg' => '#e8f5e9', 'status' => 'completed'],
+                ['label' => 'Overdue', 'count' => $stats['overdue'], 'color' => '#dc3545', 'bg' => '#fde8e8', 'status' => 'overdue'],
+            ];
+        @endphp
+        @foreach ($statCards as $card)
+            <div class="col-md col-6">
+                <div class="stat-card p-3 text-center"
+                     style="background: {{ $card['bg'] }};"
+                     onclick="{{ $card['status'] ? "window.location.href='" . route('tasks.index', array_merge(request()->query(), ['status' => $card['status']])) . "'" : '' }}">
+                    <div class="stat-number" style="color: {{ $card['color'] }};">{{ $card['count'] }}</div>
+                    <div class="stat-label" style="color: {{ $card['color'] }};">{{ $card['label'] }}</div>
+                </div>
             </div>
-            <div class="toast-body"></div>
-        </div>
+        @endforeach
     </div>
 
-    <!-- Mobile Search -->
-    <div class="d-block d-lg-none mb-3">
-        <form action="{{ route('tasks.index') }}" method="GET">
-            <div class="input-group">
-                <input type="text" name="q" id="mobile-search" class="form-control" placeholder="Search tasks..." value="{{ request('q') }}" aria-label="Search tasks">
-                <button class="btn btn-primary" type="submit" aria-label="Search">
-                    <i class="fas fa-search"></i>
-                </button>
+    {{-- Filter Bar --}}
+    <form method="GET" action="{{ route('tasks.index') }}" class="filter-bar mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Search description or task #..." value="{{ $filters['search'] ?? '' }}">
             </div>
-        </form>
-    </div>
-
-    <!-- Desktop Filters -->
-    <div class="row mb-3 d-none d-lg-flex align-items-end">
-        <div class="col-md-4">
-            <form action="{{ route('tasks.index') }}" method="GET" id="desktop-search-form">
-                <div class="input-group">
-                    <input type="text" name="q" id="desktop-search" class="form-control" placeholder="Search tasks..." value="{{ request('q') }}" aria-label="Search tasks">
-                    <button class="btn btn-primary" type="submit" aria-label="Search">
-                        <i class="fas fa-search me-1"></i>Search
-                    </button>
+            <div class="col-md-2">
+                <label class="form-label mb-1">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    <option value="pending" @selected(($filters['status'] ?? '') === 'pending')>Pending</option>
+                    <option value="in_progress" @selected(($filters['status'] ?? '') === 'in_progress')>In Progress</option>
+                    <option value="completed" @selected(($filters['status'] ?? '') === 'completed')>Completed</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1">Priority</label>
+                <select name="priority" class="form-select">
+                    <option value="">All</option>
+                    <option value="high" @selected(($filters['priority'] ?? '') === 'high')>High</option>
+                    <option value="medium" @selected(($filters['priority'] ?? '') === 'medium')>Medium</option>
+                    <option value="low" @selected(($filters['priority'] ?? '') === 'low')>Low</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1">Assignee</label>
+                <select name="assignee_id" class="form-select">
+                    <option value="">Anyone</option>
+                    @foreach($employees as $emp)
+                        <option value="{{ $emp->id }}" @selected(($filters['assignee_id'] ?? '') == $emp->id)>{{ $emp->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1">Date Range</label>
+                <div class="d-flex gap-1">
+                    <input type="date" name="date_from" class="form-control" placeholder="From" value="{{ $filters['date_from'] ?? '' }}" title="From date">
+                    <input type="date" name="date_to" class="form-control" placeholder="To" value="{{ $filters['date_to'] ?? '' }}" title="To date">
                 </div>
-            </form>
-        </div>
-        <div class="col-md-8">
-            <form action="{{ route('tasks.index') }}" method="GET" id="desktop-filter-form" class="d-flex gap-2 align-items-end">
-                <div class="flex-fill">
-                    <label for="status" class="form-label visually-hidden">Status</label>
-                    <select name="status" id="status" class="form-select form-select-sm">
-                        <option value="">All Statuses</option>
-                        <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="Completed" {{ request('status') == 'Completed' ? 'selected' : '' }}>Completed</option>
-                        <option value="Evaluated (Successful)" {{ request('status') == 'Evaluated (Successful)' ? 'selected' : '' }}>Evaluated (Successful)</option>
-                        <option value="Evaluated (Not Successful)" {{ request('status') == 'Evaluated (Not Successful)' ? 'selected' : '' }}>Evaluated (Not Successful)</option>
-                    </select>
-                </div>
-                <div class="flex-fill">
-                    <label for="priority" class="form-label visually-hidden">Priority</label>
-                    <select name="priority" id="priority" class="form-select form-select-sm">
-                        <option value="">All Priorities</option>
-                        <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }}>High</option>
-                        <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }}>Medium</option>
-                        <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Low</option>
-                    </select>
-                </div>
-                @if (Auth::user()->hasRole('admin','gm'))
-                    <div class="flex-fill">
-                        <label for="assignee" class="form-label visually-hidden">Assignee</label>
-                        <select name="assignee" id="assignee" class="form-select form-select-sm">
-                            <option value="">All Assignees</option>
-                            @foreach ($employees as $employee)
-                                <option value="{{ $employee->id }}" {{ request('assignee') == $employee->id ? 'selected' : '' }}>{{ $employee->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
-                <button type="submit" class="btn btn-primary btn-sm" aria-label="Apply Filters">Apply</button>
-                <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary btn-sm" aria-label="Clear Filters">Clear</a>
-            </form>
-        </div>
-    </div>
-
-    <!-- Offcanvas for Mobile Filters -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="filterOffcanvas" aria-labelledby="filterOffcanvasLabel">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title" id="filterOffcanvasLabel">Filters</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-        <div class="offcanvas-body">
-            <form action="{{ route('tasks.index') }}" method="GET">
-                <div class="mb-3">
-                    <label for="mobile-q" class="form-label">Search</label>
-                    <input type="text" name="q" id="mobile-q" class="form-control" placeholder="Search tasks..." value="{{ request('q') }}" aria-label="Search tasks">
-                </div>
-                <div class="mb-3">
-                    <label for="mobile-status" class="form-label">Status</label>
-                    <select name="status" id="mobile-status" class="form-select">
-                        <option value="">All Statuses</option>
-                        <option value="Pending" {{ request('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="Completed" {{ request('status') == 'Completed' ? 'selected' : '' }}>Completed</option>
-                        <option value="Evaluated (Successful)" {{ request('status') == 'Evaluated (Successful)' ? 'selected' : '' }}>Evaluated (Successful)</option>
-                        <option value="Evaluated (Not Successful)" {{ request('status') == 'Evaluated (Not Successful)' ? 'selected' : '' }}>Evaluated (Not Successful)</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="mobile-priority" class="form-label">Priority</label>
-                    <select name="priority" id="mobile-priority" class="form-select">
-                        <option value="">All Priorities</option>
-                        <option value="high" {{ request('priority') == 'high' ? 'selected' : '' }}>High</option>
-                        <option value="medium" {{ request('priority') == 'medium' ? 'selected' : '' }}>Medium</option>
-                        <option value="low" {{ request('priority') == 'low' ? 'selected' : '' }}>Low</option>
-                    </select>
-                </div>
-                @if (Auth::user()->hasRole('admin','gm'))
-                    <div class="mb-3">
-                        <label for="mobile-assignee" class="form-label">Assignee</label>
-                        <select name="assignee" id="mobile-assignee" class="form-select">
-                            <option value="">All Assignees</option>
-                            @foreach ($employees as $employee)
-                                <option value="{{ $employee->id }}" {{ request('assignee') == $employee->id ? 'selected' : '' }}>{{ $employee->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
+            </div>
+            <div class="col-12 mt-2">
+                <input type="hidden" name="view" value="{{ $viewMode }}">
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">Apply Filters</button>
-                    <a href="{{ route('tasks.index') }}" class="btn btn-outline-secondary">Clear</a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Desktop Table -->
-    <div class="d-none d-lg-block">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th scope="col">Task #</th>
-                        <th scope="col">Date</th>
-                        <th scope="col">Summary</th>
-                        <th scope="col">Priority</th>
-                        <th scope="col">Deadline</th>
-                        <th scope="col">Assignees</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($tasks as $task)
-                        <tr>
-                            <td class="fw-bold">{{ $task->task_number }}</td>
-                            <td>{{ $task->date->format('M d, Y') }}</td>
-                            <td>
-                                <span class="text-truncate d-block" style="max-width: 150px" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $task->description }}" aria-label="{{ Str::limit($task->description, 30, '...') }}">
-                                    {{ Str::limit($task->description, 30, '...') }}
-                                </span>
-                            </td>
-                            <td>
-                                @if($task->priority == 'high')
-                                    <span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>High</span>
-                                @elseif($task->priority == 'medium')
-                                    <span class="badge bg-warning text-dark"><i class="fas fa-info-circle me-1"></i>Medium</span>
-                                @else
-                                    <span class="badge bg-secondary"><i class="fas fa-arrow-down me-1"></i>Low</span>
-                                @endif
-                            </td>
-                            <td @if($task->deadline->isPast()) class="text-danger" @endif>
-                                {{ $task->deadline->format('M d, Y') }}
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center" role="group" aria-label="Assignees">
-                                    @if($task->employees->isNotEmpty())
-                                        <div class="avatar-group">
-                                            @foreach($task->employees->take(3) as $employee)
-                                                <span class="avatar avatar-sm rounded text-bg-dark me-2" aria-label="{{ $employee->name }}">
-                                                    {{ strtoupper(substr($employee->name, 0, 1)) }}
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                        @if($task->employees->count() > 3)
-                                            <small class="ms-2">+{{ $task->employees->count() - 3 }}</small>
-                                        @endif
-                                    @else
-                                        <span class="text-muted">Unassigned</span>
-                                    @endif
-                                </div>
-                            </td>
-                            <td>
-                                @if ($task->status == 'Pending')
-                                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
-                                @elseif ($task->status == 'Completed')
-                                    <span class="badge bg-primary"><i class="fas fa-check-circle me-1"></i>Completed</span>
-                                @elseif ($task->status == 'Evaluated (Successful)')
-                                    <span class="badge bg-success"><i class="fas fa-star me-1"></i>Successful</span>
-                                @else
-                                    <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Not Successful</span>
-                                @endif
-                            </td>
-                            <td>
-                                <div class="d-flex gap-1">
-                                    @can('view-task')
-                                    <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-sm btn-outline-primary" title="View Task" aria-label="View Task">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    @endcan
-                                    @can('update', $task)
-                                        <a href="{{ route('tasks.edit', $task->id) }}" class="btn btn-sm btn-outline-secondary" title="Edit Task" aria-label="Edit Task">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                    @endcan
-                                    @can('delete-task')
-                                        <form action="{{ route('tasks.destroy', $task->id) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this task?')" title="Delete Task" aria-label="Delete Task">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    @endcan
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="text-center py-4">No tasks found.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Mobile Cards -->
-    <div class="d-block d-lg-none">
-        @forelse ($tasks as $task)
-            <div class="card mb-3 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <h5 class="card-title mb-0">#{{ $task->task_number }}</h5>
-                            <small class="text-muted">{{ $task->date->format('M d, Y') }}</small>
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn btn-link text-dark" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Task Actions">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="{{ route('tasks.show', $task->id) }}"><i class="fas fa-eye me-2"></i>View</a></li>
-                                @can('update', $task)
-                                    <li><a class="dropdown-item" href="{{ route('tasks.edit', $task->id) }}"><i class="fas fa-edit me-2"></i>Edit</a></li>
-                                @endcan
-                                @can('delete', $task)
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <form action="{{ route('tasks.destroy', $task->id) }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Are you sure you want to delete this task?')">
-                                                <i class="fas fa-trash me-2"></i>Delete
-                                            </button>
-                                        </form>
-                                    </li>
-                                @endcan
-                            </ul>
-                        </div>
-                    </div>
-                    <p class="card-text mb-2">{{ Str::limit($task->description, 50, '...') }}</p>
-                    <div class="d-flex flex-wrap gap-2 mb-2">
-                        @if($task->priority == 'high')
-                            <span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>High</span>
-                        @elseif($task->priority == 'medium')
-                            <span class="badge bg-warning text-dark"><i class="fas fa-info-circle me-1"></i>Medium</span>
-                        @else
-                            <span class="badge bg-secondary"><i class="fas fa-arrow-down me-1"></i>Low</span>
-                        @endif
-                        @if ($task->status == 'Pending')
-                            <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
-                        @elseif ($task->status == 'Completed')
-                            <span class="badge bg-primary"><i class="fas fa-check-circle me-1"></i>Completed</span>
-                        @elseif ($task->status == 'Evaluated (Successful)')
-                            <span class="badge bg-success"><i class="fas fa-star me-1"></i>Successful</span>
-                        @else
-                            <span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Not Successful</span>
-                        @endif
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted">Deadline:</small>
-                            <div @if($task->deadline->isPast()) class="text-danger" @endif>
-                                {{ $task->deadline->format('M d, Y') }}
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <small class="text-muted">Assignees:</small>
-                            <div>
-                                @if($task->employees->isNotEmpty())
-                                    <a href="#" data-bs-toggle="popover" data-bs-content="{{ $task->employees->pluck('name')->implode(', ') }}" data-bs-trigger="focus" aria-label="View Assignees">
-                                        {{ $task->employees->count() }} <i class="fas fa-users"></i>
-                                    </a>
-                                @else
-                                    <span class="text-muted">None</span>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
+                    <button type="submit" class="btn btn-sm btn-gold px-4"><i class="fas fa-search me-1"></i>Apply</button>
+                    <a href="{{ route('tasks.index', ['view' => $viewMode]) }}" class="btn btn-sm btn-outline-dark"><i class="fas fa-times me-1"></i>Clear</a>
                 </div>
             </div>
-        @empty
-            <div class="alert alert-info">No tasks found.</div>
-        @endforelse
+        </div>
+    </form>
+
+    {{-- Bulk Action Bar --}}
+    <div class="bulk-bar mb-3" id="bulkBar">
+        <span class="bulk-count"><span id="bulkCount">0</span> selected</span>
+        <select id="bulkStatusSelect" class="form-select form-select-sm" style="width: auto; color: #000;">
+            <option value="">Change status...</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+        </select>
+        <button type="button" class="btn btn-sm btn-warning fw-semibold text-dark" id="bulkStatusBtn">Apply</button>
+        @can('tasks.assign')
+            <select id="bulkAssignSelect" class="form-select form-select-sm" style="width: auto; color: #000;">
+                <option value="">Assign to...</option>
+                @foreach($employees as $emp)
+                    <option value="{{ $emp->id }}">{{ $emp->name }}</option>
+                @endforeach
+            </select>
+            <button type="button" class="btn btn-sm btn-warning fw-semibold text-dark" id="bulkAssignBtn">Apply</button>
+        @endcan
+        <button type="button" class="btn btn-sm btn-outline-light ms-auto" id="bulkClearBtn">Clear</button>
     </div>
 
-    <!-- Pagination -->
-    <div class="mt-4">
-        {{ $tasks->appends(request()->query())->links('pagination::bootstrap-5') }}
+    {{-- View Toggle --}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="btn-group btn-group-sm">
+            <a href="{{ route('tasks.index', array_merge(request()->except('view'), ['view' => 'list'])) }}"
+               class="btn {{ $viewMode === 'list' ? 'btn-gold' : 'btn-outline-dark' }}">
+                <i class="fas fa-list me-1"></i>List
+            </a>
+            <a href="{{ route('tasks.index', array_merge(request()->except('view'), ['view' => 'kanban'])) }}"
+               class="btn {{ $viewMode === 'kanban' ? 'btn-gold' : 'btn-outline-dark' }}">
+                <i class="fas fa-columns me-1"></i>Board
+            </a>
+        </div>
     </div>
+
+    {{-- Tabs --}}
+    <ul class="nav nav-tabs mb-4" id="taskTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="assigned-tab" data-bs-toggle="tab" data-bs-target="#assigned" type="button" role="tab">
+                <i class="fas fa-inbox me-1"></i>My Tasks
+                <span class="badge bg-dark ms-1">{{ method_exists($assignedTasks, 'total') ? $assignedTasks->total() : $assignedTasks->count() }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="created-tab" data-bs-toggle="tab" data-bs-target="#created" type="button" role="tab">
+                <i class="fas fa-paper-plane me-1"></i>Created
+                <span class="badge bg-dark ms-1">{{ method_exists($createdTasks, 'total') ? $createdTasks->total() : $createdTasks->count() }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="taskTabsContent">
+        {{-- ASSIGNED TO ME --}}
+        <div class="tab-pane fade show active" id="assigned" role="tabpanel">
+            @if($viewMode === 'kanban')
+                @include('tasks::partials.kanban-board', ['tasks' => $assignedTasks, 'showBulkCheckbox' => false])
+            @else
+                @forelse ($assignedTasks as $task)
+                    @include('tasks::partials.task-card', ['task' => $task, 'showActions' => false, 'showAssigneeActions' => true, 'showBulkCheckbox' => false])
+                @empty
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                        <p>No tasks assigned to you yet.</p>
+                        @can('tasks.create')
+                            <a href="{{ route('tasks.create') }}" class="btn btn-gold btn-sm">Create a Task</a>
+                        @endcan
+                    </div>
+                @endforelse
+                <div class="mt-3">
+                    {{ $assignedTasks->appends(request()->query())->links('pagination::bootstrap-5') }}
+                </div>
+            @endif
+        </div>
+
+        {{-- CREATED BY ME --}}
+        <div class="tab-pane fade" id="created" role="tabpanel">
+            @if($viewMode === 'kanban')
+                @include('tasks::partials.kanban-board', ['tasks' => $createdTasks, 'showBulkCheckbox' => true])
+            @else
+                @forelse ($createdTasks as $task)
+                    @include('tasks::partials.task-card', ['task' => $task, 'showActions' => true, 'showAssigneeActions' => true, 'showBulkCheckbox' => true])
+                @empty
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-paper-plane fa-3x mb-3 d-block"></i>
+                        <p>You haven't created any tasks yet.</p>
+                        @can('tasks.create')
+                            <a href="{{ route('tasks.create') }}" class="btn btn-gold btn-sm">Create your first task</a>
+                        @endcan
+                    </div>
+                @endforelse
+                <div class="mt-3">
+                    {{ $createdTasks->appends(request()->query())->links('pagination::bootstrap-5') }}
+                </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- Hidden form for bulk operations --}}
+    <form id="bulkForm" method="POST" style="display: none;">
+        @csrf
+        <input type="hidden" name="task_ids" id="bulkTaskIds">
+    </form>
+    <form id="bulkAssignForm" method="POST" style="display: none;">
+        @csrf
+        <input type="hidden" name="task_ids" id="bulkAssignTaskIds">
+        <input type="hidden" name="employee_id" id="bulkAssignEmployeeId">
+    </form>
 @endsection
 
-@push('styles')
-    <style>
-        .avatar {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            font-size: 0.8rem;
-            line-height: 28px; /* Fallback for older browsers */
-        }
-        .avatar-group .avatar:not(:first-child) {
-            margin-left: -8px;
-        }
-        .card-title {
-            font-size: 1.1rem;
-        }
-        .pagination .page-link {
-            border-radius: 0.25rem;
-            margin: 0 2px;
-        }
-        .pagination .page-item.active .page-link {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
-        }
-        /* Ensure consistent badge styling */
-        .badge {
-            font-size: 0.85rem;
-            padding: 0.35em 0.65em;
-        }
-    </style>
-@endpush
+@section('page-scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const container = document.getElementById('taskToastContainer');
 
-@push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Initialize tooltips
-            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-            tooltipTriggerList.forEach(tooltipTriggerEl => {
-                new bootstrap.Tooltip(tooltipTriggerEl, {
-                    trigger: 'hover focus' // Support keyboard navigation
-                });
+        function showToast(message, type) {
+            const bg = type === 'success' ? 'bg-success' : 'bg-danger';
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            const html = '<div class="toast align-items-center text-white ' + bg + ' border-0 show" role="alert">' +
+                '<div class="d-flex"><div class="toast-body"><i class="fas ' + icon + ' me-2"></i>' + message + '</div>' +
+                '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>';
+            const el = document.createElement('div');
+            el.innerHTML = html;
+            container.appendChild(el.firstElementChild);
+            setTimeout(function () { const t = container.querySelector('.toast'); if (t) t.remove(); }, 4000);
+        }
+
+        const statusColors = {
+            pending: { border: '#ffc107' },
+            in_progress: { border: '#0d6efd' },
+            completed: { border: '#198754' }
+        };
+
+        document.querySelectorAll('.task-status-form').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const btn = this.querySelector('button[type="submit"]');
+                if (btn.disabled) return;
+                const card = this.closest('.task-card');
+                const token = this.querySelector('input[name="_token"]')?.value || '';
+                const status = this.querySelector('input[name="status"]')?.value || '';
+                const body = new URLSearchParams();
+                body.append('_token', token);
+                body.append('_method', 'PATCH');
+                body.append('status', status);
+                fetch(this.action, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString()
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.success) { showToast(data.message || 'Error updating status', 'error'); return; }
+                    var newStatus = data.status;
+                    Object.keys(statusColors).forEach(function (s) { card.classList.remove('status-' + s); });
+                    card.classList.add('status-' + newStatus);
+                    card.querySelector('.card-body').style.borderLeftColor = statusColors[newStatus].border;
+                    card.classList.toggle('completed', newStatus === 'completed');
+                    var toggle = card.querySelector('[data-task-toggle]');
+                    if (toggle) {
+                        toggle.querySelectorAll('.st-btn').forEach(function (b) {
+                            b.classList.remove('active');
+                            b.disabled = false;
+                            if (b.closest('form').querySelector('input[name="status"]').value === newStatus) {
+                                b.classList.add('active');
+                                b.disabled = true;
+                            }
+                        });
+                    }
+                    showToast('Task ' + (newStatus === 'completed' ? 'completed' : newStatus === 'in_progress' ? 'in progress' : 'pending'), 'success');
+                })
+                .catch(function () { showToast('Something went wrong.', 'error'); });
             });
-
-            // Initialize popovers for mobile assignees
-            const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
-            popoverTriggerList.forEach(popoverTriggerEl => {
-                new bootstrap.Popover(popoverTriggerEl, {
-                    html: true,
-                    trigger: 'focus'
-                });
-            });
-
-            // Check for new notifications
-            if (typeof fetch !== 'undefined') {
-                fetch('/notifications')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.length > 0) {
-                            const toastEl = document.getElementById('taskToast');
-                            const toastBody = toastEl.querySelector('.toast-body');
-                            toastBody.textContent = data[0].data.message;
-                            const toast = new bootstrap.Toast(toastEl);
-                            toast.show();
-
-                            fetch('/notifications/' + data[0].id + '/read', {
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                                },
-                            });
-                        }
-                    })
-                    .catch(error => console.error('Notification fetch failed:', error));
-            }
         });
-    </script>
-@endpush
+
+        {{-- Bulk checkbox logic --}}
+        const bulkCheckboxes = function () {
+            return document.querySelectorAll('.task-bulk-checkbox:checked');
+        };
+
+        function updateBulkBar() {
+            const bar = document.getElementById('bulkBar');
+            const count = bulkCheckboxes().length;
+            document.getElementById('bulkCount').textContent = count;
+            bar.classList.toggle('show', count > 0);
+        }
+
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('task-bulk-checkbox')) updateBulkBar();
+        });
+
+        document.getElementById('bulkClearBtn')?.addEventListener('click', function () {
+            document.querySelectorAll('.task-bulk-checkbox').forEach(function (cb) { cb.checked = false; });
+            updateBulkBar();
+        });
+
+        document.getElementById('bulkStatusBtn')?.addEventListener('click', function () {
+            const ids = Array.from(bulkCheckboxes()).map(function (cb) { return cb.value; });
+            const status = document.getElementById('bulkStatusSelect').value;
+            if (!ids.length || !status) return;
+            if (!confirm('Change ' + ids.length + ' task(s) to ' + status + '?')) return;
+            document.getElementById('bulkTaskIds').value = JSON.stringify(ids);
+            const form = document.getElementById('bulkForm');
+            form.action = '{{ route('tasks.bulk.status') }}';
+            const methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            methodInput.value = 'PATCH';
+            form.appendChild(methodInput);
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = status;
+            form.appendChild(statusInput);
+            form.submit();
+        });
+
+        document.getElementById('bulkAssignBtn')?.addEventListener('click', function () {
+            const ids = Array.from(bulkCheckboxes()).map(function (cb) { return cb.value; });
+            const employeeId = document.getElementById('bulkAssignSelect').value;
+            if (!ids.length || !employeeId) return;
+            if (!confirm('Assign ' + ids.length + ' task(s) to selected staff?')) return;
+            document.getElementById('bulkAssignTaskIds').value = JSON.stringify(ids);
+            document.getElementById('bulkAssignEmployeeId').value = employeeId;
+            const form = document.getElementById('bulkAssignForm');
+            form.action = '{{ route('tasks.bulk.assign') }}';
+            form.submit();
+        });
+    });
+</script>
+@endsection

@@ -2,10 +2,11 @@
 
 namespace Modules\Inventory\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 // use Modules\Inventory\Database\Factories\StoreFactory;
 
 /**
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Store extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = ['name', 'address'];
 
@@ -48,5 +49,23 @@ class Store extends Model
     public function usageLogs(): HasMany
     {
         return $this->hasMany(UsageLog::class);
+    }
+
+    /**
+     * Get the departments belonging to this store.
+     */
+    public function departments(): HasMany
+    {
+        return $this->hasMany(Department::class);
+    }
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(StoreLocation::class);
+    }
+
+    public function returns(): HasMany
+    {
+        return $this->hasMany(ItemReturn::class);
     }
 }

@@ -4,7 +4,8 @@
         <div class="small text-muted">
             <span class="badge bg-success me-1">Available</span>
             <span class="badge bg-danger me-1">Occupied</span>
-            <span class="badge bg-secondary">Maintenance</span>
+            <span class="badge bg-warning text-dark me-1">Reserved</span>
+            <span class="badge bg-secondary">Out of Service</span>
         </div>
     </div>
     <div class="card-body">
@@ -49,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     ${room.name}
                                 </div>
                                 <div class="card-body p-2 d-flex flex-column justify-content-center align-items-center">
-                                    <i class="fas ${room.status === 'occupied' ? 'fa-user' : 'fa-check-circle'} mb-1 text-${room.color} fa-2x"></i>
+                                    <i class="fas ${room.status === 'occupied' ? 'fa-user' : (['maintenance', 'blocked'].includes(room.status) ? 'fa-tools' : 'fa-check-circle')} mb-1 text-${room.color} fa-2x"></i>
                                     <small class="d-block fw-bold text-dark text-truncate w-100" style="font-size: 0.8rem;">
                                         ${room.guest}
                                     </small>

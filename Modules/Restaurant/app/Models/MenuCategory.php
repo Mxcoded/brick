@@ -2,18 +2,19 @@
 
 namespace Modules\Restaurant\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-// use Modules\Restaurant\Database\Factories\MenuCategoryFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MenuCategory extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      */
     protected $fillable = ['name', 'parent_id'];
+
     protected $table = 'restaurant_menu_categories';
 
     public function menuItems()
@@ -23,7 +24,7 @@ class MenuCategory extends Model
 
     public function parent()
     {
-        return $this->belongsTo(MenuCategory::class, 'parent_id');
+        return $this->belongsTo(MenuCategory::class, 'parent_id')->withTrashed();
     }
 
     public function children()
@@ -33,13 +34,6 @@ class MenuCategory extends Model
 
     public function childrenRecursive()
     {
-        return $this->children()->with('menuItems');                
+        return $this->children()->with('menuItems');
     }
-
-    // protected static function newFactory(): MenuCategoryFactory
-    // {
-    //     // return MenuCategoryFactory::new();
-    // }
 }
-
-

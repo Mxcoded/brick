@@ -2,18 +2,17 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Builder;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
-use Modules\Website\Models\Room;
-
 
 class Booking extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'booking_reference',
@@ -46,6 +45,8 @@ class Booking extends Model
         'confirmation_token',
         'special_requests',
         'admin_notes',
+        'source',
+        'follow_up_sent_at',
     ];
 
     protected $casts = [
@@ -53,7 +54,10 @@ class Booking extends Model
         'check_out_date' => 'date',
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
+        'follow_up_sent_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
+
     /**
      * ✅ AUTOMATION LOGIC
      * The "booted" method runs automatically whenever this Model is saved.
@@ -68,10 +72,11 @@ class Booking extends Model
 
             // 2. Auto-Generate Reference if missing
             if (empty($booking->booking_reference)) {
-                $booking->booking_reference = 'BK-' . strtoupper(uniqid());
+                $booking->booking_reference = 'BK-'.strtoupper(uniqid());
             }
         });
     }
+
     /**
      * Relationship: The room type being booked.
      */
@@ -90,6 +95,7 @@ class Booking extends Model
 
     /**
      * Legacy: The room being booked (backward compatibility).
+     *
      * @deprecated Use roomType() and roomUnit() instead.
      */
     public function room()
@@ -104,6 +110,7 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     /**
      * Link to the detailed CRM Guest Profile.
      */

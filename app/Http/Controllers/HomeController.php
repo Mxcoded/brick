@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Enums\RoleEnum;
 
 class HomeController extends Controller
 {
@@ -23,17 +22,32 @@ class HomeController extends Controller
     {
         $user = $request->user();
 
-        // 1. Super Admin & Admin
-        if ($user->hasRole([RoleEnum::SUPER_ADMIN->value, RoleEnum::ADMIN->value])) {
+        // 1. Admin
+        if ($user->can('access_admin_dashboard')) {
             return redirect()->route('admin.dashboard');
         }
 
-        // 2. Staff
-        if ($user->hasRole(RoleEnum::STAFF->value)) {
+        // 2. HR staff
+        if ($user->can('access_staff_dashboard') && $user->can('employees.read')) {
             return redirect()->route('staff.dashboard');
         }
 
-        // 3. Guest (Default)
+        // 3. Front desk
+        if ($user->can('access_frontdesk_dashboard')) {
+            return redirect()->route('frontdesk.dashboard');
+        }
+
+        // 4. Regular staff → tasks
+        if ($user->can('access_tasks_dashboard')) {
+            return redirect()->route('tasks.index');
+        }
+
+        // 5. Staff with no roles assigned
+        if ($user->isStaff()) {
+            return redirect()->route('staff.pending');
+        }
+
+        // 6. Guest (Default)
         return redirect()->route('guest.dashboard');
     }
 }

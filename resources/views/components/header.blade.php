@@ -38,8 +38,15 @@
         <div class="flex items-center space-x-4">
             <!-- Theme toggle -->
             <button id="theme-toggle"
-                class="text-xl text-gray-600 dark:text-gray-400 hover:text-[var(--accent-color)] transition">
-                <i class="fas fa-moon"></i>
+                class="theme-toggle flex items-center gap-2 border-0 bg-transparent cursor-pointer px-1 py-1 rounded-full transition"
+                aria-label="Toggle dark mode" title="Toggle dark mode">
+                <span class="theme-toggle-track relative d-inline-block" style="width:40px;height:22px;background:#e9ecef;border-radius:50px;transition:background 0.3s">
+                    <span class="theme-toggle-thumb d-flex align-items-center justify-content-center" style="position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:transform 0.3s,color 0.3s;color:#f39c12">
+                        <i class="fas fa-sun" id="theme-icon-sun" style="font-size:10px;transition:transform 0.4s"></i>
+                        <i class="fas fa-moon d-none" id="theme-icon-moon" style="font-size:10px;transition:transform 0.4s"></i>
+                    </span>
+                </span>
+                <span class="theme-toggle-label small fw-semibold" id="theme-label" style="color:#6c757d;transition:color 0.3s">Light</span>
             </button>
 
             <!-- Mobile menu -->

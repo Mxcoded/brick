@@ -36,12 +36,12 @@ return new class extends Migration
             // Use try-catch to safely ignore if the foreign key is already gone
             try {
                 $table->dropForeign(['room_type_id']);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
             }
 
             try {
                 $table->dropForeign(['room_unit_id']);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
             }
 
             // Check if column exists before dropping to prevent column missing errors
@@ -58,12 +58,12 @@ return new class extends Migration
             Schema::table('registrations', function (Blueprint $table) {
                 try {
                     $table->dropForeign(['room_type_id']);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                 }
 
                 try {
                     $table->dropForeign(['room_unit_id']);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                 }
 
                 if (Schema::hasColumn('registrations', 'room_type_id')) {

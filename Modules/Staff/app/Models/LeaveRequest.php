@@ -2,8 +2,9 @@
 
 namespace Modules\Staff\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 // use Modules\Staff\Database\Factories\LeaveRequestFactory;
 
 class LeaveRequest extends Model
@@ -15,19 +16,25 @@ class LeaveRequest extends Model
      */
     protected $fillable = [
         'employee_id',
-        'staff_code', // Added staff_code to fillable attributes
+        'covered_by',
+        'staff_code',
         'leave_type',
         'start_date',
         'end_date',
         'reason',
         'status',
         'admin_note',
-        'days_count', // New field for the number of leave days
+        'days_count',
     ];
 
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function coverEmployee()
+    {
+        return $this->belongsTo(Employee::class, 'covered_by');
     }
 
     // // Calculate number of leave days

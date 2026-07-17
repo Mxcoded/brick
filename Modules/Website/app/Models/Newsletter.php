@@ -2,9 +2,9 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Newsletter extends Model
 {
@@ -12,9 +12,13 @@ class Newsletter extends Model
 
     // Status Constants
     const STATUS_DRAFT = 'draft';
+
     const STATUS_SCHEDULED = 'scheduled';
+
     const STATUS_SENDING = 'sending';
+
     const STATUS_SENT = 'sent';
+
     const STATUS_FAILED = 'failed';
 
     protected $fillable = [
@@ -104,7 +108,7 @@ class Newsletter extends Model
     public function scopeReadyToSend($query)
     {
         return $query->where('status', self::STATUS_SCHEDULED)
-                     ->where('scheduled_at', '<=', now());
+            ->where('scheduled_at', '<=', now());
     }
 
     // ==========================================
@@ -149,6 +153,7 @@ class Newsletter extends Model
         if ($this->recipients_count === 0) {
             return 0;
         }
+
         return round(($this->sent_count / $this->recipients_count) * 100, 1);
     }
 
@@ -160,6 +165,7 @@ class Newsletter extends Model
         if ($this->sent_count === 0) {
             return 0;
         }
+
         return round(($this->opened_count / $this->sent_count) * 100, 1);
     }
 
@@ -237,7 +243,7 @@ class Newsletter extends Model
     public function duplicate()
     {
         return self::create([
-            'subject' => $this->subject . ' (Copy)',
+            'subject' => $this->subject.' (Copy)',
             'preview_text' => $this->preview_text,
             'content' => $this->content,
             'status' => self::STATUS_DRAFT,

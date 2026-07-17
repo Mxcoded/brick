@@ -38,7 +38,7 @@
                             <i class="fa fa-list-alt me-1"></i> Tasks
                         </a>
                     </li>
-                    @can('staff-view')
+                    @can('employees.read')
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('staff.index') ? 'active' : '' }}"
                                 href="{{ route('staff.index') }}">
@@ -47,7 +47,7 @@
                         </li>
                     @endcan
 
-                    @can('manage-user')
+                    @can('users.manage')
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
                                 href="{{ route('admin.users.index') }}">
@@ -56,7 +56,7 @@
                         </li>
                     @endcan
 
-                    @can('manage-roles-permission')
+                    @can('roles.manage')
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}"
                                 href="{{ route('admin.permissions.index') }}">

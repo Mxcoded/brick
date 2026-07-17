@@ -16,7 +16,7 @@ class BanquetSetupStyleSeeder extends Seeder
             'U-Shape',
             'Banquet Style',
             'Reception',
-            'Cabaret'
+            'Cabaret',
         ];
 
         foreach ($styles as $style) {

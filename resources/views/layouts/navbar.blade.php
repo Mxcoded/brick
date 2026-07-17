@@ -1,37 +1,33 @@
 <nav class="navbar navbar-expand-lg bg-white shadow-sm border-bottom py-2">
     <div class="container-fluid">
         <!-- Sidebar Toggle -->
-        <button class="btn btn-outline-secondary me-3" id="sidebarToggle">
+        <button class="btn btn-outline-dark me-3 shadow-sm" id="sidebarToggle">
             <i class="fas fa-bars"></i>
         </button>
 
-        <!-- Brand -->
-        <div
-            style="display: inline-block; padding: 10px 20px;   border-radius: 12px; background: var(--glass-effect); border: 1px solid var(--glass-border);
-                box-shadow: 4px 4px 15px rgba(0, 0, 0, 0.2), 
-                            -4px -4px 15px rgba(255, 255, 255, 0.1); transform: perspective(600px) rotateX(2deg); transition: var(--transition); margin-right: 15px;">
-
-            <a href="home"
-                style="
-                font-family: 'Proxima Nova', Arial, Helvetica, sans-serif;
-                font-weight: 800;
-                font-size: 1.4rem;
-                color: #C8A165;
-                text-decoration: none;
-                letter-spacing: -0.5px;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            ">
-                BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub> <sub style="font-size:8pt;">v1.0</sub>
-            </a>
-        </div>
+        <a href="{{ route('admin.dashboard') }}" class="text-decoration-none">
+            <div class="d-inline-flex align-items-center gap-2">
+                @if($logoSetting ?? null)
+                    <img src="{{ Storage::url($logoSetting) }}" alt="Logo" style="height: 40px; width: auto; object-fit: contain;">
+                @endif
+                <span class="fw-bold" style="font-size: 1.3rem; color: var(--sidebar-brand); letter-spacing: -0.5px;">
+                    BRICKSPOINT<sup>&trade;</sup><sub style="font-size:9pt;">ERP</sub>
+                </span>
+            </div>
+        </a>
 
         <!-- Right Side -->
         <ul class="navbar-nav ms-auto align-items-center">
             <!-- Theme Toggle -->
             <li class="nav-item me-3">
-                <button class="btn btn-outline-secondary" id="theme-toggle" type="button">
-                    <i class="fas fa-sun" id="theme-icon-sun"></i>
-                    <i class="fas fa-moon d-none" id="theme-icon-moon"></i>
+                <button class="btn theme-toggle d-inline-flex align-items-center gap-2 border-0" id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+                    <span class="theme-toggle-track">
+                        <span class="theme-toggle-thumb d-flex align-items-center justify-content-center">
+                            <i class="fas fa-sun" id="theme-icon-sun"></i>
+                            <i class="fas fa-moon d-none" id="theme-icon-moon"></i>
+                        </span>
+                    </span>
+                    <span class="theme-toggle-label small fw-semibold" id="theme-label">Light</span>
                 </button>
             </li>
 

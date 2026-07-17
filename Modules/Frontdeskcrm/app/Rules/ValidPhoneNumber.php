@@ -2,17 +2,18 @@
 
 namespace Modules\Frontdeskcrm\Rules;
 
-use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log; // Added for logging errors
 use Closure;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Facades\Http; // Added for logging errors
+use Illuminate\Support\Facades\Log;
+use Illuminate\Translation\PotentiallyTranslatedString;
 
 class ValidPhoneNumber implements ValidationRule
 {
     /**
      * Run the validation rule.
      *
-     * @param  \Closure(string): \Illuminate\Translation\PotentiallyTranslatedString  $fail
+     * @param  Closure(string): PotentiallyTranslatedString  $fail
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
@@ -24,6 +25,7 @@ class ValidPhoneNumber implements ValidationRule
 
         if (empty($accessKey)) {
             Log::error('Numverify API key is not set. Skipping phone validation.');
+
             return; // Fail open if API key is missing
         }
 
@@ -36,16 +38,17 @@ class ValidPhoneNumber implements ValidationRule
         // 2. Check if it's a local Nigerian number (starts with 0, e.g., 080...)
         if (preg_match('/^0[7-9][0-1][0-9]{8}$/', $numberToValidate)) {
             // Remove the leading '0' and add '+234'
-            $numberToValidate = '+234' . substr($numberToValidate, 1);
+            $numberToValidate = '+234'.substr($numberToValidate, 1);
         }
         // 3. (Optional) Handle if they type 80... without the 0
-        else if (preg_match('/^[7-9][0-1][0-9]{8}$/', $numberToValidate)) {
-            $numberToValidate = '+234' . $numberToValidate;
+        elseif (preg_match('/^[7-9][0-1][0-9]{8}$/', $numberToValidate)) {
+            $numberToValidate = '+234'.$numberToValidate;
         }
 
         // If it doesn't start with '+', the API will likely reject it.
         if (strpos($numberToValidate, '+') !== 0) {
             $fail('The :attribute must be an international format (e.g., +234 809...)');
+
             return;
         }
         // --- END OF NEW LOGIC ---
@@ -58,6 +61,7 @@ class ValidPhoneNumber implements ValidationRule
 
             if ($response->failed()) {
                 Log::warning('Numverify API call failed. Failing open.');
+
                 return;
             }
 
@@ -70,11 +74,12 @@ class ValidPhoneNumber implements ValidationRule
 
             // Handle API error response (e.g., invalid key)
             if (isset($data['success']) && $data['success'] === false) {
-                Log::error('Numverify API error: ' . ($data['error']['info'] ?? 'Unknown error'));
+                Log::error('Numverify API error: '.($data['error']['info'] ?? 'Unknown error'));
                 // Fail open to not block the user
             }
         } catch (\Exception $e) {
-            Log::error('Numverify API call exception: ' . $e->getMessage());
+            Log::error('Numverify API call exception: '.$e->getMessage());
+
             return; // Fail open on exception
         }
     }

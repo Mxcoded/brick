@@ -4,15 +4,15 @@ namespace Modules\Website\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Modules\Website\Models\RoomType;
-use Modules\Website\Models\RoomUnit;
+use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\RoomInventoryBlock;
-use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Website\Models\RoomType;
+use Modules\Website\Models\RoomUnit;
 
 /**
  * Unified Room Availability Service
- * 
+ *
  * Provides comprehensive room availability checking across the entire ERP system.
  * Consolidates all sources of unavailability:
  * - Website Bookings
@@ -32,6 +32,7 @@ class RoomAvailabilityService
      * Booking/registration statuses that count as "occupied".
      */
     const ACTIVE_BOOKING_STATUSES = ['pending', 'confirmed', 'checked_in'];
+
     const ACTIVE_REGISTRATION_STATUSES = ['checked_in', 'draft_by_guest', 'reserved'];
 
     /**
@@ -48,7 +49,7 @@ class RoomAvailabilityService
         $checkOut = Carbon::parse($checkOut);
 
         $roomType = RoomType::with('units')->find($roomTypeId);
-        if (!$roomType) {
+        if (! $roomType) {
             return $this->unavailableResponse('Room type not found.');
         }
 
@@ -65,7 +66,7 @@ class RoomAvailabilityService
         $ctaBlock = $this->getClosedToArrivalBlock($roomTypeId, $checkIn);
         if ($ctaBlock) {
             return $this->unavailableResponse(
-                'Check-in is not available on ' . $checkIn->format('M j, Y') . '. Please try a different arrival date.',
+                'Check-in is not available on '.$checkIn->format('M j, Y').'. Please try a different arrival date.',
                 ['reason' => 'closed_to_arrival', 'block' => $ctaBlock]
             );
         }
@@ -74,7 +75,7 @@ class RoomAvailabilityService
         $ctdBlock = $this->getClosedToDepartureBlock($roomTypeId, $checkOut);
         if ($ctdBlock) {
             return $this->unavailableResponse(
-                'Check-out is not available on ' . $checkOut->format('M j, Y') . '. Please try a different departure date.',
+                'Check-out is not available on '.$checkOut->format('M j, Y').'. Please try a different departure date.',
                 ['reason' => 'closed_to_departure', 'block' => $ctdBlock]
             );
         }
@@ -138,7 +139,7 @@ class RoomAvailabilityService
         $checkOut = Carbon::parse($checkOut);
 
         $roomType = RoomType::with('units')->find($roomTypeId);
-        if (!$roomType) {
+        if (! $roomType) {
             return collect();
         }
 
@@ -156,7 +157,7 @@ class RoomAvailabilityService
                         $sub->where('check_in_date', '<', $checkOut)
                             ->where('check_out_date', '>', $checkIn);
                     })
-                    ->when($ignoreBookingId, fn($q) => $q->where('id', '!=', $ignoreBookingId));
+                    ->when($ignoreBookingId, fn ($q) => $q->where('id', '!=', $ignoreBookingId));
             })
             // 3. Exclude units with conflicting frontdesk registrations
             ->when(class_exists(Registration::class), function ($q) use ($checkIn, $checkOut) {
@@ -178,14 +179,16 @@ class RoomAvailabilityService
                 $q->where('check_in_date', '<', $checkOut)
                     ->where('check_out_date', '>', $checkIn);
             })
-            ->when($ignoreBookingId, fn($q) => $q->where('id', '!=', $ignoreBookingId))
+            ->when($ignoreBookingId, fn ($q) => $q->where('id', '!=', $ignoreBookingId))
             ->count();
 
         // 5. Apply inventory blocks (reduce available count)
         $effectiveAvailable = max(0, $availableUnits->count() - $unassignedBookingsCount - $maxBlockedCount);
 
         // Return the effective available units
-        return $availableUnits->take($effectiveAvailable);
+        // Existing unassigned bookings get priority on the first units;
+        // new bookings get whatever remains.
+        return $availableUnits->values()->skip($unassignedBookingsCount + $maxBlockedCount)->values();
     }
 
     /**
@@ -231,7 +234,7 @@ class RoomAvailabilityService
         $end = Carbon::parse($end);
         $roomType = RoomType::with('units')->find($roomTypeId);
 
-        if (!$roomType) {
+        if (! $roomType) {
             return [];
         }
 
@@ -430,6 +433,7 @@ class RoomAvailabilityService
         if ($percent <= 30) {
             return 'limited';
         }
+
         return 'available';
     }
 
@@ -451,6 +455,18 @@ class RoomAvailabilityService
 
     /**
      * Check if a specific room unit is available for dates.
+     *
+     * This is a per-unit occupancy check: it verifies the unit itself is not
+     * in a hard-blocked status, is not stopped/closed at the room-type level,
+     * and has no conflicting booking or active registration for the dates.
+     *
+     * It intentionally does NOT apply the aggregate "pool" logic used by
+     * getAvailableUnits() (which reserves the first N units for unassigned
+     * bookings / type-level blocks). That pool logic is only relevant when
+     * deciding how many rooms of a type are still sellable — not when checking
+     * whether one specific physical unit is free. Otherwise a perfectly free
+     * unit could be wrongly reported unavailable simply because other
+     * unassigned bookings consumed pool "slots" ahead of it.
      */
     public function isUnitAvailable(
         int $unitId,
@@ -459,24 +475,58 @@ class RoomAvailabilityService
         ?int $ignoreBookingId = null
     ): bool {
         $unit = RoomUnit::find($unitId);
-        if (!$unit) {
+        if (! $unit) {
             return false;
         }
 
-        // Check unit status
+        $checkIn = Carbon::parse($checkIn);
+        $checkOut = Carbon::parse($checkOut);
+
+        // A unit in a hard-blocked status is never assignable.
         if (in_array($unit->status, self::UNAVAILABLE_UNIT_STATUSES)) {
             return false;
         }
 
-        // Check room type level blocks (stop sell, etc.)
+        // Respect room-type level hard restrictions (stop sell, closed to
+        // arrival/departure, min/max stay). Capacity-only blocks (blocked_count)
+        // reduce overall sellable inventory but do NOT make a specific physical
+        // unit unavailable, so they are intentionally ignored here.
         $typeAvailability = $this->checkRoomTypeAvailability($unit->room_type_id, $checkIn, $checkOut);
-        if (!$typeAvailability['available'] && ($typeAvailability['reason'] ?? null) !== 'insufficient_inventory') {
+        if (! $typeAvailability['available'] && ($typeAvailability['reason'] ?? null) !== 'insufficient_inventory') {
             return false;
         }
 
-        // Check unit is in available units list
-        $availableUnits = $this->getAvailableUnits($unit->room_type_id, $checkIn, $checkOut, $ignoreBookingId);
-        return $availableUnits->contains('id', $unitId);
+        // The unit must not have a conflicting booking for the dates
+        // (ignoring the booking being (re)assigned).
+        $hasConflictingBooking = Booking::where('room_unit_id', $unitId)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->where(function ($q) use ($checkIn, $checkOut) {
+                $q->where('check_in_date', '<', $checkOut)
+                    ->where('check_out_date', '>', $checkIn);
+            })
+            ->when($ignoreBookingId, fn ($q) => $q->where('id', '!=', $ignoreBookingId))
+            ->exists();
+
+        if ($hasConflictingBooking) {
+            return false;
+        }
+
+        // The unit must not have an active registration for the dates.
+        if (class_exists(Registration::class)) {
+            $hasConflictingRegistration = Registration::where('room_unit_id', $unitId)
+                ->whereIn('stay_status', self::ACTIVE_REGISTRATION_STATUSES)
+                ->where(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '<', $checkOut)
+                        ->where('check_out', '>', $checkIn);
+                })
+                ->exists();
+
+            if ($hasConflictingRegistration) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -485,7 +535,7 @@ class RoomAvailabilityService
     public function getUnitCurrentStatus(int $unitId): array
     {
         $unit = RoomUnit::with(['roomType', 'currentOccupant'])->find($unitId);
-        if (!$unit) {
+        if (! $unit) {
             return ['status' => 'not_found', 'message' => 'Unit not found'];
         }
 
@@ -506,7 +556,7 @@ class RoomAvailabilityService
             return [
                 'status' => 'occupied',
                 'available' => false,
-                'message' => 'Occupied by ' . $unit->currentOccupant->full_name,
+                'message' => 'Occupied by '.$unit->currentOccupant->full_name,
                 'guest' => $unit->currentOccupant->full_name,
                 'check_out' => $unit->currentOccupant->check_out,
             ];

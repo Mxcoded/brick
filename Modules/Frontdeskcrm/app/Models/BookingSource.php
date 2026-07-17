@@ -2,11 +2,11 @@
 
 namespace Modules\Frontdeskcrm\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class BookingSource extends Model
 {
@@ -36,6 +36,7 @@ class BookingSource extends Model
         if (Schema::hasColumn('registrations', 'stay_status')) {
             $query->where('stay_status', 'checked_out');
         }
+
         return $query->sum(DB::raw('room_rate * no_of_nights')); // Or total_amount if added
     }
 }

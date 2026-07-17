@@ -3,14 +3,18 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
+use Modules\Website\Emails\ContactReply;
 use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\ContactMessageReply;
-use Modules\Website\Emails\ContactReply;
+use Symfony\Component\Mailer\Exception\TransportException;
 
 class ContactMessageController extends Controller
 {
@@ -19,7 +23,7 @@ class ContactMessageController extends Controller
      */
     public function index(Request $request)
     {
-        $query = ContactMessage::with('replies')->latest();
+        $query = ContactMessage::with(['replies', 'assignedUser'])->latest();
 
         // Filter by Archive Status
         if ($request->filled('archive')) {
@@ -39,6 +43,11 @@ class ContactMessageController extends Controller
             $query->where('status', $status);
         }
 
+        // Filter by Follow-up Status
+        if ($request->filled('follow_up')) {
+            $query->followUpStatus($request->follow_up);
+        }
+
         // Search
         if ($request->filled('search')) {
             $search = $request->search;
@@ -56,19 +65,25 @@ class ContactMessageController extends Controller
         $archivedCount = ContactMessage::archived()->count();
         $unreadCount = ContactMessage::active()->unread()->count();
 
+        $staffUsers = User::where(function ($q) {
+            $q->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['admin', 'super_admin', 'hr_manager']);
+            })->orWhere('type', 'staff');
+        })->orderBy('name')->get();
+
         return view('website::admin.contact-messages.index', compact(
             'messages',
             'activeCount',
             'archivedCount',
-            'unreadCount'
+            'unreadCount',
+            'staffUsers'
         ));
     }
 
     /**
      * Display the specified contact message with conversation thread.
      *
-     * @param  \Modules\Website\Models\ContactMessage  $contactMessage
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function show(ContactMessage $contactMessage)
     {
@@ -77,29 +92,33 @@ class ContactMessageController extends Controller
         }
 
         // Load replies with staff user info
-        $contactMessage->load(['replies.user']);
+        $contactMessage->load(['replies.user', 'assignedUser']);
 
-        return view('website::admin.contact-messages.show', compact('contactMessage'));
+        $staffUsers = User::where(function ($q) {
+            $q->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['admin', 'super_admin', 'hr_manager']);
+            })->orWhere('type', 'staff');
+        })->orderBy('name')->get();
+
+        return view('website::admin.contact-messages.show', compact('contactMessage', 'staffUsers'));
     }
 
     /**
      * Show the reply form.
      *
-     * @param  \Modules\Website\Models\ContactMessage  $contactMessage
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function reply(ContactMessage $contactMessage)
     {
         $contactMessage->load(['replies.user']);
+
         return view('website::admin.contact-messages.reply', compact('contactMessage'));
     }
 
     /**
      * Send a reply to the contact message.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Modules\Website\Models\ContactMessage  $contactMessage
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function sendReply(Request $request, ContactMessage $contactMessage)
     {
@@ -146,7 +165,7 @@ class ContactMessageController extends Controller
 
             return redirect()
                 ->route('website.admin.contact-messages.show', $contactMessage)
-                ->with('success', 'Reply sent successfully to ' . $contactMessage->email);
+                ->with('success', 'Reply sent successfully to '.$contactMessage->email);
         } catch (\Swift_TransportException $e) {
             // SMTP connection/authentication errors
             Log::error('SMTP Transport Error - Failed to send contact reply:', [
@@ -166,8 +185,8 @@ class ContactMessageController extends Controller
 
             return redirect()
                 ->route('website.admin.contact-messages.show', $contactMessage)
-                ->with('warning', 'Reply saved but email failed: SMTP connection error. Check server logs for details. Error: ' . Str::limit($e->getMessage(), 100));
-        } catch (\Symfony\Component\Mailer\Exception\TransportException $e) {
+                ->with('warning', 'Reply saved but email failed: SMTP connection error. Check server logs for details. Error: '.Str::limit($e->getMessage(), 100));
+        } catch (TransportException $e) {
             // Symfony Mailer transport errors (Laravel 9+)
             Log::error('Symfony Transport Error - Failed to send contact reply:', [
                 'error_type' => 'Symfony\TransportException',
@@ -187,7 +206,7 @@ class ContactMessageController extends Controller
 
             return redirect()
                 ->route('website.admin.contact-messages.show', $contactMessage)
-                ->with('warning', 'Reply saved but email failed: ' . Str::limit($e->getMessage(), 150));
+                ->with('warning', 'Reply saved but email failed: '.Str::limit($e->getMessage(), 150));
         } catch (\Exception $e) {
             // Generic catch-all
             Log::error('General Error - Failed to send contact reply:', [
@@ -208,15 +227,14 @@ class ContactMessageController extends Controller
 
             return redirect()
                 ->route('website.admin.contact-messages.show', $contactMessage)
-                ->with('warning', 'Reply saved but email could not be sent. Error: ' . Str::limit($e->getMessage(), 150));
+                ->with('warning', 'Reply saved but email could not be sent. Error: '.Str::limit($e->getMessage(), 150));
         }
     }
 
     /**
      * Archive the specified contact message.
      *
-     * @param  \Modules\Website\Models\ContactMessage  $contactMessage
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function archive(ContactMessage $contactMessage)
     {
@@ -235,8 +253,7 @@ class ContactMessageController extends Controller
     /**
      * Restore an archived contact message.
      *
-     * @param  \Modules\Website\Models\ContactMessage  $contactMessage
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function restore(ContactMessage $contactMessage)
     {
@@ -255,14 +272,14 @@ class ContactMessageController extends Controller
     /**
      * Update the specified contact message in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Modules\Website\Models\ContactMessage  $contactMessage
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function update(Request $request, ContactMessage $contactMessage)
     {
         $validated = $request->validate([
             'status' => 'required|in:unread,read,replied',
+            'assigned_to' => 'nullable|exists:users,id',
+            'follow_up_status' => 'nullable|in:pending,followed_up,closed',
         ]);
 
         $contactMessage->update($validated);
@@ -275,12 +292,12 @@ class ContactMessageController extends Controller
     /**
      * Remove the specified contact message from storage.
      *
-     * @param  \Modules\Website\Models\ContactMessage  $contactMessage
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function destroy(ContactMessage $contactMessage)
     {
         $contactMessage->delete();
+
         return redirect()->route('website.admin.contact-messages.index')->with('success', 'Message deleted successfully.');
     }
 }

@@ -2,8 +2,9 @@
 
 namespace Modules\Restaurant\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 // use Modules\Restaurant\Database\Factories\TableFactory;
 
 class Table extends Model
@@ -13,7 +14,8 @@ class Table extends Model
     /**
      * The attributes that are mass assignable.
      */
-    protected $fillable = ['number'];
+    protected $fillable = ['number', 'capacity', 'section'];
+
     protected $table = 'restaurant_tables';
 
     public function orders()

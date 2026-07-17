@@ -85,6 +85,13 @@
                             @enderror
                         </div>
                         <div class="mb-3">
+                            <label for="subject" class="form-label">Subject</label>
+                            <input type="text" class="form-control @error('subject') is-invalid @enderror" id="subject" name="subject" value="{{ old('subject') }}" placeholder="e.g. Reservation Inquiry, General Question">
+                            @error('subject')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="mb-3">
                             <label for="message" class="form-label">Message <span class="text-danger">*</span></label>
                             <textarea class="form-control @error('message') is-invalid @enderror" id="message" name="message" rows="5" minlength="10" required>{{ old('message') }}</textarea>
                             @error('message')
@@ -115,7 +122,9 @@
                             <div>
                                 <h4 class="h5 mb-1">Address</h4>
                                 <p class="text-muted mb-0">
-                                    {{ $settings['address'] ?? '24 Jose Marti Crescent Asokoro, Abuja, Nigeria' }}</p>
+                                    {{ $settings['address'] ?? '24 Jose Marti Crescent Asokoro, Abuja, Nigeria' }}<br>
+                                    {{ $settings['address_2'] ?? '11 Adzope Crescent, Wuse II, Abuja, Nigeria' }}
+                                </p>
                             </div>
                         </div>
                         <div class="d-flex mb-3">
@@ -124,7 +133,10 @@
                             </div>
                             <div>
                                 <h4 class="h5 mb-1">Phone</h4>
-                                <p class="text-muted mb-0">{{ $settings['phone'] ?? '+234 809 999 9627' }}</p>
+                                <p class="text-muted mb-0">
+                                    {{ $settings['phone'] ?? '+234 809 999 9627' }}<br>
+                                    {{ $settings['phone_2'] ?? '+234 809 999 9620' }}
+                                </p>
                                 <p class="text-muted mb-0"></p>
                             </div>
                         </div>
@@ -134,8 +146,10 @@
                             </div>
                             <div>
                                 <h4 class="h5 mb-1">Email</h4>
-                                <p class="text-muted mb-0">{{ $settings['email'] ?? 'rsv@brickspoint.com' }}</p>
-
+                                <p class="text-muted mb-0">
+                                    {{ $settings['email'] ?? 'rsv@brickspoint.com '}}<br>
+                                    {{ $settings['email_2'] ?? 'rsv@brickspoint.ng' }}
+                                </p>
                             </div>
                         </div>
                     </div>

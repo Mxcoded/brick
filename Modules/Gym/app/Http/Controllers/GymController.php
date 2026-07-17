@@ -3,16 +3,18 @@
 namespace Modules\Gym\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Modules\Gym\Models\Membership;
-use Modules\Gym\Models\Member;
-use Modules\Gym\Models\Payment;
-use Modules\Gym\Models\TrainerPayment;
-use Modules\Gym\Models\Trainer;
-use Modules\Gym\Models\SubscriptionConfig;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Modules\Finance\Services\PostingService;
+use Modules\Gym\Models\Member;
+use Modules\Gym\Models\Membership;
+use Modules\Gym\Models\Payment;
+use Modules\Gym\Models\SubscriptionConfig;
+use Modules\Gym\Models\Trainer;
+use Modules\Gym\Models\TrainerPayment;
 
 class GymController extends Controller
 {
@@ -26,12 +28,11 @@ class GymController extends Controller
             'createdBy',
             'payments' => function ($query) {
                 $query->latest('payment_date')->take(2);
-            }
+            },
         ])->get();
 
         return view('gym::index', compact('memberships'));
     }
-
 
     /**
      * Show the form for creating a new Membership.
@@ -54,8 +55,9 @@ class GymController extends Controller
         ]);
 
         try {
-            if (!Auth::check()) {
+            if (! Auth::check()) {
                 Log::warning('Unauthenticated user attempted to register membership');
+
                 return redirect()->back()->withErrors(['auth' => 'You must be logged in to register a membership.']);
             }
 
@@ -108,7 +110,7 @@ class GymController extends Controller
             $validated = $request->validate($rules);
 
             $config = SubscriptionConfig::first();
-            if (!$config) {
+            if (! $config) {
                 Log::error('Subscription config not found');
                 throw new \Exception('Subscription configuration is missing. Please run the appropriate seeder or configuration route to set the fees.');
             }
@@ -135,6 +137,7 @@ class GymController extends Controller
                     'start_date' => $validated['start_date'],
                     'created_by' => Auth::id(),
                 ]);
+
                 return redirect()->back()->withErrors(['package_type' => 'A membership with this package type and start date already exists for this staff member.'])->withInput();
             }
 
@@ -142,7 +145,7 @@ class GymController extends Controller
                 'full_name' => $validated['full_name_1'],
                 'date_of_birth' => $validated['date_of_birth_1'],
             ])->orWhere(function ($query) use ($validated) {
-                if (!empty($validated['email_address_1'])) {
+                if (! empty($validated['email_address_1'])) {
                     $query->where('email_address', $validated['email_address_1']);
                 }
             })->first();
@@ -153,6 +156,7 @@ class GymController extends Controller
                     'date_of_birth' => $validated['date_of_birth_1'],
                     'email_address' => $validated['email_address_1'],
                 ]);
+
                 return redirect()->back()->withErrors(['full_name_1' => 'A member with this name and date of birth or email address already exists.'])->withInput();
             }
 
@@ -161,7 +165,7 @@ class GymController extends Controller
                     'full_name' => $validated['full_name_2'],
                     'date_of_birth' => $validated['date_of_birth_2'],
                 ])->orWhere(function ($query) use ($validated) {
-                    if (!empty($validated['email_address_2'])) {
+                    if (! empty($validated['email_address_2'])) {
                         $query->where('email_address', $validated['email_address_2']);
                     }
                 })->first();
@@ -172,6 +176,7 @@ class GymController extends Controller
                         'date_of_birth' => $validated['date_of_birth_2'],
                         'email_address' => $validated['email_address_2'],
                     ]);
+
                     return redirect()->back()->withErrors(['full_name_2' => 'A member with this name and date of birth or email address already exists.'])->withInput();
                 }
             }
@@ -197,7 +202,7 @@ class GymController extends Controller
 
             // Combine fitness goals with "Other" details for Member 1
             $fitnessGoals1 = $validated['fitness_goals_1'];
-            if (in_array('Other', $fitnessGoals1) && !empty($validated['fitness_goals_other_1'])) {
+            if (in_array('Other', $fitnessGoals1) && ! empty($validated['fitness_goals_other_1'])) {
                 $fitnessGoals1[array_search('Other', $fitnessGoals1)] = $validated['fitness_goals_other_1'];
             }
 
@@ -225,7 +230,7 @@ class GymController extends Controller
             if ($validated['package_type'] === 'couple') {
                 // Combine fitness goals with "Other" details for Member 2
                 $fitnessGoals2 = $validated['fitness_goals_2'];
-                if (in_array('Other', $fitnessGoals2) && !empty($validated['fitness_goals_other_2'])) {
+                if (in_array('Other', $fitnessGoals2) && ! empty($validated['fitness_goals_other_2'])) {
                     $fitnessGoals2[array_search('Other', $fitnessGoals2)] = $validated['fitness_goals_other_2'];
                 }
 
@@ -266,6 +271,7 @@ class GymController extends Controller
                     'membership_id' => $membership->id,
                     'payment_date' => $validated['payment_date'],
                 ]);
+
                 return redirect()->back()->withErrors(['payment_date' => 'A payment for this membership on this date already exists.'])->withInput();
             }
 
@@ -287,11 +293,12 @@ class GymController extends Controller
             ]);
 
             return redirect()->route('gym.index')->with('success', 'Membership registered successfully.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::warning('Validation failed during membership registration', [
                 'errors' => $e->errors(),
                 'user_id' => Auth::id(),
             ]);
+
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Error during membership registration', [
@@ -299,6 +306,7 @@ class GymController extends Controller
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->back()->with('error', 'An error occurred while registering the membership. Please try again.')->withInput();
         }
     }
@@ -336,10 +344,10 @@ class GymController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->route('gym.index')->with('error', 'Membership not found or an error occurred.');
         }
     }
-
 
     /**
      * Show the form for editing the specified resource.
@@ -348,6 +356,7 @@ class GymController extends Controller
     {
         try {
             $membership = Membership::with(['members'])->findOrFail($id);
+
             return view('gym::memberships.edit', compact('membership'));
         } catch (\Exception $e) {
             Log::error('Error loading membership for edit', [
@@ -355,9 +364,11 @@ class GymController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->route('gym.index')->with('error', 'Membership not found or an error occurred.');
         }
     }
+
     /**
      * Update the specified resource in storage.
      */
@@ -371,8 +382,9 @@ class GymController extends Controller
         ]);
 
         try {
-            if (!Auth::check()) {
+            if (! Auth::check()) {
                 Log::warning('Unauthenticated user attempted to update membership');
+
                 return redirect()->back()->withErrors(['auth' => 'You must be logged in to update a membership.']);
             }
 
@@ -423,7 +435,7 @@ class GymController extends Controller
             $validated = $request->validate($rules);
 
             $config = SubscriptionConfig::first();
-            if (!$config) {
+            if (! $config) {
                 Log::error('Subscription config not found');
                 throw new \Exception('Subscription configuration is missing. Please run the appropriate seeder or configuration route to set the fees.');
             }
@@ -458,7 +470,7 @@ class GymController extends Controller
 
             // Combine fitness goals with "Other" details for Member 1
             $fitnessGoals1 = $validated['fitness_goals_1'];
-            if (in_array('Other', $fitnessGoals1) && !empty($validated['fitness_goals_other_1'])) {
+            if (in_array('Other', $fitnessGoals1) && ! empty($validated['fitness_goals_other_1'])) {
                 $fitnessGoals1[array_search('Other', $fitnessGoals1)] = $validated['fitness_goals_other_1'];
             }
 
@@ -488,6 +500,7 @@ class GymController extends Controller
                 Log::error('Primary member not found for membership', [
                     'membership_id' => $membership->id,
                 ]);
+
                 return redirect()->back()->withErrors(['full_name_1' => 'Primary member not found.'])->withInput();
             }
 
@@ -496,7 +509,7 @@ class GymController extends Controller
             if ($validated['package_type'] === 'couple') {
                 // Combine fitness goals with "Other" details for Member 2
                 $fitnessGoals2 = $validated['fitness_goals_2'];
-                if (in_array('Other', $fitnessGoals2) && !empty($validated['fitness_goals_other_2'])) {
+                if (in_array('Other', $fitnessGoals2) && ! empty($validated['fitness_goals_other_2'])) {
                     $fitnessGoals2[array_search('Other', $fitnessGoals2)] = $validated['fitness_goals_other_2'];
                 }
 
@@ -549,11 +562,12 @@ class GymController extends Controller
             }
 
             return redirect()->route('gym.index')->with('success', 'Membership updated successfully.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::warning('Validation failed during membership update', [
                 'errors' => $e->errors(),
                 'user_id' => Auth::id(),
             ]);
+
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Error during membership update', [
@@ -562,10 +576,10 @@ class GymController extends Controller
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->back()->with('error', 'An error occurred while updating the membership. Please try again.')->withInput();
         }
     }
-
 
     /**
      * Remove the specified resource from storage.
@@ -578,8 +592,9 @@ class GymController extends Controller
         ]);
 
         try {
-            if (!Auth::check()) {
+            if (! Auth::check()) {
                 Log::warning('Unauthenticated user attempted to delete membership');
+
                 return redirect()->back()->withErrors(['auth' => 'You must be logged in to delete a membership.']);
             }
 
@@ -619,9 +634,11 @@ class GymController extends Controller
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->route('gym.index')->with('error', 'An error occurred while deleting the membership. Please try again.');
         }
     }
+
     // Member payment creation
     public function createMemberPayment(Membership $membership)
     {
@@ -646,6 +663,15 @@ class GymController extends Controller
             'payment_type' => $validated['payment_status'] === 'partial' ? 'partial' : 'full',
         ]);
 
+        if (in_array($payment->payment_status, ['paid', 'partial'])) {
+            try {
+                app(PostingService::class)
+                    ->recordSale('gym', (float) $payment->payment_amount, $payment->payment_mode, 'gym_payment', $payment->id);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         Log::info('Member payment created successfully', [
             'payment_id' => $payment->id,
             'membership_id' => $membership->id,
@@ -659,6 +685,7 @@ class GymController extends Controller
     public function createTrainerPayment(Membership $membership)
     {
         $trainers = Trainer::all();
+
         return view('gym::trainer-payments.create', compact('membership', 'trainers'));
     }
 
@@ -681,6 +708,13 @@ class GymController extends Controller
             'payment_mode' => $validated['payment_mode'],
         ]);
 
+        try {
+            app(PostingService::class)
+                ->recordExpense('gym', (float) $trainerPayment->payment_amount, $trainerPayment->payment_mode, 'gym_trainer_payment', $trainerPayment->id);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         Log::info('Trainer payment created successfully', [
             'trainer_payment_id' => $trainerPayment->id,
             'membership_id' => $membership->id,
@@ -690,16 +724,20 @@ class GymController extends Controller
 
         return redirect()->route('gym.memberships.show', $membership->id)->with('success', 'Trainer payment added successfully.');
     }
-    //Trainer Controller
+
+    // Trainer Controller
     public function indexTrainer()
     {
         $trainers = Trainer::all();
+
         return view('gym::trainers.index', compact('trainers'));
     }
+
     public function createTrainer()
     {
         return view('gym::trainers.create');
     }
+
     public function storeTrainer(Request $request)
     {
         $request->validate([
@@ -718,6 +756,7 @@ class GymController extends Controller
 
         return redirect()->route('gym.trainers.index')->with('success', 'Trainer registered successfully!');
     }
+
     /**
      * Display the specified resource.
      */
@@ -725,6 +764,7 @@ class GymController extends Controller
     {
         try {
             $trainer = Trainer::findOrFail($id);
+
             return view('gym::trainers.show', compact('trainer'));
         } catch (\Exception $e) {
             Log::error('Error displaying trainer', [
@@ -732,6 +772,7 @@ class GymController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->route('gym.trainers.index')->with('error', 'Trainer not found or an error occurred.');
         }
     }
@@ -743,6 +784,7 @@ class GymController extends Controller
     {
         try {
             $trainer = Trainer::findOrFail($id);
+
             return view('gym::trainers.edit', compact('trainer'));
         } catch (\Exception $e) {
             Log::error('Error loading trainer for edit', [
@@ -750,6 +792,7 @@ class GymController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->route('gym.trainers.index')->with('error', 'Trainer not found or an error occurred.');
         }
     }
@@ -763,7 +806,7 @@ class GymController extends Controller
             $trainer = Trainer::findOrFail($id);
             $request->validate([
                 'full_name' => 'required|string|max:255',
-                'email_address' => 'required|email|unique:trainers,email_address,' . $trainer->id,
+                'email_address' => 'required|email|unique:trainers,email_address,'.$trainer->id,
                 'phone_number' => 'required|string|max:20',
                 'specialization' => 'required|string|max:255',
             ]);
@@ -781,11 +824,12 @@ class GymController extends Controller
             ]);
 
             return redirect()->route('gym.trainers.index')->with('success', 'Trainer updated successfully!');
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::warning('Validation failed during trainer update', [
                 'trainer_id' => $id,
                 'errors' => $e->errors(),
             ]);
+
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Error during trainer update', [
@@ -793,6 +837,7 @@ class GymController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->back()->with('error', 'An error occurred while updating the trainer. Please try again.')->withInput();
         }
     }
@@ -818,7 +863,8 @@ class GymController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return redirect()->route('trainers.index')->with('error', 'An error occurred while deleting the trainer. Please try again.');
+
+            return redirect()->route('gym.trainers.index')->with('error', 'An error occurred while deleting the trainer. Please try again.');
         }
     }
 
@@ -828,6 +874,7 @@ class GymController extends Controller
     public function editSubscriptionConfig()
     {
         $config = SubscriptionConfig::first(); // Retrieve the subscription config (assumes a single config record)
+
         return view('gym::subscription_config', compact('config'));
     }
 
@@ -853,6 +900,7 @@ class GymController extends Controller
     private function calculateNextBillingDate(string $startDate, string $paymentMethod): string
     {
         $date = Carbon::parse($startDate);
+
         return match ($paymentMethod) {
             'monthly' => $date->addMonth()->toDateString(),
             'quarterly' => $date->addMonths(3)->toDateString(),

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('bed_type')->nullable(); // e.g. "King Size"
 
             $table->text('description')->nullable();
-           
+
             // MEDIA COLUMNS
             $table->string('image_url')->nullable(); // Primary/Featured Image
             $table->string('video_url')->nullable(); // YouTube/Vimeo Link

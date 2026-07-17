@@ -2,8 +2,8 @@
 
 namespace Modules\Banquet\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class BanquetSetupStyle extends Model
 {
@@ -11,6 +11,6 @@ class BanquetSetupStyle extends Model
 
     protected $fillable = [
         'name',
-        'image_path'
+        'image_path',
     ];
 }

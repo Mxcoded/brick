@@ -3,9 +3,9 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Modules\Frontdeskcrm\Models\Registration;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Modules\Frontdeskcrm\Models\Registration;
 
 class ProcessOverstayedGuests extends Command
 {
@@ -40,6 +40,7 @@ class ProcessOverstayedGuests extends Command
         if ($overstayedRegistrations->isEmpty()) {
             $this->info('No overstayed guests found.');
             Log::info('Scheduled Task: No overstayed guests found.');
+
             return self::SUCCESS;
         }
 
@@ -81,6 +82,7 @@ class ProcessOverstayedGuests extends Command
 
         $this->info('Successfully processed all overstayed guests.');
         Log::info('Scheduled Task: ProcessOverstayedGuests finished.');
+
         return self::SUCCESS;
     }
 }

@@ -17,23 +17,23 @@ return new class extends Migration
             $table->string('preview_text')->nullable(); // Email preview text
             $table->longText('content'); // HTML content
             $table->enum('status', ['draft', 'scheduled', 'sending', 'sent', 'failed'])->default('draft');
-            
+
             // Scheduling
             $table->timestamp('scheduled_at')->nullable();
             $table->timestamp('sent_at')->nullable();
-            
+
             // Tracking
             $table->unsignedInteger('recipients_count')->default(0);
             $table->unsignedInteger('sent_count')->default(0);
             $table->unsignedInteger('failed_count')->default(0);
             $table->unsignedInteger('opened_count')->default(0); // For future tracking
             $table->unsignedInteger('clicked_count')->default(0); // For future tracking
-            
+
             // Author
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
-            
+
             $table->timestamps();
-            
+
             $table->index('status');
             $table->index('scheduled_at');
         });
@@ -50,7 +50,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('newsletters');
-        
+
         Schema::table('newsletter_subscribers', function (Blueprint $table) {
             $table->dropColumn('unsubscribe_token');
         });

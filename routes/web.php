@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,8 +17,8 @@ use App\Http\Controllers\ProfileController;
 
 // 1. Public Landing Page
 Route::get('/', function () {
-    // return redirect()->route('website.home');
-    return view('welcome');
+    return redirect()->route('website.home');
+    // return view('welcome');
 });
 
 // 2. Authentication Routes (Login, Register, Password Reset)
@@ -32,6 +32,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
 
     // User Profile (Shared across all user types)
-    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    // auth.session enables logoutOtherDevices() on password change
+    Route::middleware('auth.session')->group(function () {
+        Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+        Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    });
 });

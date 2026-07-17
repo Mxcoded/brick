@@ -3,8 +3,8 @@
 namespace Modules\Website\Models;
 
 use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ContactMessage extends Model
 {
@@ -23,6 +23,8 @@ class ContactMessage extends Model
         'archived_at',
         'archived_by',
         'last_reply_at',
+        'assigned_to',
+        'follow_up_status',
     ];
 
     protected $casts = [
@@ -50,6 +52,14 @@ class ContactMessage extends Model
     public function archivedByUser()
     {
         return $this->belongsTo(User::class, 'archived_by');
+    }
+
+    /**
+     * Get the staff user assigned to this message.
+     */
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 
     // ==========================================
@@ -86,6 +96,22 @@ class ContactMessage extends Model
     public function scopeAwaitingReply($query)
     {
         return $query->where('status', 'read');
+    }
+
+    /**
+     * Scope: Assigned to a specific user.
+     */
+    public function scopeAssignedTo($query, $userId)
+    {
+        return $query->where('assigned_to', $userId);
+    }
+
+    /**
+     * Scope: Follow-up status filter.
+     */
+    public function scopeFollowUpStatus($query, $status)
+    {
+        return $query->where('follow_up_status', $status);
     }
 
     // ==========================================

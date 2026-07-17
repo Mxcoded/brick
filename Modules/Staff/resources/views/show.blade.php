@@ -139,7 +139,7 @@
 
         <!-- Employment History Card -->
         <div class="card shadow-sm mt-5">
-            <div class="card-header bg-secondary text-white py-3">
+            <div class="card-header bg-dark text-white py-3">
                 <h5 class="mb-0 fw-semibold"><i class="fas fa-history me-2"></i> Employment History</h5>
             </div>
             <div class="card-body p-4">
@@ -174,7 +174,7 @@
 
         <!-- Educational Background Card -->
         <div class="card shadow-sm mt-5">
-            <div class="card-header bg-secondary text-white py-3">
+            <div class="card-header bg-dark text-white py-3">
                 <h5 class="mb-0 fw-semibold"><i class="fas fa-graduation-cap me-2"></i> Educational Background</h5>
             </div>
             <div class="card-body p-4">

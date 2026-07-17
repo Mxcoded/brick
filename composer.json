@@ -3,22 +3,27 @@
     "name": "laravel/laravel",
     "type": "project",
     "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "keywords": [
+        "laravel",
+        "framework"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
         "intervention/image-laravel": "^1.5",
-        "laravel/framework": "^11.31",
+        "laravel/framework": "^12.61",
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.6",
         "maatwebsite/excel": "*",
         "nwidart/laravel-modules": "^11.1",
+        "picqer/php-barcode-generator": "*",
         "spatie/laravel-permission": "^6.16",
-        "yajra/laravel-datatables": "^11.0"
+        "yajra/laravel-datatables": "^12.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "laravel/dusk": "*",
         "laravel/pail": "^1.1",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
@@ -64,10 +69,10 @@
             "dont-discover": []
         },
         "merge-plugin": {
-        "include": [
-            "Modules/*/composer.json"
-        ]
-    }
+            "include": [
+                "Modules/*/composer.json"
+            ]
+        }
     },
     "config": {
         "optimize-autoloader": true,

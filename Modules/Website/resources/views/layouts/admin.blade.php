@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website Admin - @yield('title', 'Dashboard')</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    @vite(['resources/sass/app.scss'])
     <style>
         .sidebar {
             min-height: 100vh;
@@ -37,41 +37,42 @@
       <div class="sidebar col-md-2">
     <h4 class="text-center mb-4">Website Admin</h4>
     <ul class="nav flex-column">
-        @can('access_website_dashboard')
+        @canany(['access_website_dashboard', 'website.dashboard'])
         <li class="nav-item">
             <a class="nav-link {{ Route::is('website.admin.dashboard') ? 'active' : '' }}"
                 href="{{ route('website.admin.dashboard') }}">
                 <i class="fas fa-tachometer-alt me-2"></i> Dashboard
             </a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ route('website.admin.rooms.index') }}"><i class="fas fa-bed me-2"></i>
-                Rooms</a>
-        </li>
+        @endcanany
+        @canany(['access_website_dashboard', 'website.amenities'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.amenities.index') }}">
                 <i class="fas fa-concierge-bell me-2"></i> Amenities
             </a>
         </li>
+        @endcanany
+        @canany(['access_website_dashboard', 'website.bookings'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.bookings.index') }}">
                 <i class="fas fa-book me-2"></i> Bookings
             </a>
         </li>
+        @endcanany
+        @canany(['access_website_dashboard', 'website.contact-messages'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.contact-messages.index') }}">
                 <i class="fas fa-envelope me-2"></i> Contact Messages
             </a>
         </li>
-        @endcan
-
-        @can('manage_settings')
+        @endcanany
+        @canany(['access_website_dashboard', 'website.settings'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.settings.index') }}">
                 <i class="fas fa-cog me-2"></i> Settings
             </a>
         </li>
-        @endcan
+        @endcanany
     </ul>
 </div>
         <!-- Content -->
@@ -91,7 +92,7 @@
             @yield('content')
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    @vite(['resources/js/app.js'])
     <!-- In layouts/admin.blade.php -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {

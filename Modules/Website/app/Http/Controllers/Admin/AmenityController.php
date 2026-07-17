@@ -4,14 +4,15 @@ namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Modules\Website\Models\Amenity;
 use Illuminate\Support\Facades\Log;
+use Modules\Website\Models\Amenity;
 
 class AmenityController extends Controller
 {
     public function index()
     {
         $amenities = Amenity::all();
+
         return view('website::admin.amenities.index', compact('amenities'));
     }
 
@@ -48,7 +49,7 @@ class AmenityController extends Controller
     {
         Log::info('Amenity update request:', $request->all());
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:amenities,name,' . $amenity->id,
+            'name' => 'required|string|max:255|unique:amenities,name,'.$amenity->id,
             'icon' => 'nullable|string|max:255',
         ]);
 
@@ -61,6 +62,7 @@ class AmenityController extends Controller
     public function destroy(Amenity $amenity)
     {
         $amenity->delete();
+
         return redirect()->route('website.admin.amenities.index')->with('success', 'Amenity deleted successfully.');
     }
 }

@@ -3,27 +3,31 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Modules\Website\Models\Settings;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Modules\Website\Models\Setting;
+use Modules\Website\Models\Settings;
 
 class SettingController extends Controller
 {
     /**
      * Display a listing of the settings.
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function index()
     {
         $settings = Settings::all();
+
         return view('website::admin.settings.index', compact('settings'));
     }
 
     /**
      * Show the form for creating a new setting.
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function create()
     {
@@ -33,8 +37,7 @@ class SettingController extends Controller
     /**
      * Store a newly created setting in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function store(Request $request)
     {
@@ -72,8 +75,8 @@ class SettingController extends Controller
     /**
      * Display the specified setting.
      *
-     * @param  \Modules\Website\Models\Setting  $setting
-     * @return \Illuminate\View\View
+     * @param  Setting  $setting
+     * @return View
      */
     public function show(Settings $setting)
     {
@@ -83,8 +86,8 @@ class SettingController extends Controller
     /**
      * Show the form for editing the specified setting.
      *
-     * @param  \Modules\Website\Models\Setting  $setting
-     * @return \Illuminate\View\View
+     * @param  Setting  $setting
+     * @return View
      */
     public function edit(Settings $setting)
     {
@@ -94,14 +97,13 @@ class SettingController extends Controller
     /**
      * Update the specified setting in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Modules\Website\Models\Setting  $setting
-     * @return \Illuminate\Http\RedirectResponse
+     * @param  Setting  $setting
+     * @return RedirectResponse
      */
     public function update(Request $request, Settings $setting)
     {
         $validated = $request->validate([
-            'key' => 'required|string|max:255|unique:settings,key,' . $setting->id,
+            'key' => 'required|string|max:255|unique:settings,key,'.$setting->id,
             'type' => 'required|in:string,image,video,json',
             'value' => 'required_if:type,string,json',
             'image' => 'nullable|image|max:2048', // Nullable since updating might not include a new image
@@ -129,12 +131,13 @@ class SettingController extends Controller
     /**
      * Remove the specified setting from storage.
      *
-     * @param  \Modules\Website\Models\Setting  $setting
-     * @return \Illuminate\Http\RedirectResponse
+     * @param  Setting  $setting
+     * @return RedirectResponse
      */
     public function destroy(Settings $setting)
     {
         $setting->delete();
+
         return redirect()->route('website.admin.settings.index')->with('success', 'Setting deleted successfully.');
     }
 }

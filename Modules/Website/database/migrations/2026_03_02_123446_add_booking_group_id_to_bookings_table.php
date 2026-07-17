@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('bookings', 'booking_group_id')) {
+        if (! Schema::hasColumn('bookings', 'booking_group_id')) {
             Schema::table('bookings', function (Blueprint $table) {
                 // Group ID to link multiple bookings made in a single transaction
                 $table->string('booking_group_id', 20)->nullable()->after('booking_reference')->index();

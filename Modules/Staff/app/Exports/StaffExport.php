@@ -2,23 +2,24 @@
 
 namespace Modules\Staff\Exports;
 
-use Modules\Staff\Models\Employee;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Border;
+use Modules\Staff\Models\Employee;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class StaffExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithTitle, ShouldAutoSize
+class StaffExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     protected ?string $branchFilter;
+
     protected ?string $statusFilter;
 
     public function __construct(?string $branchFilter = null, ?string $statusFilter = null)
@@ -28,7 +29,7 @@ class StaffExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     }
 
     /**
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function collection()
     {
@@ -47,9 +48,6 @@ class StaffExport implements FromCollection, WithHeadings, WithMapping, WithStyl
         return $query->orderBy('name')->get();
     }
 
-    /**
-     * @return array
-     */
     public function headings(): array
     {
         return [
@@ -80,8 +78,7 @@ class StaffExport implements FromCollection, WithHeadings, WithMapping, WithStyl
     }
 
     /**
-     * @param Employee $employee
-     * @return array
+     * @param  Employee  $employee
      */
     public function map($employee): array
     {
@@ -120,23 +117,21 @@ class StaffExport implements FromCollection, WithHeadings, WithMapping, WithStyl
         if (strlen($value) <= 4) {
             return str_repeat('*', strlen($value));
         }
-        return str_repeat('*', strlen($value) - 4) . substr($value, -4);
+
+        return str_repeat('*', strlen($value) - 4).substr($value, -4);
     }
 
-    /**
-     * @return string
-     */
     public function title(): string
     {
         $title = 'Staff Data';
         if ($this->branchFilter) {
-            $title .= ' - ' . ucfirst($this->branchFilter) . ' Branch';
+            $title .= ' - '.ucfirst($this->branchFilter).' Branch';
         }
+
         return $title;
     }
 
     /**
-     * @param Worksheet $sheet
      * @return array
      */
     public function styles(Worksheet $sheet)

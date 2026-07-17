@@ -16,7 +16,7 @@ class BanquetVenueSeeder extends Seeder
                 'capacity' => 200,
                 'rate_per_hour' => 50000,
                 'description' => 'Standard hall suitable for conferences.',
-                'is_active' => true
+                'is_active' => true,
             ]
         );
 
@@ -26,7 +26,7 @@ class BanquetVenueSeeder extends Seeder
                 'capacity' => 150,
                 'rate_per_hour' => 40000,
                 'description' => 'Medium sized hall.',
-                'is_active' => true
+                'is_active' => true,
             ]
         );
 
@@ -43,7 +43,7 @@ class BanquetVenueSeeder extends Seeder
                 'capacity' => 400, // Combined capacity
                 'rate_per_hour' => 85000, // Discounted combined rate?
                 'description' => 'Grand hall combining Adamawa and Kano halls.',
-                'is_active' => true
+                'is_active' => true,
             ]
         );
 

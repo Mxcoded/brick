@@ -4,7 +4,7 @@
     <div class="container-fluid my-4">
         <h1 class="mb-4">Manage Leave Requests</h1>
         <div class="card shadow-sm">
-            <div class="card-header bg-secondary text-white">
+            <div class="card-header bg-dark text-white">
                 <h5 class="mb-0">Pending Leave Requests</h5>
             </div>
             @if (session('error'))

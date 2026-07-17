@@ -2,22 +2,20 @@
 
 namespace Modules\Staff\Http\Controllers;
 
-use Illuminate\Contracts\Support\Renderable;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\View\View;
+use Modules\Staff\Emails\LeaveRequestStatusUpdated;
+use Modules\Staff\Emails\LeaveRequestSubmitted;
+// Other 'use' statements...
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveBalance;
 use Modules\Staff\Models\LeaveRequest;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
-use Modules\Staff\Emails\LeaveRequestSubmitted;
-use Modules\Staff\Emails\LeaveRequestStatusUpdated;
-
-// Other 'use' statements...
-use Illuminate\Support\Facades\Mail;
-
 
 class LeaveController extends Controller
 {
@@ -26,7 +24,7 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
         $leaveRequests = $employee->leaveRequests()->latest()->get();
@@ -52,12 +50,14 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
         $leaveBalances = $employee->leaveBalances()->where('year', date('Y'))->get();
+
         return view('staff::leaves.request', compact('employee', 'leaveBalances'));
     }
+
     public function cancelLeaveRequest($id)
     {
         $leaveRequest = LeaveRequest::findOrFail($id);
@@ -80,12 +80,13 @@ class LeaveController extends Controller
 
         return back()->with('success', 'Your leave request has been successfully cancelled.');
     }
+
     /**
      * Allows an Admin to cancel any leave request (pending or approved).
      * If the request was approved, it returns the leave days to the employee's balance.
      *
-     * @param int $id The ID of the leave request.
-     * @return \Illuminate\Http\RedirectResponse
+     * @param  int  $id  The ID of the leave request.
+     * @return RedirectResponse
      */
     public function adminCancelLeaveRequest($id)
     {
@@ -110,12 +111,12 @@ class LeaveController extends Controller
 
         return back()->with('success', 'The leave request has been successfully cancelled.');
     }
-    
 
     // Admin Leave Management
     public function leaveAdminIndex()
     {
         $leaveRequests = LeaveRequest::with('employee')->where('status', 'pending')->latest()->get();
+
         return view('staff::leaves.admin.index', compact('leaveRequests'));
     }
 
@@ -144,6 +145,7 @@ class LeaveController extends Controller
         }
 
         Mail::to($leaveRequest->employee->email)->send(new LeaveRequestStatusUpdated($leaveRequest));
+
         return redirect()->route('staff.leaves.admin')->with('success', 'Leave request approved.');
     }
 
@@ -164,12 +166,119 @@ class LeaveController extends Controller
     // Leave Report
     public function leaveReport(Request $request)
     {
-        $year = $request->input('year', date('Y'));
-        $employees = Employee::with(['leaveRequests' => fn($q) => $q->whereYear('start_date', $year)])
-            ->with(['leaveBalances' => fn($q) => $q->where('year', $year)])
+        $year = (int) $request->input('year', date('Y'));
+        $prevYear = $year - 1;
+        $department = $request->department;
+
+        $employeeBase = Employee::where('status', 'approved')
+            ->when($department, fn ($q) => $q->where('department', $department));
+
+        $employees = (clone $employeeBase)
+            ->with(['leaveRequests' => fn ($q) => $q->whereYear('start_date', $year)])
+            ->with(['leaveBalances' => fn ($q) => $q->where('year', $year)])
             ->get();
 
-        return view('staff::leaves.admin.report', compact('employees', 'year'));
+        $departments = Employee::where('status', 'approved')
+            ->whereNotNull('department')
+            ->distinct('department')
+            ->pluck('department')
+            ->sort();
+
+        $years = range(now()->year - 5, now()->year + 1);
+
+        // ---- Summary Stats ----
+        $totalEmployees = $employees->count();
+        $totalBalanceEntries = $employees->sum(fn ($e) => $e->leaveBalances->count());
+
+        $allRequests = $employees->pluck('leaveRequests')->flatten();
+        $totalLeaveRequests = $allRequests->count();
+        $totalApprovedRequests = $allRequests->where('status', 'approved')->count();
+        $totalPendingRequests = $allRequests->where('status', 'pending')->count();
+        $totalRejectedRequests = $allRequests->where('status', 'rejected')->count();
+        $totalCancelledRequests = $allRequests->where('status', 'cancelled')->count();
+
+        $totalLeaveDays = LeaveRequest::whereYear('start_date', $year)
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->where('status', 'approved')
+            ->sum('days_count');
+
+        // ---- Leave Type Distribution ----
+        $leaveTypeStats = LeaveRequest::whereYear('start_date', $year)
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->selectRaw("leave_type, COUNT(*) as total_requests, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count, SUM(CASE WHEN status = 'approved' THEN days_count ELSE 0 END) as days_used")
+            ->groupBy('leave_type')
+            ->get()
+            ->keyBy('leave_type');
+
+        $leaveTypes = ['Annual', 'Casual', 'Sick', 'Compassionate', 'Paternity', 'Maternity'];
+
+        // ---- Monthly Breakdown (approved days per month) ----
+        $monthlyDays = LeaveRequest::whereYear('start_date', $year)
+            ->where('status', 'approved')
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->selectRaw('MONTH(start_date) as month, SUM(days_count) as days')
+            ->groupBy('month')
+            ->pluck('days', 'month');
+
+        $monthlyLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $monthlyData = [];
+        $maxMonthlyDays = 1;
+        foreach (range(1, 12) as $m) {
+            $d = (int) ($monthlyDays[$m] ?? 0);
+            $monthlyData[] = $d;
+            if ($d > $maxMonthlyDays) {
+                $maxMonthlyDays = $d;
+            }
+        }
+
+        // ---- Department Summary ----
+        $deptStats = (clone $employeeBase)->get()->groupBy('department')->map(function ($emps) use ($year) {
+            $empIds = $emps->pluck('id');
+            $requests = LeaveRequest::whereIn('employee_id', $empIds)->whereYear('start_date', $year);
+            $approved = (clone $requests)->where('status', 'approved');
+
+            return [
+                'employee_count' => $emps->count(),
+                'total_requests' => (clone $requests)->count(),
+                'approved_requests' => (clone $approved)->count(),
+                'days_used' => (clone $approved)->sum('days_count'),
+                'pending_requests' => (clone $requests)->where('status', 'pending')->count(),
+            ];
+        })->sortByDesc('days_used');
+
+        // ---- Previous Year Comparison ----
+        $prevDaysUsed = LeaveRequest::whereYear('start_date', $prevYear)
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->where('status', 'approved')
+            ->sum('days_count');
+
+        // ---- Averages ----
+        $avgDaysPerRequest = $totalApprovedRequests > 0
+            ? round($totalLeaveDays / $totalApprovedRequests, 1) : 0;
+        $avgDaysPerEmployee = $totalEmployees > 0
+            ? round($totalLeaveDays / $totalEmployees, 1) : 0;
+
+        // ---- Most requested leave type ----
+        $mostUsedType = $leaveTypeStats->sortByDesc('days_used')->keys()->first();
+
+        // ---- Pending requests requiring approval ----
+        $pendingRequests = LeaveRequest::with('employee')
+            ->whereYear('start_date', $year)
+            ->where('status', 'pending')
+            ->when($department, fn ($q) => $q->whereHas('employee', fn ($q2) => $q2->where('department', $department)))
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return view('staff::leaves.admin.report', compact(
+            'employees', 'year', 'prevYear', 'department', 'departments', 'years',
+            'totalEmployees', 'totalBalanceEntries', 'totalLeaveRequests',
+            'totalApprovedRequests', 'totalPendingRequests', 'totalRejectedRequests',
+            'totalCancelledRequests', 'totalLeaveDays', 'prevDaysUsed',
+            'leaveTypeStats', 'leaveTypes', 'monthlyData', 'monthlyLabels',
+            'maxMonthlyDays', 'deptStats', 'avgDaysPerRequest', 'avgDaysPerEmployee',
+            'mostUsedType', 'pendingRequests',
+        ));
     }
 
     // Leave Balance Form
@@ -177,7 +286,19 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        return view('staff::leaves.admin.balances', compact('employee'));
+
+        $currentYear = date('Y');
+
+        if (! $employee) {
+            return redirect()->route('staff.dashboard')
+                ->with('error', 'No employee record linked to your account.');
+        }
+
+        $employees = Employee::with(['leaveBalances' => fn ($q) => $q->where('year', $currentYear)])
+            ->where('id', $employee->id)
+            ->paginate(15);
+
+        return view('staff::leaves.admin.balances', compact('employees', 'currentYear'));
     }
 
     // Submit Leave Balance
@@ -185,7 +306,7 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
 
@@ -237,20 +358,20 @@ class LeaveController extends Controller
     /**
      * Show the form for an admin to apply leave on behalf of an employee.
      *
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function showApplyForOtherForm()
     {
         // Fetch all active employees to populate the dropdown in the view
         $employees = Employee::where('status', 'approved')->orderBy('name')->get();
+
         return view('staff::leaves.admin.apply', compact('employees'));
     }
 
     /**
      * Let an admin submit a leave request on behalf of another employee.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function submitLeaveForOther(Request $request)
     {
@@ -261,6 +382,7 @@ class LeaveController extends Controller
             'start_date' => 'required|date|after_or_equal:today',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string|max:1000',
+            'covered_by' => 'nullable|exists:employees,id|different:employee_id',
         ]);
 
         $employee = Employee::find($validated['employee_id']);
@@ -273,9 +395,7 @@ class LeaveController extends Controller
      * Reusable private method to process a leave request.
      * This avoids code duplication between self-service and admin submissions.
      *
-     * @param array $validatedData
-     * @param Employee $employee
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     private function processLeaveRequest(array $validatedData, Employee $employee)
     {
@@ -313,7 +433,6 @@ class LeaveController extends Controller
 
         // --- END OF NEW LOGIC ---
 
-
         // 2. Check for overlapping leave requests for the same employee
         $overlappingLeave = LeaveRequest::where('employee_id', $employee->id)
             ->where(function ($query) use ($startDate, $endDate) {
@@ -322,11 +441,14 @@ class LeaveController extends Controller
                 });
             })
             ->whereIn('status', ['pending', 'approved'])
-            ->exists();
+            ->first();
 
         if ($overlappingLeave) {
+            $conflictDates = Carbon::parse($overlappingLeave->start_date)->format('M d, Y')
+                .' to '.Carbon::parse($overlappingLeave->end_date)->format('M d, Y');
+
             return redirect()->back()->withInput()->withErrors([
-                'start_date' => 'This employee already has an overlapping leave request in this date range.'
+                'start_date' => "Overlapping leave request found: {$overlappingLeave->leave_type} ({$conflictDates}) — Status: {$overlappingLeave->status}.",
             ]);
         }
 
@@ -336,7 +458,7 @@ class LeaveController extends Controller
             ->where('year', $year)
             ->first();
 
-        if (!$leaveBalance) {
+        if (! $leaveBalance) {
             return redirect()->back()->withInput()->withErrors(['leave_type' => 'No leave balance is configured for this employee and leave type.']);
         }
 
@@ -352,18 +474,18 @@ class LeaveController extends Controller
             'start_date' => $validatedData['start_date'],
             'end_date' => $validatedData['end_date'],
             'reason' => $validatedData['reason'],
-            'days_count' => $leaveDaysCount, // Use our newly calculated count
+            'days_count' => $leaveDaysCount,
+            'covered_by' => $validatedData['covered_by'] ?? null,
             'status' => 'pending',
         ]);
         // 5. Send notification email to HR/Admin
-        $adminEmail = 'hr@brickspoint.com'; // It's best to store this in a config file this is just for brickspoint.
+        $adminEmail = config('staff.hr_email', 'hr@brickspoint.com');
         Mail::to($adminEmail)->send(new LeaveRequestSubmitted($leaveRequest));
-
 
         // return redirect()->route('staff.leaves.admin')->with('success', "Leave request for {$employee->name} has been submitted successfully.");
         // --- NEW CONDITIONAL REDIRECT LOGIC ---
         // Check if the logged-in user has permission to apply leave for others.
-        if (Auth::user()->can('apply-leave-for-others')) {
+        if (Auth::user()->can('leaves.apply-for-others')) {
             // If they can, they are likely HR/Admin. Redirect to the admin page.
             return redirect()->route('staff.leaves.admin')->with('success', "Leave request for {$employee->name} has been submitted successfully.");
         } else {
@@ -377,7 +499,7 @@ class LeaveController extends Controller
     {
         $user = Auth::user();
         $employee = $user->employee;
-        if (!$employee) {
+        if (! $employee) {
             return redirect()->back()->with('error', 'You do not have an employee profile.');
         }
 
@@ -391,11 +513,11 @@ class LeaveController extends Controller
 
         return $this->processLeaveRequest($validated, $employee);
     }
+
     /**
      * Show the admin page for managing all employee leave balances.
      *
-     * @param Request $request
-     * @return \Illuminate\View\View
+     * @return View
      */
     public function showBalancesAdmin(Request $request)
     {
@@ -424,16 +546,15 @@ class LeaveController extends Controller
     /**
      * Handle the submission for creating or updating an employee's leave balance.
      *
-     * @param Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     * @return RedirectResponse
      */
     public function updateBalanceAdmin(Request $request)
     {
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'leave_type'  => 'required|string|max:255',
-            'total_days'  => 'required|numeric|min:0',
-            'year'        => 'required|digits:4',
+            'leave_type' => 'required|string|max:255',
+            'total_days' => 'required|numeric|min:0',
+            'year' => 'required|digits:4',
         ]);
 
         // This command finds a balance matching the criteria or creates a new one,
@@ -441,8 +562,8 @@ class LeaveController extends Controller
         $balance = LeaveBalance::updateOrCreate(
             [
                 'employee_id' => $validated['employee_id'],
-                'leave_type'  => $validated['leave_type'],
-                'year'        => $validated['year'],
+                'leave_type' => $validated['leave_type'],
+                'year' => $validated['year'],
             ],
             [
                 'total_days' => $validated['total_days'],
@@ -453,9 +574,9 @@ class LeaveController extends Controller
         // $balance->remaining_days = $balance->total_days - $balance->used_days;
         // $balance->save();
 
-
         return back()->with('success', 'Leave balance updated successfully.');
     }
+
     public function showLeaveHistory(Request $request)
     {
         // Fetch all employees to populate the filter dropdown
@@ -489,5 +610,53 @@ class LeaveController extends Controller
         $leaveHistory = $query->paginate(20)->withQueryString();
 
         return view('staff::leaves.admin.history', compact('leaveHistory', 'employees'));
+    }
+
+    public function leaveCalendar(Request $request)
+    {
+        $month = (int) ($request->month ?? now()->month);
+        $year = (int) ($request->year ?? now()->year);
+        $department = $request->department;
+
+        $employees = Employee::where('status', 'approved')
+            ->when($department, fn ($q) => $q->where('department', $department))
+            ->pluck('id');
+
+        $firstOfMonth = now()->setYear($year)->setMonth($month)->startOfMonth();
+        $lastOfMonth = $firstOfMonth->copy()->endOfMonth();
+
+        $leaves = LeaveRequest::with('employee')
+            ->whereIn('employee_id', $employees)
+            ->where('status', 'approved')
+            ->where('start_date', '<=', $lastOfMonth)
+            ->where('end_date', '>=', $firstOfMonth)
+            ->get();
+
+        // Build date-indexed map
+        $dateMap = [];
+        foreach ($leaves as $leave) {
+            $period = CarbonPeriod::create($leave->start_date, $leave->end_date);
+            foreach ($period as $date) {
+                $key = $date->format('Y-m-d');
+                if (! isset($dateMap[$key])) {
+                    $dateMap[$key] = collect([]);
+                }
+                $dateMap[$key]->push($leave);
+            }
+        }
+
+        $departments = Employee::where('status', 'approved')
+            ->whereNotNull('department')
+            ->distinct('department')
+            ->pluck('department')
+            ->sort();
+
+        $startOfCalendar = $firstOfMonth->copy()->startOfWeek(Carbon::SUNDAY);
+        $endOfCalendar = $lastOfMonth->copy()->endOfWeek(Carbon::SATURDAY);
+
+        return view('staff::leaves.admin.calendar', compact(
+            'dateMap', 'month', 'year', 'department', 'departments',
+            'firstOfMonth', 'lastOfMonth', 'startOfCalendar', 'endOfCalendar',
+        ));
     }
 }

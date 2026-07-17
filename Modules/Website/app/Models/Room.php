@@ -2,9 +2,10 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Modules\Frontdeskcrm\Models\Registration;
+
 // use Modules\Website\Database\Factories\RoomFactory;
 
 class Room extends Model
@@ -25,7 +26,7 @@ class Room extends Model
         'video_url',
         'is_featured',
         'bed_type',
-        'size'
+        'size',
     ];
 
     protected $casts = [
@@ -40,6 +41,7 @@ class Room extends Model
     {
         return $this->belongsToMany(Amenity::class, 'amenity_room');
     }
+
     /**
      * Relationship: Online Website Bookings
      */
@@ -47,6 +49,7 @@ class Room extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
     /**
      * Relationship: Room Images
      */
@@ -54,6 +57,7 @@ class Room extends Model
     {
         return $this->hasMany(RoomImage::class);
     }
+
     /**
      * Relationship: Physical Frontdesk Check-ins
      * This allows us to check if a guest is currently in the room.
@@ -68,5 +72,4 @@ class Room extends Model
         // Fallback to prevent crashes if module is missing
         return $this->hasMany(Booking::class)->whereRaw('1 = 0');
     }
-
 }

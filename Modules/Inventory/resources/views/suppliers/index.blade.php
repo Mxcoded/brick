@@ -20,8 +20,14 @@
             </div>
         @endif
 
-        <div class="d-flex justify-content-end mb-4">
-            <button class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+        <div class="d-flex justify-content-end mb-4 gap-2">
+            <a href="{{ route('inventory.suppliers.import') }}" class="btn btn-info shadow-sm">
+                <i class="fas fa-file-import me-2"></i>Import
+            </a>
+            <a href="{{ route('inventory.suppliers.export') }}" class="btn btn-success shadow-sm">
+                <i class="fas fa-file-excel me-2"></i>Export
+            </a>
+            <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
                 <i class="fas fa-plus-circle me-2"></i>Add New Supplier
             </button>
         </div>

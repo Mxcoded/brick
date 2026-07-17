@@ -11,6 +11,6 @@ class GymDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call (SubscriptionConfigSeeder::class);
+        $this->call(SubscriptionConfigSeeder::class);
     }
 }

@@ -3,6 +3,7 @@
 namespace Modules\Maintenance\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
@@ -10,7 +11,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Modules\Maintenance\Models\MaintenanceLog;
 
-class MaintenanceNotification extends Mailable
+class MaintenanceNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -42,14 +43,17 @@ class MaintenanceNotification extends Mailable
     public function envelope(): Envelope
     {
         $subject = $this->notificationType === 'new'
-            ? 'New Maintenance Request: ' . $this->log->location
-            : 'Maintenance Status Update: ' . $this->log->location;
+            ? 'New Maintenance Request: '.$this->log->location
+            : 'Maintenance Status Update: '.$this->log->location;
 
         return new Envelope(
             from: new Address(
                 config('mail.from.address', 'no-reply@brickspoint.com'),
                 config('mail.from.name', 'Brickspoint Maintenance')
             ),
+            replyTo: [
+                new Address(config('mail.from.address', 'no-reply@brickspoint.com'), config('mail.from.name', 'Brickspoint Maintenance')),
+            ],
             subject: $subject,
         );
     }
@@ -61,6 +65,7 @@ class MaintenanceNotification extends Mailable
     {
         return new Content(
             view: 'maintenance::emails.notification',
+            text: 'maintenance::emails.notification-plain',
             with: [
                 'log' => $this->log,
                 'notificationType' => $this->notificationType,

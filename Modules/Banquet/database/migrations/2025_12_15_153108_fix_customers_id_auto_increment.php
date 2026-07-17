@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('customers', function (Blueprint $table) {
             // This forces the ID column to be an auto-incrementing primary key
-          if (Schema::hasColumn('customers', 'id')) {
-            $table->bigIncrements('id')->change();
+            if (Schema::hasColumn('customers', 'id')) {
+                $table->bigIncrements('id')->change();
             }
         });
     }

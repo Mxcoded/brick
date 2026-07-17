@@ -1,15 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-bs-theme="light">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href=" {{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}" type="image/x-icon">
-    <title>Guest Dashboard - {{ config('app.name') }}</title>
-    <!-- Bootstrap CSS (or your preferred CSS framework) -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{ config('app.name', 'Brickspoint ApartHotel') }} — @yield('title')</title>
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/apple-touch-icon.png') }}">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    @vite(['resources/sass/app.scss'])
+    <link rel="preload" href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap" rel="stylesheet"></noscript>
+
     <style>
-       :root {
+        :root {
             --color-white: #FFFFFF;
             --color-gold: #C8A165;
             --color-dark-gray: #333333;
@@ -22,6 +30,7 @@
             src: url("{{ asset('fonts/Proxima Nova Regular.ttf') }}") format('truetype');
             font-weight: normal;
             font-style: normal;
+            font-display: swap;
         }
 
         body {
@@ -29,90 +38,156 @@
             font-family: var(--font-primary);
             color: var(--color-dark-gray);
         }
-        .navbar-brand {
-            font-weight: bold;
-            color: var(--color-dark-gray) !important;
+
+        .guest-navbar {
+            background-color: var(--color-dark-gray) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
         }
-        .sidebar {
-            min-height: 100vh;
+
+        .guest-navbar .navbar-brand img {
+            height: 60px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .guest-navbar .nav-link {
+            color: rgba(255,255,255,0.8) !important;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .guest-navbar .nav-link:hover {
+            color: var(--color-gold) !important;
+        }
+
+        .guest-navbar .nav-link i {
+            margin-right: 6px;
+        }
+
+        .btn-guest-logout {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.25);
+            color: rgba(255,255,255,0.85);
+            border-radius: 50px;
+            padding: 6px 18px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .btn-guest-logout:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--color-gold);
+            color: var(--color-gold);
+        }
+
+        .guest-footer {
             background-color: var(--color-dark-gray);
-            padding-top: 20px;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.85rem;
+            padding: 20px 0;
+            margin-top: auto;
         }
-        .sidebar a {
-            color: #adb5bd;
-            padding: 10px 20px;
-            display: block;
+
+        .guest-footer a {
+            color: rgba(255,255,255,0.6);
             text-decoration: none;
         }
-        .sidebar a:hover {
-            background-color: #495057;
-            color: #fff;
+
+        .guest-footer a:hover {
+            color: var(--color-gold);
         }
-        .sidebar a.active {
-            background-color: #007bff;
-            color: #fff;
+
+        html, body {
+            height: 100%;
         }
-        .content {
-            padding: 20px;
+
+        #guest-app { 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
         }
-        .footer {
-            background-color: #343a40;
-            color: #adb5bd;
-            padding: 10px 0;
-            text-align: center;
-            position: relative;
-            bottom: 0;
-            width: 100%;
+
+        main { 
+            flex: 1 0 auto; 
+        }
+
+        .active-link {
+            background: linear-gradient(135deg, var(--color-gold) 0%, #b8924f 100%) !important;
+            color: #fff !important;
+            font-weight: 600;
+            border-left: 4px solid #a07a3f !important;
+        }
+
+        .list-group-item-action {
+            transition: all 0.2s ease;
+        }
+
+        .list-group-item-action:hover:not(.active-link) {
+            background-color: #f8f9fa;
+            color: var(--color-dark-gray) !important;
         }
     </style>
-</head>
-<body>
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ route('website.home') }}">{{ config('app.name') }}</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <span class="nav-link">Welcome, {{ Auth::user()->name }}</span>
-                    </li>
-                    <li class="nav-item">
-                        <form action="{{ route('logout') }}" method="POST">
-                            @csrf
-                            <button type="submit" class="nav-link btn btn-link">Logout</button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Main Content -->
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar">
-                <h5 class="text-white px-3">Guest Menu</h5>
-                <a href="{{ route('website.guest.dashboard') }}" class="{{ Route::is('website.guest.dashboard') ? 'active' : '' }}">Dashboard</a>
-                <a href="{{ route('website.guest.bookings') }}">My Bookings</a>
-                <a href="{{ route('website.guest.profile') }}">Profile</a>
+    @stack('styles')
+</head>
+
+<body>
+    <div id="guest-app">
+        {{-- Guest Navbar --}}
+        <nav class="navbar navbar-expand-lg navbar-dark guest-navbar">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center" href="{{ route('website.home') }}">
+                    <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
+                        alt="Brickspoint ApartHotel">
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#guestNavbar"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="guestNavbar">
+                    <ul class="navbar-nav ms-auto align-items-lg-center gap-2">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('website.home') }}">
+                                <i class="fas fa-external-link-alt"></i> Back to Site
+                            </a>
+                        </li>
+                        <li class="nav-item d-none d-lg-block">
+                            <span class="nav-link text-white-50">
+                                <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }}
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <form action="{{ route('logout') }}" method="POST" class="m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-guest-logout">
+                                    <i class="fas fa-sign-out-alt me-1"></i> Sign Out
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <!-- Content Area -->
-            <div class="col-md-9 col-lg-10 content">
-                @yield('content')
+        </nav>
+
+        {{-- Main Content --}}
+        <main>
+            @yield('content')
+        </main>
+
+        {{-- Footer --}}
+        <footer class="guest-footer">
+            <div class="container text-center">
+                <p class="mb-0">
+                    &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
+                    &mdash; <a href="{{ route('website.home') }}">Back to Website</a>
+                </p>
             </div>
-        </div>
+        </footer>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
-    </footer>
-
-    <!-- Bootstrap JS and dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @vite(['resources/js/app.js'])
+    @stack('scripts')
 </body>
 </html>

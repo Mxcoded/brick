@@ -4,16 +4,16 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 
 class EnsureUserRedirection
 {
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -38,12 +38,14 @@ class EnsureUserRedirection
             case 'Guest':
 
                 $route = $roleRoutes[$userRoles];
-                Log::info("Redirecting to {$route} for user ID: " . $user->id);
+                Log::info("Redirecting to {$route} for user ID: ".$user->id);
                 session(['user_roles' => $userRoles]);
+
                 return redirect()->route($route);
 
             default:
-                Log::warning('User ID: ' . $user->id . ' has no recognized role.');
+                Log::warning('User ID: '.$user->id.' has no recognized role.');
+
                 return redirect()->route('default.dashboard')
                     ->with('error', 'You do not have access to any dashboard.');
         }

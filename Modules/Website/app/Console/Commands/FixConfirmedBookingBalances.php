@@ -57,6 +57,7 @@ class FixConfirmedBookingBalances extends Command
         if ($bookingsToFix->isEmpty()) {
             $this->info('✓ No bookings found that need fixing.');
             $this->info('');
+
             return Command::SUCCESS;
         }
 
@@ -88,12 +89,14 @@ class FixConfirmedBookingBalances extends Command
         if ($dryRun) {
             $this->warn("DRY RUN: Would update {$bookingsToFix->count()} booking(s)");
             $this->info('Run without --dry-run to apply changes.');
+
             return Command::SUCCESS;
         }
 
         // Confirm before making changes
-        if (!$this->confirm('Do you want to fix these bookings? (Set amount_paid = total_amount)')) {
+        if (! $this->confirm('Do you want to fix these bookings? (Set amount_paid = total_amount)')) {
             $this->info('Operation cancelled.');
+
             return Command::SUCCESS;
         }
 
@@ -109,9 +112,9 @@ class FixConfirmedBookingBalances extends Command
                 $booking->update([
                     'amount_paid' => $booking->total_amount,
                 ]);
-                
+
                 $fixedCount++;
-                
+
                 // Log the fix
                 \Log::info('Booking balance fixed', [
                     'booking_reference' => $booking->booking_reference,
@@ -138,8 +141,8 @@ class FixConfirmedBookingBalances extends Command
         $this->info('=================================================');
         $this->info("✓ Fixed: {$fixedCount} booking(s)");
 
-        if (!empty($errors)) {
-            $this->error("✗ Errors: " . count($errors) . " booking(s)");
+        if (! empty($errors)) {
+            $this->error('✗ Errors: '.count($errors).' booking(s)');
             $this->info('');
             $this->error('Failed bookings:');
             foreach ($errors as $error) {

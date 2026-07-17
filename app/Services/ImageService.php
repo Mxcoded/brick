@@ -4,10 +4,11 @@ namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Laravel\Facades\Image;
+use Illuminate\Support\Str;
 use Intervention\Image\Encoders\JpegEncoder;
-use Intervention\Image\Encoders\PngEncoder;
 use Intervention\Image\Encoders\WebpEncoder;
+use Intervention\Image\Interfaces\ImageInterface;
+use Intervention\Image\Laravel\Facades\Image;
 
 class ImageService
 {
@@ -34,9 +35,9 @@ class ImageService
     /**
      * Compress and store an uploaded image
      *
-     * @param UploadedFile $file The uploaded image file
-     * @param string $directory Storage directory (e.g., 'rooms', 'room_gallery')
-     * @param string $disk Storage disk (default: 'public')
+     * @param  UploadedFile  $file  The uploaded image file
+     * @param  string  $directory  Storage directory (e.g., 'rooms', 'room_gallery')
+     * @param  string  $disk  Storage disk (default: 'public')
      * @return array ['path' => string, 'url' => string, 'size' => int]
      */
     public function compressAndStore(UploadedFile $file, string $directory, string $disk = 'public'): array
@@ -61,7 +62,7 @@ class ImageService
         $encodedImage = $this->compressToTargetSize($image, $extension);
 
         // Store the compressed image
-        $path = $directory . '/' . $filename;
+        $path = $directory.'/'.$filename;
         Storage::disk($disk)->put($path, $encodedImage);
 
         return [
@@ -74,8 +75,7 @@ class ImageService
     /**
      * Compress image to target size with adaptive quality
      *
-     * @param \Intervention\Image\Interfaces\ImageInterface $image
-     * @param string $extension
+     * @param  ImageInterface  $image
      * @return string Encoded image data
      */
     protected function compressToTargetSize($image, string $extension): string
@@ -128,17 +128,13 @@ class ImageService
 
     /**
      * Generate a unique filename
-     *
-     * @param string $originalName
-     * @param string $extension
-     * @return string
      */
     protected function generateFilename(string $originalName, string $extension): string
     {
         $baseName = pathinfo($originalName, PATHINFO_FILENAME);
-        $safeName = \Illuminate\Support\Str::slug($baseName);
+        $safeName = Str::slug($baseName);
         $timestamp = now()->format('YmdHis');
-        $random = \Illuminate\Support\Str::random(6);
+        $random = Str::random(6);
 
         // Always save as JPEG for consistent compression
         $outputExtension = in_array($extension, ['png', 'bmp', 'gif']) ? 'jpg' : $extension;
@@ -148,53 +144,43 @@ class ImageService
 
     /**
      * Set maximum file size in MB
-     *
-     * @param float $mb
-     * @return self
      */
     public function setMaxFileSize(float $mb): self
     {
         $this->maxFileSize = (int) ($mb * 1024 * 1024);
+
         return $this;
     }
 
     /**
      * Set maximum dimension
-     *
-     * @param int $pixels
-     * @return self
      */
     public function setMaxDimension(int $pixels): self
     {
         $this->maxDimension = $pixels;
+
         return $this;
     }
 
     /**
      * Delete an image from storage
-     *
-     * @param string $path
-     * @param string $disk
-     * @return bool
      */
     public function delete(string $path, string $disk = 'public'): bool
     {
         if (Storage::disk($disk)->exists($path)) {
             return Storage::disk($disk)->delete($path);
         }
+
         return false;
     }
 
     /**
      * Delete image by URL (extracts path from URL)
-     *
-     * @param string $url
-     * @param string $disk
-     * @return bool
      */
     public function deleteByUrl(string $url, string $disk = 'public'): bool
     {
         $path = str_replace('/storage/', '', $url);
+
         return $this->delete($path, $disk);
     }
 }

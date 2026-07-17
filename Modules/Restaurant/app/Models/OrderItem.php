@@ -2,14 +2,15 @@
 
 namespace Modules\Restaurant\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class OrderItem extends Model
 {
     use HasFactory;
 
     protected $fillable = ['restaurant_order_id', 'restaurant_menu_item_id', 'quantity', 'instructions'];
+
     protected $table = 'restaurant_order_items';
 
     public function order()

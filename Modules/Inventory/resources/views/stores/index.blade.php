@@ -48,7 +48,8 @@
                                     <td>{{ $store->name }}</td>
                                     <td>{{ $store->address }}</td>
                                     <td>
-                                        <a href="{{ route('inventory.stores.edit', $store->id) }}" class="btn btn-sm btn-outline-info me-2"><i class="fas fa-edit"></i></a>
+                                        <a href="{{ route('inventory.locations.index', $store->id) }}" class="btn btn-sm btn-outline-primary me-1" title="Locations"><i class="fas fa-map-marker-alt"></i></a>
+                                        <a href="{{ route('inventory.stores.edit', $store->id) }}" class="btn btn-sm btn-outline-info me-1"><i class="fas fa-edit"></i></a>
                                         <form action="{{ route('inventory.stores.destroy', $store->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this store?');">
                                             @csrf
                                             @method('DELETE')

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('archived_by')->nullable()->after('archived_at')
                 ->constrained('users')->nullOnDelete();
             $table->timestamp('last_reply_at')->nullable()->after('archived_by');
-            
+
             // Index for performance
             $table->index(['status', 'is_archived']);
             $table->index('is_archived');
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->boolean('is_read')->default(false);
             $table->string('email_message_id')->nullable(); // For tracking email threads
             $table->timestamps();
-            
+
             $table->index(['contact_message_id', 'created_at']);
         });
     }

@@ -10,9 +10,8 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Playfair+Display:400,500,600,700&display=swap" rel="stylesheet">
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap & Icons (local) -->
+    @vite(['resources/sass/app.scss'])
     
     <style>
         :root {
@@ -385,6 +384,18 @@
                         @enderror
                     </div>
                     
+                    @if ($remaining > 0 && $remaining < 5)
+                        <div class="alert alert-warning py-2 small d-flex align-items-center" role="alert" style="font-size:0.85rem;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span>{{ $remaining }} of 5 login attempts remaining.</span>
+                        </div>
+                    @elseif ($remaining === 0)
+                        <div class="alert alert-danger py-2 small d-flex align-items-center" role="alert" style="font-size:0.85rem;">
+                            <i class="fas fa-lock me-2"></i>
+                            <span>Too many login attempts. Please try again in {{ ceil($retryAfter / 60) }} minute(s).</span>
+                        </div>
+                    @endif
+
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="remember" id="remember" 
@@ -418,6 +429,46 @@
         </div>
     </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {{-- Account Status Modal --}}
+    @if (session('account_error'))
+    <div class="modal fade" id="accountStatusModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 text-white" style="background: {{ session('account_status') === 'suspended' ? '#ffc107' : '#dc3545' }};">
+                    <h5 class="modal-title">
+                        <i class="fas {{ session('account_status') === 'suspended' ? 'fa-pause-circle' : 'fa-ban' }} me-2"></i>
+                        Account {{ ucfirst(session('account_status')) }}
+                    </h5>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas {{ session('account_status') === 'suspended' ? 'fa-pause-circle text-warning' : 'fa-times-circle text-danger' }}" style="font-size: 4rem;"></i>
+                    </div>
+                    <h5 class="fw-bold">Hello, {{ session('account_name') }}</h5>
+                    <p class="text-muted mb-1">
+                        Your account has been <strong>{{ session('account_status') }}</strong>.
+                    </p>
+                    <p class="text-muted mb-0">{{ session('account_reason') }}</p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pt-0">
+                    <a href="{{ route('website.home') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-home me-1"></i> Go to Website
+                    </a>
+                    <button type="button" class="btn" style="background-color: #C8A165; color: #fff;" onclick="window.location.reload()">
+                        <i class="fas fa-redo me-1"></i> Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modal = new bootstrap.Modal(document.getElementById('accountStatusModal'));
+            modal.show();
+        });
+    </script>
+    @endif
+
+    @vite(['resources/js/app.js'])
 </body>
 </html>

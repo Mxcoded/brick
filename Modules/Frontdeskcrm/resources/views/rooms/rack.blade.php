@@ -10,7 +10,8 @@
             <span class="badge bg-success p-2">Available</span>
             <span class="badge bg-danger p-2">Occupied (In-House)</span>
             <span class="badge bg-warning text-dark p-2">Reserved (Coming Soon)</span>
-            <span class="badge bg-secondary p-2">Maintenance</span>
+            <span class="badge bg-primary p-2">Online Booking</span>
+            <span class="badge bg-secondary p-2">Out of Service</span>
         </div>
     </div>
 
@@ -57,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         ${room.name}
                                     </div>
                                     <div class="card-body p-2 d-flex flex-column justify-content-center align-items-center" style="min-height: 100px;">
-                                        <i class="fas ${room.status === 'occupied' ? 'fa-user' : (room.status === 'maintenance' ? 'fa-tools' : 'fa-check-circle')} mb-2 text-${room.color} fa-2x"></i>
+                                        <i class="fas ${room.status === 'occupied' ? 'fa-user' : (['maintenance', 'blocked'].includes(room.status) ? 'fa-tools' : 'fa-check-circle')} mb-2 text-${room.color} fa-2x"></i>
                                         
                                         <small class="d-block fw-bold text-dark text-truncate w-100" style="font-size: 0.8rem;">
                                             ${room.guest}

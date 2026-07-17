@@ -2,10 +2,11 @@
 
 namespace Modules\Website\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Website\Services\RoomAvailabilityService;
 
 class RoomType extends Model
 {
@@ -76,6 +77,7 @@ class RoomType extends Model
         if (class_exists(Registration::class)) {
             return $this->hasMany(Registration::class);
         }
+
         return $this->hasMany(Booking::class)->whereRaw('1 = 0');
     }
 
@@ -137,14 +139,15 @@ class RoomType extends Model
      * Get units available for specific dates.
      * Uses the unified RoomAvailabilityService for comprehensive checking:
      * - Website Bookings
-     * - Frontdesk Registrations  
+     * - Frontdesk Registrations
      * - Inventory Blocks (Stop Sell, Maintenance, Manual)
      * - Room Unit Status
      * - Stay Restrictions
      */
     public function getAvailableUnitsForDates($checkIn, $checkOut, $ignoreBookingId = null)
     {
-        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        $service = app(RoomAvailabilityService::class);
+
         return $service->getAvailableUnits($this->id, $checkIn, $checkOut, $ignoreBookingId);
     }
 
@@ -154,8 +157,9 @@ class RoomType extends Model
      */
     public function hasAvailabilityForDates($checkIn, $checkOut)
     {
-        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        $service = app(RoomAvailabilityService::class);
         $result = $service->checkRoomTypeAvailability($this->id, $checkIn, $checkOut);
+
         return $result['available'];
     }
 
@@ -180,7 +184,8 @@ class RoomType extends Model
      */
     public function getAvailabilityInfo($checkIn, $checkOut)
     {
-        $service = app(\Modules\Website\Services\RoomAvailabilityService::class);
+        $service = app(RoomAvailabilityService::class);
+
         return $service->checkRoomTypeAvailability($this->id, $checkIn, $checkOut);
     }
 }

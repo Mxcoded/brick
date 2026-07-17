@@ -15,6 +15,7 @@ class ProfileController extends Controller
     public function show()
     {
         $user = Auth::user();
+
         return view('profile', compact('user'));
     }
 
@@ -28,7 +29,7 @@ class ProfileController extends Controller
         // Validate name and email
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
         ]);
 
         // Handle password update if provided
@@ -38,6 +39,9 @@ class ProfileController extends Controller
                 'new_password' => ['required', 'confirmed', Password::min(8)],
             ]);
             $user->password = Hash::make($request->new_password);
+
+            // Invalidate all other sessions (logs out other devices)
+            auth()->logoutOtherDevices($request->current_password);
         }
 
         // Update name and email

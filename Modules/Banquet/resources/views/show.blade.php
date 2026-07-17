@@ -8,6 +8,33 @@
 @section('page-content')
 <div class="container-fluid py-4 banquet-theme">
     
+    {{-- Flash Messages --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i><strong>Validation Errors:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     {{-- 1. HEADER & ACTIONS --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -23,11 +50,10 @@
         <div class="d-flex gap-2">
             <a href="{{ route('banquet.orders.index') }}" class="btn btn-outline-charcoal">Back</a>
             
-            {{-- FIX: Updated permission to use underscore --}}
-            @can('manage_banquet')
+            @can('banquet.update')
                 <a href="{{ route('banquet.orders.edit', $order->order_id) }}" class="btn btn-outline-gold"><i class="fas fa-edit me-1"></i> Edit Details</a>
-                <a href="{{ route('banquet.orders.pdf', $order->order_id) }}" target="_blank" class="btn btn-gold"><i class="fas fa-file-pdf me-1"></i> Function Sheet</a>
             @endcan
+            <a href="{{ route('banquet.orders.pdf', $order->order_id) }}" target="_blank" class="btn btn-gold"><i class="fas fa-file-pdf me-1"></i> Function Sheet</a>
         </div>
     </div>
 
@@ -81,7 +107,7 @@
                         <a href="{{ route('banquet.orders.invoice', $order->order_id) }}" target="_blank" class="btn btn-outline-charcoal">
                             <i class="fas fa-file-invoice me-2"></i>Download Invoice
                         </a>
-                        @can('manage_banquet')
+                        @can('banquet.create')
                             @if($order->balance_due > 0)
                                 <button type="button" class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#paymentModal">
                                     <i class="fas fa-money-bill-wave me-2"></i>Record Payment
@@ -116,7 +142,7 @@
                             <td><small class="text-muted">{{ $payment->reference ?? '-' }}</small></td>
                             <td class="text-end fw-bold text-success pe-3">₦{{ number_format($payment->amount, 2) }}</td>
                             <td class="text-end">
-                                @can('manage_banquet')
+                                @can('banquet.delete')
                                     <form action="{{ route('banquet.orders.payment.destroy', [$order->order_id, $payment->id]) }}" method="POST" class="d-inline">
                                         @csrf @method('DELETE')
                                         <button class="btn btn-link p-0 text-danger" onclick="return confirm('Delete this payment record?')">
@@ -238,8 +264,7 @@
                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-bold text-gold">Event Schedule</h5>
                     
-                    {{-- FIX: Updated permission to use underscore --}}
-                    @can('manage_banquet')
+                    @can('banquet.create')
                         <a href="{{ route('banquet.orders.add-day', $order->order_id) }}" class="btn btn-sm btn-gold">
                             <i class="fas fa-plus me-1"></i> Add Day
                         </a>
@@ -277,8 +302,7 @@
                                                 <div class="col-md-3"><strong>Guests:</strong> {{ $day->guest_count }}</div>
                                                 <div class="col-md-6 text-end">
                                                     
-                                                    {{-- FIX: Updated permission to use underscore --}}
-                                                    @can('manage_banquet')
+                                                    @can('banquet.update')
                                                         {{-- Route: banquet.orders.event-days.edit (legacy route support from web.php) --}}
                                                         <a href="{{ route('banquet.orders.event-days.edit', [$order->order_id, $day->id]) }}" class="btn btn-xs btn-link text-decoration-none text-gold">Edit Details</a>
                                                         
@@ -295,7 +319,7 @@
                                             <div class="card">
                                                 <div class="card-header d-flex justify-content-between align-items-center py-2 bg-white">
                                                     <small class="fw-bold text-uppercase text-charcoal">Menu Selections</small>
-                                                    @can('manage_banquet')
+                                                    @can('banquet.create')
                                                         <a href="{{ route('banquet.orders.add-menu-item', [$order->order_id, $day->id]) }}" class="btn btn-sm btn-outline-gold">
                                                             <i class="fas fa-utensils me-1"></i> Add Menu
                                                         </a>
@@ -325,8 +349,7 @@
                                                                     <td class="text-end fw-bold text-gold">₦{{ number_format($item->total_price) }}</td>
                                                                     <td class="text-end">
                                                                         
-                                                                        {{-- FIX: Updated permission to use underscore --}}
-                                                                        @can('manage_banquet')
+                                                                        @can('banquet.update')
                                                                             <a href="{{ route('banquet.orders.edit-menu-item', [$order->order_id, $day->id, $item->id]) }}" class="text-warning me-2"><i class="fas fa-pencil-alt"></i></a>
                                                                             <form action="{{ route('banquet.orders.menu-item.destroy', [$order->order_id, $day->id, $item->id]) }}" method="POST" class="d-inline">
                                                                                 @csrf @method('DELETE')

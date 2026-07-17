@@ -1,5 +1,5 @@
 <?php
- 
+
 namespace Modules\Staff\Emails;
 
 use Illuminate\Bus\Queueable;
@@ -25,7 +25,8 @@ class LeaveRequestStatusUpdated extends Mailable
      */
     public function envelope(): Envelope
     {
-        $subject = 'Your Leave Request has been ' . ucfirst($this->leaveRequest->status);
+        $subject = 'Your Leave Request has been '.ucfirst($this->leaveRequest->status);
+
         return new Envelope(
             subject: $subject,
         );
