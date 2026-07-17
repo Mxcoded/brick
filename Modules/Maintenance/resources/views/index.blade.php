@@ -7,7 +7,7 @@
             <p class="text-muted mb-0">Track and manage all maintenance issues across departments</p>
         </div>
         <div class="d-flex gap-2 mt-2 mt-sm-0">
-            <a href="{{ route('maintenance.dashboard') }}" class="btn btn-outline-secondary">
+            <a href="{{ route('maintenance.dashboard') }}" class="btn btn-outline-dark">
                 <i class="fas fa-tachometer-alt me-1"></i> Dashboard
             </a>
             <a href="{{ route('maintenance.report') }}" class="btn btn-outline-success">
@@ -165,7 +165,7 @@
                                     <td class="text-nowrap text-end font-monospace">{{ $log->cost_of_fixing ? number_format($log->cost_of_fixing, 2) : '--' }}</td>
                                     <td>
                                         <div class="d-flex gap-1">
-                                            <a href="{{ route('maintenance.show', $log->id) }}" class="btn btn-sm btn-outline-secondary" title="View">
+                                            <a href="{{ route('maintenance.show', $log->id) }}" class="btn btn-sm btn-outline-dark" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             @canany(['maintenance.update', 'maintenance.delete', 'access_maintenance_dashboard'])

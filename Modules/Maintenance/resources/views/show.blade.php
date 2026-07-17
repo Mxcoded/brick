@@ -7,7 +7,7 @@
             <p class="text-muted mb-0">Detailed view of the maintenance issue</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('maintenance.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route('maintenance.index') }}" class="btn btn-outline-gold">
                 <i class="fas fa-arrow-left me-1"></i> Back to Logs
             </a>
             <a href="{{ route('maintenance.edit', $maintenanceLog->id) }}" class="btn btn-outline-primary">
@@ -35,7 +35,7 @@
                         <div class="col-md-6">
                             <label class="text-muted small text-uppercase">Department</label>
                             <p class="fw-semibold mb-0">
-                                <span class="badge bg-secondary fs-6">{{ $maintenanceLog->department }}</span>
+                                <span class="badge bg-gold fs-6">{{ $maintenanceLog->department }}</span>
                             </p>
                         </div>
                         <div class="col-md-6">
