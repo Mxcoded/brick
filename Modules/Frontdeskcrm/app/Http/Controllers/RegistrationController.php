@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Modules\Frontdeskcrm\Emails\CheckoutReceiptMail;
+use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Emails\RegistrationStatusMail;
 use Modules\Frontdeskcrm\Http\Requests\FinalizeRegistrationRequest;
 use Modules\Frontdeskcrm\Http\Requests\StoreRegistrationRequest;
@@ -854,10 +855,10 @@ class RegistrationController extends Controller
         if ($isFuture) {
             return redirect()->route('frontdesk.registrations.index')
                 ->with('success', "Reservation [{$reservationCode}] created! Guest can sign at the kiosk (".route('frontdesk.kiosk.sign').') using this code.');
+        } else {
+            return redirect()->route('frontdesk.registrations.finalize.form', $registration)
+                ->with('success', "Walk-in [{$reservationCode}] created. Ask guest to sign at the kiosk (".route('frontdesk.kiosk.sign').') using this code.');
         }
-
-        return redirect()->route('frontdesk.registrations.finalize.form', $registration)
-            ->with('success', "Walk-in [{$reservationCode}] created. Ask guest to sign at the kiosk (".route('frontdesk.kiosk.sign').') using this code.');
     }
 
     /**
@@ -2133,6 +2134,7 @@ class RegistrationController extends Controller
             'notes' => 'nullable|string|max:255',
         ]);
 
+        // Create Payment Record
         $payment = $registration->payments()->create([
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'],
@@ -2168,6 +2170,13 @@ class RegistrationController extends Controller
                     'security_deposit_status' => 'refunded',
                 ]);
             }
+        }
+
+        try {
+            app(PostingService::class)
+                ->recordSale('frontdesk', (float) $payment->amount, $payment->payment_method, 'registration_payment', $payment->id);
+        } catch (\Throwable $e) {
+            report($e);
         }
 
         return back()->with('success', 'Payment recorded successfully.');

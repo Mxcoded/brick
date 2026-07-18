@@ -15,6 +15,7 @@ use Modules\Banquet\Models\BanquetPayment;
 use Modules\Banquet\Models\BanquetSetupStyle;
 use Modules\Banquet\Models\BanquetVenue;
 use Modules\Banquet\Models\Customer;
+use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Yajra\DataTables\DataTables;
 
@@ -857,7 +858,14 @@ class BanquetController extends Controller
                 return back()->with('error', 'Payment amount (₦'.number_format($request->amount).') exceeds the balance due (₦'.number_format($order->balance_due).').');
             }
 
-            $order->payments()->create($request->all());
+            $payment = $order->payments()->create($request->all());
+
+            try {
+                app(PostingService::class)
+                    ->recordSale('banquet', (float) $payment->amount, $payment->payment_method, 'banquet_payment', $payment->id);
+            } catch (\Throwable $e) {
+                report($e);
+            }
 
             return back()->with('success', 'Payment recorded successfully.');
         } catch (\Exception $e) {

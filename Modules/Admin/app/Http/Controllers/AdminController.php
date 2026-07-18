@@ -31,6 +31,9 @@ use Modules\Staff\Models\LeaveRequest;
 use Modules\Tasks\Models\Task;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\ContactMessage;
+use Modules\Website\Models\RoomUnit;
+use Modules\Website\Models\Settings;
+use Illuminate\Support\Facades\Storage;
 use Nwidart\Modules\Facades\Module;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -148,9 +151,15 @@ class AdminController extends Controller
         $highPriorityTasks = Task::where('priority', 'high')->whereIn('status', ['pending', 'in_progress'])->count();
 
         // ── Restaurant ──
-        $restaurantOrdersToday = RestaurantOrder::whereDate('created_at', today())->count();
-        $restaurantOrdersPending = RestaurantOrder::where('status', 'pending')->count();
-        $restaurantOrdersMonth = RestaurantOrder::whereMonth('created_at', now()->month)->count();
+        if (Module::has('Restaurant') && Module::find('Restaurant')->isEnabled()) {
+            $restaurantOrdersToday = RestaurantOrder::whereDate('created_at', today())->count();
+            $restaurantOrdersPending = RestaurantOrder::where('status', 'pending')->count();
+            $restaurantOrdersMonth = RestaurantOrder::whereMonth('created_at', now()->month)->count();
+        } else {
+            $restaurantOrdersToday = 0;
+            $restaurantOrdersPending = 0;
+            $restaurantOrdersMonth = 0;
+        }
 
         // ── Gym ──
         $activeMemberships = Membership::count();
@@ -234,17 +243,17 @@ class AdminController extends Controller
 
                     continue;
                 }
-                if (str_starts_with($perm->name, 'check_in') || str_starts_with($perm->name, 'check_out') || str_starts_with($perm->name, 'manage_rooms')) {
+                if (str_starts_with($perm->name, 'check_in') || str_starts_with($perm->name, 'check_out')) {
                     $groups['Front Desk'][] = $perm;
 
                     continue;
                 }
-                if (str_starts_with($perm->name, 'view_employees') || str_starts_with($perm->name, 'manage_employees')) {
+                if (str_starts_with($perm->name, 'employees.') || str_starts_with($perm->name, 'view_employees') || str_starts_with($perm->name, 'manage_employees')) {
                     $groups['HR & Staff'][] = $perm;
 
                     continue;
                 }
-                if (str_starts_with($perm->name, 'approve_leaves')) {
+                if (str_starts_with($perm->name, 'leaves.approve') || str_starts_with($perm->name, 'approve_leaves')) {
                     $groups['HR & Staff'][] = $perm;
 
                     continue;
@@ -303,6 +312,12 @@ class AdminController extends Controller
                         break;
                     case 'gym':
                         $group = 'Gym';
+                        break;
+                    case 'maintenance':
+                        $group = 'Maintenance';
+                        break;
+                    case 'website':
+                        $group = 'Website';
                         break;
                     default:
                         $group = 'Other';
@@ -770,5 +785,62 @@ class AdminController extends Controller
         $users = User::orderBy('name')->get(['id', 'name']);
 
         return view('admin::activity-logs.index', compact('logs', 'actions', 'users'));
+    }
+
+    public function appearance()
+    {
+        $theme = Settings::where('key', 'theme')->value('value') ?? 'gold-legacy';
+        $logoSetting = Settings::where('key', 'logo')->value('value');
+
+        return view('admin::appearance', compact('theme', 'logoSetting'));
+    }
+
+    public function updateAppearance(Request $request)
+    {
+        $validated = $request->validate([
+            'theme' => 'required|in:gold-legacy,platinum-noir,sapphire-regal',
+        ]);
+
+        Settings::updateOrCreate(
+            ['key' => 'theme'],
+            ['value' => $validated['theme'], 'type' => 'string']
+        );
+
+        cache()->forget('app.theme');
+
+        return redirect()->route('admin.appearance')
+            ->with('success', 'Theme updated successfully.');
+    }
+
+    public function updateLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:png,jpg,jpeg,svg|max:2048',
+        ]);
+
+        $path = $request->file('logo')->store('settings', 'public');
+
+        Settings::updateOrCreate(
+            ['key' => 'logo'],
+            ['value' => $path, 'type' => 'image']
+        );
+
+        cache()->forget('app.logo');
+
+        return redirect()->route('admin.appearance')
+            ->with('success', 'Logo uploaded successfully.');
+    }
+
+    public function removeLogo()
+    {
+        $logo = Settings::where('key', 'logo')->first();
+        if ($logo) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($logo->value);
+            $logo->delete();
+            cache()->forget('app.logo');
+        }
+
+        return redirect()->route('admin.appearance')
+            ->with('success', 'Logo removed successfully.');
     }
 }

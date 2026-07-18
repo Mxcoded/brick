@@ -11,225 +11,156 @@
     <xml>
         <o:OfficeDocumentSettings>
             <o:PixelsPerInch>96</o:PixelsPerInch>
+            <o:AllowPNG/>
         </o:OfficeDocumentSettings>
     </xml>
-    <![endif]-->
     <style>
-        body, table, td, p, a, li, blockquote {
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
-        }
-        table, td {
-            mso-table-lspace: 0;
-            mso-table-rspace: 0;
-        }
-        img {
-            -ms-interpolation-mode: bicubic;
-            border: 0;
-            height: auto;
-            line-height: 100%;
-            outline: none;
-            text-decoration: none;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100% !important;
-            height: 100% !important;
-        }
-        .ExternalClass, .ReadMsgBody {
-            width: 100%;
-        }
-        .ExternalClass, .ExternalClass p, .ExternalClass span, .ExternalClass td, .ExternalClass div {
-            line-height: 100%;
-        }
+        table { border-collapse: collapse; }
+        td { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
     </style>
+    <![endif]-->
 </head>
-<body style="margin:0; padding:0; background-color:#F2EFEA; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F2EFEA; padding:30px 15px;">
+<body style="margin:0; padding:0; background-color:#F8F6F3; font-family:'Segoe UI', Tahoma, Arial, sans-serif; line-height:1.7; color:#2D2D2D; -webkit-font-smoothing:antialiased;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F8F6F3;">
         <tr>
-            <td align="center">
-                <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="max-width:640px; width:100%;">
-
-                    <!-- Header -->
+            <td align="center" style="padding:40px 20px;">
+                <!--[if mso]>
+                <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" align="center">
+                <tr><td>
+                <![endif]-->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:640px; background-color:#FFFFFF;">
                     <tr>
-                        <td style="background-color:#1A1A1A; padding:35px 30px; text-align:center;">
+                        <td>
+                            <!-- HEADER -->
                             <!--[if mso]>
                             <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;">
-                            <v:fill type="gradient" color="#1A1A1A" color2="#2D2D2D" angle="135" />
-                            <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
+                            <v:fill type="gradient" color="#1A1A1A" color2="#2D2D2D" angle="135"/>
+                            <v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:true;">
                             <![endif]-->
-                            @if(config('app.logo'))
-                                <img src="{{ config('app.logo') }}" alt="Brickspoint Boutique Aparthotel" style="max-width:200px; height:auto; display:block; margin:0 auto;">
-                            @else
-                                <h1 style="color:#C9A962; font-size:28px; font-weight:300; letter-spacing:6px; text-transform:uppercase; margin:0 0 6px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Brickspoint</h1>
-                                <p style="color:#B8B8B8; font-size:11px; letter-spacing:3px; text-transform:uppercase; margin:0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Boutique Aparthotel</p>
-                            @endif
+                            <div style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%); background-color:#1A1A1A; padding:45px 40px 35px; text-align:center;">
+                                @if(config('app.logo'))
+                                    <img src="{{ config('app.logo') }}" alt="Brickspoint Boutique Aparthotel" style="max-width:200px; height:auto; display:block; margin:0 auto; border:0; outline:none;" border="0">
+                                @else
+                                    <h1 style="color:#C9A962; font-size:32px; font-weight:300; letter-spacing:6px; margin:0 0 8px 0; text-transform:uppercase; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Brickspoint</h1>
+                                    <p style="color:#B8B8B8; font-size:12px; letter-spacing:3px; text-transform:uppercase; margin:0; font-weight:400; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Boutique Aparthotel</p>
+                                @endif
+                            </div>
                             <!--[if mso]>
                             </v:textbox>
                             </v:rect>
                             <![endif]-->
-                        </td>
-                    </tr>
 
-                    <!-- Preview Banner -->
-                    @if($newsletter->preview_text)
-                    <tr>
-                        <td style="background-color:#C9A962; padding:14px 30px; text-align:center;">
-                            <!--[if mso]>
-                            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;">
-                            <v:fill type="gradient" color="#C9A962" color2="#D4B978" angle="0" />
-                            <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
-                            <![endif]-->
-                            <p style="margin:0; color:#1A1A1A; font-size:13px; font-weight:600; letter-spacing:0.5px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">{{ $newsletter->preview_text }}</p>
-                            <!--[if mso]>
-                            </v:textbox>
-                            </v:rect>
-                            <![endif]-->
-                        </td>
-                    </tr>
-                    @endif
-
-                    <!-- Greeting -->
-                    <tr>
-                        <td style="background-color:#FFFFFF; padding:24px 35px 0 35px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:15px; line-height:1.7; color:#2D2D2D;">
-                            @if($subscriber->name)
-                                <p style="margin:0 0 8px;">Dear <strong>{{ $subscriber->name }}</strong>,</p>
-                            @else
-                                <p style="margin:0 0 8px;">Dear Valued Subscriber,</p>
-                            @endif
-                        </td>
-                    </tr>
-
-                    <!-- Main Content -->
-                    <tr>
-                        <td style="background-color:#FFFFFF; padding:0 35px 25px 35px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:15px; line-height:1.75; color:#4A4A4A;">
-                            {!! $newsletter->content !!}
-                        </td>
-                    </tr>
-
-                    <!-- Divider -->
-                    <tr>
-                        <td style="background-color:#FFFFFF;">
+                            <!-- GOLD ACCENT LINE -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
-                                    <td style="padding:0 35px;">
-                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                                            <tr>
-                                                <td style="border-top:1px solid #E5E0D8;"></td>
-                                            </tr>
-                                        </table>
-                                    </td>
+                                    <td height="3" style="height:3px; font-size:0; line-height:0; background-color:#C9A962;">&nbsp;</td>
                                 </tr>
                             </table>
-                        </td>
-                    </tr>
 
-                    <!-- Footer -->
-                    <tr>
-                        <td style="background-color:#1A1A1A; padding:35px 30px 30px; text-align:center;">
-                            <!--[if mso]>
-                            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;">
-                            <v:fill type="gradient" color="#1A1A1A" color2="#0D0D0D" angle="180" />
-                            <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
-                            <![endif]-->
-                            <p style="color:#C9A962; font-size:18px; font-weight:300; letter-spacing:4px; margin:0 0 3px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Brickspoint</p>
-                            <p style="color:#888888; font-size:10px; letter-spacing:2px; text-transform:uppercase; margin:0 0 20px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Boutique Aparthotel</p>
-                            <p style="color:#AAAAAA; font-size:12px; line-height:1.8; margin:0 0 20px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
-                                @if(config('app.address'))
-                                    {{ config('app.address') }}<br>
-                                @endif
-                                @if(config('app.phone'))
-                                    <a href="tel:{{ config('app.phone') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.phone') }}</a><br>
-                                @endif
-                                @if(config('app.email'))
-                                    <a href="mailto:{{ config('app.email') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.email') }}</a>
-                                @endif
-                            </p>
-
-                            <!-- Social Links -->
-                            @if(config('app.facebook') || config('app.instagram') || config('app.twitter') || config('app.website'))
-                            <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 20px;">
+                            <!-- PREVIEW BANNER -->
+                            @if($newsletter->preview_text)
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
-                                    <td style="padding:15px 0; border-top:1px solid #333333; border-bottom:1px solid #333333;">
-                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                                            <tr>
-                                                @if(config('app.facebook'))
-                                                <td style="padding:0 5px;">
-                                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                                                        <tr>
-                                                            <td style="border:1px solid #444444; padding:6px 14px;">
-                                                                <a href="{{ config('app.facebook') }}" style="color:#C9A962; text-decoration:none; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Facebook</a>
-                                                            </td>
-                                                        </tr>
-                                                    </table>
-                                                </td>
-                                                @endif
-                                                @if(config('app.instagram'))
-                                                <td style="padding:0 5px;">
-                                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                                                        <tr>
-                                                            <td style="border:1px solid #444444; padding:6px 14px;">
-                                                                <a href="{{ config('app.instagram') }}" style="color:#C9A962; text-decoration:none; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Instagram</a>
-                                                            </td>
-                                                        </tr>
-                                                    </table>
-                                                </td>
-                                                @endif
-                                                @if(config('app.twitter'))
-                                                <td style="padding:0 5px;">
-                                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                                                        <tr>
-                                                            <td style="border:1px solid #444444; padding:6px 14px;">
-                                                                <a href="{{ config('app.twitter') }}" style="color:#C9A962; text-decoration:none; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Twitter</a>
-                                                            </td>
-                                                        </tr>
-                                                    </table>
-                                                </td>
-                                                @endif
-                                                @if(config('app.website'))
-                                                <td style="padding:0 5px;">
-                                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                                                        <tr>
-                                                            <td style="border:1px solid #444444; padding:6px 14px;">
-                                                                <a href="{{ config('app.website') }}" style="color:#C9A962; text-decoration:none; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">Website</a>
-                                                            </td>
-                                                        </tr>
-                                                    </table>
-                                                </td>
-                                                @endif
-                                            </tr>
-                                        </table>
+                                    <td style="background-color:#C9A962; padding:16px 40px; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                        <p style="color:#1A1A1A; font-size:14px; font-weight:600; letter-spacing:0.5px; margin:0;">{{ $newsletter->preview_text }}</p>
                                     </td>
                                 </tr>
                             </table>
                             @endif
 
-                            <p style="color:#777777; font-size:11px; line-height:1.7; margin:0 0 20px 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
-                                You're receiving this email because you subscribed to our newsletter<br>
-                                for exclusive offers and updates from Brickspoint Boutique Aparthotel.
-                            </p>
-
-                            <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 20px; padding-top:15px; border-top:1px solid #333333;">
+                            <!-- GREETING -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
-                                    <td style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
-                                        <p style="color:#666666; font-size:10px; margin:0 0 6px 0;">No longer wish to receive these emails?</p>
-                                        <a href="{{ $unsubscribeUrl }}" style="color:#888888; font-size:10px; text-decoration:underline;">Unsubscribe from our mailing list</a>
+                                    <td style="padding:24px 40px 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif; font-size:16px; line-height:1.7; color:#2D2D2D;">
+                                        @if($subscriber->name)
+                                            <p style="margin:0 0 8px;">Dear <strong>{{ $subscriber->name }}</strong>,</p>
+                                        @else
+                                            <p style="margin:0 0 8px;">Dear Valued Subscriber,</p>
+                                        @endif
                                     </td>
                                 </tr>
                             </table>
 
-                            <p style="color:#555555; font-size:10px; margin:15px 0 0 0; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
-                                &copy; {{ date('Y') }} Brickspoint Boutique Aparthotel. All rights reserved.
-                            </p>
+                            <!-- MAIN CONTENT -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="padding:0 40px 45px; font-family:'Segoe UI', Tahoma, Arial, sans-serif; color:#4A4A4A; font-size:16px; line-height:1.75;">
+                                        {!! $newsletter->content !!}
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- FOOTER -->
+                            <!--[if mso]>
+                            <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;">
+                            <v:fill type="gradient" color="#0D0D0D" color2="#1A1A1A" angle="180"/>
+                            <v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:true;">
+                            <![endif]-->
+                            <div style="background: linear-gradient(180deg, #1A1A1A 0%, #0D0D0D 100%); background-color:#1A1A1A; padding:45px 40px 35px; text-align:center;">
+                                <p style="color:#C9A962; font-size:22px; font-weight:300; letter-spacing:4px; margin:0 0 5px 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Brickspoint</p>
+                                <p style="color:#888888; font-size:11px; letter-spacing:2px; text-transform:uppercase; margin:0 0 25px 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Boutique Aparthotel</p>
+
+                                <p style="color:#AAAAAA; font-size:13px; line-height:1.8; margin-bottom:25px; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                    @if(config('app.address'))
+                                        {{ config('app.address') }}<br>
+                                    @endif
+                                    @if(config('app.phone'))
+                                        <a href="tel:{{ config('app.phone') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.phone') }}</a><br>
+                                    @endif
+                                    @if(config('app.email'))
+                                        <a href="mailto:{{ config('app.email') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.email') }}</a>
+                                    @endif
+                                </p>
+
+                                <!-- SOCIAL LINKS -->
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                    <tr>
+                                        <td style="padding:20px 0; border-top:1px solid #333333; border-bottom:1px solid #333333; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                            @if(config('app.facebook'))
+                                                <a href="{{ config('app.facebook') }}" style="display:inline-block; margin:0 6px; padding:8px 16px; color:#C9A962; font-size:13px; font-weight:500; letter-spacing:1px; text-decoration:none; text-transform:uppercase; border:1px solid #444444;">Facebook</a>
+                                            @endif
+                                            @if(config('app.instagram'))
+                                                <a href="{{ config('app.instagram') }}" style="display:inline-block; margin:0 6px; padding:8px 16px; color:#C9A962; font-size:13px; font-weight:500; letter-spacing:1px; text-decoration:none; text-transform:uppercase; border:1px solid #444444;">Instagram</a>
+                                            @endif
+                                            @if(config('app.twitter'))
+                                                <a href="{{ config('app.twitter') }}" style="display:inline-block; margin:0 6px; padding:8px 16px; color:#C9A962; font-size:13px; font-weight:500; letter-spacing:1px; text-decoration:none; text-transform:uppercase; border:1px solid #444444;">Twitter</a>
+                                            @endif
+                                            @if(config('app.website'))
+                                                <a href="{{ config('app.website') }}" style="display:inline-block; margin:0 6px; padding:8px 16px; color:#C9A962; font-size:13px; font-weight:500; letter-spacing:1px; text-decoration:none; text-transform:uppercase; border:1px solid #444444;">Website</a>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <p style="color:#777777; font-size:12px; line-height:1.7; margin:20px 0 0 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                    You're receiving this email because you subscribed to our newsletter<br>
+                                    for exclusive offers and updates from Brickspoint Boutique Aparthotel.
+                                </p>
+
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                    <tr>
+                                        <td style="padding:20px 0 0; border-top:1px solid #333333; margin-top:25px; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                            <p style="color:#666666; font-size:11px; margin:0 0 8px 0;">No longer wish to receive these emails?</p>
+                                            <a href="{{ $unsubscribeUrl }}" style="color:#888888; font-size:11px; text-decoration:underline;">Unsubscribe from our mailing list</a>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <p style="color:#555555; font-size:11px; margin-top:20px; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                    &copy; {{ date('Y') }} Brickspoint Boutique Aparthotel. All rights reserved.
+                                </p>
+                            </div>
                             <!--[if mso]>
                             </v:textbox>
                             </v:rect>
                             <![endif]-->
                         </td>
                     </tr>
-
                 </table>
+                <!--[if mso]>
+                </td></tr>
+                </table>
+                <![endif]-->
             </td>
         </tr>
     </table>

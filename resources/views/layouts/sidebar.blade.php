@@ -2,7 +2,10 @@
 
     <div class="sidebar-heading">
         <div class="brand-wrapper">
-            <a href="{{ route('home') }}" class="brand-link">
+            <a href="{{ route('home') }}" class="brand-link d-flex align-items-center gap-2">
+                @if($logoSetting ?? null)
+                    <img src="{{ Storage::url($logoSetting) }}" alt="Logo" style="height: 28px; width: auto; object-fit: contain;">
+                @endif
                 BRICKSPOINT<sup>&trade;</sup><sub class="brand-sub">ERP</sub>
             </a>
         </div>
@@ -31,9 +34,9 @@
             @includeIf('housekeeping::layouts.menu')
         @endcan
 
-        @can('access_website_dashboard')
+        @canany(['access_website_dashboard', 'website.dashboard', 'website.bookings', 'website.contact-messages', 'website.facilities', 'website.offers', 'website.meeting', 'website.dining', 'website.room-types', 'website.inventory', 'website.amenities', 'website.testimonials', 'website.newsletter', 'website.settings'])
             @includeIf('website::layouts.menu')
-        @endcan
+        @endcanany
 
         @can('access_staff_dashboard')
             @includeIf('staff::layouts.menu')
@@ -56,6 +59,16 @@
             @includeIf('tasks::layouts.menu')
             @includeIf('maintenance::layouts.menu')
         @endif
+
+        @canany(['procurement.create_request', 'procurement.view_all_requests'])
+            <div class="sidebar-subheading {{ request()->routeIs('inventory.procurement.*') ? 'text-primary fw-bold' : '' }}" style="padding-left: 1rem; padding-top: 1rem;">Procurement</div>
+            @includeIf('inventory::procurement.sidebar')
+        @endcanany
+
+        @canany(['finance.view_coa', 'finance.view_ledger', 'finance.view_reports'])
+            <div class="sidebar-subheading {{ request()->routeIs('finance.*') ? 'text-primary fw-bold' : '' }}" style="padding-left: 1rem; padding-top: 1rem;">Finance</div>
+            @includeIf('finance::layouts.menu')
+        @endcanany
 
         @can('access_banquet_dashboard')
             @includeIf('banquet::layouts.menu')

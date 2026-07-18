@@ -57,7 +57,7 @@
                                         @if($employee->status == 'approved') badge-success
                                         @elseif($employee->status == 'rejected') badge-danger
                                         @elseif($employee->status == 'draft') badge-warning
-                                        @else badge-secondary
+                                        @else badge-dark
                                         @endif">
                                         {{ ucfirst($employee->status) }}
                                     </span>

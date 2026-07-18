@@ -44,6 +44,11 @@
        class="list-group-item list-group-item-action {{ request()->routeIs('admin.modules.*') ? 'active' : '' }}">
         <i class="fas fa-cubes fa-fw me-2"></i> Modules
     </a>
+
+    <a href="{{ route('admin.appearance') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('admin.appearance') ? 'active' : '' }}">
+        <i class="fas fa-palette fa-fw me-2"></i> Appearance
+    </a>
     @endcan
 
     <div class="sidebar-divider"></div>
@@ -61,3 +66,5 @@
 
 </div>
 @endcan
+
+

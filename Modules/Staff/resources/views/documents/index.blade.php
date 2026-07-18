@@ -8,7 +8,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h1 class="h3 fw-bold mb-1" style="color: #1a1a2e;"><i class="fas fa-folder-open me-2" style="color: #C8A165;"></i>Shared Files</h1>
-            <p class="text-secondary small mb-0">
+            <p class="text-muted small mb-0">
                 {{ $totalCount }} file(s) &middot;
                 {{ $totalSize > 0 ? round($totalSize / 1073741824, 2) : 0 }} GB used
                 @if($diskTotal > 0)
@@ -33,7 +33,7 @@
 
     <div class="alert alert-light border d-flex align-items-center py-2 px-3 mb-3 small" style="border-radius: 8px; color: #7f8c8d;">
         <i class="fas fa-info-circle me-2" style="color: #C8A165;"></i>
-        Files are automatically deleted after <strong class="mx-1">7 days</strong> from upload.
+        Physical files are automatically removed after <strong class="mx-1">7 days</strong>. Records are kept for reporting.
     </div>
 
     <div class="card border-0 shadow-sm">
@@ -45,7 +45,7 @@
                     <input type="text" name="search" class="form-control border-start-0" placeholder="Search files..." value="{{ request('search') }}">
                 </div>
                 @if(request('search'))
-                    <a href="{{ route('staff.documents.index') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                    <a href="{{ route('staff.documents.index') }}" class="btn btn-sm btn-outline-primary">Clear</a>
                 @endif
             </form>
         </div>
@@ -76,7 +76,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="text-nowrap">{{ $doc->formattedSize() }}</td>
+                            <td class="text-nowrap">{{ $doc->isArchived() ? '—' : $doc->formattedSize() }}</td>
                             <td class="text-nowrap small">{{ $doc->created_at->format('M d, Y') }}<br><span class="text-muted">{{ $doc->created_at->format('g:i a') }}</span></td>
                             <td>{{ $doc->downloads_count }}</td>
                             @php
@@ -86,7 +86,9 @@
                                 $hoursRemainder = $hoursLeft % 24;
                             @endphp
                             <td class="text-nowrap">
-                                @if($hoursLeft <= 0)
+                                @if($doc->isArchived())
+                                    <span style="color: #7f8c8d; font-weight: 600;">removed</span>
+                                @elseif($doc->isExpired())
                                     <span style="color: #c0392b; font-weight: 600;">expired</span>
                                 @elseif($hoursLeft <= 48)
                                     <div style="color: #e67e22; font-weight: 600; line-height: 1.3;">
@@ -102,16 +104,26 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="d-flex gap-1 justify-content-end">
-                                    <button type="button" class="btn btn-sm copy-share-link" data-url="{{ $doc->shareUrl() }}" title="Copy share link" style="background: #f0f7ff; color: #2980b9; border: 1px solid #d0e4f5; border-radius: 8px;">
-                                        <i class="fas fa-link"></i>
-                                    </button>
-                                    <a href="mailto:?subject=Shared%20file%3A%20{{ rawurlencode($doc->filename) }}&body=Hi%2C%0D%0AA%20file%20has%20been%20shared%20with%20you%3A%0D%0A{{ rawurlencode($doc->shareUrl()) }}%0D%0A%0D%0ARegards" class="btn btn-sm" title="Share via email" style="background: #f0f7ff; color: #2980b9; border: 1px solid #d0e4f5; border-radius: 8px;">
-                                        <i class="fas fa-envelope"></i>
-                                    </a>
-                                    <a href="{{ route('staff.documents.download', $doc) }}" class="btn btn-sm" style="background: #f8f8f8; color: #2c3e50; border: 1px solid #e0e0e0; border-radius: 8px;">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                    @can('manage_employees')
+                                    @if($doc->isArchived())
+                                        <span class="badge bg-secondary bg-opacity-10 text-muted px-3 py-2" style="font-weight: 500; border-radius: 8px; font-size: 0.75rem;">
+                                            <i class="fas fa-archive me-1"></i> File has been removed
+                                        </span>
+                                    @elseif($doc->isExpired())
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2" style="font-weight: 500; border-radius: 8px; font-size: 0.75rem;">
+                                            <i class="fas fa-clock me-1"></i> File has been removed
+                                        </span>
+                                    @else
+                                        <button type="button" class="btn btn-sm copy-share-link" data-url="{{ $doc->shareUrl() }}" title="Copy share link" style="background: #f0f7ff; color: #2980b9; border: 1px solid #d0e4f5; border-radius: 8px;">
+                                            <i class="fas fa-link"></i>
+                                        </button>
+                                        <a href="mailto:?subject=Shared%20file%3A%20{{ rawurlencode($doc->filename) }}&body=Hi%2C%0D%0AA%20file%20has%20been%20shared%20with%20you%3A%0D%0A{{ rawurlencode($doc->shareUrl()) }}%0D%0A%0D%0ARegards" class="btn btn-sm" title="Share via email" style="background: #f0f7ff; color: #2980b9; border: 1px solid #d0e4f5; border-radius: 8px;">
+                                            <i class="fas fa-envelope"></i>
+                                        </a>
+                                        <a href="{{ route('staff.documents.download', $doc) }}" class="btn btn-sm" style="background: #f8f8f8; color: #2c3e50; border: 1px solid #e0e0e0; border-radius: 8px;">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    @endif
+                                    @canany(['employees.update', 'employees.delete'])
                                     <form method="POST" action="{{ route('staff.documents.destroy', $doc) }}" onsubmit="return confirm('Delete {{ $doc->filename }}?')" class="d-inline">
                                         @csrf @method('DELETE')
                                         <button class="btn btn-sm" style="background: #fde8e8; color: #c0392b; border: 1px solid #f5c6c6; border-radius: 8px;">
@@ -124,7 +136,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-secondary">
+                            <td colspan="6" class="text-center py-5 text-muted">
                                 <i class="fas fa-folder-open fa-2x mb-2 d-block"></i>
                                 @if(request('search'))
                                     No files match your search.

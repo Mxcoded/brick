@@ -37,41 +37,42 @@
       <div class="sidebar col-md-2">
     <h4 class="text-center mb-4">Website Admin</h4>
     <ul class="nav flex-column">
-        @can('access_website_dashboard')
+        @canany(['access_website_dashboard', 'website.dashboard'])
         <li class="nav-item">
             <a class="nav-link {{ Route::is('website.admin.dashboard') ? 'active' : '' }}"
                 href="{{ route('website.admin.dashboard') }}">
                 <i class="fas fa-tachometer-alt me-2"></i> Dashboard
             </a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link" href="{{ route('website.admin.rooms.index') }}"><i class="fas fa-bed me-2"></i>
-                Rooms</a>
-        </li>
+        @endcanany
+        @canany(['access_website_dashboard', 'website.amenities'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.amenities.index') }}">
                 <i class="fas fa-concierge-bell me-2"></i> Amenities
             </a>
         </li>
+        @endcanany
+        @canany(['access_website_dashboard', 'website.bookings'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.bookings.index') }}">
                 <i class="fas fa-book me-2"></i> Bookings
             </a>
         </li>
+        @endcanany
+        @canany(['access_website_dashboard', 'website.contact-messages'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.contact-messages.index') }}">
                 <i class="fas fa-envelope me-2"></i> Contact Messages
             </a>
         </li>
-        @endcan
-
-        @can('manage_settings')
+        @endcanany
+        @canany(['access_website_dashboard', 'website.settings'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.settings.index') }}">
                 <i class="fas fa-cog me-2"></i> Settings
             </a>
         </li>
-        @endcan
+        @endcanany
     </ul>
 </div>
         <!-- Content -->

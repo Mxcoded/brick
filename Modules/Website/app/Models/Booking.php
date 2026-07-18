@@ -10,12 +10,13 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
 
 class Booking extends Model
 {
-    use HasFactory, HasProperty;
+    use HasFactory, HasProperty, SoftDeletes;
 
     protected $fillable = [
         'property_id',
@@ -49,6 +50,8 @@ class Booking extends Model
         'confirmation_token',
         'special_requests',
         'admin_notes',
+        'source',
+        'follow_up_sent_at',
     ];
 
     protected $casts = [
@@ -56,6 +59,8 @@ class Booking extends Model
         'check_out_date' => 'date',
         'total_amount' => 'decimal:2',
         'amount_paid' => 'decimal:2',
+        'follow_up_sent_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
     /**

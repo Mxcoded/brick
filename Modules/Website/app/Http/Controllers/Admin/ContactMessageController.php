@@ -3,6 +3,7 @@
 namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,7 +23,7 @@ class ContactMessageController extends Controller
      */
     public function index(Request $request)
     {
-        $query = ContactMessage::with('replies')->latest();
+        $query = ContactMessage::with(['replies', 'assignedUser'])->latest();
 
         // Filter by Archive Status
         if ($request->filled('archive')) {
@@ -42,6 +43,11 @@ class ContactMessageController extends Controller
             $query->where('status', $status);
         }
 
+        // Filter by Follow-up Status
+        if ($request->filled('follow_up')) {
+            $query->followUpStatus($request->follow_up);
+        }
+
         // Search
         if ($request->filled('search')) {
             $search = $request->search;
@@ -59,11 +65,18 @@ class ContactMessageController extends Controller
         $archivedCount = ContactMessage::archived()->count();
         $unreadCount = ContactMessage::active()->unread()->count();
 
+        $staffUsers = User::where(function ($q) {
+            $q->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['admin', 'super_admin', 'hr_manager']);
+            })->orWhere('type', 'staff');
+        })->orderBy('name')->get();
+
         return view('website::admin.contact-messages.index', compact(
             'messages',
             'activeCount',
             'archivedCount',
-            'unreadCount'
+            'unreadCount',
+            'staffUsers'
         ));
     }
 
@@ -79,9 +92,15 @@ class ContactMessageController extends Controller
         }
 
         // Load replies with staff user info
-        $contactMessage->load(['replies.user']);
+        $contactMessage->load(['replies.user', 'assignedUser']);
 
-        return view('website::admin.contact-messages.show', compact('contactMessage'));
+        $staffUsers = User::where(function ($q) {
+            $q->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['admin', 'super_admin', 'hr_manager']);
+            })->orWhere('type', 'staff');
+        })->orderBy('name')->get();
+
+        return view('website::admin.contact-messages.show', compact('contactMessage', 'staffUsers'));
     }
 
     /**
@@ -259,6 +278,8 @@ class ContactMessageController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|in:unread,read,replied',
+            'assigned_to' => 'nullable|exists:users,id',
+            'follow_up_status' => 'nullable|in:pending,followed_up,closed',
         ]);
 
         $contactMessage->update($validated);

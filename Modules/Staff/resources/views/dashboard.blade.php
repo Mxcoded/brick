@@ -16,7 +16,7 @@
             <a href="{{ route('staff.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i> Add Staff
             </a>
-            <a href="{{ route('staff.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route('staff.index') }}" class="btn btn-outline-primary">
                 <i class="fas fa-list me-1"></i> View All Staff
             </a>
         </div>
@@ -170,7 +170,7 @@
                         </div>
                         <div class="col-4">
                             <div class="p-3 rounded-3 bg-secondary bg-opacity-10">
-                                <i class="fas fa-building fa-2x text-secondary mb-2"></i>
+                                <i class="fas fa-building fa-2x text-muted mb-2"></i>
                                 <h3 class="mb-0">{{ $otherBranchCount }}</h3>
                                 <small class="text-muted">Other</small>
                             </div>
@@ -210,7 +210,7 @@
                         </div>
                         <div class="text-center">
                             <div class="mb-1">
-                                <i class="fas fa-genderless fa-3x text-secondary"></i>
+                                <i class="fas fa-genderless fa-3x text-muted"></i>
                             </div>
                             <h3 class="mb-0">{{ $otherGenderCount }}</h3>
                             <small class="text-muted">Other ({{ $otherPct }}%)</small>
@@ -222,7 +222,73 @@
 
     </div>
 
-    {{-- Row 3: Leave / Birthdays / Recent Hires --}}
+    {{-- Row 3: Attendance Overview --}}
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="fas fa-clipboard-check me-2 text-gold"></i>
+                        <span class="fw-bold">Today's Attendance</span>
+                        <span class="text-muted small ms-2">{{ now()->format('l, F d, Y') }}</span>
+                    </div>
+                    <a href="{{ route('staff.attendance.index') }}" class="btn btn-sm btn-outline-primary">
+                        Full View <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    @php
+                        $today = now()->today();
+                        $presentToday = \Modules\Staff\Models\AttendanceLog::whereDate('date', $today)->whereIn('status', ['present', 'late'])->count();
+                        $lateToday = \Modules\Staff\Models\AttendanceLog::whereDate('date', $today)->where('status', 'late')->count();
+                        $absentToday = \Modules\Staff\Models\AttendanceLog::whereDate('date', $today)->where('status', 'absent')->count();
+                        $onLeaveToday = \Modules\Staff\Models\AttendanceLog::whereDate('date', $today)->where('status', 'on_leave')->count();
+                        $totalActive = $totalEmployees - $onLeaveCount;
+                        $noRecordToday = max(0, $totalActive - $presentToday - $absentToday - $onLeaveToday);
+                    @endphp
+                    <div class="row text-center g-3">
+                        <div class="col">
+                            <div class="p-3 rounded-3 bg-success bg-opacity-10">
+                                <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                <h4 class="mb-0">{{ $presentToday }}</h4>
+                                <small class="text-muted">Present</small>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="p-3 rounded-3 bg-warning bg-opacity-10">
+                                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                <h4 class="mb-0">{{ $lateToday }}</h4>
+                                <small class="text-muted">Late</small>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="p-3 rounded-3 bg-danger bg-opacity-10">
+                                <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                                <h4 class="mb-0">{{ $absentToday }}</h4>
+                                <small class="text-muted">Absent</small>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="p-3 rounded-3 bg-info bg-opacity-10">
+                                <i class="fas fa-calendar-alt fa-2x text-info mb-2"></i>
+                                <h4 class="mb-0">{{ $onLeaveToday }}</h4>
+                                <small class="text-muted">On Leave</small>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="p-3 rounded-3 bg-secondary bg-opacity-10">
+                                <i class="fas fa-question-circle fa-2x text-secondary mb-2"></i>
+                                <h4 class="mb-0">{{ $noRecordToday }}</h4>
+                                <small class="text-muted">No Record</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Row 4: Leave / Birthdays / Recent Hires --}}
     <div class="row g-4 mb-4">
 
         <div class="col-lg-4">

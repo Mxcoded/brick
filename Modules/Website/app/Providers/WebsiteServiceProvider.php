@@ -3,11 +3,13 @@
 namespace Modules\Website\Providers;
 
 use App\Models\Property;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Modules\Website\Console\Commands\CleanupOrphanedBookings;
 use Modules\Website\Console\Commands\FixConfirmedBookingBalances;
+use Modules\Website\Console\Commands\SendPostStayFollowUp;
 use Modules\Website\Console\MigrateRoomsToTypes;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
@@ -58,6 +60,7 @@ class WebsiteServiceProvider extends ServiceProvider
             MigrateRoomsToTypes::class,
             CleanupOrphanedBookings::class,
             FixConfirmedBookingBalances::class,
+            SendPostStayFollowUp::class,
         ]);
     }
 
@@ -66,10 +69,10 @@ class WebsiteServiceProvider extends ServiceProvider
      */
     protected function registerCommandSchedules(): void
     {
-        // $this->app->booted(function () {
-        //     $schedule = $this->app->make(Schedule::class);
-        //     $schedule->command('inspire')->hourly();
-        // });
+        $this->app->booted(function () {
+            $schedule = $this->app->make(Schedule::class);
+            $schedule->command('website:send-post-stay-followup')->dailyAt('10:00');
+        });
     }
 
     /**

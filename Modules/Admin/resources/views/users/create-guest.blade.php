@@ -8,7 +8,7 @@
 @section('page-content')
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-1 fw-bold"><i class="fas fa-user-plus me-2" style="color: #C8A165;"></i>Create Guest Account</h1>
+            <h1 class="h3 mb-1 fw-bold"><i class="fas fa-user-plus me-2 text-gold"></i>Create Guest Account</h1>
             <p class="text-muted mb-0">Create a new guest user for the website portal</p>
         </div>
         <a href="{{ route('admin.users.index', ['type' => 'guest']) }}" class="btn btn-outline-secondary">

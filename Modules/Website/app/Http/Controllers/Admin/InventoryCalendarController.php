@@ -234,17 +234,23 @@ class InventoryCalendarController extends Controller
             'room_type_id' => 'required|exists:room_types,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
+            'open_count' => 'nullable|integer|min:0',
         ]);
 
         try {
-            // Remove all blocks for this date range
-            $deleted = RoomInventoryBlock::forRoomType($validated['room_type_id'])
-                ->overlapping($validated['start_date'], $validated['end_date'])
-                ->delete();
+            // Open the requested range by splitting any overlapping blocks,
+            // so the rest of a blocked range stays blocked. A given open_count
+            // frees only that many rooms (reduces blocked_count) instead of all.
+            $affected = $this->calendarService->openRooms(
+                $validated['room_type_id'],
+                Carbon::parse($validated['start_date']),
+                Carbon::parse($validated['end_date']),
+                $validated['open_count'] ?? null
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => "Removed {$deleted} block(s). All rooms are now open.",
+                'message' => "Opened {$affected} block(s). Selected rooms are now available.",
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -64,6 +64,16 @@ class User extends Authenticatable
         return $this->type === 'staff';
     }
 
+    public function isProcurementRequester(): bool
+    {
+        return $this->isStaff() || $this->hasRole('line_manager');
+    }
+
+    public function isProcurementApprover(): bool
+    {
+        return $this->hasAnyRole(['purchaser', 'gm', 'finance', 'auditor', 'ggm']);
+    }
+
     public function isGuest(): bool
     {
         return $this->type === 'guest';

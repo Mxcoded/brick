@@ -65,14 +65,25 @@
                                         </tr>
                                     @endforeach
                                 </tbody>
+                                @if ((float) $order->grand_total > 0)
                                 <tfoot>
                                     <tr>
-                                        <td colspan="5" class="text-end fw-bold">Total:</td>
-                                        <td>{{ '₦' . number_format($order->orderItems->sum(function($item) {
-                                            return $item->menuItem ? $item->menuItem->price * $item->quantity : 0;
-                                        }), 2) }}</td>
+                                        <td colspan="4" class="text-end fw-bold">Subtotal:</td>
+                                        <td></td>
+                                        <td>₦{{ number_format((float) $order->subtotal, 2) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4" class="text-end fw-bold">VAT ({{ $order->vat_rate }}%):</td>
+                                        <td></td>
+                                        <td>₦{{ number_format((float) $order->vat, 2) }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4" class="text-end fw-bold">Total:</td>
+                                        <td></td>
+                                        <td><strong>₦{{ number_format((float) $order->grand_total, 2) }}</strong></td>
                                     </tr>
                                 </tfoot>
+                                @endif
                             </table>
                         </div>
                     </div>

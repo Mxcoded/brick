@@ -384,6 +384,18 @@
                         @enderror
                     </div>
                     
+                    @if ($remaining > 0 && $remaining < 5)
+                        <div class="alert alert-warning py-2 small d-flex align-items-center" role="alert" style="font-size:0.85rem;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span>{{ $remaining }} of 5 login attempts remaining.</span>
+                        </div>
+                    @elseif ($remaining === 0)
+                        <div class="alert alert-danger py-2 small d-flex align-items-center" role="alert" style="font-size:0.85rem;">
+                            <i class="fas fa-lock me-2"></i>
+                            <span>Too many login attempts. Please try again in {{ ceil($retryAfter / 60) }} minute(s).</span>
+                        </div>
+                    @endif
+
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="remember" id="remember" 

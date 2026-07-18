@@ -19,7 +19,7 @@
 }
 
 body {
-    background-color: #f0f2f5;
+    background-color: var(--theme-body-bg, #f0f2f5);
     font-family: 'Inter', 'Proxima Nova', Arial, Helvetica, sans-serif;
 }
 

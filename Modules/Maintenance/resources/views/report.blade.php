@@ -6,7 +6,7 @@
             <h2 class="fw-bold mb-1"><i class="fas fa-chart-bar me-2" style="color: var(--luxury-gold);"></i>Maintenance Report</h2>
             <p class="text-muted mb-0">Filter and export maintenance logs</p>
         </div>
-        <a href="{{ route('maintenance.dashboard') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('maintenance.dashboard') }}" class="btn btn-outline-dark">
             <i class="fas fa-tachometer-alt me-1"></i> Dashboard
         </a>
     </div>
@@ -46,7 +46,7 @@
                     <button type="submit" class="btn" style="background-color: var(--luxury-gold); color: #fff;">
                         <i class="fas fa-search me-1"></i> Filter
                     </button>
-                    <a href="{{ route('maintenance.report') }}" class="btn btn-outline-secondary">Reset</a>
+                    <a href="{{ route('maintenance.report') }}" class="btn btn-outline-gold">Reset</a>
                 </div>
             </form>
             @if ($logs->count())
@@ -104,7 +104,7 @@
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white fw-semibold">
             <i class="fas fa-list me-2" style="color: var(--luxury-gold);"></i>Log Entries
-            <span class="badge bg-secondary ms-2">{{ $logs->total() }}</span>
+            <span class="badge bg-gold ms-2">{{ $logs->total() }}</span>
         </div>
         <div class="card-body p-0">
             @if ($logs->count())
@@ -128,7 +128,7 @@
                                 <tr>
                                     <td class="text-muted">{{ $log->id }}</td>
                                     <td>{{ $log->location }}</td>
-                                    <td><span class="badge bg-secondary">{{ $log->department }}</span></td>
+                                    <td><span class="badge bg-dark">{{ $log->department }}</span></td>
                                     <td>{{ Str::limit($log->nature_of_complaint, 40) }}</td>
                                     <td>{{ $log->lodged_by }}</td>
                                     <td>
@@ -142,7 +142,7 @@
                                     <td class="text-muted small">{{ $log->complaint_datetime->format('M d, Y') }}</td>
                                     <td>{{ $log->cost_of_fixing ? number_format($log->cost_of_fixing, 2) : '--' }}</td>
                                     <td>
-                                        <a href="{{ route('maintenance.show', $log->id) }}" class="btn btn-sm btn-outline-secondary" title="View">
+                                        <a href="{{ route('maintenance.show', $log->id) }}" class="btn btn-sm btn-outline-gold" title="View">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </td>

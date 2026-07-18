@@ -370,6 +370,21 @@ class RoomAvailabilityService
     // ROOM UNIT SPECIFIC CHECKS
     // ==========================================
 
+    /**
+     * Check if a specific room unit is available for dates.
+     *
+     * This is a per-unit occupancy check: it verifies the unit itself is not
+     * in a hard-blocked status, is not stopped/closed at the room-type level,
+     * and has no conflicting booking or active registration for the dates.
+     *
+     * It intentionally does NOT apply the aggregate "pool" logic used by
+     * getAvailableUnits() (which reserves the first N units for unassigned
+     * bookings / type-level blocks). That pool logic is only relevant when
+     * deciding how many rooms of a type are still sellable — not when checking
+     * whether one specific physical unit is free. Otherwise a perfectly free
+     * unit could be wrongly reported unavailable simply because other
+     * unassigned bookings consumed pool "slots" ahead of it.
+     */
     public function isUnitAvailable(
         int $unitId,
         string|Carbon $checkIn,
@@ -381,18 +396,54 @@ class RoomAvailabilityService
             return false;
         }
 
+        $checkIn = Carbon::parse($checkIn);
+        $checkOut = Carbon::parse($checkOut);
+
+        // A unit in a hard-blocked status is never assignable.
         if (in_array($unit->status, self::UNAVAILABLE_UNIT_STATUSES)) {
             return false;
         }
 
+        // Respect room-type level hard restrictions (stop sell, closed to
+        // arrival/departure, min/max stay). Capacity-only blocks (blocked_count)
+        // reduce overall sellable inventory but do NOT make a specific physical
+        // unit unavailable, so they are intentionally ignored here.
         $typeAvailability = $this->checkRoomTypeAvailability($unit->room_type_id, $checkIn, $checkOut);
         if (! $typeAvailability['available'] && ($typeAvailability['reason'] ?? null) !== 'insufficient_inventory') {
             return false;
         }
 
-        $availableUnits = $this->getAvailableUnits($unit->room_type_id, $checkIn, $checkOut, $ignoreBookingId);
+        // The unit must not have a conflicting booking for the dates
+        // (ignoring the booking being (re)assigned).
+        $hasConflictingBooking = Booking::where('room_unit_id', $unitId)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->where(function ($q) use ($checkIn, $checkOut) {
+                $q->where('check_in_date', '<', $checkOut)
+                    ->where('check_out_date', '>', $checkIn);
+            })
+            ->when($ignoreBookingId, fn ($q) => $q->where('id', '!=', $ignoreBookingId))
+            ->exists();
 
-        return $availableUnits->contains('id', $unitId);
+        if ($hasConflictingBooking) {
+            return false;
+        }
+
+        // The unit must not have an active registration for the dates.
+        if (class_exists(Registration::class)) {
+            $hasConflictingRegistration = Registration::where('room_unit_id', $unitId)
+                ->whereIn('stay_status', self::ACTIVE_REGISTRATION_STATUSES)
+                ->where(function ($q) use ($checkIn, $checkOut) {
+                    $q->where('check_in', '<', $checkOut)
+                        ->where('check_out', '>', $checkIn);
+                })
+                ->exists();
+
+            if ($hasConflictingRegistration) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function getUnitCurrentStatus(int $unitId): array

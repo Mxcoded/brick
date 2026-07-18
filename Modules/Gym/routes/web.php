@@ -41,7 +41,7 @@ Route::prefix('gym')->middleware(['web', 'auth', 'can:access_gym_dashboard'])->g
     Route::get('trainers/edit/{id}', [GymController::class, 'editTrainer'])->name('gym.trainers.edit');
     Route::get('trainers/show/{id}', [GymController::class, 'showTrainer'])->name('gym.trainers.show');
     Route::put('trainers/{id}', [GymController::class, 'updateTrainer'])->name('gym.trainers.update');
-    Route::delete('trainers/{id}', [GymController::class, 'showTrainer'])->name('gym.trainers.delete');
+    Route::delete('trainers/{id}', [GymController::class, 'destroyTrainer'])->name('gym.trainers.delete');
 
     // Subscription Settings
     Route::get('subscription-config/edit', [GymController::class, 'editSubscriptionConfig'])->name('gym.subscription-config.edit');

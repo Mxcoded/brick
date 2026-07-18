@@ -9,43 +9,57 @@
 
     <title>{{ config('app.name', 'Brickspoint ApartHotel') }} — @yield('title')</title>
 
-    <meta name="description" content="{{ $meta_description ?? $description ?? 'Experience unparalleled luxury at Brickspoint Boutique Aparthotel. Premium short & long stays in Abuja with world-class amenities.' }}">
-    <meta name="keywords" content="{{ $meta_keywords ?? $keywords ?? 'boutique hotel Abuja, apart-hotel, luxury accommodation, short let Abuja, hotel, vacation, resort' }}">
+    <meta name="description" content="{{ $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays, world-class dining, and exceptional service in the heart of Abuja.' }}">
+    <meta name="keywords" content="{{ $meta_keywords ?? $keywords ?? 'boutique hotel Abuja, best hotel in Asokoro Abuja, luxury apart-hotel Nigeria, short let Abuja, Brickspoint Abuja, Asokoro hotel, luxury accommodation Abuja, apart-hotel Nigeria, Abuja boutique hotel, extended stay Abuja, corporate housing Abuja' }}">
     <meta name="author" content="{{ $author ?? config('app.name') }}">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{{ url()->current() }}">
+
+    <!-- Hreflang -->
+    <link rel="alternate" href="{{ url()->current() }}" hreflang="en-NG">
+    <link rel="alternate" href="{{ url()->current() }}" hreflang="en">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="{{ config('app.name') }}">
     <meta property="og:title" content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
-    <meta property="og:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Premium boutique apart-hotel in Abuja.' }}">
+    <meta property="og:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays with world-class amenities.' }}">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image" content="{{ $og_image ?? asset('images/og-default.jpg') }}">
     <meta property="og:locale" content="en_NG">
+    <meta property="og:phone_number" content="+2348099999627">
+    <meta property="og:street_address" content="24 Jose Marti Crescent">
+    <meta property="og:locality" content="Asokoro, Abuja">
+    <meta property="og:country_name" content="Nigeria">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
-    <meta name="twitter:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Premium boutique apart-hotel in Abuja.' }}">
+    <meta name="twitter:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria.' }}">
     <meta name="twitter:image" content="{{ $og_image ?? asset('images/og-default.jpg') }}">
+
+    <!-- Geo Tags -->
+    <meta name="geo.region" content="NG-FC">
+    <meta name="geo.placename" content="Asokoro, Abuja">
+    <meta name="geo.position" content="9.0387;7.4965">
+    <meta name="ICBM" content="9.0387, 7.4965">
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('images/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
 
     <!-- Preconnect to CDNs -->
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="preconnect" href="https://cdn.datatables.net">
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://fonts.bunny.net">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
 
-    <!-- CSS -->
+    <!-- Critical CSS (render-blocking, above-the-fold) -->
     @vite(['resources/sass/app.scss'])
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    <link href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap"
-        rel="stylesheet">
+    <link rel="preload" href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap" rel="stylesheet"></noscript>
 
-    <!-- Custom CSS -->
     <style>
         /* Design System Tokens */
         :root {
@@ -63,6 +77,7 @@
             src: url("{{ asset('fonts/Proxima Nova Regular.ttf') }}") format('truetype');
             font-weight: normal;
             font-style: normal;
+            font-display: swap;
         }
 
         body {
@@ -605,7 +620,6 @@
                 display: none !important;
             }
         }
-        }
 
         @media (max-width: 768px) {
             .navbar-brand img {
@@ -786,95 +800,111 @@
             flex-wrap: wrap;
         }
 
-        /* Booking Progress Indicator */
+        /* ===== Mobile Sticky Booking Bar ===== */
+        .mobile-sticky-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9998;
+            display: flex;
+            gap: 0;
+            background: rgba(26, 26, 26, 0.98);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(200, 161, 101, 0.2);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn-book-sticky,
+        .btn-call-sticky {
+            flex: 1;
+            padding: 0.85rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+            border-radius: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-book-sticky {
+            background: linear-gradient(135deg, #C8A165, #b8924f);
+            color: #1a1a1a;
+        }
+        .btn-book-sticky:hover {
+            background: linear-gradient(135deg, #b8924f, #a07d3e);
+            color: #1a1a1a;
+        }
+        .btn-call-sticky {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+        .btn-call-sticky:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+        @media (min-width: 992px) {
+            .mobile-sticky-bar {
+                display: none !important;
+            }
+            .btn-newsletter-trigger {
+                bottom: 30px;
+            }
+        }
+    </style>
+
+    <!-- Non-critical styles (loaded after first paint, not render-blocking) -->
+    <style media="print" id="deferred-styles">
+        /* ===== Booking Progress Indicator ===== */
         .booking-progress-container {
             max-width: 600px;
             margin: 0 auto;
         }
-
-        .booking-progress {
-            position: relative;
-        }
-
-        .progress-step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            z-index: 2;
-        }
-
+        .booking-progress { position: relative; }
+        .progress-step { display: flex; flex-direction: column; align-items: center; z-index: 2; }
         .progress-step .step-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            transition: all 0.3s ease;
+            width: 45px; height: 45px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; transition: all 0.3s ease;
         }
-
         .progress-step.pending .step-icon {
-            background-color: #e9ecef;
-            color: #6c757d;
-            border: 2px solid #dee2e6;
+            background-color: #e9ecef; color: #6c757d; border: 2px solid #dee2e6;
         }
-
         .progress-step.active .step-icon {
-            background-color: var(--color-gold);
-            color: #fff;
+            background-color: var(--color-gold); color: #fff;
             border: 2px solid var(--color-gold);
             box-shadow: 0 0 0 4px rgba(200, 161, 101, 0.2);
         }
-
         .progress-step.completed .step-icon {
-            background-color: #198754;
-            color: #fff;
-            border: 2px solid #198754;
+            background-color: #198754; color: #fff; border: 2px solid #198754;
         }
-
         .progress-step .step-label {
-            margin-top: 0.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #6c757d;
+            margin-top: 0.5rem; font-size: 0.75rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d;
         }
-
-        .progress-step.active .step-label {
-            color: var(--color-gold);
-        }
-
-        .progress-step.completed .step-label {
-            color: #198754;
-        }
-
-        .progress-line {
-            flex: 1;
-            height: 3px;
-            background-color: #dee2e6;
-            margin: 0 0.5rem;
-            margin-bottom: 1.5rem;
-            transition: background-color 0.3s ease;
-        }
-
-        .progress-line.completed {
-            background-color: #198754;
-        }
-
+        .progress-step.active .step-label { color: var(--color-gold); }
+        .progress-step.completed .step-label { color: #198754; }
+        .progress-line { flex: 1; height: 3px; background-color: #dee2e6; margin: 0 0.5rem; margin-bottom: 1.5rem; }
+        .progress-line.completed { background-color: #198754; }
         @media (max-width: 576px) {
-            .progress-step .step-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 0.85rem;
-            }
-
-            .progress-line {
-                margin-bottom: 1rem;
-            }
+            .progress-step .step-icon { width: 36px; height: 36px; font-size: 0.85rem; }
+            .progress-line { margin-bottom: 1rem; }
         }
+
+        @stack('deferred-styles')
     </style>
+    <script>
+        window.addEventListener('load', function() {
+            var d = document.getElementById('deferred-styles');
+            if (d) { d.media = 'all'; }
+        });
+    </script>
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
     <style>
         /* ─── intl-tel-input Overrides ─── */
@@ -920,6 +950,7 @@
             .form-floating-custom .iti:focus-within ~ label { left: 90px; }
         }
     </style>
+    @stack('head')
     @stack('styles')
 </head>
 
@@ -934,7 +965,7 @@
                 <a class="navbar-brand d-flex align-items-center" href="{{ route('website.home') }}">
                     <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
                         alt="Brickspoint ApartHotel" class="d-inline-block"
-                        style="width: auto; object-fit: contain;">
+                        width="80" height="80" style="width: auto; height: 80px; object-fit: contain;">
                 </a>
 
                 <button class="navbar-toggler" type="button" id="navToggler"
@@ -1119,7 +1150,7 @@
 
     <!-- Main Content -->
     <main class="flex-grow-1">
-        @hasSection('page-content')
+        @if (! empty(trim($__env->yieldContent('page-content'))))
             @yield('page-content')
         @else
             @yield('content')
@@ -1144,7 +1175,7 @@
             <div class="row g-4">
                 <div class="col-lg-4">
                     <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
-                        alt="{{ $propName }} Logo" class="footer-logo">
+                        alt="{{ $propName }} Logo" class="footer-logo" width="140" height="70">
                     <p class="text-muted-footer">{{ $settings['footer_tagline'] ?? 'Experience the pinnacle of luxury and comfort in the heart of Abuja city.' }}</p>
                     <div class="mt-4">
                         <a href="{{ $facebook }}" class="text-white me-3" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>
@@ -1184,6 +1215,8 @@
                                 class="text-muted-footer text-decoration-none">About Us</a></li>
                         <li class="mb-2"><a href="{{ route('website.booking.login') }}"
                                 class="text-muted-footer text-decoration-none">Manage Booking</a></li>
+                        <li class="mb-2"><a href="{{ route('website.testimonials') }}"
+                                class="text-muted-footer text-decoration-none">Leave a Review</a></li>
                     </ul>
                 </div>
 
@@ -1298,27 +1331,54 @@
 
     <!-- JavaScript -->
     @vite(['resources/js/app.js'])
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
-
     @stack('scripts')
 
-    {{-- Newsletter Subscription Script --}}
     <script>
+        // === Run immediately (not dependent on DOM ready) ===
+
+        // Newsletter auto-show
+        (function() {
+            var trigger = document.getElementById('newsletterPopupTrigger');
+            if (!trigger) return;
+            var isDismissed = localStorage.getItem('newsletter_popup_dismissed') === 'true';
+            if (isDismissed) return;
+            var lastShown = localStorage.getItem('newsletter_popup_last_shown');
+            var now = Date.now();
+            var oneDay = 24 * 60 * 60 * 1000;
+            if (lastShown) {
+                var lastTime = parseInt(lastShown, 10);
+                if (!isNaN(lastTime) && (now - lastTime) < oneDay) return;
+            }
+            setTimeout(function() {
+                trigger.click();
+                localStorage.setItem('newsletter_popup_last_shown', now.toString());
+            }, 15000);
+        })();
+
+        // Sticky bar hide on scroll down
+        (function() {
+            var bar = document.querySelector('.mobile-sticky-bar');
+            if (!bar) return;
+            var lastScroll = 0;
+            window.addEventListener('scroll', function() {
+                var current = window.scrollY;
+                bar.style.transform = current > lastScroll && current > 300 ? 'translateY(100%)' : 'translateY(0)';
+                lastScroll = current;
+            }, { passive: true });
+        })();
+
+        // === Run after DOM ready ===
         document.addEventListener('DOMContentLoaded', function() {
             // Mobile nav toggle
-            const toggler = document.getElementById('navToggler');
-            const collapse = document.getElementById('navbarMain');
+            var toggler = document.getElementById('navToggler');
+            var collapse = document.getElementById('navbarMain');
 
             if (toggler && collapse) {
                 toggler.addEventListener('click', function() {
-                    const isOpen = collapse.classList.toggle('show');
+                    var isOpen = collapse.classList.toggle('show');
                     toggler.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
                 });
 
-                // Close menu when clicking a nav link (not dropdown toggle)
                 collapse.addEventListener('click', function(e) {
                     if (e.target.tagName === 'A' && !e.target.closest('.dropdown-toggle')) {
                         collapse.classList.remove('show');
@@ -1326,7 +1386,6 @@
                     }
                 });
 
-                // Close on escape key
                 document.addEventListener('keydown', function(e) {
                     if (e.key === 'Escape' && collapse.classList.contains('show')) {
                         collapse.classList.remove('show');
@@ -1334,7 +1393,6 @@
                     }
                 });
 
-                // Close when resizing to desktop
                 window.addEventListener('resize', function() {
                     if (window.innerWidth >= 992 && collapse.classList.contains('show')) {
                         collapse.classList.remove('show');
@@ -1343,176 +1401,171 @@
                 }, { passive: true });
             }
 
-            // Scroll progress bar
-            const progressBar = document.getElementById('scrollProgress');
+            // Scroll progress bar + navbar shrink
+            var progressBar = document.getElementById('scrollProgress');
+            var navbar = document.getElementById('siteNavbar');
 
-            // Navbar shrink + scroll progress
-            const navbar = document.getElementById('siteNavbar');
-            window.addEventListener('scroll', function() {
-                if (window.scrollY > 80) {
-                    navbar.classList.add('navbar-shrink');
-                } else {
-                    navbar.classList.remove('navbar-shrink');
-                }
+            if (progressBar && navbar) {
+                window.addEventListener('scroll', function() {
+                    if (window.scrollY > 80) {
+                        navbar.classList.add('navbar-shrink');
+                    } else {
+                        navbar.classList.remove('navbar-shrink');
+                    }
+                    var scrollTop = window.scrollY;
+                    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                    progressBar.style.width = (docHeight > 0 ? (scrollTop / docHeight) * 100 : 0) + '%';
+                }, { passive: true });
+            }
 
-                // Update progress bar
-                var scrollTop = window.scrollY;
-                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
-                var progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-                progressBar.style.width = progress + '%';
-            }, { passive: true });
-
-            // Footer newsletter form
-            const form = document.getElementById('newsletterForm');
-            const emailInput = document.getElementById('newsletterEmail');
-            const submitBtn = document.getElementById('newsletterBtn');
-            const feedback = document.getElementById('newsletterFeedback');
-
-            // Shared newsletter submit handler
+            // Newsletter forms (footer + popup)
             async function handleNewsletterSubmit(email, feedbackEl, btnEl, inputEl, nameInput) {
                 btnEl.disabled = true;
-                const originalBtnHtml = btnEl.innerHTML;
+                var originalBtnHtml = btnEl.innerHTML;
                 btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                const name = nameInput ? nameInput.value.trim() : '';
-
+                var name = nameInput ? nameInput.value.trim() : '';
                 try {
-                    const response = await fetch('{{ route('website.newsletter.subscribe') }}', {
+                    var response = await fetch('{{ route('website.newsletter.subscribe') }}', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            name: name,
-                            email: email
-                        })
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                        body: JSON.stringify({ name: name, email: email })
                     });
-
-                    const data = await response.json();
-
+                    var data = await response.json();
                     feedbackEl.style.display = 'block';
+                    feedbackEl.className = 'mt-2 small ' + (data.success ? 'text-success' : 'text-warning');
+                    feedbackEl.innerHTML = '<i class="fas fa-' + (data.success ? 'check-circle' : 'info-circle') + ' me-1"></i>' + data.message;
                     if (data.success) {
-                        feedbackEl.className = 'mt-2 small text-success';
-                        feedbackEl.innerHTML = '<i class="fas fa-check-circle me-1"></i>' + data.message;
                         inputEl.value = '';
-
-                        // Mark as subscribed in localStorage
                         localStorage.setItem('newsletter_subscribed', 'true');
-
-                        // Close popup after success (if it's the popup form)
                         if (btnEl.id === 'newsletterPopupBtn') {
-                            setTimeout(() => {
-                                const modal = bootstrap.Modal.getInstance(document.getElementById(
-                                    'newsletterPopup'));
+                            setTimeout(function() {
+                                var modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
                                 if (modal) modal.hide();
                             }, 2000);
                         }
-                    } else {
-                        feedbackEl.className = 'mt-2 small text-warning';
-                        feedbackEl.innerHTML = '<i class="fas fa-info-circle me-1"></i>' + data.message;
                     }
-
-                    setTimeout(() => {
-                        feedbackEl.style.display = 'none';
-                    }, 5000);
-
+                    setTimeout(function() { feedbackEl.style.display = 'none'; }, 5000);
                 } catch (error) {
                     feedbackEl.style.display = 'block';
                     feedbackEl.className = 'mt-2 small text-danger';
-                    feedbackEl.innerHTML =
-                        '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
+                    feedbackEl.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
                 } finally {
                     btnEl.disabled = false;
                     btnEl.innerHTML = originalBtnHtml;
                 }
             }
 
-            // Footer form handler
-            const nameInput = document.getElementById('newsletterName');
+            // Footer form
+            var form = document.getElementById('newsletterForm');
+            var emailInput = document.getElementById('newsletterEmail');
+            var submitBtn = document.getElementById('newsletterBtn');
+            var feedback = document.getElementById('newsletterFeedback');
+            var nameInput = document.getElementById('newsletterName');
 
             if (form) {
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
-                    const email = emailInput.value.trim();
-                    if (email) {
-                        handleNewsletterSubmit(email, feedback, submitBtn, emailInput, nameInput);
-                    }
+                    var email = emailInput.value.trim();
+                    if (email) handleNewsletterSubmit(email, feedback, submitBtn, emailInput, nameInput);
                 });
             }
 
-            // Popup form handler
-            const popupForm = document.getElementById('newsletterPopupForm');
-            const popupNameInput = document.getElementById('newsletterPopupName');
-            const popupEmailInput = document.getElementById('newsletterPopupEmail');
-            const popupSubmitBtn = document.getElementById('newsletterPopupBtn');
-            const popupFeedback = document.getElementById('newsletterPopupFeedback');
-            
+            // Popup form
+            var popupForm = document.getElementById('newsletterPopupForm');
+            var popupNameInput = document.getElementById('newsletterPopupName');
+            var popupEmailInput = document.getElementById('newsletterPopupEmail');
+            var popupSubmitBtn = document.getElementById('newsletterPopupBtn');
+            var popupFeedback = document.getElementById('newsletterPopupFeedback');
 
             if (popupForm) {
                 popupForm.addEventListener('submit', function(e) {
                     e.preventDefault();
-                    const email = popupEmailInput.value.trim();
-                    if (email) {
-                        handleNewsletterSubmit(email, popupFeedback, popupSubmitBtn, popupEmailInput, popupNameInput);
-                    }
+                    var email = popupEmailInput.value.trim();
+                    if (email) handleNewsletterSubmit(email, popupFeedback, popupSubmitBtn, popupEmailInput, popupNameInput);
                 });
             }
 
             // "Don't show again" button
-            const popupDismissBtn = document.getElementById('newsletterPopupDismiss');
+            var popupDismissBtn = document.getElementById('newsletterPopupDismiss');
             if (popupDismissBtn) {
                 popupDismissBtn.addEventListener('click', function() {
                     localStorage.setItem('newsletter_popup_dismissed', 'true');
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
                     if (modal) modal.hide();
                 });
             }
-
         });
     </script>
 
-    {{-- Debug: manual trigger button --}}
-    <button type="button" onclick="document.getElementById('newsletterPopupTrigger').click()"
-        style="position:fixed;bottom:60px;right:20px;z-index:9999;background:#C8A165;color:#fff;border:none;border-radius:50%;width:80px;height:80px;font-size:24px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3);"
-        title="Subscribe to Newsletter"><span class="fa fa-envelope"></span></button>
+    {{-- Mobile Sticky Booking Bar --}}
+    <div class="mobile-sticky-bar d-lg-none">
+        <a href="{{ route('website.book') }}" class="btn btn-book-sticky">
+            <i class="fas fa-calendar-check me-2"></i> Book Now
+        </a>
+        <a href="tel:+2348099999627" class="btn btn-call-sticky">
+            <i class="fas fa-phone me-2"></i> Call
+        </a>
+    </div>
 
-    {{-- Newsletter Auto-Show (triggers via hidden Bootstrap data-api button) --}}
-    <script>
-        (function() {
-            var trigger = document.getElementById('newsletterPopupTrigger');
-            if (!trigger) {
-                console.warn('[Newsletter] Trigger button not found.');
-                return;
-            }
-
-            var isDismissed = localStorage.getItem('newsletter_popup_dismissed') === 'true';
-
-            if (isDismissed) {
-                console.log('[Newsletter] Skipped: popup_dismissed flag set.');
-                return;
-            }
-
-            var lastShown = localStorage.getItem('newsletter_popup_last_shown');
-            var now = Date.now();
-            var oneDay = 24 * 60 * 60 * 1000;
-
-            if (lastShown) {
-                var lastTime = parseInt(lastShown, 10);
-                if (!isNaN(lastTime) && (now - lastTime) < oneDay) {
-                    var remaining = Math.round((oneDay - (now - lastTime)) / 1000 / 60);
-                    console.log('[Newsletter] Skipped: shown ' + remaining + 'm ago, cooldown active.');
-                    return;
-                }
-            }
-
-            console.log('[Newsletter] Conditions passed, showing popup in 3s...');
-            setTimeout(function() {
-                console.log('[Newsletter] Clicking trigger now.');
-                trigger.click();
-                localStorage.setItem('newsletter_popup_last_shown', now.toString());
-            }, 3000);
-        })();
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@@context": "https://schema.org",
+        "@@type": "Hotel",
+        "@@id": "{{ url('/') }}#hotel",
+        "name": "Brickspoint Boutique Aparthotel",
+        "alternateName": "Brickspoint ApartHotel",
+        "description": "{{ $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays, world-class dining, and exceptional service in the heart of Abuja.' }}",
+        "url": "{{ url('/') }}",
+        "image": "{{ $og_image ?? asset('images/og-default.jpg') }}",
+        "telephone": "+2348099999627",
+        "email": "rsv@brickspoint.com",
+        "priceRange": "₦₦₦₦",
+        "currenciesAccepted": "NGN",
+        "paymentAccepted": ["Cash", "Credit Card", "Bank Transfer", "POS"],
+        "hasMap": "https://maps.google.com/?q=9.0387,7.4965",
+        "address": {
+            "@@type": "PostalAddress",
+            "@@id": "{{ url('/') }}#address",
+            "streetAddress": "24 Jose Marti Crescent",
+            "addressLocality": "Asokoro",
+            "addressRegion": "Federal Capital Territory",
+            "addressCountry": "NG",
+            "postalCode": "900231"
+        },
+        "geo": {
+            "@@type": "GeoCoordinates",
+            "latitude": "9.0387",
+            "longitude": "7.4965"
+        },
+        "sameAs": [
+            "https://fb.com/bpaparthotel",
+            "https://instagram.com/brickspoint_asokoro",
+            "https://x.com/bpaparthotel"
+        ],
+        "parentOrganization": {
+            "@@type": "Organization",
+            "name": "Brickspoint Boutique Aparthotel",
+            "url": "{{ url('/') }}"
+        },
+        "aggregateRating": {
+            "@@type": "AggregateRating",
+            "ratingValue": "{{ $averageRating ?? '4.5' }}",
+            "bestRating": "5",
+            "ratingCount": "{{ $reviewCount ?? '0' }}",
+            "worstRating": "1"
+        },
+        "amenityFeature": [
+            {"@@type": "LocationFeatureSpecification", "name": "Free Wi-Fi", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Restaurant", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Fitness Center", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Room Service", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Airport Shuttle", "value": true},
+            {"@@type": "LocationFeatureSpecification", "name": "Parking", "value": true}
+        ],
+        "checkinTime": "15:00",
+        "checkoutTime": "12:00"
+    }
     </script>
     <script>
         $(document).ready(function() {
@@ -1559,6 +1612,20 @@
             }
         });
     </script>
+    <!--Start of Tawk.to Script-->
+<script type="text/javascript">
+var Tawk_API=Tawk_API||{};
+Tawk_LoadStart=new Date();
+(function(){
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/6a486fab1f54021d42ef772e/1jslf8ea6';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+<!--End of Tawk.to Script-->
 </body>
 
 </html>

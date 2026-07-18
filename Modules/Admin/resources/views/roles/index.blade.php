@@ -14,7 +14,7 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-1 fw-bold"><i class="fas fa-user-shield me-2" style="color: #C8A165;"></i>Roles & Permissions</h1>
+            <h1 class="h3 mb-1 fw-bold"><i class="fas fa-user-shield me-2 text-gold"></i>Roles & Permissions</h1>
             <p class="text-muted mb-0">Manage user roles and their access permissions across the system</p>
         </div>
         <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#createRoleCollapse">
@@ -102,7 +102,7 @@
     <div class="card border-0 shadow-sm mb-4 overflow-hidden">
         <div class="card-header bg-white d-flex justify-content-between align-items-center py-3 cursor-pointer" 
              role="button" data-bs-toggle="collapse" data-bs-target="#createRoleCollapse" aria-expanded="false">
-            <h5 class="mb-0 fw-bold" style="color: #C8A165;">
+            <h5 class="mb-0 fw-bold text-gold">
                 <i class="fas fa-plus-circle me-2"></i>Create New Role
             </h5>
             <i class="fas fa-chevron-down text-muted collapse-icon transition-rotate"></i>
@@ -299,7 +299,7 @@
                             <tr>
                                 <td colspan="5" class="text-center py-5">
                                     <div class="py-4">
-                                        <i class="fas fa-user-tag fa-4x mb-3 d-block" style="color: #C8A165; opacity: 0.3;"></i>
+                                        <i class="fas fa-user-tag fa-4x mb-3 d-block" style="color: var(--theme-text-muted); opacity: 0.4;"></i>
                                         <p class="fw-semibold mb-1">No roles found</p>
                                         <p class="text-muted small mb-0">Create your first role above to get started.</p>
                                     </div>

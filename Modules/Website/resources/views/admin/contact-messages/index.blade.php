@@ -51,18 +51,26 @@
         <div class="card-body p-3">
             <form action="{{ route('website.admin.contact-messages.index') }}" method="GET" class="row g-3">
                 <input type="hidden" name="archive" value="{{ request('archive', 'active') }}">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
                         <input type="text" name="search" class="form-control" placeholder="Search sender or subject..." value="{{ request('search') }}">
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <select name="status" class="form-select" onchange="this.form.submit()">
-                        <option value="">All Messages</option>
+                        <option value="">All Statuses</option>
                         <option value="unread" {{ request('status') == 'unread' ? 'selected' : '' }}>Unread Only</option>
                         <option value="read" {{ request('status') == 'read' ? 'selected' : '' }}>Read Only</option>
                         <option value="replied" {{ request('status') == 'replied' ? 'selected' : '' }}>Replied Only</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="follow_up" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Follow-up</option>
+                        <option value="pending" {{ request('follow_up') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="followed_up" {{ request('follow_up') == 'followed_up' ? 'selected' : '' }}>Followed Up</option>
+                        <option value="closed" {{ request('follow_up') == 'closed' ? 'selected' : '' }}>Closed</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -80,6 +88,8 @@
                         <th class="ps-4">Sender</th>
                         <th>Subject / Message</th>
                         <th>Status</th>
+                        <th>Follow-up</th>
+                        <th>Assignee</th>
                         <th>Date</th>
                         <th class="text-end pe-4">Actions</th>
                     </tr>
@@ -108,6 +118,23 @@
                                 <span class="badge bg-success"><i class="fas fa-reply me-1"></i>Replied</span>
                             @else
                                 <span class="badge bg-secondary"><i class="fas fa-envelope-open me-1"></i>Read</span>
+                            @endif
+                        </td>
+                        <td>
+                            @php $followUp = $msg->follow_up_status ?? 'pending'; @endphp
+                            @if($followUp === 'pending')
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            @elseif($followUp === 'followed_up')
+                                <span class="badge bg-info">Followed Up</span>
+                            @elseif($followUp === 'closed')
+                                <span class="badge bg-secondary">Closed</span>
+                            @endif
+                        </td>
+                        <td class="text-muted small">
+                            @if($msg->assignedUser)
+                                {{ $msg->assignedUser->name }}
+                            @else
+                                <span class="text-muted fw-normal">—</span>
                             @endif
                         </td>
                         <td class="text-muted small">
@@ -151,7 +178,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">
+                        <td colspan="7" class="text-center py-5 text-muted">
                             <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
                             @if(request('archive') === 'archived')
                                 No archived messages.

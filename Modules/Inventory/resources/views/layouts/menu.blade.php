@@ -1,11 +1,16 @@
 @can('access_inventory_dashboard')
+@php
+    // Keep the Inventory module menu closed while the user is inside the
+    // procurement approval flow (routes are inventory.procurement.*).
+    $inventoryOpen = request()->routeIs('inventory.*') && ! request()->routeIs('inventory.procurement.*');
+@endphp
 <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#inventorySubmenu" role="button"
-   aria-expanded="{{ request()->routeIs('inventory.*') ? 'true' : 'false' }}" aria-controls="inventorySubmenu">
+   aria-expanded="{{ $inventoryOpen ? 'true' : 'false' }}" aria-controls="inventorySubmenu">
     <i class="fas fa-boxes fa-fw"></i>
     <span>Inventory</span>
     <i class="fas fa-chevron-down"></i>
 </a>
-<div class="collapse {{ request()->routeIs('inventory.*') ? 'show' : '' }}" id="inventorySubmenu">
+<div class="collapse {{ $inventoryOpen ? 'show' : '' }}" id="inventorySubmenu">
 
     <a href="{{ route('inventory.dashboard') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('inventory.dashboard') ? 'active' : '' }}">

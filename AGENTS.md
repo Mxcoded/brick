@@ -33,6 +33,11 @@ php artisan db:seed        # Seed roles, admin, settings
 # Linting
 php artisan pint           # Laravel Pint code style fixer
 
+# Hikvision Attendance
+php artisan attendance:import-hikvision                        # Manual import
+php artisan attendance:import-hikvision --dry-run              # Preview before import
+php artisan attendance:import-hikvision --from="2026-07-01 00:00:00" --to="2026-07-04 23:59:59"  # Date range
+
 # Testing
 php artisan test                           # All tests
 php artisan test --filter=TestName         # Single test
@@ -114,31 +119,34 @@ Multi-property support uses:
 ### NOT scoped
 `App\Models\Room` (legacy), `Property` itself, `User`, `Guest`, `FolioCharge`, `NightAuditLog`, `RateCalendar`, `RateCodePrice`
 
-## Pre-Arrival / Digital Guest Journey
+## Hikvision DS-K1A802AMF-B Attendance Middleware (Windows PC)
 
-The pre-arrival check-in flow is split across two modules:
-- **Guest-facing**: `Modules/Website/Http/Controllers/PreArrivalController` (11 routes) — `website::guest.pre-arrival.*` views
-- **Admin dashboard**: `Modules/Frontdeskcrm/Http/Controllers/PreArrivalDashboardController` (7 routes) — `frontdeskcrm::pre-arrival.*` views
+This device is a **face recognition access control terminal** — it does NOT support
+ISAPI event search (`AcsEvent/Search` returns `invalidID`). Event data must be
+captured via the Hikvision HCNetSDK on a Windows PC on the same LAN.
 
-Key models (all in `Modules/Frontdeskcrm/Models`):
-- `Registration` — pre-arrival fields: `pre_arrival_token`, `special_requests`, `estimated_arrival_at`, `pre_arrival_completed_at`, `opt_in_marketing`
-- `GuestDocument` — uploaded IDs/docs linked to a `Registration` via `Guest`. Has `verified_at`, `rejected_at`, `type` enum
-- `MessageTemplate` — templates with `{guest_name}`, `{reservation_code}` placeholders
-- `GuestMessage` — delivery log with `channel` (email/sms/whatsapp) and `status`
+Location: `scripts/HikvisionMiddleware.ps1` + `scripts/HikvisionSDKHelper.cs`
+Config:  `scripts/HikvisionConfig.json` (auto-generated on first run)
 
-Services:
-- `Modules/Frontdeskcrm/Services/PreArrivalService` — token gen, guest detail update, document upload/delete, signature, completion
-- `Modules/Frontdeskcrm/Services/GuestMessagingService` — dispatches via `Mail::raw()`, `BulkSmsNigeria`, and `WhatsAppService`
-- `app/Services/WhatsAppService` — config-based stub (`config('services.whatsapp')`), real Graph API call commented in
+### Quick Start (ISAPI Poll — limited)
 
-Console commands (registered, with schedule in `bootstrap/app.php`):
-- `hotel:send-pre-arrival-reminders` — daily 09:00, sends for `reserved` registrations within 3 days of checkout
-- `hotel:send-review-requests` — daily 10:00, sends for checkout dates >= 2 days ago (not already sent)
-- `hotel:re-engagement-campaign` — weekly Monday 11:00, sends for bookings with checkout > 30 days ago
+```powershell
+cd scripts
+.\HikvisionMiddleware.ps1 -Mode once
+```
 
-Observer (`RegistrationObserver`): auto-generates token + sends reminder when `stay_status` → `reserved`.
+### Full Setup (HCNetSDK — recommended)
 
-**Warning — observer re-entrancy**: The `updated` event fires before `syncOriginal()`. Nested `update()` in an observer sees all prior attributes as dirty. To prevent infinite recursion, ensure gating fields (e.g. `!$registration->pre_arrival_token`) are in `$fillable` so the nested `update()` changes their value and breaks the cycle.
+1. Download HCNetSDK from Hikvision, extract `HCNetSDK.dll` + `HCCore.dll` into `scripts/`
+2. Compile the C# helper:
+   ```powershell
+   & "$env:windir\Microsoft.NET\Framework\v4.0.30319\csc.exe" `
+       -target:exe -platform:x86 -out:HikvisionSDKHelper.exe HikvisionSDKHelper.cs
+   ```
+3. Run listener:
+   ```powershell
+   .\HikvisionMiddleware.ps1 -Mode listen
+   ```
 
 ## Production Operations
 
@@ -188,23 +196,6 @@ All guest messaging dispatches via `Mail::raw()` which uses the queue. Configure
 ```powershell
 # In production, run as a service/supervisor process
 php artisan queue:work --tries=3 --delay=5
-```
-
-### Verifying Pre-Arrival Module
-
-```powershell
-# Check tables exist
-php artisan module:migration:check --name=Frontdeskcrm
-
-# Verify 3 scheduled commands are registered
-php artisan schedule:list
-
-# Quick test: trigger a pre-arrival reminder for a specific registration
-php artisan hotel:send-pre-arrival-reminders --registration-id=1
-
-# Check guest message log
-php artisan tinker
->>> \Modules\Frontdeskcrm\Models\GuestMessage::all();
 ```
 
 ### Creating New Modules

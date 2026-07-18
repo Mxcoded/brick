@@ -25,13 +25,20 @@
             <form action="{{ route('banquet.lead-events.store') }}" method="POST">
                 @csrf
                 <div class="row g-3">
-                    <div class="col-md-8">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold">Event Title <span class="text-danger">*</span></label>
                         <input type="text" name="title" class="form-control @error('title') is-invalid @enderror"
                                value="{{ old('title') }}" required>
                         @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Event Code</label>
+                        <input type="text" name="code" class="form-control @error('code') is-invalid @enderror"
+                               value="{{ old('code') }}" placeholder="e.g. NYE-2026">
+                        <small class="text-muted">Unique code for guest reference.</small>
+                        @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label fw-semibold">Event Date</label>
                         <input type="date" name="event_date" class="form-control @error('event_date') is-invalid @enderror"
                                value="{{ old('event_date') }}">
@@ -54,6 +61,13 @@
                         <textarea name="description" class="form-control @error('description') is-invalid @enderror"
                                   rows="3" placeholder="Brief description of the event...">{{ old('description') }}</textarea>
                         @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Confirmation Email Body</label>
+                        <textarea name="confirmation_email_body" class="form-control @error('confirmation_email_body') is-invalid @enderror"
+                                  rows="5" placeholder="Available placeholders: {name}, {event}, {code}, {date}, {location}. Leave blank to use default message.">{{ old('confirmation_email_body') }}</textarea>
+                        <small class="text-muted">Custom email sent to guests upon registration. Leave empty to skip sending.</small>
+                        @error('confirmation_email_body')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-12">
                         <div class="form-check form-switch">

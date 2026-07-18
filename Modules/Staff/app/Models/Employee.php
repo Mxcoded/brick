@@ -48,7 +48,8 @@ class Employee extends Model
         'bvn',                 // Bank Verification number
         'department',           // Department
         'staff_code',
-
+        'biometric_pin',
+        'user_id',
     ];
 
     public function employmentHistories()
@@ -85,6 +86,36 @@ class Employee extends Model
     public function tasks()
     {
         return $this->belongsToMany(Task::class, 'task_assignments', 'employee_id', 'task_id');
+    }
+
+    public function shiftAssignments()
+    {
+        return $this->hasMany(ShiftAssignment::class);
+    }
+
+    public function attendanceLogs()
+    {
+        return $this->hasMany(AttendanceLog::class);
+    }
+
+    public function performanceReviews()
+    {
+        return $this->hasMany(PerformanceReview::class);
+    }
+
+    public function reviewsGiven()
+    {
+        return $this->hasMany(PerformanceReview::class, 'reviewer_id');
+    }
+
+    public function trainingRecords()
+    {
+        return $this->hasMany(TrainingRecord::class);
+    }
+
+    public function skills()
+    {
+        return $this->hasMany(EmployeeSkill::class);
     }
     // protected static function newFactory(): EmployeeFactory
     // {

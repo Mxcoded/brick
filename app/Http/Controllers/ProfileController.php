@@ -39,6 +39,9 @@ class ProfileController extends Controller
                 'new_password' => ['required', 'confirmed', Password::min(8)],
             ]);
             $user->password = Hash::make($request->new_password);
+
+            // Invalidate all other sessions (logs out other devices)
+            auth()->logoutOtherDevices($request->current_password);
         }
 
         // Update name and email

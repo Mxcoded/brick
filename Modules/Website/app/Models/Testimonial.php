@@ -14,17 +14,56 @@ class Testimonial extends Model
     /**
      * The attributes that are mass assignable.
      */
+    const TYPES = ['stay', 'restaurant', 'event'];
+
     protected $fillable = [
         'guest_name',
+        'email',
         'text',
         'rating',
         'guest_image',
         'stay_type',
         'approved',
+        'type',
+        'dining_venue',
+        'event_name',
     ];
 
-    // protected static function newFactory(): TestimonialFactory
-    // {
-    //     // return TestimonialFactory::new();
-    // }
+    public function scopeStay($q)
+    {
+        $q->where('type', 'stay');
+    }
+
+    public function scopeRestaurant($q)
+    {
+        $q->where('type', 'restaurant');
+    }
+
+    public function scopeEvent($q)
+    {
+        $q->where('type', 'event');
+    }
+
+    public function scopeApproved($q)
+    {
+        $q->where('approved', true);
+    }
+
+    public function typeLabel(): string
+    {
+        return match ($this->type) {
+            'restaurant' => 'Restaurant',
+            'event' => 'Event',
+            default => 'Stay',
+        };
+    }
+
+    public function contextLabel(): string
+    {
+        return match ($this->type) {
+            'restaurant' => $this->dining_venue ? "Dined at {$this->dining_venue}" : 'Dining Guest',
+            'event' => $this->event_name ? "Attended {$this->event_name}" : 'Event Attendee',
+            default => $this->stay_type ?? 'Verified Guest',
+        };
+    }
 }

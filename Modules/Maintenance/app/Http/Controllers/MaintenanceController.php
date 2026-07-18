@@ -14,12 +14,6 @@ use Modules\Maintenance\Models\MaintenanceReading;
 
 class MaintenanceController extends Controller
 {
-    protected array $notificationRecipients = [
-        'gm@brickspoint.com',
-        'fm@brickspoint.com',
-        'it@brickspoint.com',
-    ];
-
     public function dashboard()
     {
         $totalLogs = MaintenanceLog::count();
@@ -65,37 +59,38 @@ class MaintenanceController extends Controller
 
     public function report(Request $request)
     {
-        $query = MaintenanceLog::query();
+        $logs = $this->filteredLogsQuery($request)
+            ->latest('complaint_datetime')
+            ->paginate(25)
+            ->withQueryString();
 
-        if ($request->filled('department')) {
-            $query->byDepartment($request->department);
-        }
-
-        if ($request->filled('status')) {
-            $query->byStatus($request->status);
-        }
-
-        if ($request->filled('from')) {
-            $query->where('complaint_datetime', '>=', $request->from);
-        }
-
-        if ($request->filled('to')) {
-            $query->where('complaint_datetime', '<=', $request->to.' 23:59:59');
-        }
-
-        $logs = $query->latest('complaint_datetime')->paginate(25)->withQueryString();
-
+        // Each summary metric must run against a fresh copy of the filtered
+        // query, otherwise the scope constraints accumulate and produce
+        // contradictory conditions (e.g. status IN (new, in_progress) AND
+        // status = completed), returning 0.
         $summary = [
             'total' => $logs->total(),
-            'open' => $query->open()->count(),
-            'completed' => $query->completed()->count(),
-            'totalCost' => $query->whereNotNull('cost_of_fixing')->sum('cost_of_fixing'),
+            'open' => $this->filteredLogsQuery($request)->open()->count(),
+            'completed' => $this->filteredLogsQuery($request)->completed()->count(),
+            'totalCost' => $this->filteredLogsQuery($request)->whereNotNull('cost_of_fixing')->sum('cost_of_fixing'),
         ];
 
         return view('maintenance::report', compact('logs', 'summary'));
     }
 
     public function exportReport(Request $request)
+    {
+        $logs = $this->filteredLogsQuery($request)->latest('complaint_datetime')->get();
+
+        $pdf = Pdf::loadView('maintenance::reports.pdf', compact('logs'));
+
+        return $pdf->download('maintenance-report-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    /**
+     * Build a fresh maintenance-log query with the report filters applied.
+     */
+    private function filteredLogsQuery(Request $request)
     {
         $query = MaintenanceLog::query();
 
@@ -115,11 +110,7 @@ class MaintenanceController extends Controller
             $query->where('complaint_datetime', '<=', $request->to.' 23:59:59');
         }
 
-        $logs = $query->latest('complaint_datetime')->get();
-
-        $pdf = Pdf::loadView('maintenance::reports.pdf', compact('logs'));
-
-        return $pdf->download('maintenance-report-'.now()->format('Y-m-d').'.pdf');
+        return $query;
     }
 
     public function index()
@@ -300,16 +291,29 @@ class MaintenanceController extends Controller
         return view('maintenance::qr', compact('url'));
     }
 
+    protected function notificationRecipients(): array
+    {
+        return array_filter(array_map('trim', config('mail.maintenance_recipients', [])), fn ($email) => filter_var($email, FILTER_VALIDATE_EMAIL));
+    }
+
     protected function sendNotification(MaintenanceLog $log, string $type, ?string $previousStatus = null): void
     {
+        $recipients = $this->notificationRecipients();
+
+        if (empty($recipients)) {
+            Log::warning('No valid maintenance notification recipients configured', ['log_id' => $log->id, 'type' => $type]);
+
+            return;
+        }
+
         try {
-            Mail::to($this->notificationRecipients)->queue(
+            Mail::to($recipients)->queue(
                 new MaintenanceNotification($log, $type, $previousStatus)
             );
-            Log::info('Maintenance notification sent', [
+            Log::info('Maintenance notification queued', [
                 'log_id' => $log->id,
                 'type' => $type,
-                'recipients' => $this->notificationRecipients,
+                'recipients' => $recipients,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send maintenance notification', [

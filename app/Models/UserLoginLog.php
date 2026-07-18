@@ -22,6 +22,7 @@ class UserLoginLog extends Model
 
     protected $fillable = [
         'user_id',
+        'session_id',
         'ip_address',
         'user_agent',
         'browser',

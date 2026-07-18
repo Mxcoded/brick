@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Middleware\LogUserActivity;
+use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\SetPropertyContext;
 use App\Http\Middleware\TrackUserActivity;
-use App\Models\UserActivityLog;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Session\Middleware\AuthenticateSession;
+use Modules\Inventory\Http\Middleware\ProcurementRole;
+use Modules\Restaurant\Http\Middleware\RedirectToWaiterLogin;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
@@ -23,6 +26,10 @@ return Application::configure(basePath: __DIR__.'/../')
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'website.property' => \App\Http\Middleware\DetectWebsiteProperty::class,
+            'waiter-auth' => RedirectToWaiterLogin::class,
+            'guest' => RedirectIfAuthenticated::class,
+            'auth.session' => AuthenticateSession::class,
+            'procurement.role' => ProcurementRole::class,
         ]);
 
         // Track user activity for login session monitoring
@@ -33,6 +40,11 @@ return Application::configure(basePath: __DIR__.'/../')
 
         // Set the current property context from session/query parameter
         $middleware->appendToGroup('web', SetPropertyContext::class);
+
+        // Exclude Hikvision webhook from CSRF (machine-to-machine)
+        $middleware->validateCsrfTokens(except: [
+            'staff/attendance/hikvision-webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
@@ -51,10 +63,11 @@ return Application::configure(basePath: __DIR__.'/../')
         // Run re-engagement campaign every Monday at 11:00 AM
         $schedule->command('hotel:re-engagement-campaign')->weeklyOn(1, '11:00');
 
-        // Prune activity logs older than 90 days
-        $schedule->call(function () {
-            UserActivityLog::where('created_at', '<', now()->subDays(90))->delete();
-        })->dailyAt('03:00');
+        // Prune activity logs older than 7 days
+        $schedule->command('activity-logs:prune')->dailyAt('03:00');
+
+        // Auto log out sessions idle for more than 3 hours
+        $schedule->command('auth:logout-idle')->everyThirtyMinutes();
     })
     // ** END OF ADDED BLOCK **
     ->create();

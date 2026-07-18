@@ -85,6 +85,13 @@
                             @enderror
                         </div>
                         <div class="mb-3">
+                            <label for="subject" class="form-label">Subject</label>
+                            <input type="text" class="form-control @error('subject') is-invalid @enderror" id="subject" name="subject" value="{{ old('subject') }}" placeholder="e.g. Reservation Inquiry, General Question">
+                            @error('subject')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="mb-3">
                             <label for="message" class="form-label">Message <span class="text-danger">*</span></label>
                             <textarea class="form-control @error('message') is-invalid @enderror" id="message" name="message" rows="5" minlength="10" required>{{ old('message') }}</textarea>
                             @error('message')

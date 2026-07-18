@@ -17,7 +17,7 @@
 @section('page-content')
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold text-charcoal mb-0"><i class="fas fa-edit me-2"></i>Edit Task</h3>
-        <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-outline-secondary btn-sm">
+        <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-outline-dark btn-sm">
             <i class="fas fa-arrow-left me-1"></i>Back
         </a>
     </div>
@@ -85,7 +85,7 @@
                     <button type="submit" class="btn btn-gold">
                         <i class="fas fa-save me-1"></i>Update Task
                     </button>
-                    <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    <a href="{{ route('tasks.show', $task->id) }}" class="btn btn-outline-dark">Cancel</a>
                 </div>
             </form>
         </div>

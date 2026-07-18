@@ -9,7 +9,6 @@ use App\Services\BookingEngine;
 use App\Values\BookingEngineRequest;
 use App\Models\RoomType;
 use App\Models\User;
-use App\Services\RoomAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,17 +20,20 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Modules\Banquet\Mail\EventLeadConfirmation;
 use Modules\Banquet\Models\BanquetEnquiry;
 use Modules\Banquet\Models\EventLead;
 use Modules\Banquet\Models\LeadEvent;
 use Modules\Banquet\Notifications\NewEnquiryNotification;
+use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Models\Guest;
-use Modules\Frontdeskcrm\Rules\ValidEmail; // ✅ Import Mail Facade
+use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
-use Modules\Website\Emails\BookingConfirmation; // ✅ Import Booking Mail
+use Modules\Website\Emails\BookingConfirmation;
 use Modules\Website\Emails\ContactMessageReceived;
+use Modules\Website\Emails\ReviewSubmitted;
 use Modules\Website\Models\Amenity;
-use Modules\Website\Models\Booking; // ✅ Import Contact Mail
+use Modules\Website\Models\Booking;
 use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\Dining;
 use Modules\Website\Models\FacilitiesPage;
@@ -41,10 +43,12 @@ use Modules\Website\Models\OffersPage;
 use Modules\Website\Models\Settings;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Services\BookingCartService;
+use Modules\Website\Services\GoogleReviewsService;
+use Modules\Website\Services\RoomAvailabilityService;
 
 class WebsiteController extends Controller
 {
-    public function index()
+    public function index(GoogleReviewsService $googleReviews)
     {
         $currentProperty = Property::current();
         $propertyName = $currentProperty?->name ?? config('app.name');
@@ -60,17 +64,22 @@ class WebsiteController extends Controller
             ->ordered()
             ->get();
 
-        $testimonials = Testimonial::where('approved', true)
-            ->latest()
-            ->get();
+        $stayReviews = Testimonial::approved()->stay()->latest()->get();
+        $restaurantReviews = Testimonial::approved()->restaurant()->latest()->get();
+        $eventReviews = Testimonial::approved()->event()->latest()->get();
+        $testimonials = $stayReviews; // keep backward compat for testimonials section
 
         $dining = Dining::all();
 
-        $meta_description = 'Brickspoint Boutique Aparthotel — premium short and long stays. Experience luxury accommodation with world-class amenities, exceptional service, and a home away from home.';
-        $meta_keywords = 'boutique hotel, apart-hotel, luxury accommodation, short let, best hotel, Brickspoint, apart-hotel Nigeria';
-        $og_title = $propertyName . ' — Luxury Short & Long Stays';
+        $googleReviewsData = $googleReviews->fetch();
+        $averageRating = round($stayReviews->avg('rating'), 1);
+        $reviewCount = $stayReviews->count();
 
-        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
+        $meta_description = 'Brickspoint Boutique Aparthotel — the best boutique hotel in Asokoro, Abuja. Experience luxury short & long stays with world-class amenities, exceptional service, and a home away from home in Nigeria\'s capital.';
+        $meta_keywords = 'best boutique hotel Asokoro Abuja, luxury apart-hotel Nigeria, Brickspoint Abuja, Asokoro hotel, short let Abuja, extended stay Abuja, corporate housing Abuja, Abuja aparthotel, premium accommodation Abuja';
+        $og_title = config('app.name', 'Brickspoint Boutique Aparthotel').' — Best Boutique Hotel in Asokoro, Abuja';
+
+        return view('website::index', compact('settings', 'featuredRooms', 'testimonials', 'restaurantReviews', 'eventReviews', 'dining', 'googleReviewsData', 'averageRating', 'reviewCount', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     /**
@@ -135,9 +144,9 @@ class WebsiteController extends Controller
 
         $currentProperty = Property::current();
         $propName = $currentProperty?->name ?? config('app.name');
-        $meta_description = "Browse our premium room types and suites. Find the perfect accommodation for your stay.";
-        $meta_keywords = 'rooms, suites, apart-hotel rooms, luxury accommodation, Brickspoint rooms';
-        $og_title = "Rooms & Suites — {$propName}";
+        $meta_description = 'Browse our premium rooms, suites, and serviced apartments at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Find the perfect accommodation — from deluxe rooms to presidential suites — for your stay in Nigeria\'s capital.';
+        $meta_keywords = 'rooms Asokoro Abuja, suites Abuja, serviced apartments Abuja, luxury hotel rooms Abuja, Brickspoint suites, presidential suite Abuja, deluxe room Abuja';
+        $og_title = 'Rooms & Suites — '.$propName;
 
         return view('website::rooms', compact('roomTypes', 'checkIn', 'checkOut', 'selectedCity', 'meta_description', 'meta_keywords', 'og_title'));
     }
@@ -159,8 +168,8 @@ class WebsiteController extends Controller
             ->get();
 
         $propName = optional(Property::find($roomType->property_id))->name ?? config('app.name');
-        $meta_description = strip_tags($roomType->short_description ?? $roomType->description ?? '').' — Book the '.$roomType->name.'.';
-        $meta_keywords = strtolower($roomType->name).', '.($roomType->amenities->pluck('name')->implode(', ') ?? 'luxury rooms');
+        $meta_description = strip_tags($roomType->short_description ?? $roomType->description ?? '').' — Book the '.$roomType->name.' at Brickspoint Boutique Aparthotel, Abuja.';
+        $meta_keywords = strtolower($roomType->name).', '.($roomType->amenities->pluck('name')->implode(', ') ?? 'luxury rooms Abuja');
         $og_title = $roomType->name.' — '.$propName;
         $og_image = $roomType->images->first()?->url ?? asset('images/og-default.jpg');
 
@@ -187,9 +196,9 @@ class WebsiteController extends Controller
 
         $currentProperty = Property::current();
         $propName = $currentProperty?->name ?? config('app.name');
-        $meta_description = "Complete your booking at {$propName}. Secure your room with our easy online reservation system.";
-        $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking';
-        $og_title = "Book Your Stay — {$propName}";
+        $meta_description = 'Book your stay at Brickspoint Boutique Aparthotel in Asokoro, Abuja — the best boutique hotel in Nigeria\'s capital. Secure your room, suite, or apartment with our easy online reservation system.';
+        $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking, Asokoro hotel booking';
+        $og_title = 'Book Your Stay — '.$propName;
         $viewData['meta_description'] = $meta_description;
         $viewData['meta_keywords'] = $meta_keywords;
         $viewData['og_title'] = $og_title;
@@ -359,35 +368,12 @@ class WebsiteController extends Controller
         }
 
         try {
-            // 2. Build room requests for the engine
-            $rooms = [];
-
-            if ($useCart) {
-                foreach ($cart['items'] as $item) {
-                    $rooms[] = [
-                        'room_type_id' => $item['room_type_id'],
-                        'check_in' => $cart['check_in'],
-                        'check_out' => $cart['check_out'],
-                        'adults' => $validated['adults'],
-                        'children' => $validated['children'] ?? 0,
-                        'quantity' => $item['quantity'],
-                        'price_per_night' => $item['price_per_night'],
-                    ];
-                }
-            } else {
-                $rooms[] = [
-                    'room_type_id' => $validated['room_type_id'],
-                    'check_in' => $validated['check_in_date'],
-                    'check_out' => $validated['check_out_date'],
-                    'adults' => $validated['adults'],
-                    'children' => $validated['children'] ?? 0,
-                    'quantity' => 1,
-                    'room_unit_id' => $request->filled('room_unit_id') ? $validated['room_unit_id'] : null,
-                ];
-            }
-
-            // 3. Handle Create Account
+            // ====================================================
+            // SMART GUEST HANDLING
+            // ====================================================
             $userId = Auth::id();
+
+            // Handle "Create Account" Request
             if (! $userId && $request->has('create_account')) {
                 $newUser = User::create([
                     'name' => $validated['guest_name'],
@@ -400,60 +386,140 @@ class WebsiteController extends Controller
                 Auth::login($newUser);
             }
 
-            // Derive property_id from the first room type being booked
-            $firstRoomTypeId = $rooms[0]['room_type_id'] ?? null;
-            $propertyId = $firstRoomTypeId ? RoomType::where('id', $firstRoomTypeId)->value('property_id') : null;
+            // Find or Create the Guest Profile
+            $guest = Guest::where('email', $validated['guest_email'])
+                ->orWhere('contact_number', $validated['guest_phone'])
+                ->first();
 
-            $engineRequest = new BookingEngineRequest([
-                'property_id' => $propertyId,
-                'guest_name' => $validated['guest_name'],
-                'guest_email' => $validated['guest_email'],
-                'guest_phone' => $validated['guest_phone'],
-                'guest_gender' => $validated['guest_gender'],
-                'guest_address' => $validated['guest_address'],
-                'guest_nationality' => $validated['guest_nationality'],
-                'guest_dob' => $validated['guest_dob'] ?? null,
-                'guest_id_type' => $validated['guest_id_type'],
-                'guest_id_number' => $validated['guest_id_number'],
-                'user_id' => $userId,
-                'payment_method' => $validated['payment_method'],
-                'special_requests' => $validated['special_requests'] ?? null,
-                'rooms' => $rooms,
-            ]);
-
-            $engineResult = app(BookingEngine::class)->createBooking($engineRequest);
-
-            if (! $engineResult->success) {
-                return back()->with('error', $engineResult->error)->withInput();
+            if ($guest) {
+                $guest->update([
+                    'full_name' => $validated['guest_name'],
+                    'gender' => $validated['guest_gender'],
+                    'home_address' => $validated['guest_address'],
+                    'nationality' => $validated['guest_nationality'],
+                    'birthday' => $validated['guest_dob'] ?? null,
+                    'identification_type' => $validated['guest_id_type'],
+                    'identification_number' => $validated['guest_id_number'],
+                    'user_id' => $userId ?? $guest->user_id,
+                ]);
+            } else {
+                $guest = Guest::create([
+                    'user_id' => $userId,
+                    'full_name' => $validated['guest_name'],
+                    'email' => $validated['guest_email'],
+                    'contact_number' => $validated['guest_phone'],
+                    'gender' => $validated['guest_gender'],
+                    'home_address' => $validated['guest_address'],
+                    'nationality' => $validated['guest_nationality'],
+                    'birthday' => $validated['guest_dob'] ?? null,
+                    'identification_type' => $validated['guest_id_type'],
+                    'identification_number' => $validated['guest_id_number'],
+                ]);
             }
 
-            // Clear cart after successful booking
+            // ====================================================
+            // CREATE BOOKING(S)
+            // ====================================================
+            $bookings = [];
+            $bookingGroupId = null;
+            $totalAmount = 0;
+
             if ($useCart) {
-                $cartService->clear();
-            }
+                // CART-BASED BOOKING: Create bookings from cart
+                $totalRoomsInCart = array_sum(array_column($cart['items'], 'quantity'));
 
-            $primaryBooking = $engineResult->primaryBooking();
-
-            // 5. Payment or Confirmation
-            if ($validated['payment_method'] === 'paystack') {
-                if ($engineResult->bookingGroupId) {
-                    session()->put('booking_group_id', $engineResult->bookingGroupId);
+                if ($totalRoomsInCart > 1) {
+                    $bookingGroupId = 'GRP'.date('y').strtoupper(Str::random(6));
                 }
 
-                return $this->initializePaystackGrouped(
-                    $engineResult->bookings->all(),
-                    $engineResult->totalAmount
-                );
+                foreach ($cart['items'] as $item) {
+                    for ($i = 0; $i < $item['quantity']; $i++) {
+                        do {
+                            $reference = 'BK'.date('y').strtoupper(Str::random(4));
+                        } while (Booking::where('booking_reference', $reference)->exists());
+
+                        $booking = Booking::create([
+                            'booking_reference' => $reference,
+                            'booking_group_id' => $bookingGroupId,
+                            'user_id' => $userId,
+                            'guest_profile_id' => $guest->id,
+                            'room_type_id' => $item['room_type_id'],
+                            'room_unit_id' => null,
+                            'source' => 'website',
+                            'guest_name' => $validated['guest_name'],
+                            'guest_email' => $validated['guest_email'],
+                            'guest_phone' => $validated['guest_phone'],
+                            'check_in_date' => $cart['check_in'],
+                            'check_out_date' => $cart['check_out'],
+                            'adults' => $validated['adults'],
+                            'children' => $validated['children'] ?? 0,
+                            'total_amount' => $item['price_per_night'] * $item['nights'],
+                            'payment_status' => 'pending',
+                            'status' => 'pending',
+                            'payment_method' => $validated['payment_method'],
+                            'special_requests' => $validated['special_requests'] ?? null,
+                        ]);
+
+                        $bookings[] = $booking;
+                        $totalAmount += $booking->total_amount;
+                    }
+                }
+
+                $cartService->clear();
+            } else {
+                // SINGLE-ROOM: Legacy booking flow
+                $roomType = RoomType::findOrFail($validated['room_type_id']);
+                $selectedUnitId = $request->filled('room_unit_id') ? $validated['room_unit_id'] : null;
+
+                do {
+                    $reference = 'BK'.date('y').strtoupper(Str::random(4));
+                } while (Booking::where('booking_reference', $reference)->exists());
+
+                $days = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']) ?: 1;
+                $totalAmount = $roomType->price * $days;
+
+                $booking = Booking::create([
+                    'booking_reference' => $reference,
+                    'user_id' => $userId,
+                    'guest_profile_id' => $guest->id,
+                    'room_type_id' => $roomType->id,
+                    'room_unit_id' => $selectedUnitId,
+                    'source' => 'website',
+                    'guest_name' => $validated['guest_name'],
+                    'guest_email' => $validated['guest_email'],
+                    'guest_phone' => $validated['guest_phone'],
+                    'check_in_date' => $validated['check_in_date'],
+                    'check_out_date' => $validated['check_out_date'],
+                    'adults' => $validated['adults'],
+                    'children' => $validated['children'] ?? 0,
+                    'total_amount' => $totalAmount,
+                    'payment_status' => 'pending',
+                    'status' => 'pending',
+                    'payment_method' => $validated['payment_method'],
+                    'special_requests' => $validated['special_requests'] ?? null,
+                ]);
+
+                $bookings[] = $booking;
+            }
+
+            // Payment or Confirmation
+            if ($validated['payment_method'] === 'paystack') {
+                if ($bookingGroupId) {
+                    session()->put('booking_group_id', $bookingGroupId);
+                }
+
+                return $this->initializePaystackGrouped($bookings, $totalAmount);
             }
 
             // Send confirmation emails
-            foreach ($engineResult->bookings as $booking) {
-                $this->sendConfirmationEmail($booking);
+            foreach ($bookings as $b) {
+                $this->sendConfirmationEmail($b);
             }
 
             // Store reference for confirmation page
-            if ($engineResult->bookingGroupId) {
-                session()->put('just_booked_group', $engineResult->bookingGroupId);
+            $primaryBooking = $bookings[0];
+            if ($bookingGroupId) {
+                session()->put('just_booked_group', $bookingGroupId);
             }
             session()->put('just_booked_ref', $primaryBooking->booking_reference);
 
@@ -560,15 +626,19 @@ class WebsiteController extends Controller
         $amenities = Amenity::all();
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        return view('website::amenities', compact('amenities', 'settings'));
+        $meta_description = 'Discover the world-class amenities at Brickspoint Boutique Aparthotel in Asokoro, Abuja. From free Wi-Fi and fitness centre to restaurant, room service, and airport shuttle — everything you need for a perfect stay.';
+        $meta_keywords = 'amenities Asokoro Abuja, hotel amenities Abuja, apart-hotel services, free Wi-Fi hotel Abuja, fitness centre Abuja, Brickspoint amenities';
+        $og_title = 'Amenities — Brickspoint Boutique Aparthotel Asokoro, Abuja';
+
+        return view('website::amenities', compact('amenities', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function location()
     {
         $settings = $this->getSettings();
 
-        $meta_description = 'Visit Brickspoint Boutique Aparthotel in Abuja, Nigeria. Find directions, map, and information about our prime location.';
-        $meta_keywords = 'Brickspoint location Abuja, apart-hotel Abuja address, map Abuja hotel, Abuja Nigeria hotel location';
+        $meta_description = 'Visit Brickspoint Boutique Aparthotel at 24 Jose Marti Crescent, Asokoro, Abuja — the best boutique hotel in Nigeria\'s capital. Find directions, map, and information about our prime location in the heart of Abuja.';
+        $meta_keywords = 'Brickspoint location Asokoro Abuja, apart-hotel Abuja address, Asokoro hotel, map Abuja hotel, Abuja Nigeria hotel location, 24 Jose Marti Crescent';
         $og_title = 'Our Location — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::location', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
@@ -578,8 +648,8 @@ class WebsiteController extends Controller
     {
         $settings = $this->getSettings();
 
-        $meta_description = 'Get in touch with Brickspoint Boutique Aparthotel. Contact us for reservations, enquiries, or special requests. We are here to help.';
-        $meta_keywords = 'contact Brickspoint, Abuja hotel contact, apart-hotel enquiries, book hotel Abuja, Brickspoint address';
+        $meta_description = 'Get in touch with Brickspoint Boutique Aparthotel in Asokoro, Abuja — the best boutique hotel in Nigeria\'s capital. Contact us for reservations at +234 809 999 9627, enquiries, or special requests.';
+        $meta_keywords = 'contact Brickspoint Asokoro, Abuja hotel contact, apart-hotel enquiries, book hotel Abuja, Brickspoint address Asokoro, 24 Jose Marti Crescent';
         $og_title = 'Contact Us — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::contact', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
@@ -687,6 +757,7 @@ class WebsiteController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|regex:/^[\pL\s\-\']+$/u',
             'email' => 'required|email:rfc,dns|max:255',
+            'subject' => 'nullable|string|max:255',
             'message' => 'required|string|min:10|max:2000',
         ], [
             'name.regex' => 'Please enter a valid name.',
@@ -719,6 +790,7 @@ class WebsiteController extends Controller
         ContactMessage::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'subject' => $validated['subject'] ?? null,
             'message' => $validated['message'],
             'status' => 'unread',
         ]);
@@ -899,17 +971,77 @@ class WebsiteController extends Controller
     {
         $settings = $this->getSettings();
 
-        return view('website::about', compact('settings'));
+        $meta_description = 'Learn about Brickspoint Boutique Aparthotel — the best boutique hotel in Asokoro, Abuja. Discover our story, our commitment to excellence, and why we are the premier choice for luxury short and long stays in Nigeria\'s capital.';
+        $meta_keywords = 'about Brickspoint Abuja, boutique hotel Asokoro story, Abuja apart-hotel, luxury hotel Abuja, Brickspoint history';
+        $og_title = 'About Us — Brickspoint Boutique Aparthotel Asokoro, Abuja';
+
+        return view('website::about', compact('settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
-    public function testimonials()
+    public function testimonials(Request $request)
     {
-        $testimonials = [
-            ['name' => 'John Doe', 'text' => 'Amazing stay, great service!', 'rating' => 5],
-            ['name' => 'Jane Smith', 'text' => 'Loved the pool and food.', 'rating' => 4],
-        ];
+        $settings = $this->getSettings();
 
-        return view('website::testimonials', compact('testimonials'));
+        $type = $request->get('type', 'stay');
+        if (! in_array($type, Testimonial::TYPES)) {
+            $type = 'stay';
+        }
+
+        $reviews = Testimonial::approved()->where('type', $type)->latest()->get();
+        $typeLabel = ucfirst($type);
+
+        $stayCount = Testimonial::approved()->stay()->count();
+        $restaurantCount = Testimonial::approved()->restaurant()->count();
+        $eventCount = Testimonial::approved()->event()->count();
+        $totalCount = $stayCount + $restaurantCount + $eventCount;
+
+        $meta_description = "Read genuine $typeLabel reviews from guests at Brickspoint Boutique Aparthotel in Asokoro, Abuja. See why we are rated as the best boutique hotel in Nigeria's capital.";
+        $meta_keywords = "Brickspoint reviews, Asokoro hotel reviews, $typeLabel reviews Abuja, boutique hotel Abuja reviews, guest testimonials Abuja";
+        $og_title = "$typeLabel Reviews — Brickspoint Boutique Aparthotel Asokoro, Abuja";
+
+        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount', 'meta_description', 'meta_keywords', 'og_title'));
+    }
+
+    public function storeTestimonial(Request $request)
+    {
+        if ($request->filled('website')) {
+            return redirect()->route('website.testimonials')
+                ->with('success', 'Thank you for your feedback! Your review has been submitted and will appear after review.');
+        }
+
+        $validated = $request->validate([
+            'guest_name' => 'required|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'text' => 'required|string|max:2000',
+            'rating' => 'required|integer|min:1|max:5',
+            'type' => 'required|in:'.implode(',', Testimonial::TYPES),
+            'stay_type' => 'nullable|string|max:255',
+            'dining_venue' => 'nullable|string|max:255',
+            'event_name' => 'nullable|string|max:255',
+        ]);
+
+        $testimonial = Testimonial::create([
+            'guest_name' => $validated['guest_name'],
+            'email' => $validated['email'] ?? null,
+            'text' => $validated['text'],
+            'rating' => $validated['rating'],
+            'type' => $validated['type'],
+            'stay_type' => $validated['stay_type'] ?? null,
+            'dining_venue' => $validated['dining_venue'] ?? null,
+            'event_name' => $validated['event_name'] ?? null,
+            'approved' => false,
+        ]);
+
+        if ($testimonial->email) {
+            try {
+                Mail::to($testimonial->email)->send(new ReviewSubmitted($testimonial));
+            } catch (\Exception $e) {
+                Log::error('Review Confirmation Email Failed: '.$e->getMessage());
+            }
+        }
+
+        return redirect()->route('website.testimonials')
+            ->with('success', 'Thank you for your feedback! Your review has been submitted and will appear after review.');
     }
 
     public function blog()
@@ -930,20 +1062,21 @@ class WebsiteController extends Controller
         $settings = Settings::pluck('value', 'key')->toArray();
 
         $diningOptions = Dining::all();
+        $restaurantReviews = Testimonial::approved()->restaurant()->latest()->get();
 
-        $meta_description = 'Explore dining at Brickspoint Boutique Aparthotel. Enjoy exquisite cuisine at our on-site restaurant, bar, and dining venues in Abuja.';
-        $meta_keywords = 'dining Abuja, restaurant Abuja, Brickspoint restaurant, fine dining Abuja, apart-hotel dining';
-        $og_title = 'Dining — '.config('app.name', 'Brickspoint Boutique Aparthotel');
+        $meta_description = 'Explore exquisite dining at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Enjoy world-class cuisine at our on-site restaurant, bar, and dining venues — the best dining experience in Abuja.';
+        $meta_keywords = 'dining Asokoro Abuja, restaurant Abuja, Brickspoint restaurant, fine dining Abuja, best restaurant Abuja, apart-hotel dining Abuja';
+        $og_title = 'Dining — Brickspoint Boutique Aparthotel Asokoro, Abuja';
 
-        return view('website::dining', compact('settings', 'diningOptions', 'meta_description', 'meta_keywords', 'og_title'));
+        return view('website::dining', compact('settings', 'diningOptions', 'restaurantReviews', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function diningMenu(Dining $dining)
     {
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        $meta_description = 'View the menu for '.$dining->name.' at Brickspoint Boutique Aparthotel.';
-        $meta_keywords = $dining->name.' menu, dining Abuja, restaurant menu';
+        $meta_description = 'View the menu for '.$dining->name.' at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Explore our carefully curated dishes and culinary offerings.';
+        $meta_keywords = $dining->name.' menu, dining Asokoro Abuja, restaurant menu Abuja, Brickspoint dining';
         $og_title = $dining->name.' Menu — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::menu', compact('settings', 'dining', 'meta_description', 'meta_keywords', 'og_title'));
@@ -965,8 +1098,8 @@ class WebsiteController extends Controller
 
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        $meta_description = 'Discover exclusive offers and special packages at Brickspoint Boutique Aparthotel. Save on your next stay in Abuja.';
-        $meta_keywords = 'hotel deals Abuja, apart-hotel offers, Brickspoint promotions, Abuja hotel packages';
+        $meta_description = 'Discover exclusive offers and special packages at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Save on your next luxury stay at the best boutique hotel in Nigeria\'s capital.';
+        $meta_keywords = 'hotel deals Abuja, apart-hotel offers, Brickspoint promotions, Abuja hotel packages, Asokoro hotel deals, luxury stay Abuja';
         $og_title = 'Offers & Deals — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::offers', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
@@ -988,8 +1121,8 @@ class WebsiteController extends Controller
 
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        $meta_description = 'Explore the premium facilities at Brickspoint Boutique Aparthotel — gym, restaurant, meeting rooms, and more in Abuja.';
-        $meta_keywords = 'hotel facilities Abuja, apart-hotel amenities, Brickspoint gym, meeting rooms Abuja, Abuja hotel services';
+        $meta_description = 'Explore the premium facilities at Brickspoint Boutique Aparthotel in Asokoro, Abuja — state-of-the-art gym, exquisite restaurant, versatile meeting rooms, and world-class amenities. The best boutique hotel experience in Nigeria\'s capital.';
+        $meta_keywords = 'hotel facilities Asokoro Abuja, apart-hotel amenities, Brickspoint gym, meeting rooms Abuja, Abuja hotel services, best hotel facilities Abuja, boutique hotel amenities';
         $og_title = 'Facilities — '.config('app.name', 'Brickspoint Boutique Aparthotel');
 
         return view('website::facilities', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
@@ -1302,7 +1435,20 @@ class WebsiteController extends Controller
 
                     if ($bookings->isNotEmpty()) {
                         foreach ($bookings as $booking) {
-                            $engine->confirmBooking($booking);
+                            $booking->update([
+                                'payment_status' => 'paid',
+                                'amount_paid' => $booking->total_amount,
+                                'payment_method' => $channel,
+                                'status' => 'confirmed',
+                            ]);
+
+                            try {
+                                app(PostingService::class)
+                                    ->recordSale('website', (float) $booking->total_amount, $booking->payment_method, 'booking', $booking->id);
+                            } catch (\Throwable $e) {
+                                report($e);
+                            }
+
                             $this->sendConfirmationEmail($booking);
                         }
 
@@ -1318,7 +1464,20 @@ class WebsiteController extends Controller
                         ->first();
 
                     if ($booking) {
-                        $engine->confirmBooking($booking);
+                        $booking->update([
+                            'payment_status' => 'paid',
+                            'amount_paid' => $booking->total_amount,
+                            'payment_method' => $channel,
+                            'status' => 'confirmed',
+                        ]);
+
+                        try {
+                            app(PostingService::class)
+                                ->recordSale('website', (float) $booking->total_amount, $booking->payment_method, 'booking', $booking->id);
+                        } catch (\Throwable $e) {
+                            report($e);
+                        }
+
                         $this->sendConfirmationEmail($booking);
 
                         Log::info('Paystack webhook: Payment confirmed via '.$channel, [
@@ -1686,7 +1845,7 @@ class WebsiteController extends Controller
             'subscribed_at' => now(),
         ]);
 
-        $greeting = $validated['name'] ? "Thank you, {$validated['name']}!" : 'Thank you for subscribing to our newsletter!';
+        $greeting = ! empty($validated['name']) ? "Thank you, {$validated['name']}!" : 'Thank you for subscribing to our newsletter!';
 
         return response()->json([
             'success' => true,
@@ -1710,7 +1869,11 @@ class WebsiteController extends Controller
 
         $settings = Settings::pluck('value', 'key')->toArray();
 
-        return view('website::meetings', compact('page', 'settings'));
+        $meta_description = 'Host your meetings and events at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Versatile event spaces, modern facilities, and dedicated service for conferences, weddings, and private events in Nigeria\'s capital.';
+        $meta_keywords = 'meeting rooms Asokoro Abuja, event venue Abuja, conference facilities Abuja, Brickspoint meetings, wedding venue Abuja, corporate events Abuja';
+        $og_title = 'Meetings & Events — Brickspoint Boutique Aparthotel Asokoro, Abuja';
+
+        return view('website::meetings', compact('page', 'settings', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function meetingEnquiry()
@@ -1839,8 +2002,8 @@ class WebsiteController extends Controller
         cache([$dailyCacheKey => $dailySubmissions + 1], now()->addDay());
 
         $managers = User::role(RoleEnum::ADMIN->value)
-            ->orWhereHas('roles', function ($q) {
-                $q->where('name', RoleEnum::STAFF->value)
+            ->orWhere(function ($q) {
+                $q->where('type', 'staff')
                     ->whereHas('permissions', fn ($p) => $p->where('name', 'banquet.update'));
             })
             ->get();
@@ -1876,7 +2039,16 @@ class WebsiteController extends Controller
             'company' => 'nullable|string|max:255',
         ]);
 
-        EventLead::create([
+        $existing = EventLead::where('event_id', $event->id)
+            ->where('email', $validated['email'])
+            ->first();
+
+        if ($existing) {
+            return redirect()->route('website.event-lead', $slug)
+                ->with('info', 'You have already registered your interest for this event. We will be in touch!');
+        }
+
+        $lead = EventLead::create([
             'event_id' => $event->id,
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -1886,7 +2058,50 @@ class WebsiteController extends Controller
             'status' => 'New',
         ]);
 
+        if ($event->confirmation_email_body) {
+            Mail::to($lead->email)->send(new EventLeadConfirmation($lead, $event));
+        }
+
         return redirect()->route('website.event-lead', $slug)
             ->with('success', $event->getThankYouMessageOrDefault());
+    }
+
+    public function sitemap()
+    {
+        $pages = [
+            ['loc' => route('website.home'), 'priority' => '1.0', 'changefreq' => 'weekly'],
+            ['loc' => route('website.rooms.index'), 'priority' => '0.9', 'changefreq' => 'weekly'],
+            ['loc' => route('website.about'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.contact'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.location'), 'priority' => '0.7', 'changefreq' => 'monthly'],
+            ['loc' => route('website.dining'), 'priority' => '0.8', 'changefreq' => 'weekly'],
+            ['loc' => route('website.amenities'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.facilities'), 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => route('website.offers'), 'priority' => '0.8', 'changefreq' => 'weekly'],
+            ['loc' => route('website.meetings'), 'priority' => '0.7', 'changefreq' => 'monthly'],
+            ['loc' => route('website.testimonials'), 'priority' => '0.6', 'changefreq' => 'monthly'],
+        ];
+
+        $roomTypes = RoomType::where('is_active', true)->get();
+        foreach ($roomTypes as $room) {
+            $pages[] = [
+                'loc' => route('website.rooms.show', $room->slug ?? $room->id),
+                'priority' => '0.7',
+                'changefreq' => 'weekly',
+            ];
+        }
+
+        $diningItems = Dining::all();
+        foreach ($diningItems as $item) {
+            $pages[] = [
+                'loc' => route('website.dining.menu', $item),
+                'priority' => '0.6',
+                'changefreq' => 'monthly',
+            ];
+        }
+
+        return response()
+            ->view('website::sitemap', compact('pages'))
+            ->header('Content-Type', 'application/xml');
     }
 }

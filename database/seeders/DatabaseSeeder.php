@@ -50,5 +50,15 @@ class DatabaseSeeder extends Seeder
                 }
             }
         }
+
+        User::firstOrCreate(
+            ['email' => 'it@brickspoint.com'],
+            [
+                'name' => 'Oluwasheyi Makanjuola',
+                'password' => bcrypt('password'),
+                'type' => 'staff',
+                'status' => 'active',
+            ]
+        )->assignRole('admin');
     }
 }

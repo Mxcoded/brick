@@ -11,7 +11,7 @@
             <h1 class="h3 mb-1 fw-bold"><i class="fas fa-user-plus me-2" style="color: #C8A165;"></i>Add New Staff</h1>
             <p class="text-muted mb-0">Register a new employee record in the system</p>
         </div>
-        <a href="{{ route('staff.index') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('staff.index') }}" class="btn btn-outline-primary">
             <i class="fas fa-arrow-left me-1"></i> Back to Staff List
         </a>
     </div>
@@ -167,7 +167,7 @@
 
                 {{-- NIN & BVN --}}
                 <hr class="my-4">
-                <h6 class="fw-bold mb-3 small text-uppercase text-secondary"><i class="fas fa-id-card me-2"></i>Identification</h6>
+                <h6 class="fw-bold mb-3 small text-uppercase text-dark"><i class="fas fa-id-card me-2"></i>Identification</h6>
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold small text-muted">NIN <span class="text-danger">*</span></label>
@@ -197,7 +197,7 @@
                 </div>
             </div>
             <div class="card-body p-4">
-                <h6 class="fw-bold mb-3 small text-uppercase text-secondary"><i class="fas fa-briefcase me-2"></i>Employment Details</h6>
+                <h6 class="fw-bold mb-3 small text-uppercase text-dark"><i class="fas fa-briefcase me-2"></i>Employment Details</h6>
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold small text-muted">Position <span class="text-danger">*</span></label>
@@ -257,7 +257,7 @@
                 </div>
 
                 <hr class="my-4">
-                <h6 class="fw-bold mb-3 small text-uppercase text-secondary"><i class="fas fa-phone-alt me-2"></i>Emergency Contacts</h6>
+                <h6 class="fw-bold mb-3 small text-uppercase text-dark"><i class="fas fa-phone-alt me-2"></i>Emergency Contacts</h6>
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold small text-muted">Next of Kin Name <span class="text-danger">*</span></label>
@@ -390,7 +390,7 @@
                 <p class="fw-bold mb-0"><i class="fas fa-info-circle me-2 text-gold"></i>All fields marked with <span class="text-danger">*</span> are required.</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ route('staff.index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                <a href="{{ route('staff.index') }}" class="btn btn-outline-primary px-4">Cancel</a>
                 <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm" id="submitBtn">
                     <i class="fas fa-save me-2" id="submitIcon"></i>
                     <span id="submitText">Save Staff Record</span>

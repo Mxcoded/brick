@@ -1,224 +1,209 @@
-@extends('website::layouts.master')
+@extends('website::layouts.guest')
 
 @section('title', 'My Profile')
 
 @section('content')
 <div class="container py-5">
     <div class="row g-4">
-        
-        {{-- SIDEBAR --}}
-       <div class="col-lg-3">
-                <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
-                    <div class="card-body text-center py-5 bg-light">
-                        <div class="avatar-circle mx-auto mb-3 shadow-sm d-flex align-items-center justify-content-center text-white fw-bold fs-3"
-                            style="width: 80px; height: 80px; background: linear-gradient(135deg, #1a1a1a 0%, #444 100%); border-radius: 50%;">
-                            {{ substr(Auth::user()->name, 0, 1) }}
-                        </div>
-                        <h5 class="mb-1 fw-bold text-dark">{{ Auth::user()->name }}</h5>
-                        <p class="text-muted small mb-0">{{ Auth::user()->email }}</p>
-                    </div>
-                    <div class="list-group list-group-flush">
-                        <a href="{{ route('guest.dashboard') }}"
-                            class="list-group-item list-group-item-action py-3 px-4 border-0 
-               {{ Route::is('guest.dashboard') ? 'active-link' : 'text-secondary' }}">
-                            <i class="fas fa-th-large me-3" style="width: 20px;"></i> Dashboard
-                        </a>
 
-                        <a href="{{ route('guest.bookings') }}"
-                            class="list-group-item list-group-item-action py-3 px-4 border-0 
-               {{ Route::is('guest.bookings') ? 'active-link' : 'text-secondary' }}">
-                            <i class="fas fa-calendar-check me-3" style="width: 20px;"></i> My Bookings
-                        </a>
+        @include('website::guest.partials.sidebar', ['active' => 'profile'])
 
-                        <a href="{{ route('guest.profile') }}"
-                            class="list-group-item list-group-item-action py-3 px-4 border-0 
-               {{ Route::is('guest.profile') ? 'active-link' : 'text-secondary' }}">
-                            <i class="fas fa-user-cog me-3" style="width: 20px;"></i> My Profile
-                        </a>
-
-                        <form action="{{ route('logout') }}" method="POST" class="d-block border-top">
-                            @csrf
-                            <button type="submit"
-                                class="list-group-item list-group-item-action py-3 px-4 border-0 text-danger w-100 text-start">
-                                <i class="fas fa-sign-out-alt me-3" style="width: 20px;"></i> Logout
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-        {{-- FORM --}}
         <div class="col-lg-9">
-            <div class="card border-0 shadow-sm rounded-4">
-                
-                {{-- HEADER WITH TOGGLE --}}
-                <div class="card-header bg-white py-4 px-4 border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-user-circle me-2"></i>My Profile</h5>
-                    
-                    {{-- EDIT TOGGLE SWITCH --}}
-                    <div class="form-check form-switch m-0">
-                        <input class="form-check-input" type="checkbox" role="switch" id="editModeToggle" style="cursor: pointer;">
-                        <label class="form-check-label fw-bold text-muted small ms-1" for="editModeToggle">Edit Profile</label>
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm border-0" role="alert">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white bg-opacity-25 rounded-circle p-2 me-3">
+                            <i class="fas fa-check-circle fa-lg"></i>
+                        </div>
+                        <div>
+                            <strong class="d-block">Saved</strong>
+                            {{ session('success') }}
+                        </div>
                     </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-                
-                <div class="card-body p-4 view-mode" id="profileCardBody">
-                    @if(session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
-                    @if ($errors->any())
-                        <div class="alert alert-danger">
-                            <ul class="mb-0">
-                                @foreach ($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
+            @endif
 
-                    <form action="{{ route('guest.profile.update') }}" method="POST" id="profileForm">
-                        @csrf
-                        @method('PUT')
+            @if ($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm border-0" role="alert">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="bg-white bg-opacity-25 rounded-circle p-2 me-3">
+                            <i class="fas fa-exclamation-triangle fa-lg"></i>
+                        </div>
+                        <strong>Please fix the following errors</strong>
+                    </div>
+                    <ul class="mb-0 ps-4">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
 
-                        {{-- 1. PERSONAL DETAILS --}}
-                        <div class="mb-4">
-                            <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Personal Details</h6>
-                            <div class="row g-3">
-                                <div class="col-md-2">
-                                    <label class="form-label fw-bold small text-muted">Title</label>
-                                    <select name="title" class="form-select profile-input" disabled>
-                                        <option value="">--</option>
-                                        @foreach(['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'] as $t)
-                                            <option value="{{ $t }}" {{ (old('title', $profile->title ?? '') == $t) ? 'selected' : '' }}>{{ $t }}</option>
-                                        @endforeach
-                                    </select>
+            <div class="card border-0 shadow-sm rounded-4" id="profileCard">
+                <div class="card-header bg-white py-4 px-4 border-bottom d-flex justify-content-between align-items-center rounded-top-4">
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark">
+                            <i class="fas fa-user-circle me-2" style="color: var(--color-gold);"></i>My Profile
+                        </h5>
+                        <p class="text-muted small mb-0 mt-1" id="profileSubtitle">View your profile details</p>
+                    </div>
+                    <button type="button" id="editButton"
+                        class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                        <i class="fas fa-pen me-2"></i>Edit
+                    </button>
+                    <button type="button" id="cancelButton"
+                        class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold shadow-sm d-none">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                </div>
+
+                <form action="{{ route('guest.profile.update') }}" method="POST" id="profileForm">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="card-body p-4" id="profileBody">
+                        @php
+                            $p = $profile;
+                            $sections = [
+                                'personal' => [
+                                    'icon' => 'fa-user',
+                                    'title' => 'Personal Details',
+                                    'fields' => [
+                                        'title' => ['label' => 'Title', 'type' => 'select', 'options' => ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'], 'value' => $p->title ?? '', 'col' => 2],
+                                        'full_name' => ['label' => 'Full Name', 'type' => 'text', 'value' => $user->name, 'col' => 5, 'required' => true],
+                                        'email' => ['label' => 'Email Address', 'type' => 'text', 'value' => $user->email, 'col' => 5, 'readonly' => true],
+                                        'gender' => ['label' => 'Gender', 'type' => 'select', 'options' => ['Male', 'Female'], 'value' => $p->gender ?? '', 'col' => 4],
+                                        'birthday' => ['label' => 'Date of Birth', 'type' => 'date', 'value' => optional($p->birthday ?? null)->format('Y-m-d'), 'col' => 4],
+                                        'nationality' => ['label' => 'Nationality', 'type' => 'select', 'options' => ['Nigeria', 'Ghana', 'USA', 'UK', 'Other'], 'value' => $p->nationality ?? '', 'col' => 4],
+                                    ]
+                                ],
+                                'employment' => [
+                                    'icon' => 'fa-briefcase',
+                                    'title' => 'Employment',
+                                    'fields' => [
+                                        'occupation' => ['label' => 'Occupation', 'type' => 'text', 'value' => $p->occupation ?? '', 'col' => 6],
+                                        'company_name' => ['label' => 'Company Name', 'type' => 'text', 'value' => $p->company_name ?? '', 'col' => 6],
+                                    ]
+                                ],
+                                'contact' => [
+                                    'icon' => 'fa-address-card',
+                                    'title' => 'Contact & Address',
+                                    'fields' => [
+                                        'contact_number' => ['label' => 'Phone Number', 'type' => 'tel', 'value' => $p->contact_number ?? '', 'col' => 6],
+                                        'home_address' => ['label' => 'Home Address', 'type' => 'text', 'value' => $p->home_address ?? '', 'col' => 6],
+                                        'city' => ['label' => 'City', 'type' => 'text', 'value' => $p->city ?? '', 'col' => 4],
+                                        'state' => ['label' => 'State', 'type' => 'text', 'value' => $p->state ?? '', 'col' => 4],
+                                        'zip_code' => ['label' => 'Zip Code', 'type' => 'text', 'value' => $p->zip_code ?? '', 'col' => 4],
+                                    ]
+                                ],
+                                'emergency' => [
+                                    'icon' => 'fa-phone-alt',
+                                    'title' => 'Emergency Contact',
+                                    'fields' => [
+                                        'emergency_name' => ['label' => 'Contact Name', 'type' => 'text', 'value' => $p->emergency_name ?? '', 'col' => 4],
+                                        'emergency_relationship' => ['label' => 'Relationship', 'type' => 'text', 'value' => $p->emergency_relationship ?? '', 'col' => 4, 'placeholder' => 'e.g. Spouse'],
+                                        'emergency_contact' => ['label' => 'Emergency Phone', 'type' => 'tel', 'value' => $p->emergency_contact ?? '', 'col' => 4],
+                                    ]
+                                ],
+                                'identification' => [
+                                    'icon' => 'fa-id-card',
+                                    'title' => 'Identification',
+                                    'fields' => [
+                                        'identification_type' => ['label' => 'ID Type', 'type' => 'select', 'options' => ['International Passport', 'National ID (NIN)', 'Drivers License'], 'value' => $p->identification_type ?? '', 'col' => 6],
+                                        'identification_number' => ['label' => 'ID Number', 'type' => 'text', 'value' => $p->identification_number ?? '', 'col' => 6],
+                                    ]
+                                ],
+                            ];
+                        @endphp
+
+                        @foreach($sections as $key => $section)
+                            <div class="profile-section mb-4">
+                                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                                    <div class="d-flex align-items-center justify-content-center rounded-circle"
+                                        style="width: 32px; height: 32px; background: rgba(200,161,101,0.12); color: var(--color-gold);">
+                                        <i class="fas {{ $section['icon'] }} fa-sm"></i>
+                                    </div>
+                                    <h6 class="mb-0 fw-bold text-dark">{{ $section['title'] }}</h6>
                                 </div>
-                                <div class="col-md-5">
-                                    <label class="form-label fw-bold small text-muted">Full Name <span class="text-danger edit-indicator d-none">*</span></label>
-                                    <input type="text" name="full_name" class="form-control profile-input" value="{{ old('full_name', $user->name) }}" required disabled>
-                                </div>
-                                <div class="col-md-5">
-                                    <label class="form-label fw-bold small text-muted">Email <span class="text-muted fst-italic ms-1">(Cannot change)</span></label>
-                                    {{-- Email is always readonly/disabled --}}
-                                    <input type="email" name="email" class="form-control bg-light border-0" value="{{ old('email', $user->email) }}" readonly>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small text-muted">Gender</label>
-                                    <select name="gender" class="form-select profile-input" disabled>
-                                        <option value="">Select</option>
-                                        <option value="Male" {{ (old('gender', $profile->gender ?? '') == 'Male') ? 'selected' : '' }}>Male</option>
-                                        <option value="Female" {{ (old('gender', $profile->gender ?? '') == 'Female') ? 'selected' : '' }}>Female</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small text-muted">Date of Birth</label>
-                                    <input type="date" name="birthday" class="form-control profile-input" value="{{ old('birthday', optional($profile->birthday ?? null)->format('Y-m-d')) }}" disabled>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small text-muted">Nationality</label>
-                                    <select name="nationality" class="form-select profile-input" disabled>
-                                        <option value="">Select</option>
-                                        <option value="Nigeria" {{ (old('nationality', $profile->nationality ?? '') == 'Nigeria') ? 'selected' : '' }}>Nigeria</option>
-                                        <option value="Ghana" {{ (old('nationality', $profile->nationality ?? '') == 'Ghana') ? 'selected' : '' }}>Ghana</option>
-                                        <option value="USA" {{ (old('nationality', $profile->nationality ?? '') == 'USA') ? 'selected' : '' }}>USA</option>
-                                        <option value="Other" {{ (old('nationality', $profile->nationality ?? '') == 'Other') ? 'selected' : '' }}>Other</option>
-                                    </select>
+                                <div class="row g-3">
+                                    @foreach($section['fields'] as $name => $field)
+                                        @php
+                                            $fieldValue = old($name, $field['value']);
+                                            $isEmpty = empty($fieldValue);
+                                            $readonly = !empty($field['readonly']);
+                                        @endphp
+                                        <div class="col-md-{{ $field['col'] }} field-wrapper" data-field="{{ $name }}">
+                                            <label class="form-label fw-semibold small text-muted mb-1" for="field_{{ $name }}">
+                                                {{ $field['label'] }}
+                                                @if(!empty($field['required']))
+                                                    <span class="text-danger edit-mode-only d-none">*</span>
+                                                @endif
+                                                @if($readonly)
+                                                    <span class="text-muted fw-normal edit-mode-only d-none">(Cannot change)</span>
+                                                @endif
+                                            </label>
+
+                                            @if($readonly)
+                                                <div class="view-value">
+                                                    @if($isEmpty)
+                                                        <span class="text-muted fst-italic small">Not provided</span>
+                                                    @else
+                                                        <span class="fw-medium text-dark">{{ $fieldValue }}</span>
+                                                    @endif
+                                                </div>
+                                                <input type="hidden" name="{{ $name }}" value="{{ $fieldValue }}">
+                                            @elseif($field['type'] === 'select')
+                                                <div class="view-value">
+                                                    @if($isEmpty)
+                                                        <span class="text-muted fst-italic small">Not provided</span>
+                                                    @else
+                                                        <span class="fw-medium text-dark">{{ $fieldValue }}</span>
+                                                    @endif
+                                                </div>
+                                                <select name="{{ $name }}" id="field_{{ $name }}"
+                                                    class="form-control profile-input d-none"
+                                                    @if(!empty($field['required'])) required @endif>
+                                                    <option value="">-- Select --</option>
+                                                    @foreach($field['options'] as $opt)
+                                                        <option value="{{ $opt }}" {{ $fieldValue === $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                                                    @endforeach
+                                                </select>
+                                            @else
+                                                <div class="view-value">
+                                                    @if($isEmpty)
+                                                        <span class="text-muted fst-italic small">Not provided</span>
+                                                    @else
+                                                        <span class="fw-medium text-dark">{{ $fieldValue }}</span>
+                                                    @endif
+                                                </div>
+                                                <input type="{{ $field['type'] }}" name="{{ $name }}" id="field_{{ $name }}"
+                                                    class="form-control profile-input d-none"
+                                                    value="{{ $fieldValue }}"
+                                                    placeholder="{{ $field['placeholder'] ?? 'Enter ' . lcfirst($field['label']) }}"
+                                                    @if(!empty($field['required'])) required @endif>
+                                            @endif
+
+                                            <div class="invalid-feedback"></div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
-                        </div>
+                        @endforeach
+                    </div>
 
-                        {{-- 2. WORK & OCCUPATION --}}
-                        <div class="mb-4">
-                            <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Employment</h6>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-muted">Occupation</label>
-                                    <input type="text" name="occupation" class="form-control profile-input" value="{{ old('occupation', $profile->occupation ?? '') }}" disabled>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-muted">Company Name</label>
-                                    <input type="text" name="company_name" class="form-control profile-input" value="{{ old('company_name', $profile->company_name ?? '') }}" disabled>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- 3. CONTACT & ADDRESS --}}
-                        <div class="mb-4">
-                            <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Contact Info</h6>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-muted">Phone Number</label>
-                                    <input type="tel" name="contact_number" class="form-control profile-input" value="{{ old('contact_number', $profile->contact_number ?? '') }}" disabled>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-muted">Home Address</label>
-                                    <input type="text" name="home_address" class="form-control profile-input" value="{{ old('home_address', $profile->home_address ?? '') }}" disabled>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small text-muted">City</label>
-                                    <input type="text" name="city" class="form-control profile-input" value="{{ old('city', $profile->city ?? '') }}" disabled>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small text-muted">State</label>
-                                    <input type="text" name="state" class="form-control profile-input" value="{{ old('state', $profile->state ?? '') }}" disabled>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small text-muted">Zip Code</label>
-                                    <input type="text" name="zip_code" class="form-control profile-input" value="{{ old('zip_code', $profile->zip_code ?? '') }}" disabled>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- 4. EMERGENCY CONTACT --}}
-                        <div class="mb-4">
-                            <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Emergency Contact</h6>
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small text-muted">Contact Name</label>
-                                    <input type="text" name="emergency_name" class="form-control profile-input" value="{{ old('emergency_name', $profile->emergency_name ?? '') }}" disabled>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small text-muted">Relationship</label>
-                                    <input type="text" name="emergency_relationship" class="form-control profile-input" placeholder="e.g. Spouse" value="{{ old('emergency_relationship', $profile->emergency_relationship ?? '') }}" disabled>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold small text-muted">Emergency Phone</label>
-                                    <input type="tel" name="emergency_contact" class="form-control profile-input" value="{{ old('emergency_contact', $profile->emergency_contact ?? '') }}" disabled>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- 5. IDENTIFICATION --}}
-                        <div class="mb-4">
-                            <h6 class="text-uppercase text-muted fw-bold small mb-3 border-bottom pb-2">Identification</h6>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-muted">ID Type</label>
-                                    <select name="identification_type" class="form-select profile-input" disabled>
-                                        <option value="">Select ID</option>
-                                        <option value="Passport" {{ (old('identification_type', $profile->identification_type ?? '') == 'Passport') ? 'selected' : '' }}>International Passport</option>
-                                        <option value="NIN" {{ (old('identification_type', $profile->identification_type ?? '') == 'NIN') ? 'selected' : '' }}>National ID (NIN)</option>
-                                        <option value="Drivers License" {{ (old('identification_type', $profile->identification_type ?? '') == 'Drivers License') ? 'selected' : '' }}>Drivers License</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold small text-muted">ID Number</label>
-                                    <input type="text" name="identification_number" class="form-control profile-input" value="{{ old('identification_number', $profile->identification_number ?? '') }}" disabled>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="d-flex justify-content-end pt-3">
-                            <button type="submit" id="saveBtn" class="btn btn-primary px-5 py-2 fw-bold shadow-sm rounded-pill d-none animate__animated animate__fadeIn">
-                                Save Changes
+                    <div class="card-footer bg-white px-4 py-3 border-top rounded-bottom-4 d-none" id="saveFooter">
+                        <div class="d-flex justify-content-end align-items-center gap-2">
+                            <button type="button" id="cancelButton2"
+                                class="btn btn-outline-secondary rounded-pill px-4">Cancel</button>
+                            <button type="submit" id="saveBtn"
+                                class="btn btn-dark rounded-pill px-5 py-2 fw-bold shadow-sm">
+                                <i class="fas fa-check me-2"></i>Save Changes
                             </button>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -226,70 +211,155 @@
 
 @push('styles')
 <style>
-    /* "Illusion" of Read-Only Text */
-    .view-mode .profile-input:disabled {
-        background-color: transparent !important;
-        border: none !important;
-        padding-left: 0 !important;
-        padding-top: 0 !important;
-        color: #333 !important;
-        font-weight: 500;
-        box-shadow: none !important;
-        cursor: text;
+    .profile-section:last-child {
+        margin-bottom: 0 !important;
     }
 
-    /* Hide select arrow in view mode */
-    .view-mode select.profile-input:disabled {
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        background-image: none !important;
-        padding-right: 0;
+    .view-value {
+        padding: 0.375rem 0;
+        min-height: 2.25rem;
+        display: flex;
+        align-items: center;
     }
-    
-    /* Slight animation for transition */
-    .form-control, .form-select {
-        transition: all 0.3s ease-in-out;
+
+    .profile-input {
+        transition: all 0.25s ease;
+        border-radius: 0.5rem;
+    }
+
+    .profile-input:focus {
+        border-color: var(--color-gold);
+        box-shadow: 0 0 0 0.2rem rgba(200, 161, 101, 0.25);
+    }
+
+    .profile-input.d-none + .view-value {
+        display: flex !important;
+    }
+
+    .profile-input:not(.d-none) + .view-value {
+        display: none !important;
+    }
+
+    #profileCard.is-editing .card-header {
+        border-bottom-color: var(--color-gold) !important;
+    }
+
+    #profileCard.is-editing .profile-section > .border-bottom {
+        border-bottom-color: rgba(200,161,101,0.3) !important;
+    }
+
+    .alert-success {
+        background: linear-gradient(135deg, #198754, #157347);
+        color: #fff;
+    }
+
+    .alert-danger {
+        background: linear-gradient(135deg, #dc3545, #b02a37);
+        color: #fff;
+    }
+
+    .alert-danger ul {
+        color: #fff;
+    }
+
+    .alert-danger .btn-close {
+        filter: brightness(0) invert(1);
+    }
+
+    .alert-success .btn-close {
+        filter: brightness(0) invert(1);
+    }
+
+    .btn-outline-dark:hover {
+        background: var(--color-dark-gray);
+        color: #fff;
+    }
+
+    .btn-dark {
+        background: var(--color-dark-gray);
+        border-color: var(--color-dark-gray);
+    }
+
+    .btn-dark:hover {
+        background: #1a1a1a;
+        border-color: #1a1a1a;
     }
 </style>
 @endpush
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const toggle = document.getElementById('editModeToggle');
-        const saveBtn = document.getElementById('saveBtn');
+    document.addEventListener('DOMContentLoaded', function () {
+        const editBtn = document.getElementById('editButton');
+        const cancelBtn = document.getElementById('cancelButton');
+        const cancelBtn2 = document.getElementById('cancelButton2');
+        const saveFooter = document.getElementById('saveFooter');
+        const profileCard = document.getElementById('profileCard');
+        const subtitle = document.getElementById('profileSubtitle');
         const inputs = document.querySelectorAll('.profile-input');
-        const cardBody = document.getElementById('profileCardBody');
-        const indicators = document.querySelectorAll('.edit-indicator');
+        const viewValues = document.querySelectorAll('.view-value');
+        const editIndicators = document.querySelectorAll('.edit-mode-only');
 
-        toggle.addEventListener('change', function() {
-            const isEditing = this.checked;
+        function enterEditMode() {
+            editBtn.classList.add('d-none');
+            cancelBtn.classList.remove('d-none');
+            saveFooter.classList.remove('d-none');
+            profileCard.classList.add('is-editing');
+            subtitle.textContent = 'Edit your profile details below';
 
-            if (isEditing) {
-                // SWITCH TO EDIT MODE
-                cardBody.classList.remove('view-mode');
-                saveBtn.classList.remove('d-none');
-                
-                inputs.forEach(input => {
-                    input.removeAttribute('disabled');
-                    input.classList.add('bg-white'); // Add explicit background
-                });
-                
-                indicators.forEach(el => el.classList.remove('d-none'));
-                
-            } else {
-                // SWITCH TO VIEW MODE (READ ONLY)
-                cardBody.classList.add('view-mode');
-                saveBtn.classList.add('d-none');
-                
-                inputs.forEach(input => {
-                    input.setAttribute('disabled', 'disabled');
-                    input.classList.remove('bg-white');
-                });
-                
-                indicators.forEach(el => el.classList.add('d-none'));
+            inputs.forEach(input => {
+                input.classList.remove('d-none');
+            });
+
+            editIndicators.forEach(el => el.classList.remove('d-none'));
+        }
+
+        function exitEditMode(reset = true) {
+            editBtn.classList.remove('d-none');
+            cancelBtn.classList.add('d-none');
+            saveFooter.classList.add('d-none');
+            profileCard.classList.remove('is-editing');
+            subtitle.textContent = 'View your profile details';
+
+            inputs.forEach(input => {
+                input.classList.add('d-none');
+            });
+
+            editIndicators.forEach(el => el.classList.add('d-none'));
+
+            if (reset) {
+                const form = document.getElementById('profileForm');
+                form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
             }
+        }
+
+        editBtn.addEventListener('click', enterEditMode);
+
+        function cancelEdit() {
+            exitEditMode(true);
+            const form = document.getElementById('profileForm');
+            form.reset();
+            Object.keys(originalValues).forEach(name => {
+                const input = document.querySelector(`.profile-input[name="${name}"]`);
+                const view = input?.closest('.field-wrapper')?.querySelector('.view-value span:not(.text-muted)');
+                if (input && view) {
+                    if (input.tagName === 'SELECT') {
+                        input.value = originalValues[name];
+                        view.textContent = originalValues[name] || 'Not provided';
+                    } else {
+                        input.value = originalValues[name];
+                        view.textContent = originalValues[name] || 'Not provided';
+                    }
+                }
+            });
+        }
+
+        cancelBtn.addEventListener('click', cancelEdit);
+        cancelBtn2.addEventListener('click', cancelEdit);
+
+        const originalValues = {};
+        document.querySelectorAll('.profile-input').forEach(input => {
+            originalValues[input.name] = input.value;
         });
     });
 </script>

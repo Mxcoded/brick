@@ -26,6 +26,7 @@ class LeadEventController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'code' => 'nullable|string|max:50|unique:lead_events,code',
             'description' => 'nullable|string',
             'event_date' => 'nullable|date',
             'location' => 'nullable|string|max:255',
@@ -35,6 +36,7 @@ class LeadEventController extends Controller
             'form_heading' => 'nullable|string|max:255',
             'form_subtext' => 'nullable|string',
             'thank_you_message' => 'nullable|string|max:500',
+            'confirmation_email_body' => 'nullable|string',
         ]);
 
         $validated['slug'] = Str::slug($validated['title']);
@@ -63,6 +65,7 @@ class LeadEventController extends Controller
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'code' => 'nullable|string|max:50|unique:lead_events,code,'.$event->id,
             'description' => 'nullable|string',
             'event_date' => 'nullable|date',
             'location' => 'nullable|string|max:255',
@@ -72,6 +75,7 @@ class LeadEventController extends Controller
             'form_heading' => 'nullable|string|max:255',
             'form_subtext' => 'nullable|string',
             'thank_you_message' => 'nullable|string|max:500',
+            'confirmation_email_body' => 'nullable|string',
         ]);
 
         $validated['is_active'] = $request->boolean('is_active');

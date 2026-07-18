@@ -153,6 +153,13 @@
                 </div>
             @endif
 
+            @if(session('info'))
+                <div class="alert alert-info border-0 shadow-sm" style="border-left: 4px solid #17a2b8;">
+                    <i class="fas fa-info-circle me-2" style="color: #17a2b8;"></i>
+                    {{ session('info') }}
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="alert alert-danger border-0 shadow-sm" style="border-left: 4px solid #dc3545;">
                     <ul class="mb-0">
@@ -166,19 +173,19 @@
             <form action="{{ route('website.event-lead.store', $event->slug) }}" method="POST">
                 @csrf
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small text-uppercase text-secondary">Full Name <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold small text-uppercase text-muted">Full Name <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control form-control-lg" value="{{ old('name') }}" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small text-uppercase text-secondary">Email <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold small text-uppercase text-muted">Email <span class="text-danger">*</span></label>
                     <input type="email" name="email" class="form-control form-control-lg" value="{{ old('email') }}" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small text-uppercase text-secondary">Phone <span class="text-danger">*</span></label>
-                    <input type="tel" name="phone" class="form-control form-control-lg phone-input" value="{{ old('phone') }}" required>
+                    <label class="form-label fw-semibold small text-uppercase text-muted">Phone <span class="text-danger">*</span></label>
+                    <input type="text" name="phone" class="form-control form-control-lg" value="{{ old('phone') }}" required>
                 </div>
                 <div class="mb-4">
-                    <label class="form-label fw-semibold small text-uppercase text-secondary">Company <span class="text-muted small text-lowercase">(optional)</span></label>
+                    <label class="form-label fw-semibold small text-uppercase text-muted">Company <span class="text-muted small text-lowercase">(optional)</span></label>
                     <input type="text" name="company" class="form-control form-control-lg" value="{{ old('company') }}">
                 </div>
                 <button type="submit" class="btn btn-gold w-100">
