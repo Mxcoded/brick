@@ -68,7 +68,14 @@ class AttendanceController extends Controller
             ->whereDate('date', $today)
             ->first();
 
-        return view('staff::attendance.clock', compact('employee', 'assignment', 'attendance'));
+        $weekStart = now()->startOfWeek();
+        $weekLogs = AttendanceLog::where('employee_id', $employee->id)
+            ->whereBetween('date', [$weekStart, now()->endOfWeek()])
+            ->with('shiftAssignment.shift')
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return view('staff::attendance.clock', compact('employee', 'assignment', 'attendance', 'weekLogs'));
     }
 
     public function clockIn(Request $request)
@@ -160,36 +167,47 @@ class AttendanceController extends Controller
         $month = $request->month ?? now()->month;
         $year = $request->year ?? now()->year;
         $department = $request->department;
+        $workingDays = now()->setYear($year)->setMonth($month)->daysInMonth;
 
-        $employees = Employee::where('status', 'approved')
+        // Get all active employees
+        $employeeQuery = Employee::where('status', 'approved')
             ->whereNull('end_date')
-            ->when($department, fn ($q) => $q->where('department', $department))
-            ->with(['attendanceLogs' => function ($q) use ($month, $year) {
-                $q->whereMonth('date', $month)->whereYear('date', $year);
-            }])
-            ->get()
-            ->map(function ($employee) use ($month, $year) {
-                $logs = $employee->attendanceLogs;
-                $present = $logs->whereIn('status', ['present', 'late'])->count();
-                $late = $logs->where('status', 'late')->count();
-                $absent = $logs->where('status', 'absent')->count();
-                $onLeave = $logs->where('status', 'on_leave')->count();
-                $totalLateMinutes = $logs->sum('late_minutes');
-                $totalOvertimeMinutes = $logs->sum('overtime_minutes');
-                $workingDays = now()->setYear($year)->setMonth($month)->daysInMonth;
+            ->when($department, fn ($q) => $q->where('department', $department));
 
-                return (object) [
-                    'employee' => $employee,
-                    'present' => $present,
-                    'late' => $late,
-                    'absent' => $absent,
-                    'on_leave' => $onLeave,
-                    'late_minutes' => $totalLateMinutes,
-                    'overtime_minutes' => $totalOvertimeMinutes,
-                    'working_days' => $workingDays,
-                    'attendance_rate' => $workingDays > 0 ? round(($present / $workingDays) * 100, 1) : 0,
-                ];
-            });
+        $employees = $employeeQuery->get();
+
+        // Aggregate attendance stats via SQL
+        $attendanceStats = AttendanceLog::whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->whereIn('employee_id', $employees->pluck('id'))
+            ->selectRaw('
+                employee_id,
+                SUM(CASE WHEN status IN ("present", "late") THEN 1 ELSE 0 END) as present,
+                SUM(CASE WHEN status = "late" THEN 1 ELSE 0 END) as late,
+                SUM(CASE WHEN status = "absent" THEN 1 ELSE 0 END) as absent,
+                SUM(CASE WHEN status = "on_leave" THEN 1 ELSE 0 END) as on_leave,
+                COALESCE(SUM(late_minutes), 0) as late_minutes,
+                COALESCE(SUM(overtime_minutes), 0) as overtime_minutes
+            ')
+            ->groupBy('employee_id')
+            ->pluck(null, 'employee_id');
+
+        $employees = $employees->map(function ($employee) use ($attendanceStats, $workingDays) {
+            $stats = $attendanceStats->get($employee->id);
+            $present = $stats->present ?? 0;
+
+            return (object) [
+                'employee' => $employee,
+                'present' => $present,
+                'late' => $stats->late ?? 0,
+                'absent' => $stats->absent ?? 0,
+                'on_leave' => $stats->on_leave ?? 0,
+                'late_minutes' => $stats->late_minutes ?? 0,
+                'overtime_minutes' => $stats->overtime_minutes ?? 0,
+                'working_days' => $workingDays,
+                'attendance_rate' => $workingDays > 0 ? round(($present / $workingDays) * 100, 1) : 0,
+            ];
+        });
 
         $departments = Employee::where('status', 'approved')
             ->whereNotNull('department')

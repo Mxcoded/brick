@@ -143,7 +143,7 @@ $checkoutConfirmMsg = $isGroupLead
                         <label class="form-label fw-bold">Assign Room</label>
                         <select name="room_unit_id" class="form-select form-select-lg" required>
                             <option value="">Select available room...</option>
-                            @foreach(\App\Models\RoomUnit::whereIn('status', ['available', 'occupied'])->with('roomType')->orderBy('room_number')->get() as $unit)
+                            @foreach($roomUnits as $unit)
                                 <option value="{{ $unit->id }}">{{ $unit->room_number }} ({{ $unit->roomType->name ?? 'N/A' }})</option>
                             @endforeach
                         </select>
@@ -1026,7 +1026,7 @@ $checkoutConfirmMsg = $isGroupLead
 </div>
 
 {{-- Post Charge Modal --}}
-@php $chargeTypes = \Modules\Frontdeskcrm\Models\ChargeType::active()->ordered()->get(); @endphp
+
 <div class="modal fade" id="chargeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

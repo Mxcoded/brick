@@ -2,9 +2,11 @@
 
 namespace Modules\Maintenance\Http\Controllers;
 
+use App\Services\PropertyService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -16,45 +18,48 @@ class MaintenanceController extends Controller
 {
     public function dashboard()
     {
-        $totalLogs = MaintenanceLog::count();
-        $openLogs = MaintenanceLog::open()->count();
-        $completedLogs = MaintenanceLog::completed()->count();
-        $cancelledLogs = MaintenanceLog::cancelled()->count();
-        $thisMonth = MaintenanceLog::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
+        $dashboardData = Cache::remember('maintenance_dashboard_'.(app(PropertyService::class)->id() ?? 'default'), 300, function () {
+            $totalLogs = MaintenanceLog::count();
+            $openLogs = MaintenanceLog::open()->count();
+            $completedLogs = MaintenanceLog::completed()->count();
+            $cancelledLogs = MaintenanceLog::cancelled()->count();
+            $thisMonth = MaintenanceLog::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count();
 
-        $departmentStats = MaintenanceLog::selectRaw('department, count(*) as count')
-            ->groupBy('department')
-            ->orderByDesc('count')
-            ->get();
+            $departmentStats = MaintenanceLog::selectRaw('department, count(*) as count')
+                ->groupBy('department')
+                ->orderByDesc('count')
+                ->get();
 
-        $statusStats = MaintenanceLog::selectRaw('status, count(*) as count')
-            ->groupBy('status')
-            ->orderByDesc('count')
-            ->get();
+            $statusStats = MaintenanceLog::selectRaw('status, count(*) as count')
+                ->groupBy('status')
+                ->orderByDesc('count')
+                ->get();
 
-        $recentLogs = MaintenanceLog::latest()->take(10)->get();
+            $recentLogs = MaintenanceLog::latest()->take(10)->get();
 
-        $avgCompletionDays = MaintenanceLog::whereNotNull('completion_date')
-            ->selectRaw('AVG(DATEDIFF(completion_date, DATE(complaint_datetime))) as avg_days')
-            ->value('avg_days');
+            $avgCompletionDays = MaintenanceLog::whereNotNull('completion_date')
+                ->selectRaw('AVG(DATEDIFF(completion_date, DATE(complaint_datetime))) as avg_days')
+                ->value('avg_days');
 
-        // Daily Readings
-        $todayReadings = MaintenanceReading::onDate(today())->get()->groupBy(fn ($r) => $r->reading_type.'.'.$r->category);
-        $todayGen = MaintenanceReading::onDate(today())->byType('generator')->get();
-        $todayDiesel = MaintenanceReading::onDate(today())->byType('diesel_reservoir')->first();
-        $todayWater = MaintenanceReading::onDate(today())->byType('water_tank')->first();
-        $todayColdRoom = MaintenanceReading::onDate(today())->byType('cold_room')->get();
-        $recentReadings = MaintenanceReading::with('recorder')->latest('reading_date')->take(5)->get();
+            // Daily Readings
+            $todayGen = MaintenanceReading::onDate(today())->byType('generator')->get();
+            $todayDiesel = MaintenanceReading::onDate(today())->byType('diesel_reservoir')->first();
+            $todayWater = MaintenanceReading::onDate(today())->byType('water_tank')->first();
+            $todayColdRoom = MaintenanceReading::onDate(today())->byType('cold_room')->get();
+            $recentReadings = MaintenanceReading::with('recorder')->latest('reading_date')->take(5)->get();
 
-        $readingsThisWeek = MaintenanceReading::where('reading_date', '>=', now()->subDays(7))->count();
-        $lastReadingDate = MaintenanceReading::max('reading_date');
+            $readingsThisWeek = MaintenanceReading::where('reading_date', '>=', now()->subDays(7))->count();
+            $lastReadingDate = MaintenanceReading::max('reading_date');
 
-        return view('maintenance::dashboard', compact(
-            'totalLogs', 'openLogs', 'completedLogs', 'cancelledLogs', 'thisMonth',
-            'departmentStats', 'statusStats', 'recentLogs', 'avgCompletionDays',
-            'todayGen', 'todayDiesel', 'todayWater', 'todayColdRoom',
-            'recentReadings', 'readingsThisWeek', 'lastReadingDate'
-        ));
+            return compact(
+                'totalLogs', 'openLogs', 'completedLogs', 'cancelledLogs', 'thisMonth',
+                'departmentStats', 'statusStats', 'recentLogs', 'avgCompletionDays',
+                'todayGen', 'todayDiesel', 'todayWater', 'todayColdRoom',
+                'recentReadings', 'readingsThisWeek', 'lastReadingDate'
+            );
+        });
+
+        return view('maintenance::dashboard', $dashboardData);
     }
 
     public function report(Request $request)

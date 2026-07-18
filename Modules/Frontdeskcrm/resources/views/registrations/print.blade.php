@@ -177,7 +177,7 @@
                 <td><strong>Email:</strong> {{ $registration->email ?? 'N/A' }}</td>
                 <td><strong>Total Nights:</strong> {{ $registration->no_of_nights }}</td>
                 <td><strong>Finalized By:</strong>  @if($registration->stay_status !== 'draft_by_guest' && $registration->finalized_by_agent_id)
-                    {{ App\Models\User::find($registration->finalized_by_agent_id)->name ?? 'N/A' }}
+                    {{ $finalizedByAgent->name ?? 'N/A' }}
                 @endif</td>
             </tr>
             <tr>

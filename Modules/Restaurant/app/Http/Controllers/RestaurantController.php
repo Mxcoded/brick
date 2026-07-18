@@ -4,11 +4,14 @@ namespace Modules\Restaurant\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Room;
+use App\Models\RoomUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Modules\Finance\Services\PostingService;
+use Modules\Frontdeskcrm\Models\ChargeType;
+use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Restaurant\Models\Customer;
 use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
@@ -21,6 +24,7 @@ use Modules\Restaurant\Models\StockItem;
 use Modules\Restaurant\Models\StockMovement;
 use Modules\Restaurant\Models\Table;
 use Modules\Restaurant\Models\WaiterShift;
+use Modules\Restaurant\Services\RestaurantReportService;
 
 class RestaurantController extends Controller
 {
@@ -28,6 +32,8 @@ class RestaurantController extends Controller
 
     public function index()
     {
+        $enableRoomService = RestaurantSetting::getValue('enable_room_service', '0') === '1';
+
         $sources = [
             'table' => [
                 'label' => 'Dine-In Tables',
@@ -35,15 +41,18 @@ class RestaurantController extends Controller
                     return ['id' => $table->id, 'number' => $table->number];
                 }),
             ],
-            'room' => [
+        ];
+
+        if ($enableRoomService) {
+            $sources['room'] = [
                 'label' => 'Room Service',
                 'items' => Room::all()->map(function ($room) {
                     return ['id' => $room->id, 'name' => $room->name];
                 }),
-            ],
-        ];
+            ];
+        }
 
-        return view('restaurant::index', compact('sources'));
+        return view('restaurant::index', compact('sources', 'enableRoomService'));
     }
 
     public function selectSource(Request $request)
@@ -512,6 +521,8 @@ class RestaurantController extends Controller
     /** Waiter Dashboard and Order Management start */
     public function waiterDashboard()
     {
+        $enableRoomService = RestaurantSetting::getValue('enable_room_service', '0') === '1';
+
         $pendingOrders = Order::where('status', 'pending')
             ->whereIn('type', ['table', 'room', 'walk_in'])
             ->with('orderItems.menuItem')
@@ -542,7 +553,44 @@ class RestaurantController extends Controller
             ->unique()
             ->toArray();
 
-        return view('restaurant::waiter.dashboard', compact('pendingOrders', 'activeOrders', 'paidOrders', 'categories', 'tables', 'occupiedTableIds'));
+        return view('restaurant::waiter.dashboard', compact('pendingOrders', 'activeOrders', 'paidOrders', 'categories', 'tables', 'occupiedTableIds', 'enableRoomService'));
+    }
+
+    public function waiterDashboardData()
+    {
+        $pendingOrders = Order::where('status', 'pending')
+            ->whereIn('type', ['table', 'room', 'walk_in'])
+            ->with('orderItems.menuItem')
+            ->get();
+
+        $activeOrders = Order::where('status', 'accepted')
+            ->whereIn('tracking_status', ['preparing', 'ready', 'served'])
+            ->whereIn('type', ['table', 'room', 'walk_in'])
+            ->with('orderItems.menuItem')
+            ->get();
+
+        $paidOrders = Order::where('status', 'completed')
+            ->where('tracking_status', 'paid')
+            ->whereIn('type', ['table', 'room', 'walk_in'])
+            ->with('orderItems.menuItem')
+            ->latest()
+            ->limit(50)
+            ->get();
+
+        $occupiedTableIds = Order::whereIn('status', ['pending', 'accepted'])
+            ->where('type', 'table')
+            ->pluck('source_id')
+            ->unique()
+            ->toArray();
+
+        return response()->json([
+            'success' => true,
+            'pending_orders' => $pendingOrders,
+            'active_orders' => $activeOrders,
+            'paid_orders' => $paidOrders,
+            'occupied_table_ids' => $occupiedTableIds,
+            'now' => now()->toIso8601String(),
+        ]);
     }
 
     public function posAddToCart(Request $request)
@@ -759,6 +807,8 @@ class RestaurantController extends Controller
             'id' => $shift->id,
             'clock_in' => $shift->clock_in->format('Y-m-d H:i:s'),
             'starting_cash' => $shift->starting_cash,
+            'total_sales' => $shift->total_sales,
+            'status' => $shift->status,
         ]]);
     }
 
@@ -796,6 +846,7 @@ class RestaurantController extends Controller
                 'discount_limit' => RestaurantSetting::getValue('discount_limit', '10000'),
                 'shift_start_time' => RestaurantSetting::getValue('shift_start_time', '06:00'),
                 'shift_end_time' => RestaurantSetting::getValue('shift_end_time', '22:00'),
+                'enable_room_service' => RestaurantSetting::getValue('enable_room_service', '0'),
                 'paystack_public_key' => config('services.paystack.public'),
             ],
         ]);
@@ -809,6 +860,7 @@ class RestaurantController extends Controller
             'discount_limit' => RestaurantSetting::getValue('discount_limit', '10000'),
             'shift_start_time' => RestaurantSetting::getValue('shift_start_time', '06:00'),
             'shift_end_time' => RestaurantSetting::getValue('shift_end_time', '22:00'),
+            'enable_room_service' => RestaurantSetting::getValue('enable_room_service', '0'),
         ];
 
         return view('restaurant::admin.settings', compact('settings'));
@@ -822,6 +874,7 @@ class RestaurantController extends Controller
             'discount_limit' => 'required|numeric|min:0',
             'shift_start_time' => 'required|date_format:H:i',
             'shift_end_time' => 'required|date_format:H:i|after:shift_start_time',
+            'enable_room_service' => 'required|in:0,1',
         ]);
 
         RestaurantSetting::setValue('vat_rate', $validated['vat_rate']);
@@ -829,6 +882,7 @@ class RestaurantController extends Controller
         RestaurantSetting::setValue('discount_limit', $validated['discount_limit']);
         RestaurantSetting::setValue('shift_start_time', $validated['shift_start_time']);
         RestaurantSetting::setValue('shift_end_time', $validated['shift_end_time']);
+        RestaurantSetting::setValue('enable_room_service', $validated['enable_room_service']);
 
         return redirect()->route('restaurant.admin.settings')->with('success', 'Settings updated successfully.');
     }
@@ -1094,29 +1148,86 @@ class RestaurantController extends Controller
     {
         $validated = $request->validate([
             'amount_tendered' => 'nullable|numeric|min:0',
-            'method' => 'required|in:cash,card,mobile_money,transfer',
+            'method' => 'required|in:cash,card,mobile_money,transfer,room_charge',
             'reference' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
+            'registration_id' => 'required_if:method,room_charge|nullable|integer',
+            'split_group' => 'nullable|string|max:10',
         ]);
 
-        $tendered = $validated['amount_tendered'] ?? $order->grand_total;
-        $change = max(0, $tendered - $order->grand_total);
+        if ($validated['method'] === 'room_charge' && ! $validated['registration_id']) {
+            return response()->json(['success' => false, 'message' => 'Registration ID is required for room charge.'], 422);
+        }
 
-        $payment = Payment::create([
+        if ($validated['method'] === 'room_charge' && RestaurantSetting::getValue('enable_room_service', '0') !== '1') {
+            return response()->json(['success' => false, 'message' => 'Room service is not enabled.'], 403);
+        }
+
+        // Calculate amount based on split_group
+        if (! empty($validated['split_group'])) {
+            $groupItems = $order->orderItems()->with('menuItem')->where('split_group', $validated['split_group'])->get();
+            if ($groupItems->isEmpty()) {
+                return response()->json(['success' => false, 'message' => 'No items found for split group '.$validated['split_group']], 422);
+            }
+            $groupSubtotal = $groupItems->sum(fn ($item) => (float) $item->menuItem->price * $item->quantity);
+            $proportion = $groupSubtotal / (float) $order->subtotal;
+            $amount = round((float) $order->grand_total * $proportion, 2);
+        } else {
+            $amount = (float) $order->grand_total;
+        }
+
+        $tendered = $validated['amount_tendered'] ?? $amount;
+        $change = max(0, $tendered - $amount);
+
+        $paymentData = [
             'restaurant_order_id' => $order->id,
-            'amount' => $order->grand_total,
+            'amount' => $amount,
             'method' => $validated['method'],
             'reference' => $validated['reference'] ?? null,
             'change_due' => $change,
             'status' => 'completed',
             'paid_at' => now(),
             'notes' => $validated['notes'] ?? null,
-        ]);
+        ];
 
-        $order->status = 'completed';
-        $order->tracking_status = 'paid';
-        $order->save();
+        // Room charge: create folio charge + record AR
+        if ($validated['method'] === 'room_charge') {
+            $registration = Registration::findOrFail($validated['registration_id']);
+            $chargeType = ChargeType::firstOrCreate(
+                ['code' => 'restaurant'],
+                ['name' => 'Restaurant', 'account_code' => '4100']
+            );
 
+            $itemCount = $order->orderItems->count();
+            $description = "Order #{$order->id} - {$itemCount} item(s)";
+            if (! empty($validated['split_group'])) {
+                $description .= " (Group {$validated['split_group']})";
+            }
+
+            $registration->folioCharges()->create([
+                'charge_type_id' => $chargeType->id,
+                'description' => $description,
+                'quantity' => 1,
+                'unit_price' => $amount,
+                'amount' => $amount,
+                'posted_by' => auth()->id(),
+            ]);
+
+            $paymentData['registration_id'] = $registration->id;
+            $paymentData['charge_type_id'] = $chargeType->id;
+        }
+
+        $payment = Payment::create($paymentData);
+
+        // Mark order as fully paid if no remaining balance
+        $order->refresh();
+        if ($order->amount_due <= 0) {
+            $order->status = 'completed';
+            $order->tracking_status = 'paid';
+            $order->save();
+        }
+
+        // Finance posting: all methods including room_charge (Debit AR / Credit Revenue)
         try {
             app(PostingService::class)
                 ->recordSale('restaurant', (float) $payment->amount, $payment->method, 'restaurant_payment', $payment->id);
@@ -1131,8 +1242,8 @@ class RestaurantController extends Controller
                 ['name' => $order->customer_name ?? 'Unknown']
             );
             $customer->increment('visit_count');
-            $customer->increment('total_spent', $order->grand_total);
-            $customer->increment('loyalty_points', (int) floor($order->grand_total / 100));
+            $customer->increment('total_spent', $payment->amount);
+            $customer->increment('loyalty_points', (int) floor($payment->amount / 100));
         }
 
         $order->load('payments');
@@ -1145,7 +1256,89 @@ class RestaurantController extends Controller
         ]);
     }
 
-    // ─── Phase 2: Reports & Analytics ────────────────────────────────
+    // ─── Phase 2: Guest Lookup (Charge to Room) ──────────────────────
+
+    public function guestLookup(Request $request)
+    {
+        if (RestaurantSetting::getValue('enable_room_service', '0') !== '1') {
+            return response()->json(['success' => false, 'message' => 'Room service is not enabled'], 403);
+        }
+
+        $request->validate([
+            'room' => 'required|string|max:20',
+        ]);
+
+        $unit = RoomUnit::where('room_number', $request->input('room'))->first();
+
+        if (! $unit) {
+            return response()->json(['success' => false, 'message' => 'Room not found'], 404);
+        }
+
+        $registration = Registration::where('room_unit_id', $unit->id)
+            ->whereIn('stay_status', ['checked_in', 'reserved'])
+            ->with('guest')
+            ->latest()
+            ->first();
+
+        if (! $registration) {
+            return response()->json(['success' => false, 'message' => 'No active registration found for this room'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'registration' => [
+                'id' => $registration->id,
+                'guest_name' => $registration->guest?->full_name ?? 'Unknown',
+                'room_number' => $unit->room_number,
+                'check_in' => $registration->check_in,
+                'check_out' => $registration->check_out,
+            ],
+        ]);
+    }
+
+    // ─── Phase 3: Split Order ────────────────────────────────────────
+
+    public function splitOrder(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'type' => 'required|in:even,items',
+            'count' => 'required_if:type,even|nullable|integer|min:2|max:10',
+            'items' => 'required_if:type,items|nullable|array',
+            'items.*.id' => 'required_with:items|integer|exists:restaurant_order_items,id',
+            'items.*.group' => 'required_with:items|string|max:10',
+        ]);
+
+        $items = $order->orderItems()->with('menuItem')->get();
+
+        if ($validated['type'] === 'even') {
+            $count = $validated['count'];
+            $groups = range('A', chr(ord('A') + $count - 1));
+
+            foreach ($items as $index => $item) {
+                $groupIndex = $index % $count;
+                $item->update(['split_group' => $groups[$groupIndex]]);
+            }
+        } else {
+            $itemMap = collect($validated['items'])->keyBy('id');
+            foreach ($items as $item) {
+                $group = $itemMap->has($item->id) ? $itemMap[$item->id]['group'] : null;
+                $item->update(['split_group' => $group]);
+            }
+        }
+
+        $order->load('orderItems.menuItem');
+
+        return response()->json([
+            'success' => true,
+            'order' => $order,
+            'groups' => $order->orderItems->groupBy('split_group')->map(fn ($groupItems) => [
+                'items' => $groupItems,
+                'subtotal' => $groupItems->sum(fn ($i) => (float) $i->menuItem->price * $i->quantity),
+            ]),
+        ]);
+    }
+
+    // ─── Phase 4: Reports & Analytics ────────────────────────────────
 
     public function salesReport(Request $request)
     {
@@ -1167,48 +1360,9 @@ class RestaurantController extends Controller
             'custom' => $request->date('date_to')->endOfDay(),
         };
 
-        $orders = Order::with('payments', 'orderItems.menuItem', 'shift.user')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->get();
+        $report = app(RestaurantReportService::class)->salesReport($from, $to);
 
-        $totalSales = $orders->sum('grand_total');
-        $totalDiscounts = $orders->sum('discount');
-        $totalVat = $orders->sum('vat');
-        $orderCount = $orders->count();
-        $averageOrder = $orderCount > 0 ? $totalSales / $orderCount : 0;
-
-        // Payment method breakdown
-        $paymentMethods = Payment::whereIn('restaurant_order_id', $orders->pluck('id'))
-            ->completed()
-            ->get()
-            ->groupBy('method')
-            ->map(fn ($items) => [
-                'count' => $items->count(),
-                'total' => $items->sum('amount'),
-            ]);
-
-        // Hourly breakdown
-        $hourly = $orders->groupBy(fn ($o) => $o->created_at->format('H'))
-            ->map(fn ($items, $hour) => [
-                'hour' => $hour.':00',
-                'count' => $items->count(),
-                'total' => $items->sum('grand_total'),
-            ])->values();
-
-        return response()->json([
-            'success' => true,
-            'summary' => [
-                'total_sales' => $totalSales,
-                'total_discounts' => $totalDiscounts,
-                'total_vat' => $totalVat,
-                'order_count' => $orderCount,
-                'average_order' => $averageOrder,
-                'period' => ['from' => $from, 'to' => $to],
-            ],
-            'payment_methods' => $paymentMethods,
-            'hourly' => $hourly,
-        ]);
+        return response()->json(array_merge(['success' => true], $report));
     }
 
     public function popularItems(Request $request)
@@ -1232,16 +1386,7 @@ class RestaurantController extends Controller
         };
         $limit = $request->integer('limit', 20);
 
-        $items = OrderItem::selectRaw('restaurant_menu_item_id, SUM(quantity) as total_qty, SUM(quantity * mi.price) as total_revenue')
-            ->join('restaurant_menu_items as mi', 'mi.id', '=', 'restaurant_order_items.restaurant_menu_item_id')
-            ->join('restaurant_orders as o', 'o.id', '=', 'restaurant_order_items.restaurant_order_id')
-            ->whereBetween('o.created_at', [$from, $to])
-            ->where('o.status', 'completed')
-            ->groupBy('restaurant_menu_item_id')
-            ->orderByDesc('total_qty')
-            ->limit($limit)
-            ->get()
-            ->load('menuItem.category');
+        $items = app(RestaurantReportService::class)->popularItems($from, $to, $limit);
 
         return response()->json([
             'success' => true,
@@ -1273,77 +1418,19 @@ class RestaurantController extends Controller
             'today', 'week', 'month' => $now->copy()->endOfDay(),
         };
 
-        $waiters = WaiterShift::with('user')
-            ->withCount(['orders' => fn ($q) => $q->where('status', 'completed')])
-            ->withSum(['orders' => fn ($q) => $q->where('status', 'completed')], 'grand_total')
-            ->whereBetween('clock_in', [$from, $to])
-            ->get()
-            ->map(fn ($s) => [
-                'waiter_id' => $s->user_id,
-                'waiter_name' => $s->user?->name ?? 'Deleted',
-                'shifts' => 1,
-                'orders_taken' => $s->orders_count,
-                'total_sales' => (float) $s->orders_sum_grand_total,
-                'hours_worked' => $s->clock_out
-                    ? round($s->clock_out->diffInHours($s->clock_in), 1)
-                    : null,
-            ]);
-
-        // Aggregate by waiter
-        $aggregated = $waiters->groupBy('waiter_id')->map(fn ($items) => [
-            'waiter_name' => $items->first()['waiter_name'],
-            'shifts' => $items->sum('shifts'),
-            'orders_taken' => $items->sum('orders_taken'),
-            'total_sales' => $items->sum('total_sales'),
-            'hours_worked' => $items->sum('hours_worked'),
-        ])->values();
+        $waiters = app(RestaurantReportService::class)->waiterPerformance($from, $to);
 
         return response()->json([
             'success' => true,
-            'waiters' => $aggregated,
+            'waiters' => $waiters,
         ]);
     }
 
     public function shiftReport(Request $request, $shiftId)
     {
-        $shift = WaiterShift::with('user', 'orders.payments')->findOrFail($shiftId);
-        $completedOrders = $shift->orders->where('status', 'completed');
-        $totalSales = $completedOrders->sum('grand_total');
-        $paymentMethods = Payment::whereIn('restaurant_order_id', $completedOrders->pluck('id'))
-            ->completed()
-            ->get()
-            ->groupBy('method')
-            ->map(fn ($items) => [
-                'count' => $items->count(),
-                'total' => $items->sum('amount'),
-            ]);
-        $expectedEndingCash = $shift->starting_cash + $totalSales;
-        $discrepancy = $shift->ending_cash ? $shift->ending_cash - $expectedEndingCash : null;
+        $report = app(RestaurantReportService::class)->shiftReport($shiftId);
 
-        return response()->json([
-            'success' => true,
-            'shift' => [
-                'id' => $shift->id,
-                'waiter' => $shift->user?->name ?? 'N/A',
-                'clock_in' => $shift->clock_in,
-                'clock_out' => $shift->clock_out,
-                'starting_cash' => $shift->starting_cash,
-                'ending_cash' => $shift->ending_cash,
-                'expected_ending_cash' => $expectedEndingCash,
-                'discrepancy' => $discrepancy,
-                'total_sales' => $totalSales,
-                'order_count' => $completedOrders->count(),
-                'status' => $shift->status,
-            ],
-            'payment_methods' => $paymentMethods,
-            'orders' => $completedOrders->map(fn ($o) => [
-                'id' => $o->id,
-                'type' => $o->type,
-                'customer' => $o->customer_name ?? 'Walk-in',
-                'total' => $o->grand_total,
-                'paid_at' => $o->updated_at,
-            ]),
-        ]);
+        return response()->json(array_merge(['success' => true], $report));
     }
 
     // ─── Table CRUD ───────────────────────────────────────────────────
@@ -1435,6 +1522,18 @@ class RestaurantController extends Controller
 
         $order->status = 'accepted';
         $order->tracking_status = 'preparing';
+        $order->save();
+
+        return response()->json(['success' => true]);
+    }
+
+    public function kdsUpdateStatus(Request $request, Order $order)
+    {
+        $request->validate([
+            'tracking_status' => 'required|in:preparing,ready,served',
+        ]);
+
+        $order->tracking_status = $request->input('tracking_status');
         $order->save();
 
         return response()->json(['success' => true]);

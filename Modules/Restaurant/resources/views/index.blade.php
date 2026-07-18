@@ -41,6 +41,7 @@
                 </div>
             </div>
         </div>
+        @if($enableRoomService)
         <div class="col-lg-6 col-sm-12">
             <div class="card h-100 shadow-lg border-0 rounded-4 text-center hover-card">
                 <div class="card-body">
@@ -69,10 +70,8 @@
                 </div>
             </div>
         </div>
+        @endif
         <div class="col-lg-6 col-sm-12">
-            <div class="card h-100 shadow-lg border-0 rounded-4 text-center hover-card">
-                <div class="card-body">
-                    <h3 class="card-title fw-bold">Order History 📦</h3>
                     <p class="text-muted">View your past orders and their statuses.</p>
                     <a href="{{ route('restaurant.online.orders') }}" class="btn btn-danger w-100 rounded-pill">View Orders</a>
                 </div>

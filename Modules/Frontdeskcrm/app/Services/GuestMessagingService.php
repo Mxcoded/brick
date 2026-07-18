@@ -80,7 +80,7 @@ class GuestMessagingService
     {
         switch ($channel) {
             case 'email':
-                Mail::raw($body, function ($message) use ($recipient, $subject) {
+                Mail::queue($body, function ($message) use ($recipient, $subject) {
                     $message->to($recipient)->subject($subject ?? 'Message from Brickspoint');
                 });
                 break;

@@ -126,8 +126,9 @@ class PurchaseRequestController extends Controller
         }
 
         $purchaseRequest->load('requester', 'supplier', 'items', 'approvals.user');
+        $suppliers = Supplier::all();
 
-        return view('inventory::procurement.requests.show', compact('purchaseRequest'));
+        return view('inventory::procurement.requests.show', compact('purchaseRequest', 'suppliers'));
     }
 
     public function edit(PurchaseRequest $purchaseRequest)

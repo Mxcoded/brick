@@ -46,9 +46,6 @@
             </div>
         @endif
         {{-- ✅ BYD QUEUE: Guests who just submitted via QR --}}
-    @php
-        $drafts = \Modules\Frontdeskcrm\Models\Registration::where('stay_status', 'pending_approval')->get();
-    @endphp
 
     @if($drafts->count() > 0)
     <div class="alert alert-warning border-warning shadow-sm">

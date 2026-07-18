@@ -2,10 +2,12 @@
 
 namespace Modules\Staff\Http\Controllers;
 
+use App\Services\PropertyService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -16,6 +18,7 @@ use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Staff\Exports\StaffExport;
 use Modules\Staff\Helpers\DepartmentHelper;
 use Modules\Staff\Mail\WelcomeMail;
+use Modules\Staff\Models\AttendanceLog;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveRequest;
 use Modules\Staff\Models\StaffSetting;
@@ -62,14 +65,8 @@ class StaffController extends Controller
         // Active staff (total approved minus staff on leave)
         $activeStaffCount = $totalApprovedStaff - $staffOnLeaveCount;
 
-        // Branch-based staff counts (approved staff only)
-        $asokoroStaffCount = $allEmployees->where('status', 'approved')
-            ->filter(fn ($e) => strtolower($e->branch_name ?? '') === 'asokoro')
-            ->count();
-
-        $wuseStaffCount = $allEmployees->where('status', 'approved')
-            ->filter(fn ($e) => strtolower($e->branch_name ?? '') === 'wuse')
-            ->count();
+        // Current property staff count
+        $currentPropertyStaffCount = $allEmployees->where('status', 'approved')->count();
 
         return view('staff::index', compact(
             'employees',
@@ -77,106 +74,117 @@ class StaffController extends Controller
             'staffOnLeaveCount',
             'staffOnLeave',
             'activeStaffCount',
-            'asokoroStaffCount',
-            'wuseStaffCount',
+            'currentPropertyStaffCount',
             'branchFilter'
         ));
     }
 
     public function dashboard()
     {
-        $now = now();
-        $employees = Employee::all();
+        $dashboardData = Cache::remember('staff_dashboard_'.(app(PropertyService::class)->id() ?? 'default'), 300, function () {
+            $now = now();
+            $employees = Employee::all();
 
-        // Core counts
-        $totalEmployees = $employees->where('status', 'approved')->count();
-        $exitedEmployees = $employees->where('status', 'rejected')->count();
-        $pendingApprovals = $employees->where('status', 'draft')->count();
+            // Core counts
+            $totalEmployees = $employees->where('status', 'approved')->count();
+            $exitedEmployees = $employees->where('status', 'rejected')->count();
+            $pendingApprovals = $employees->where('status', 'draft')->count();
 
-        // Currently on leave
-        $currentDate = $now;
-        $onLeaveCount = LeaveRequest::where('status', 'approved')
-            ->where('start_date', '<=', $currentDate)
-            ->where('end_date', '>=', $currentDate)
-            ->distinct('employee_id')
-            ->count('employee_id');
+            // Currently on leave
+            $currentDate = $now;
+            $onLeaveCount = LeaveRequest::where('status', 'approved')
+                ->where('start_date', '<=', $currentDate)
+                ->where('end_date', '>=', $currentDate)
+                ->distinct('employee_id')
+                ->count('employee_id');
 
-        $activeAtWork = $totalEmployees - $onLeaveCount;
+            $activeAtWork = $totalEmployees - $onLeaveCount;
 
-        $staffOnLeave = LeaveRequest::with('employee')
-            ->where('status', 'approved')
-            ->where('start_date', '<=', $currentDate)
-            ->where('end_date', '>=', $currentDate)
-            ->get();
+            $staffOnLeave = LeaveRequest::with('employee')
+                ->where('status', 'approved')
+                ->where('start_date', '<=', $currentDate)
+                ->where('end_date', '>=', $currentDate)
+                ->get();
 
-        // New hires this month
-        $newHiresThisMonth = Employee::where('status', 'approved')
-            ->whereMonth('created_at', $now->month)
-            ->whereYear('created_at', $now->year)
-            ->count();
+            // New hires this month
+            $newHiresThisMonth = Employee::where('status', 'approved')
+                ->whereMonth('created_at', $now->month)
+                ->whereYear('created_at', $now->year)
+                ->count();
 
-        // Recent hires (last 5)
-        $recentHires = Employee::where('status', 'approved')
-            ->latest()
-            ->take(5)
-            ->get();
+            // Recent hires (last 5)
+            $recentHires = Employee::where('status', 'approved')
+                ->latest()
+                ->take(5)
+                ->get();
 
-        // Department distribution
-        $departmentStats = collect(DepartmentHelper::consolidate(
-            Employee::whereNull('end_date')
-                ->whereNotNull('department')
-                ->select('department', DB::raw('count(*) as count'))
-                ->groupBy('department')
-                ->get(),
-            'count'
-        ));
+            // Department distribution
+            $departmentStats = collect(DepartmentHelper::consolidate(
+                Employee::whereNull('end_date')
+                    ->whereNotNull('department')
+                    ->select('department', DB::raw('count(*) as count'))
+                    ->groupBy('department')
+                    ->get(),
+                'count'
+            ));
 
-        // Branch breakdown
-        $asokoroCount = $employees->where('status', 'approved')
-            ->filter(fn ($e) => strtolower($e->branch_name ?? '') === 'asokoro')->count();
-        $wuseCount = $employees->where('status', 'approved')
-            ->filter(fn ($e) => strtolower($e->branch_name ?? '') === 'wuse')->count();
-        $otherBranchCount = $totalEmployees - $asokoroCount - $wuseCount;
+            // Property staff count (all employees in current property)
+            $currentPropertyCount = $totalEmployees;
 
-        // Gender breakdown
-        $maleCount = $employees->where('status', 'approved')
-            ->where('gender', 'Male')->count();
-        $femaleCount = $employees->where('status', 'approved')
-            ->where('gender', 'Female')->count();
-        $otherGenderCount = $employees->where('status', 'approved')
-            ->where('gender', 'Other')->count();
+            // Gender breakdown
+            $maleCount = $employees->where('status', 'approved')
+                ->where('gender', 'Male')->count();
+            $femaleCount = $employees->where('status', 'approved')
+                ->where('gender', 'Female')->count();
+            $otherGenderCount = $employees->where('status', 'approved')
+                ->where('gender', 'Other')->count();
 
-        // Pending leave requests
-        $pendingLeaves = LeaveRequest::where('status', 'pending')->count();
+            // Pending leave requests
+            $pendingLeaves = LeaveRequest::where('status', 'pending')->count();
 
-        // Upcoming birthdays this month
-        $upcomingBirthdays = Employee::where('status', 'approved')
-            ->whereMonth('date_of_birth', $now->month)
-            ->orderByRaw('DAY(date_of_birth)')
-            ->get();
+            // Upcoming birthdays this month
+            $upcomingBirthdays = Employee::where('status', 'approved')
+                ->whereMonth('date_of_birth', $now->month)
+                ->orderByRaw('DAY(date_of_birth)')
+                ->get();
 
-        $userRoles = session('user_roles', []);
+            $userRoles = session('user_roles', []);
 
-        return view('staff::dashboard', compact(
-            'totalEmployees',
-            'activeAtWork',
-            'onLeaveCount',
-            'staffOnLeave',
-            'pendingApprovals',
-            'exitedEmployees',
-            'newHiresThisMonth',
-            'recentHires',
-            'departmentStats',
-            'asokoroCount',
-            'wuseCount',
-            'otherBranchCount',
-            'maleCount',
-            'femaleCount',
-            'otherGenderCount',
-            'pendingLeaves',
-            'upcomingBirthdays',
-            'userRoles',
-        ));
+            // Today's attendance stats
+            $today = now()->today();
+            $presentToday = AttendanceLog::whereDate('date', $today)->whereIn('status', ['present', 'late'])->count();
+            $lateToday = AttendanceLog::whereDate('date', $today)->where('status', 'late')->count();
+            $absentToday = AttendanceLog::whereDate('date', $today)->where('status', 'absent')->count();
+            $onLeaveToday = AttendanceLog::whereDate('date', $today)->where('status', 'on_leave')->count();
+            $totalActive = $totalEmployees - $onLeaveCount;
+            $noRecordToday = max(0, $totalActive - $presentToday - $absentToday - $onLeaveToday);
+
+            return compact(
+                'totalEmployees',
+                'activeAtWork',
+                'onLeaveCount',
+                'staffOnLeave',
+                'pendingApprovals',
+                'exitedEmployees',
+                'newHiresThisMonth',
+                'recentHires',
+                'departmentStats',
+                'currentPropertyCount',
+                'maleCount',
+                'femaleCount',
+                'otherGenderCount',
+                'pendingLeaves',
+                'upcomingBirthdays',
+                'userRoles',
+                'presentToday',
+                'lateToday',
+                'absentToday',
+                'onLeaveToday',
+                'noRecordToday',
+            );
+        });
+
+        return view('staff::dashboard', $dashboardData);
     }
 
     public function create()
@@ -323,7 +331,7 @@ class StaffController extends Controller
         $employee = Employee::latest()->first();
 
         try {
-            Mail::to($employee->email)->send(new WelcomeMail($employee));
+            Mail::to($employee->email)->queue(new WelcomeMail($employee));
         } catch (\Exception $e) {
             Log::error('Failed to send welcome email for employee '.$employee->id.' ('.$employee->email.'): '.$e->getMessage());
 

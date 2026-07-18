@@ -1,4 +1,4 @@
-@php $stores = $stores ?? \Modules\Inventory\Models\Store::all(); @endphp
+@php $stores = $stores ?? []; @endphp
 <div class="modal fade" id="restockModal" tabindex="-1" aria-labelledby="restockModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">

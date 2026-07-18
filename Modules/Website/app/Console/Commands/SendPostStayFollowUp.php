@@ -33,7 +33,7 @@ class SendPostStayFollowUp extends Command
         $sent = 0;
         foreach ($bookings as $booking) {
             try {
-                Mail::to($booking->guest_email)->send(new PostStayFollowUp($booking));
+                Mail::to($booking->guest_email)->queue(new PostStayFollowUp($booking));
                 $booking->update(['follow_up_sent_at' => now()]);
                 $sent++;
                 $this->line("Sent follow-up for {$booking->booking_reference} ({$booking->guest_email})");

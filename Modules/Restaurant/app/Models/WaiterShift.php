@@ -2,18 +2,20 @@
 
 namespace Modules\Restaurant\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WaiterShift extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     protected $table = 'waiter_shifts';
 
     protected $fillable = [
         'user_id',
+        'property_id',
         'clock_in',
         'clock_out',
         'starting_cash',

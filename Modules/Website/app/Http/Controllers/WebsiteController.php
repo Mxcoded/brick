@@ -51,7 +51,7 @@ class WebsiteController extends Controller
         $currentProperty = Property::current();
         $propertyName = $currentProperty?->name ?? config('app.name');
 
-        $globalSettings = Settings::pluck('value', 'key')->toArray();
+        $globalSettings = Settings::getAllCached();
         $propertySettings = $currentProperty?->getWebsiteSettings() ?? [];
         $settings = array_merge($globalSettings, $propertySettings);
 
@@ -622,7 +622,7 @@ class WebsiteController extends Controller
     public function amenities()
     {
         $amenities = Amenity::all();
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $settings = Settings::getAllCached();
 
         $meta_description = 'Discover the world-class amenities at Brickspoint Boutique Aparthotel in Asokoro, Abuja. From free Wi-Fi and fitness centre to restaurant, room service, and airport shuttle — everything you need for a perfect stay.';
         $meta_keywords = 'amenities Asokoro Abuja, hotel amenities Abuja, apart-hotel services, free Wi-Fi hotel Abuja, fitness centre Abuja, Brickspoint amenities';
@@ -807,7 +807,7 @@ class WebsiteController extends Controller
         // Send contact email to admin
         try {
             $adminEmail = config('mail.from.address', 'info@brickspoint.com');
-            Mail::to($adminEmail)->send(new ContactMessageReceived($validated));
+            Mail::to($adminEmail)->queue(new ContactMessageReceived($validated));
         } catch (\Exception $e) {
             Log::error('Contact Email Failed: '.$e->getMessage());
         }
@@ -1032,7 +1032,7 @@ class WebsiteController extends Controller
 
         if ($testimonial->email) {
             try {
-                Mail::to($testimonial->email)->send(new ReviewSubmitted($testimonial));
+                Mail::to($testimonial->email)->queue(new ReviewSubmitted($testimonial));
             } catch (\Exception $e) {
                 Log::error('Review Confirmation Email Failed: '.$e->getMessage());
             }
@@ -1057,7 +1057,7 @@ class WebsiteController extends Controller
      */
     public function dining()
     {
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $settings = Settings::getAllCached();
 
         $diningOptions = Dining::all();
         $restaurantReviews = Testimonial::approved()->restaurant()->latest()->get();
@@ -1071,7 +1071,7 @@ class WebsiteController extends Controller
 
     public function diningMenu(Dining $dining)
     {
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $settings = Settings::getAllCached();
 
         $meta_description = 'View the menu for '.$dining->name.' at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Explore our carefully curated dishes and culinary offerings.';
         $meta_keywords = $dining->name.' menu, dining Asokoro Abuja, restaurant menu Abuja, Brickspoint dining';
@@ -1094,7 +1094,7 @@ class WebsiteController extends Controller
 
         $page->load('offers');
 
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $settings = Settings::getAllCached();
 
         $meta_description = 'Discover exclusive offers and special packages at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Save on your next luxury stay at the best boutique hotel in Nigeria\'s capital.';
         $meta_keywords = 'hotel deals Abuja, apart-hotel offers, Brickspoint promotions, Abuja hotel packages, Asokoro hotel deals, luxury stay Abuja';
@@ -1117,7 +1117,7 @@ class WebsiteController extends Controller
 
         $page->load('items');
 
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $settings = Settings::getAllCached();
 
         $meta_description = 'Explore the premium facilities at Brickspoint Boutique Aparthotel in Asokoro, Abuja — state-of-the-art gym, exquisite restaurant, versatile meeting rooms, and world-class amenities. The best boutique hotel experience in Nigeria\'s capital.';
         $meta_keywords = 'hotel facilities Asokoro Abuja, apart-hotel amenities, Brickspoint gym, meeting rooms Abuja, Abuja hotel services, best hotel facilities Abuja, boutique hotel amenities';
@@ -1229,7 +1229,7 @@ class WebsiteController extends Controller
      */
     protected function getSettings()
     {
-        return Settings::pluck('value', 'key')->toArray();
+        return Settings::getAllCached();
     }
 
     /**
@@ -1265,9 +1265,9 @@ class WebsiteController extends Controller
 
         // 📧 Resend Email
         try {
-            Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
+            Mail::to($booking->guest_email)->queue(new BookingConfirmation($booking));
 
-            return back()->with('success', 'Confirmation email sent to '.$booking->guest_email);
+            return back()->with('success', 'Confirmation email queued for '.$booking->guest_email);
         } catch (\Exception $e) {
             Log::error('Resend Email Failed: '.$e->getMessage());
 
@@ -1523,12 +1523,12 @@ class WebsiteController extends Controller
     {
         try {
             // Send to guest
-            Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
+            Mail::to($booking->guest_email)->queue(new BookingConfirmation($booking));
 
             // Send copy to reservations team if configured
             $reservationsEmail = config('mail.reservations_email');
             if ($reservationsEmail) {
-                Mail::to($reservationsEmail)->send(new BookingConfirmation($booking, true)); // true = staff copy
+                Mail::to($reservationsEmail)->queue(new BookingConfirmation($booking, true)); // true = staff copy
             }
         } catch (\Exception $e) {
             Log::error('Email Failed: '.$e->getMessage());
@@ -1865,7 +1865,7 @@ class WebsiteController extends Controller
             ]);
         }
 
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $settings = Settings::getAllCached();
 
         $meta_description = 'Host your meetings and events at Brickspoint Boutique Aparthotel in Asokoro, Abuja. Versatile event spaces, modern facilities, and dedicated service for conferences, weddings, and private events in Nigeria\'s capital.';
         $meta_keywords = 'meeting rooms Asokoro Abuja, event venue Abuja, conference facilities Abuja, Brickspoint meetings, wedding venue Abuja, corporate events Abuja';
@@ -1876,7 +1876,7 @@ class WebsiteController extends Controller
 
     public function meetingEnquiry()
     {
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $settings = Settings::getAllCached();
 
         return view('website::meeting-enquiry', compact('settings'));
     }
@@ -2021,7 +2021,7 @@ class WebsiteController extends Controller
     public function eventLead($slug)
     {
         $event = LeadEvent::where('slug', $slug)->where('is_active', true)->firstOrFail();
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $settings = Settings::getAllCached();
 
         return view('website::event-lead', compact('event', 'settings'));
     }
@@ -2057,7 +2057,7 @@ class WebsiteController extends Controller
         ]);
 
         if ($event->confirmation_email_body) {
-            Mail::to($lead->email)->send(new EventLeadConfirmation($lead, $event));
+            Mail::to($lead->email)->queue(new EventLeadConfirmation($lead, $event));
         }
 
         return redirect()->route('website.event-lead', $slug)

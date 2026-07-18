@@ -153,7 +153,7 @@ class ContactMessageController extends Controller
                 'to_email' => $contactMessage->email,
             ]);
 
-            Mail::to($contactMessage->email)->send(
+            Mail::to($contactMessage->email)->queue(
                 new ContactReply($contactMessage, $reply, Auth::user()->name)
             );
 

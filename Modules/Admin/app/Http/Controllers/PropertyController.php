@@ -22,7 +22,9 @@ class PropertyController extends Controller
 
     public function create()
     {
-        return view('admin::properties.create');
+        $activeProperties = Property::active()->get();
+
+        return view('admin::properties.create', compact('activeProperties'));
     }
 
     public function store(Request $request)

@@ -4,15 +4,18 @@ namespace Modules\Restaurant\Models;
 
 use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
-    use HasProperty;
+    use HasProperty, SoftDeletes;
 
     protected $table = 'restaurant_payments';
 
     protected $fillable = [
         'restaurant_order_id',
+        'registration_id',
+        'charge_type_id',
         'amount',
         'method',
         'reference',

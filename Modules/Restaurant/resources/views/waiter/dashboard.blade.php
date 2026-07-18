@@ -783,7 +783,7 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                     <div class="ticket-body">
                         <div class="small mb-1">
                             <span class="text-muted">Source:</span>
-                            <span x-text="order.customer_name || 'Table ' + order.source_id"></span>
+                            <span x-text="order.customer_name || (order.type === 'room' ? 'Room ' : order.type === 'walk_in' ? 'Walk-in : Table ') + order.source_id"></span>
                         </div>
                         <table class="table table-sm table-borderless mb-0 small">
                             <tbody>
@@ -832,7 +832,7 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                     <div class="ticket-body">
                         <div class="small mb-1">
                             <span class="text-muted">Source:</span>
-                            <span x-text="order.customer_name || 'Table ' + order.source_id"></span>
+                            <span x-text="order.customer_name || (order.type === 'room' ? 'Room ' : order.type === 'walk_in' ? 'Walk-in : Table ') + order.source_id"></span>
                         </div>
                         <table class="table table-sm table-borderless mb-0 small">
                             <tbody>
@@ -861,10 +861,16 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                         <button class="btn btn-success w-100 btn-sm fw-bold" @click="openPayment(order)">
                             <i class="bi bi-credit-card me-1"></i>Collect Payment
                         </button>
-                        <button class="btn btn-outline-primary btn-sm w-100 mt-1 fw-bold"
-                            @click="reprintReceipt(order)">
-                            <i class="bi bi-printer me-1"></i>Print Receipt
-                        </button>
+                        <div class="d-flex gap-1 mt-1">
+                            <button class="btn btn-outline-info btn-sm flex-grow-1 fw-bold"
+                                @click="openSplit(order)">
+                                <i class="bi bi-split me-1"></i>Split
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm flex-grow-1 fw-bold"
+                                @click="reprintReceipt(order)">
+                                <i class="bi bi-printer me-1"></i>Print
+                            </button>
+                        </div>
                         <button class="btn btn-outline-warning btn-sm w-100 mt-1 fw-bold"
                             @click="openReason('void', order.id)">
                             <i class="bi bi-x-octagon me-1"></i>Void
@@ -893,7 +899,7 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                     <div class="ticket-body">
                         <div class="small mb-1">
                             <span class="text-muted">Source:</span>
-                            <span x-text="order.customer_name || 'Table ' + order.source_id"></span>
+                            <span x-text="order.customer_name || (order.type === 'room' ? 'Room ' : order.type === 'walk_in' ? 'Walk-in : Table ') + order.source_id"></span>
                         </div>
                         <table class="table table-sm table-borderless mb-0 small">
                             <tbody>
@@ -955,7 +961,7 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                 <div class="modal-body">
                     <div class="text-center mb-3">
                         <div class="text-muted small">Amount Due</div>
-                        <div class="fs-3 fw-bold" x-text="'₦' + Number(paymentOrder?.grand_total || 0).toLocaleString()"></div>
+                        <div class="fs-3 fw-bold" x-text="'₦' + Number(paymentOrder?.amount_due || paymentOrder?.grand_total || 0).toLocaleString()"></div>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small fw-medium">Payment Method</label>
@@ -964,6 +970,9 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                             <option value="card">Card</option>
                             <option value="mobile_money">Mobile Money</option>
                             <option value="transfer">Transfer</option>
+                            @if($enableRoomService)
+                            <option value="room_charge">Charge to Room</option>
+                            @endif
                         </select>
                     </div>
                     <div class="mb-2" x-show="paymentMethod === 'cash'">
@@ -977,6 +986,25 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                         <label class="form-label small fw-medium">Reference (optional)</label>
                         <input type="text" class="form-control" x-model="paymentReference" placeholder="Transaction ID">
                     </div>
+                    @if($enableRoomService)
+                    <div x-show="paymentMethod === 'room_charge'" class="mb-2">
+                        <label class="form-label small fw-medium">Room Number</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" x-model="roomNumber" placeholder="e.g. 101"
+                                @keydown.enter="lookupGuest">
+                            <button class="btn btn-outline-primary" @click="lookupGuest" :disabled="guestLookupLoading">
+                                <span x-show="!guestLookupLoading"><i class="bi bi-search"></i></span>
+                                <span x-show="guestLookupLoading"><span class="spinner-border spinner-border-sm"></span></span>
+                            </button>
+                        </div>
+                        <div x-show="paymentRegistration" class="mt-2 p-2 bg-light rounded small">
+                            <div><strong x-text="paymentRegistration?.guest_name"></strong></div>
+                            <div class="text-muted">Room <span x-text="paymentRegistration?.room_number"></span></div>
+                            <div class="text-muted">Check-out: <span x-text="paymentRegistration?.check_out"></span></div>
+                        </div>
+                        <div x-show="guestLookupError" class="mt-1 text-danger small" x-text="guestLookupError"></div>
+                    </div>
+                    @endif
                     <div x-show="changeDue > 0" class="alert alert-success py-2 mb-0 text-center">
                         <small>Change Due:</small>
                         <strong x-text="'₦' + Number(changeDue).toLocaleString()"></strong>
@@ -984,9 +1012,78 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-success btn-sm fw-bold" @click="submitPayment" :disabled="paymentLoading || !amountTendered || amountTendered < (paymentOrder?.grand_total || 0)">
+                    <button class="btn btn-success btn-sm fw-bold" @click="submitPayment" :disabled="paymentLoading || !paymentReady">
                         <span x-show="!paymentLoading"><i class="bi bi-check-circle me-1"></i>Complete Payment</span>
                         <span x-show="paymentLoading"><span class="spinner-border spinner-border-sm me-1"></span>Processing...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="splitModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title"><i class="bi bi-split me-1"></i>Split Bill - Order #<span x-text="splitOrder?.id"></span></h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-medium">Split Method</label>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm flex-grow-1" :class="splitType === 'even' ? 'btn-primary' : 'btn-outline-primary'"
+                                @click="splitType = 'even'">Even</button>
+                            <button class="btn btn-sm flex-grow-1" :class="splitType === 'items' ? 'btn-primary' : 'btn-outline-primary'"
+                                @click="splitType = 'items'">By Items</button>
+                        </div>
+                    </div>
+                    <div x-show="splitType === 'even'" class="mb-3">
+                        <label class="form-label small fw-medium">Number of Ways</label>
+                        <div class="d-flex gap-1">
+                            <template x-for="n in [2,3,4,5,6]" :key="n">
+                                <button class="btn btn-sm" :class="splitCount === n ? 'btn-dark' : 'btn-outline-secondary'"
+                                    @click="splitCount = n" x-text="n + ' ways'"></button>
+                            </template>
+                        </div>
+                    </div>
+                    <div x-show="splitType === 'items'">
+                        <p class="small text-muted mb-2">Tap items to assign to groups (A, B, C...)</p>
+                        <template x-for="item in splitOrder?.order_items || []" :key="item.id">
+                            <div class="d-flex align-items-center justify-content-between mb-1 p-1 border rounded small">
+                                <span x-text="item.menu_item?.name"></span>
+                                <div class="d-flex gap-1">
+                                    <template x-for="g in splitGroupsList" :key="g">
+                                        <button class="btn btn-sm py-0 px-1" style="font-size:0.7rem"
+                                            :class="item.split_group === g ? 'btn-primary' : 'btn-outline-secondary'"
+                                            @click="item.split_group = g" x-text="g"></button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div x-show="splitResult" class="mt-2">
+                        <template x-for="(groupData, groupName) in splitResult?.groups || {}" :key="groupName">
+                            <div class="d-flex justify-content-between align-items-center p-2 mb-1 bg-light rounded">
+                                <div>
+                                    <strong x-text="'Group ' + groupName"></strong>
+                                    <span class="text-muted small ms-1" x-text="groupData.items?.length + ' item(s)'"></span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-bold small" x-text="'₦' + Number(groupData.subtotal).toLocaleString()"></span>
+                                    <button class="btn btn-success btn-sm py-0" @click="paySplitGroup(groupName)">
+                                        <i class="bi bi-credit-card me-1"></i>Pay
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary btn-sm fw-bold" @click="executeSplit" :disabled="splitLoading || splitResult">
+                        <span x-show="!splitLoading"><i class="bi bi-split me-1"></i>Split Order</span>
+                        <span x-show="splitLoading"><span class="spinner-border spinner-border-sm me-1"></span>Splitting...</span>
                     </button>
                 </div>
             </div>
@@ -1122,10 +1219,23 @@ document.addEventListener('alpine:init', function () {
         paymentReference: '',
         paymentLoading: false,
         paystackKey: '',
+        roomNumber: '',
+        paymentRegistration: null,
+        guestLookupLoading: false,
+        guestLookupError: '',
+
+        splitOrder: null,
+        splitType: 'even',
+        splitCount: 2,
+        splitLoading: false,
+        splitResult: null,
+        splitGroupsList: ['A', 'B', 'C', 'D', 'E'],
+        paymentSplitGroup: null,
 
         init() {
             this.checkShift();
             this.loadSettings();
+            this.startPolling();
         },
 
         get pendingCount() { return this.pendingOrders.length; },
@@ -1176,6 +1286,13 @@ document.addEventListener('alpine:init', function () {
         get changeDue() {
             if (!this.paymentOrder || this.paymentMethod !== 'cash') return 0;
             return Math.max(0, (parseFloat(this.amountTendered) || 0) - this.paymentOrder.grand_total);
+        },
+
+        get paymentReady() {
+            if (!this.paymentOrder) return false;
+            if (this.paymentMethod === 'cash') return this.amountTendered >= (this.paymentOrder.amount_due || this.paymentOrder.grand_total);
+            if (this.paymentMethod === 'room_charge') return !!this.paymentRegistration;
+            return true;
         },
 
         validateDiscount() {
@@ -1245,6 +1362,20 @@ document.addEventListener('alpine:init', function () {
             } catch (e) {
                 console.error('load settings error', e);
             }
+        },
+
+        startPolling() {
+            setInterval(async () => {
+                try {
+                    const res = await fetch('{{ route("restaurant.waiter.dashboard.data") }}');
+                    const data = await res.json();
+                    if (!data.success) return;
+                    this.pendingOrders = data.pending_orders;
+                    this.activeOrders = data.active_orders;
+                    this.paidOrders = data.paid_orders;
+                    this.occupiedTableIds = data.occupied_table_ids;
+                } catch (e) {}
+            }, 5000);
         },
 
         async checkShift() {
@@ -1420,6 +1551,10 @@ document.addEventListener('alpine:init', function () {
             this.paymentMethod = 'cash';
             this.amountTendered = order.grand_total;
             this.paymentReference = '';
+            this.roomNumber = '';
+            this.paymentRegistration = null;
+            this.guestLookupError = '';
+            this.paymentSplitGroup = null;
             new bootstrap.Modal(document.getElementById('paymentModal')).show();
         },
 
@@ -1468,14 +1603,21 @@ document.addEventListener('alpine:init', function () {
         async recordPayment() {
             this.paymentLoading = true;
             try {
+                const payload = {
+                    amount_tendered: this.amountTendered || this.paymentOrder.grand_total,
+                    method: this.paymentMethod,
+                    reference: this.paymentReference,
+                };
+                if (this.paymentMethod === 'room_charge' && this.paymentRegistration) {
+                    payload.registration_id = this.paymentRegistration.id;
+                }
+                if (this.paymentSplitGroup) {
+                    payload.split_group = this.paymentSplitGroup;
+                }
                 const res = await fetch('/restaurant-waiter/order/' + this.paymentOrder.id + '/pay', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrfToken },
-                    body: JSON.stringify({
-                        amount_tendered: this.amountTendered || this.paymentOrder.grand_total,
-                        method: this.paymentMethod,
-                        reference: this.paymentReference,
-                    })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -1499,6 +1641,75 @@ document.addEventListener('alpine:init', function () {
 
         reprintReceipt(order) {
             window.open('/restaurant-waiter/order/' + order.id + '/receipt', '_blank', 'width=400,height=700');
+        },
+
+        async lookupGuest() {
+            if (!this.roomNumber.trim()) return;
+            this.guestLookupLoading = true;
+            this.guestLookupError = '';
+            this.paymentRegistration = null;
+            try {
+                const res = await fetch('{{ route("restaurant.waiter.guest.lookup") }}?room=' + encodeURIComponent(this.roomNumber.trim()));
+                const data = await res.json();
+                if (data.success) {
+                    this.paymentRegistration = data.registration;
+                } else {
+                    this.guestLookupError = data.message || 'Guest not found';
+                }
+            } catch (e) {
+                this.guestLookupError = 'Lookup failed. Please try again.';
+            } finally {
+                this.guestLookupLoading = false;
+            }
+        },
+
+        openSplit(order) {
+            this.splitOrder = JSON.parse(JSON.stringify(order));
+            this.splitType = 'even';
+            this.splitCount = 2;
+            this.splitResult = null;
+            new bootstrap.Modal(document.getElementById('splitModal')).show();
+        },
+
+        async executeSplit() {
+            this.splitLoading = true;
+            try {
+                const payload = { type: this.splitType };
+                if (this.splitType === 'even') {
+                    payload.count = this.splitCount;
+                } else {
+                    payload.items = this.splitOrder.order_items.map(i => ({ id: i.id, group: i.split_group || null }));
+                }
+                const res = await fetch('/restaurant-waiter/order/' + this.splitOrder.id + '/split', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrfToken },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.splitResult = data;
+                    this.showToast('success', 'Order split into ' + Object.keys(data.groups).length + ' groups');
+                } else {
+                    this.showToast('danger', data.message || 'Split failed');
+                }
+            } catch (e) {
+                this.showToast('danger', 'Split failed');
+            } finally {
+                this.splitLoading = false;
+            }
+        },
+
+        async paySplitGroup(groupName) {
+            bootstrap.Modal.getInstance(document.getElementById('splitModal'))?.hide();
+            this.paymentOrder = this.splitOrder;
+            this.paymentOrder.amount_due = this.splitResult.groups[groupName].subtotal;
+            this.paymentMethod = 'cash';
+            this.amountTendered = this.splitResult.groups[groupName].subtotal;
+            this.paymentReference = '';
+            this.roomNumber = '';
+            this.paymentRegistration = null;
+            this.paymentSplitGroup = groupName;
+            new bootstrap.Modal(document.getElementById('paymentModal')).show();
         },
 
         openReason(action, orderId) {

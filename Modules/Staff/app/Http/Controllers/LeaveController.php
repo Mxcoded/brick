@@ -144,7 +144,7 @@ class LeaveController extends Controller
             $leaveBalance->increment('used_days', $leaveRequest->days_count);
         }
 
-        Mail::to($leaveRequest->employee->email)->send(new LeaveRequestStatusUpdated($leaveRequest));
+        Mail::to($leaveRequest->employee->email)->queue(new LeaveRequestStatusUpdated($leaveRequest));
 
         return redirect()->route('staff.leaves.admin')->with('success', 'Leave request approved.');
     }
@@ -158,7 +158,7 @@ class LeaveController extends Controller
             'admin_note' => $request->input('admin_note'),
         ]);
         // Send notification email to the employee
-        Mail::to($leaveRequest->employee->email)->send(new LeaveRequestStatusUpdated($leaveRequest));
+        Mail::to($leaveRequest->employee->email)->queue(new LeaveRequestStatusUpdated($leaveRequest));
 
         return redirect()->route('staff.leaves.admin')->with('success', 'Leave request rejected.');
     }
@@ -176,6 +176,14 @@ class LeaveController extends Controller
         $employees = (clone $employeeBase)
             ->with(['leaveRequests' => fn ($q) => $q->whereYear('start_date', $year)])
             ->with(['leaveBalances' => fn ($q) => $q->where('year', $year)])
+            ->withCount([
+                'leaveRequests as approved_annual_count' => fn ($q) => $q->whereYear('start_date', $year)->where('status', 'approved')->where('leave_type', 'Annual'),
+                'leaveRequests as approved_sick_count' => fn ($q) => $q->whereYear('start_date', $year)->where('status', 'approved')->where('leave_type', 'Sick'),
+                'leaveRequests as approved_casual_count' => fn ($q) => $q->whereYear('start_date', $year)->where('status', 'approved')->where('leave_type', 'Casual'),
+                'leaveRequests as approved_compassionate_count' => fn ($q) => $q->whereYear('start_date', $year)->where('status', 'approved')->where('leave_type', 'Compassionate'),
+                'leaveRequests as approved_maternity_count' => fn ($q) => $q->whereYear('start_date', $year)->where('status', 'approved')->where('leave_type', 'Maternity'),
+                'leaveRequests as approved_paternity_count' => fn ($q) => $q->whereYear('start_date', $year)->where('status', 'approved')->where('leave_type', 'Paternity'),
+            ])
             ->get();
 
         $departments = Employee::where('status', 'approved')
@@ -480,7 +488,7 @@ class LeaveController extends Controller
         ]);
         // 5. Send notification email to HR/Admin
         $adminEmail = config('staff.hr_email', 'hr@brickspoint.com');
-        Mail::to($adminEmail)->send(new LeaveRequestSubmitted($leaveRequest));
+        Mail::to($adminEmail)->queue(new LeaveRequestSubmitted($leaveRequest));
 
         // return redirect()->route('staff.leaves.admin')->with('success', "Leave request for {$employee->name} has been submitted successfully.");
         // --- NEW CONDITIONAL REDIRECT LOGIC ---

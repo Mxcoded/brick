@@ -154,25 +154,11 @@
                 </div>
                 <div class="card-body d-flex flex-column justify-content-center">
                     <div class="row text-center g-3">
-                        <div class="col-4">
+                        <div class="col-12">
                             <div class="p-3 rounded-3 bg-primary bg-opacity-10">
                                 <i class="fas fa-building fa-2x text-primary mb-2"></i>
-                                <h3 class="mb-0">{{ $asokoroCount }}</h3>
-                                <small class="text-muted">Asokoro</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-3 rounded-3 bg-success bg-opacity-10">
-                                <i class="fas fa-building fa-2x text-success mb-2"></i>
-                                <h3 class="mb-0">{{ $wuseCount }}</h3>
-                                <small class="text-muted">Wuse</small>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <div class="p-3 rounded-3 bg-secondary bg-opacity-10">
-                                <i class="fas fa-building fa-2x text-muted mb-2"></i>
-                                <h3 class="mb-0">{{ $otherBranchCount }}</h3>
-                                <small class="text-muted">Other</small>
+                                <h3 class="mb-0">{{ $currentPropertyCount }}</h3>
+                                <small class="text-muted">Current Property</small>
                             </div>
                         </div>
                     </div>
@@ -237,15 +223,7 @@
                     </a>
                 </div>
                 <div class="card-body">
-                    @php
-                        $today = now()->today();
-                        $presentToday = \Modules\Staff\Models\AttendanceLog::whereDate('date', $today)->whereIn('status', ['present', 'late'])->count();
-                        $lateToday = \Modules\Staff\Models\AttendanceLog::whereDate('date', $today)->where('status', 'late')->count();
-                        $absentToday = \Modules\Staff\Models\AttendanceLog::whereDate('date', $today)->where('status', 'absent')->count();
-                        $onLeaveToday = \Modules\Staff\Models\AttendanceLog::whereDate('date', $today)->where('status', 'on_leave')->count();
-                        $totalActive = $totalEmployees - $onLeaveCount;
-                        $noRecordToday = max(0, $totalActive - $presentToday - $absentToday - $onLeaveToday);
-                    @endphp
+                    {{-- Attendance stats passed from controller --}}
                     <div class="row text-center g-3">
                         <div class="col">
                             <div class="p-3 rounded-3 bg-success bg-opacity-10">

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Modules\Finance\Services\PostingService;
@@ -109,7 +110,7 @@ class GymController extends Controller
 
             $validated = $request->validate($rules);
 
-            $config = SubscriptionConfig::first();
+            $config = Cache::remember('gym_subscription_config', 3600, fn () => SubscriptionConfig::first());
             if (! $config) {
                 Log::error('Subscription config not found');
                 throw new \Exception('Subscription configuration is missing. Please run the appropriate seeder or configuration route to set the fees.');
@@ -434,7 +435,7 @@ class GymController extends Controller
 
             $validated = $request->validate($rules);
 
-            $config = SubscriptionConfig::first();
+            $config = Cache::remember('gym_subscription_config', 3600, fn () => SubscriptionConfig::first());
             if (! $config) {
                 Log::error('Subscription config not found');
                 throw new \Exception('Subscription configuration is missing. Please run the appropriate seeder or configuration route to set the fees.');
@@ -873,7 +874,7 @@ class GymController extends Controller
      */
     public function editSubscriptionConfig()
     {
-        $config = SubscriptionConfig::first(); // Retrieve the subscription config (assumes a single config record)
+        $config = Cache::remember('gym_subscription_config', 3600, fn () => SubscriptionConfig::first());
 
         return view('gym::subscription_config', compact('config'));
     }
@@ -892,6 +893,7 @@ class GymController extends Controller
         // Update the configuration
         $config = SubscriptionConfig::first();
         $config->update($validated);
+        Cache::forget('gym_subscription_config');
 
         // Redirect with success message
         return redirect()->route('gym.subscription-config.edit')->with('success', 'Subscription configurations updated successfully!');

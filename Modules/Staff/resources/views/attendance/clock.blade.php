@@ -151,14 +151,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @php
-                                    $weekStart = now()->startOfWeek();
-                                    $weekLogs = \Modules\Staff\Models\AttendanceLog::where('employee_id', $employee->id)
-                                        ->whereBetween('date', [$weekStart, now()->endOfWeek()])
-                                        ->with('shiftAssignment.shift')
-                                        ->orderBy('date', 'desc')
-                                        ->get();
-                                @endphp
+                                {{-- Week logs passed from controller --}}
                                 @forelse ($weekLogs as $log)
                                     <tr>
                                         <td>{{ \Carbon\Carbon::parse($log->date)->format('D, M d') }}</td>

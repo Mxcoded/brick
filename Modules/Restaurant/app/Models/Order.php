@@ -59,11 +59,18 @@ class Order extends Model
     {
         if ($this->type === 'table') {
             return Table::find($this->source_id);
-        } elseif ($this->type === 'room') {
+        } elseif ($this->type === 'room' && class_exists(Room::class)) {
             return Room::find($this->source_id);
         }
 
         return null;
+    }
+
+    public function getAmountDueAttribute(): float
+    {
+        $paid = $this->payments()->where('status', 'completed')->sum('amount');
+
+        return max(0, (float) $this->grand_total - (float) $paid);
     }
     // protected static function newFactory(): OrderFactory
     // {

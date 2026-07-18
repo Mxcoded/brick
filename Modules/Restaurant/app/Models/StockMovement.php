@@ -2,15 +2,19 @@
 
 namespace Modules\Restaurant\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class StockMovement extends Model
 {
+    use HasProperty;
+
     protected $table = 'restaurant_stock_movements';
 
     protected $fillable = [
         'restaurant_stock_item_id',
+        'property_id',
         'type',
         'quantity',
         'unit_cost',

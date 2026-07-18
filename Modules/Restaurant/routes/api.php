@@ -14,6 +14,6 @@ use Modules\Restaurant\Http\Controllers\RestaurantController;
  *
 */
 
-Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('v1')->group(function () {
     Route::apiResource('restaurant', RestaurantController::class)->names('restaurant');
 });

@@ -262,7 +262,7 @@
                 <div class="row g-4 justify-content-center">
                     @foreach ($allProperties as $property)
                         @php
-                            $roomCount = \App\Models\RoomType::where('property_id', $property->id)->where('is_active', true)->count();
+                            $roomCount = $property->room_types_count;
                             $propertyUrl = $property->domain ? 'https://' . $property->domain . '.' . request()->getHost() : route('website.rooms.index', ['property_id' => $property->id]);
                         @endphp
                         <div class="col-lg-5 col-md-6">

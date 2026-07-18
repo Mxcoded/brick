@@ -55,6 +55,9 @@ return Application::configure(basePath: __DIR__.'/../')
         // Run the overstay process every day at 1:00 PM (13:00).
         $schedule->command('hotel:process-overstays')->dailyAt('18:00');
 
+        // Auto-mark no-show bookings daily at midnight
+        $schedule->command('hotel:mark-no-shows')->dailyAt('00:00');
+
         // Send pre-arrival reminders at 9:00 AM daily
         $schedule->command('hotel:send-pre-arrival-reminders')->dailyAt('09:00');
 

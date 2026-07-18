@@ -56,6 +56,16 @@
                         <div class="form-text">Latest time staff can start a shift.</div>
                     </div>
                 </div>
+                <hr class="my-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-door-open me-2"></i>Room Service</h5>
+                <div class="mb-4">
+                    <label for="enable_room_service" class="form-label fw-medium">Enable Room Service</label>
+                    <select name="enable_room_service" id="enable_room_service" class="form-select form-select-lg">
+                        <option value="0" {{ ($settings['enable_room_service'] ?? '0') === '0' ? 'selected' : '' }}>No</option>
+                        <option value="1" {{ ($settings['enable_room_service'] ?? '0') === '1' ? 'selected' : '' }}>Yes</option>
+                    </select>
+                    <div class="form-text">Enable Charge to Room payments and Room Service orders. Disable if this property does not operate a hotel.</div>
+                </div>
                 <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold rounded-pill">
                     <i class="bi bi-save me-2"></i>Save Settings
                 </button>

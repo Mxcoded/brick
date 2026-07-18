@@ -177,7 +177,9 @@ class InventoryController extends Controller
         $categories = Item::whereNotNull('category')->distinct()->orderBy('category')->pluck('category');
         $suppliers = Supplier::orderBy('name')->get(['id', 'name']);
 
-        return view('inventory::items_index', compact('items', 'categories', 'suppliers'));
+        $stores = Store::all();
+
+        return view('inventory::items_index', compact('items', 'categories', 'suppliers', 'stores'));
     }
 
     /**

@@ -27,6 +27,7 @@ return [
         'expense' => [
             'inventory' => '5000',
             'gym' => '5400', // trainer payouts
+            'restaurant' => '5100',
         ],
     ],
 
@@ -43,5 +44,6 @@ return [
         'bank_transfer' => 'bank',
         'cheque' => 'bank',
         'crypto' => 'bank',
+        'room_charge' => 'accounts_receivable',
     ],
 ];

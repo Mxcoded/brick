@@ -71,7 +71,7 @@
                                 <label class="form-label fw-semibold"><i class="fas fa-copy me-1 text-muted"></i> Clone master data from</label>
                                 <select name="clone_from" class="form-select">
                                     <option value="">Don't clone (start fresh)</option>
-                                    @foreach(\App\Models\Property::active()->get() as $p)
+                                    @foreach($activeProperties as $p)
                                         <option value="{{ $p->id }}" @selected(old('clone_from') == $p->id)>
                                             {{ $p->name }} ({{ $p->code }})
                                         </option>

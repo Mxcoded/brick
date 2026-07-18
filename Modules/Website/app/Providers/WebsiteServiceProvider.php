@@ -11,6 +11,10 @@ use Modules\Website\Console\Commands\CleanupOrphanedBookings;
 use Modules\Website\Console\Commands\FixConfirmedBookingBalances;
 use Modules\Website\Console\Commands\SendPostStayFollowUp;
 use Modules\Website\Console\MigrateRoomsToTypes;
+use Modules\Website\Models\Booking;
+use Modules\Website\Models\ContactMessage;
+use Modules\Website\Models\Newsletter;
+use Modules\Website\Models\NewsletterSubscriber;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -37,8 +41,20 @@ class WebsiteServiceProvider extends ServiceProvider
 
         View::composer('website::*', function ($view) {
             $view->with('currentProperty', Property::current());
-            $view->with('allProperties', Property::active()->get());
+            $view->with('allProperties', Property::active()
+                ->withCount(['roomTypes' => fn ($q) => $q->where('is_active', true)])
+                ->get()
+            );
             $view->with('cities', Property::active()->whereNotNull('city')->distinct()->pluck('city')->sort()->values());
+        });
+
+        View::composer('website::layouts.menu', function ($view) {
+            $view->with([
+                'pendingBookings' => Booking::where('status', 'pending')->count(),
+                'unreadMessages' => ContactMessage::where('status', 'unread')->count(),
+                'draftCount' => Newsletter::where('status', 'draft')->count(),
+                'activeSubscribers' => NewsletterSubscriber::where('is_active', true)->count(),
+            ]);
         });
     }
 

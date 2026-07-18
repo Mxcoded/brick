@@ -14,6 +14,6 @@ use Modules\Gym\Http\Controllers\GymController;
  *
 */
 
-Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('v1')->group(function () {
     Route::apiResource('gym', GymController::class)->names('gym');
 });

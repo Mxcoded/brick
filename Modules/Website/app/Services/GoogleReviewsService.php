@@ -10,7 +10,7 @@ class GoogleReviewsService
 {
     public function fetch(): array
     {
-        $settings = Settings::pluck('value', 'key')->toArray();
+        $settings = Settings::getAllCached();
         $placeId = $settings['google_place_id'] ?? null;
         $apiKey = $settings['google_api_key'] ?? null;
 

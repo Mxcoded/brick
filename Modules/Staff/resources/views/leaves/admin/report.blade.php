@@ -389,10 +389,7 @@
                                             'Paternity' => 'info',
                                             default => 'secondary',
                                         };
-                                        $approvedCount = $employee->leaveRequests
-                                            ->where('status', 'approved')
-                                            ->where('leave_type', $balance->leave_type)
-                                            ->count();
+                                        $approvedCount = $employee->{"approved_" . strtolower($balance->leave_type) . "_count"} ?? 0;
                                     @endphp
                                     <tr class="employee-row">
                                         <td>

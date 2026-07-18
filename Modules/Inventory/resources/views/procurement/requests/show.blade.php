@@ -200,7 +200,7 @@
                                 <label class="form-label fw-semibold">Supplier</label>
                                 <select name="supplier_id" class="form-select" required>
                                     <option value="">Select Supplier</option>
-                                    @foreach(\Modules\Inventory\Models\Supplier::all() as $supplier)
+                                    @foreach($suppliers as $supplier)
                                         <option value="{{ $supplier->id }}" {{ $pr->supplier_id === $supplier->id ? 'selected' : '' }}>
                                             {{ $supplier->name }}
                                         </option>

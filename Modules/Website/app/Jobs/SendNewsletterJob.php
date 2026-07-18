@@ -78,7 +78,7 @@ class SendNewsletterJob implements ShouldQueue
         $deliveryLog->incrementAttempts();
 
         try {
-            Mail::to($this->subscriber->email)->send(
+            Mail::to($this->subscriber->email)->queue(
                 new NewsletterMail($this->newsletter, $this->subscriber)
             );
 

@@ -2,6 +2,7 @@
 
 namespace Modules\Staff\Database\Seeders;
 
+use App\Services\PropertyService;
 use Illuminate\Database\Seeder;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveBalance;
@@ -144,6 +145,7 @@ class BranchStaffSeeder extends Seeder
                 'ice_contact_name' => $this->generateNextOfKinName($staffData['gender']),
                 'ice_contact_phone' => $this->generatePhoneNumber(),
                 'start_date' => now()->subMonths(rand(6, 36))->format('Y-m-d'),
+                'property_id' => app(PropertyService::class)->id(),
             ]);
 
             // Add default leave balances
@@ -168,6 +170,7 @@ class BranchStaffSeeder extends Seeder
         foreach ($defaultBalances as $balance) {
             LeaveBalance::create([
                 'employee_id' => $employee->id,
+                'property_id' => $employee->property_id,
                 'leave_type' => $balance['leave_type'],
                 'year' => date('Y'),
                 'total_days' => $balance['total_days'],

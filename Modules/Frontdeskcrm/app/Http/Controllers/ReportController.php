@@ -74,21 +74,60 @@ class ReportController extends Controller
         [$from, $to] = $this->getDateRange($request);
         $totalRooms = RoomUnit::count();
 
+        // Arrivals grouped by check_in date
+        $arrivalsByDate = Registration::whereDate('check_in', '>=', $from)
+            ->whereDate('check_in', '<=', $to)
+            ->whereIn('stay_status', ['reserved', 'checked_in'])
+            ->selectRaw('DATE(check_in) as day, COUNT(*) as arrivals')
+            ->groupBy('day')
+            ->pluck('arrivals', 'day');
+
+        // Departures grouped by check_out date
+        $departuresByDate = Registration::whereDate('check_out', '>=', $from)
+            ->whereDate('check_out', '<=', $to)
+            ->where('stay_status', 'checked_in')
+            ->selectRaw('DATE(check_out) as day, COUNT(*) as departures')
+            ->groupBy('day')
+            ->pluck('departures', 'day');
+
+        // Occupancy: count registrations that were checked_in on each day of the range
+        // A registration is "occupied" on a day D if check_in <= D AND (check_out > D OR check_out IS NULL)
+        $occupancyByDate = Registration::where('stay_status', 'checked_in')
+            ->whereDate('check_in', '<=', $to)
+            ->where(function ($q) {
+                $q->whereDate('check_out', '>', $from)
+                    ->orWhereNull('check_out');
+            })
+            ->selectRaw('
+                CASE
+                    WHEN DATE(check_in) < ? THEN ?
+                    ELSE DATE(check_in)
+                END as day,
+                COUNT(*) as occupied
+            ', [$from->toDateString(), $from->toDateString()])
+            ->groupBy('day')
+            ->pluck('occupied', 'day');
+
         $daily = collect();
         $period = $from->copy()->startOfDay();
+        $runningOccupied = 0;
+
         while ($period->lte($to)) {
-            $occupied = Registration::where('stay_status', 'checked_in')
-                ->whereDate('check_in', '<=', $period)
-                ->where(function ($q) use ($period) {
-                    $q->whereDate('check_out', '>', $period)
-                        ->orWhereNull('check_out');
-                })->count();
+            $dayKey = $period->toDateString();
 
-            $arrivals = Registration::whereDate('check_in', $period)
-                ->whereIn('stay_status', ['reserved', 'checked_in'])->count();
+            $arrivals = $arrivalsByDate->get($dayKey, 0);
+            $departures = $departuresByDate->get($dayKey, 0);
 
-            $departures = Registration::whereDate('check_out', $period)
-                ->where('stay_status', 'checked_in')->count();
+            // For occupancy, we need to track running count
+            // On days where we have direct occupancy data, use it
+            // Otherwise compute from arrivals/departures
+            if (isset($occupancyByDate[$dayKey])) {
+                $occupied = $occupancyByDate[$dayKey];
+                $runningOccupied = $occupied;
+            } else {
+                $runningOccupied = $runningOccupied + $arrivals - $departures;
+                $occupied = max(0, $runningOccupied);
+            }
 
             $daily->push([
                 'date' => $period->copy(),
@@ -124,32 +163,48 @@ class ReportController extends Controller
         [$from, $to] = $this->getDateRange($request);
         $propertyId = app(PropertyService::class)->id();
 
+        // Room revenue grouped by date
+        $roomRevByDate = Registration::whereIn('stay_status', ['checked_in', 'checked_out'])
+            ->whereDate('check_in', '>=', $from)
+            ->whereDate('check_in', '<=', $to)
+            ->selectRaw('DATE(check_in) as day, SUM(room_rate) as room_revenue')
+            ->groupBy('day')
+            ->pluck('room_revenue', 'day');
+
+        // Extra charges (folio_charges) grouped by date
+        $extraRevByDate = DB::table('folio_charges')
+            ->join('registrations', 'folio_charges.registration_id', '=', 'registrations.id')
+            ->whereDate('folio_charges.created_at', '>=', $from)
+            ->whereDate('folio_charges.created_at', '<=', $to)
+            ->whereIn('registrations.stay_status', ['checked_in', 'checked_out'])
+            ->when($propertyId, fn ($q) => $q->where('registrations.property_id', $propertyId))
+            ->selectRaw('DATE(folio_charges.created_at) as day, SUM(folio_charges.amount) as extra_revenue')
+            ->groupBy('day')
+            ->pluck('extra_revenue', 'day');
+
+        // Payments grouped by date
+        $paymentsByDate = RegistrationPayment::whereHas('registration', function ($q) use ($propertyId) {
+            $q->when($propertyId, fn ($q) => $q->where('property_id', $propertyId));
+        })
+            ->whereDate('payment_date', '>=', $from)
+            ->whereDate('payment_date', '<=', $to)
+            ->selectRaw('DATE(payment_date) as day, SUM(amount) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
         $daily = collect();
         $period = $from->copy();
         while ($period->lte($to)) {
-
-            $roomRev = Registration::whereIn('stay_status', ['checked_in', 'checked_out'])
-                ->whereDate('check_in', '<=', $period)
-                ->whereDate('check_out', '>=', $period)
-                ->sum(DB::raw('room_rate'));
-
-            $extraRev = DB::table('folio_charges')
-                ->join('registrations', 'folio_charges.registration_id', '=', 'registrations.id')
-                ->whereDate('folio_charges.created_at', $period)
-                ->whereIn('registrations.stay_status', ['checked_in', 'checked_out'])
-                ->when($propertyId, fn ($q) => $q->where('registrations.property_id', $propertyId))
-                ->sum('folio_charges.amount');
-
-            $payments = RegistrationPayment::whereHas('registration', function ($q) use ($propertyId) {
-                $q->when($propertyId, fn ($q) => $q->where('property_id', $propertyId));
-            })->whereDate('payment_date', $period)->sum('amount');
+            $dayKey = $period->toDateString();
+            $roomRev = (float) ($roomRevByDate->get($dayKey, 0));
+            $extraRev = (float) ($extraRevByDate->get($dayKey, 0));
 
             $daily->push([
                 'label' => $period->format('M d'),
                 'room_revenue' => $roomRev,
                 'extra_revenue' => $extraRev,
                 'total' => $roomRev + $extraRev,
-                'payments' => $payments,
+                'payments' => (float) ($paymentsByDate->get($dayKey, 0)),
             ]);
 
             $period->addDay();
@@ -198,28 +253,47 @@ class ReportController extends Controller
         $to = $request->date_to ? Carbon::parse($request->date_to) : $from->copy()->addDays(30);
         $totalRooms = RoomUnit::count();
 
+        // Arrivals grouped by check_in date
+        $arrivalsByDate = Registration::whereDate('check_in', '>=', $from)
+            ->whereDate('check_in', '<=', $to)
+            ->whereIn('stay_status', ['reserved', 'checked_in', 'checked_out'])
+            ->selectRaw('DATE(check_in) as day, COUNT(*) as arrivals')
+            ->groupBy('day')
+            ->pluck('arrivals', 'day');
+
+        // Departures grouped by check_out date
+        $departuresByDate = Registration::whereDate('check_out', '>=', $from)
+            ->whereDate('check_out', '<=', $to)
+            ->whereIn('stay_status', ['checked_in', 'reserved'])
+            ->selectRaw('DATE(check_out) as day, COUNT(*) as departures')
+            ->groupBy('day')
+            ->pluck('departures', 'day');
+
+        // In-house on start date
+        $inHouseStart = Registration::where('stay_status', 'checked_in')
+            ->whereDate('check_in', '<', $from)
+            ->where(function ($q) use ($from) {
+                $q->whereDate('check_out', '>', $from)
+                    ->orWhereNull('check_out');
+            })->count();
+
+        $reservedStart = Registration::where('stay_status', 'reserved')
+            ->whereDate('check_in', '<=', $from)
+            ->whereDate('check_out', '>', $from)
+            ->count();
+
         $daily = collect();
         $period = $from->copy();
+        $runningInHouse = $inHouseStart;
+        $runningReserved = $reservedStart;
+
         while ($period->lte($to)) {
-            $arrivals = Registration::whereDate('check_in', $period)
-                ->whereIn('stay_status', ['reserved', 'checked_in', 'checked_out'])
-                ->count();
+            $dayKey = $period->toDateString();
+            $arrivals = $arrivalsByDate->get($dayKey, 0);
+            $departuresScheduled = $departuresByDate->get($dayKey, 0);
 
-            $departuresScheduled = Registration::whereDate('check_out', $period)
-                ->whereIn('stay_status', ['checked_in', 'reserved'])
-                ->count();
-
-            $inHouse = Registration::where('stay_status', 'checked_in')
-                ->whereDate('check_in', '<=', $period)
-                ->where(function ($q) use ($period) {
-                    $q->whereDate('check_out', '>', $period)
-                        ->orWhereNull('check_out');
-                })->count();
-
-            $reserved = Registration::where('stay_status', 'reserved')
-                ->whereDate('check_in', '<=', $period)
-                ->whereDate('check_out', '>', $period)
-                ->count();
+            $inHouse = $runningInHouse;
+            $reserved = $runningReserved;
 
             $projectedOccupancy = $inHouse + $arrivals - $departuresScheduled;
             if ($projectedOccupancy < 0) {
@@ -237,6 +311,12 @@ class ReportController extends Controller
                 'available' => $totalRooms - $projectedOccupancy,
                 'occupancy_pct' => $totalRooms > 0 ? round(($projectedOccupancy / $totalRooms) * 100, 1) : 0,
             ]);
+
+            $runningInHouse = $inHouse + $arrivals - $departuresScheduled;
+            if ($runningInHouse < 0) {
+                $runningInHouse = 0;
+            }
+            $runningReserved = max(0, $reserved);
 
             $period->addDay();
         }
@@ -256,24 +336,28 @@ class ReportController extends Controller
         [$from, $to] = $this->getDateRange($request);
         $propertyId = app(PropertyService::class)->id();
 
-        $bySource = BookingSource::withCount(['registrations as total_bookings' => function ($q) use ($from, $to) {
-            $q->whereBetween('check_in', [$from, $to]);
-        }])->get()->map(function ($source) use ($from, $to) {
-            $registrations = Registration::where('booking_source_id', $source->id)
-                ->whereBetween('check_in', [$from, $to])->get();
+        // Single grouped query for all source stats
+        $sourceStats = Registration::whereBetween('check_in', [$from, $to])
+            ->selectRaw('
+                booking_source_id,
+                COUNT(*) as total_bookings,
+                COALESCE(SUM(room_rate * no_of_nights), 0) as revenue,
+                SUM(CASE WHEN stay_status = ? THEN 1 ELSE 0 END) as checked_in,
+                SUM(CASE WHEN stay_status = ? THEN 1 ELSE 0 END) as checked_out
+            ', ['checked_in', 'checked_out'])
+            ->groupBy('booking_source_id')
+            ->pluck(null, 'booking_source_id');
 
-            $revenue = $registrations->sum(function ($r) {
-                return ($r->room_rate ?? 0) * ($r->no_of_nights ?? 0);
-            });
-
-            $checkedIn = $registrations->where('stay_status', 'checked_in')->count();
-            $checkedOut = $registrations->where('stay_status', 'checked_out')->count();
+        $bySource = BookingSource::all()->map(function ($source) use ($sourceStats) {
+            $stats = $sourceStats->get($source->id);
+            $revenue = $stats->revenue ?? 0;
             $commission = $revenue * ($source->commission_rate / 100);
             $netRevenue = $revenue - $commission;
 
+            $source->total_bookings = $stats->total_bookings ?? 0;
             $source->revenue = $revenue;
-            $source->checked_in = $checkedIn;
-            $source->checked_out = $checkedOut;
+            $source->checked_in = $stats->checked_in ?? 0;
+            $source->checked_out = $stats->checked_out ?? 0;
             $source->commission = $commission;
             $source->net_revenue = $netRevenue;
 
@@ -341,20 +425,21 @@ class ReportController extends Controller
 
         $byAge = collect();
         $now = Carbon::now();
-        $ranges = [
-            '18-25' => [18, 25],
-            '26-35' => [26, 35],
-            '36-45' => [36, 45],
-            '46-55' => [46, 55],
-            '56+' => [56, 200],
-        ];
-        foreach ($ranges as $label => [$min, $max]) {
-            $count = Guest::whereHas('registrations', function ($q) use ($from, $to) {
-                $q->whereBetween('check_in', [$from, $to]);
-            })->whereNotNull('birthday')
-                ->whereRaw("TIMESTAMPDIFF(YEAR, birthday, '{$now->toDateString()}') BETWEEN {$min} AND {$max}")
-                ->count();
-            $byAge->push(['label' => $label, 'count' => $count]);
+        $ageDistribution = Guest::whereHas('registrations', function ($q) use ($from, $to) {
+            $q->whereBetween('check_in', [$from, $to]);
+        })->whereNotNull('birthday')
+            ->selectRaw('
+                SUM(CASE WHEN TIMESTAMPDIFF(YEAR, birthday, CURDATE()) BETWEEN 18 AND 25 THEN 1 ELSE 0 END) as `18-25`,
+                SUM(CASE WHEN TIMESTAMPDIFF(YEAR, birthday, CURDATE()) BETWEEN 26 AND 35 THEN 1 ELSE 0 END) as `26-35`,
+                SUM(CASE WHEN TIMESTAMPDIFF(YEAR, birthday, CURDATE()) BETWEEN 36 AND 45 THEN 1 ELSE 0 END) as `36-45`,
+                SUM(CASE WHEN TIMESTAMPDIFF(YEAR, birthday, CURDATE()) BETWEEN 46 AND 55 THEN 1 ELSE 0 END) as `46-55`,
+                SUM(CASE WHEN TIMESTAMPDIFF(YEAR, birthday, CURDATE()) >= 56 THEN 1 ELSE 0 END) as `56+`
+            ')
+            ->first();
+
+        $ranges = ['18-25', '26-35', '36-45', '46-55', '56+'];
+        foreach ($ranges as $label) {
+            $byAge->push(['label' => $label, 'count' => (int) ($ageDistribution->{$label} ?? 0)]);
         }
 
         $byGender = [

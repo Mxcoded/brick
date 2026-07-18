@@ -5,6 +5,7 @@ namespace Modules\Frontdeskcrm\Http\Controllers;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\RoomUnit;
+use App\Models\User;
 use App\Services\BookingEngine;
 use App\Services\PropertyService;
 use App\Services\RoomAvailabilityService;
@@ -680,7 +681,7 @@ class RegistrationController extends Controller
     public function index(Request $request)
     {
         // 1. Existing Registration Logic (Search/Filter)
-        $query = Registration::query()->with(['room', 'guest']);
+        $query = Registration::query()->with(['guest', 'roomType', 'roomUnit', 'rateCode']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -702,42 +703,32 @@ class RegistrationController extends Controller
 
         $registrations = $query->latest()->paginate(10);
 
-        // 2. Sync website bookings — bookings that are ready for check-in
+        // 2. Pending approval queue (BYD submissions)
+        $drafts = Registration::where('stay_status', 'pending_approval')->get();
+
+        // 3. Sync website bookings — bookings that are ready for check-in
         if (class_exists(Booking::class)) {
             $today = now()->startOfDay();
             $bookedIds = Registration::whereNotNull('booking_id')->pluck('booking_id')->toArray();
 
-            // Bookings whose check-in has passed (overdue) — auto-mark no_show after 1 day grace
-            $overdueBookings = Booking::whereIn('status', ['pending', 'confirmed'])
-                ->where('check_in_date', '<', $today)
-                ->whereNotIn('id', $bookedIds)
-                ->get();
-
-            foreach ($overdueBookings as $booking) {
-                $daysOverdue = $today->diffInDays($booking->check_in_date, false);
-                if ($daysOverdue >= 1) {
-                    // Auto no-show: check-in was 2+ days ago with no action
-                    $booking->update(['status' => 'no_show']);
-                    Log::info("Auto no-show for booking {$booking->booking_reference} — {$daysOverdue} day(s) overdue.");
-                }
-            }
-
-            // Re-fetch overdue bookings excluding those just auto-moved (only today/yesterday)
-            $overdueBookings = Booking::whereIn('status', ['pending', 'confirmed'])
+            // Overdue bookings (check-in passed, no registration created yet)
+            $overdueBookings = Booking::with(['roomType', 'room'])
+                ->whereIn('status', ['pending', 'confirmed'])
                 ->where('check_in_date', '<', $today)
                 ->whereNotIn('id', $bookedIds)
                 ->orderBy('check_in_date', 'asc')
                 ->get();
 
             // Upcoming arrivals (check-in today or in the future)
-            $expectedArrivals = Booking::whereIn('status', ['pending', 'confirmed'])
+            $expectedArrivals = Booking::with(['roomType', 'room'])
+                ->whereIn('status', ['pending', 'confirmed'])
                 ->where('check_in_date', '>=', $today)
                 ->whereNotIn('id', $bookedIds)
                 ->orderBy('check_in_date', 'asc')
                 ->get();
         }
 
-        return view('frontdeskcrm::registrations.index', compact('registrations', 'expectedArrivals', 'overdueBookings'));
+        return view('frontdeskcrm::registrations.index', compact('registrations', 'expectedArrivals', 'overdueBookings', 'drafts'));
     }
     // --- NEW "WALK-IN" FEATURE (Scenario 3) ---
 
@@ -1346,6 +1337,7 @@ class RegistrationController extends Controller
     {
         $registration->load('guest', 'guestType', 'bookingSource');
         $groupMembers = Registration::where('parent_registration_id', $registration->id)->get();
+        $finalizedByAgent = $registration->finalized_by_agent_id ? User::find($registration->finalized_by_agent_id) : null;
 
         // **PERFORMANCE FIX**: Pre-process images into base64 strings here.
 
@@ -1368,7 +1360,8 @@ class RegistrationController extends Controller
             'registration',
             'groupMembers',
             'guestSignatureBase64',
-            'logoBase64'
+            'logoBase64',
+            'finalizedByAgent'
         ));
 
         return $pdf->stream('registration-'.$registration->id.'.pdf');
@@ -1399,7 +1392,10 @@ class RegistrationController extends Controller
             'total_outstanding' => $registration->total_amount,
         ];
 
-        return view('frontdeskcrm::registrations.show', compact('registration', 'groupMembers', 'groupFinancialSummary'));
+        $roomUnits = RoomUnit::whereIn('status', ['available', 'occupied'])->with('roomType')->orderBy('room_number')->get();
+        $chargeTypes = ChargeType::active()->ordered()->get();
+
+        return view('frontdeskcrm::registrations.show', compact('registration', 'groupMembers', 'groupFinancialSummary', 'roomUnits', 'chargeTypes'));
     }
 
     /**
@@ -1558,7 +1554,7 @@ class RegistrationController extends Controller
         $recipientEmail = $registration->email ?? $registration->guest?->email;
         if ($request->boolean('email_receipt') && $recipientEmail && $invoicePdf) {
             try {
-                Mail::to($recipientEmail)->send(new CheckoutReceiptMail(
+                Mail::to($recipientEmail)->queue(new CheckoutReceiptMail(
                     $registration, $invoicePdf->output()
                 ));
             } catch (\Exception $e) {
@@ -1938,7 +1934,20 @@ class RegistrationController extends Controller
             return redirect()->back()->with('error', 'This booking is already checked in.');
         }
 
-        return view('frontdeskcrm::registrations.checkin-booking', compact('booking'));
+        $isPreferredRoomTaken = Registration::where('room_id', $booking->room_id)
+            ->whereIn('stay_status', ['checked_in', 'draft_by_guest'])
+            ->exists();
+
+        $availableRooms = Room::whereIn('status', ['available', 'booked'])
+            ->where('id', '!=', $booking->room_id)
+            ->get();
+
+        $occupiedRoomIds = Registration::whereIn('room_id', $availableRooms->pluck('id'))
+            ->whereIn('stay_status', ['checked_in'])
+            ->pluck('room_id')
+            ->toArray();
+
+        return view('frontdeskcrm::registrations.checkin-booking', compact('booking', 'isPreferredRoomTaken', 'availableRooms', 'occupiedRoomIds'));
     }
 
     /**
@@ -2035,7 +2044,7 @@ class RegistrationController extends Controller
 
         if ($email) {
             try {
-                Mail::to($email)->send(new RegistrationStatusMail($registration));
+                Mail::to($email)->queue(new RegistrationStatusMail($registration));
             } catch (\Exception $e) {
                 // Log error but don't crash the app if mail fails
                 Log::error('Failed to send registration email: '.$e->getMessage());

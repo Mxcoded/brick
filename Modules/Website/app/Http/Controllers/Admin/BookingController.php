@@ -244,8 +244,8 @@ class BookingController extends Controller
 
         // 2. Send Confirmation Email
         try {
-            Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
-            $message = 'Booking confirmed, marked as PAID, and email sent.';
+            Mail::to($booking->guest_email)->queue(new BookingConfirmation($booking));
+            $message = 'Booking confirmed, marked as PAID, and email queued.';
         } catch (\Exception $e) {
             Log::error('Manual Confirm Email Failed: '.$e->getMessage());
             $message = 'Booking confirmed and marked as PAID, but email failed to send.';
@@ -267,7 +267,7 @@ class BookingController extends Controller
         ]);
 
         try {
-            Mail::to($booking->guest_email)->send(new BookingCancellation($booking));
+            Mail::to($booking->guest_email)->queue(new BookingCancellation($booking));
             $message = 'Booking cancelled successfully. Cancellation email sent.';
         } catch (\Exception $e) {
             Log::error('Cancel Email Failed: '.$e->getMessage());
@@ -297,9 +297,9 @@ class BookingController extends Controller
         $booking = Booking::findOrFail($id);
 
         try {
-            Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
+            Mail::to($booking->guest_email)->queue(new BookingConfirmation($booking));
 
-            return back()->with('success', 'Confirmation email sent successfully to '.$booking->guest_email);
+            return back()->with('success', 'Confirmation email queued successfully for '.$booking->guest_email);
         } catch (\Exception $e) {
             Log::error('Admin Resend Email Failed: '.$e->getMessage());
 

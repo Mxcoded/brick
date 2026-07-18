@@ -68,6 +68,7 @@ class SettingController extends Controller
 
         $setting = Settings::create($data);
         Log::info('Setting created:', $setting->toArray());
+        Settings::flushCache();
 
         return redirect()->route('website.admin.settings.index')->with('success', 'Setting created successfully.');
     }
@@ -124,6 +125,7 @@ class SettingController extends Controller
         }
 
         $setting->update($data);
+        Settings::flushCache();
 
         return redirect()->route('website.admin.settings.index')->with('success', 'Setting updated successfully.');
     }
@@ -137,6 +139,7 @@ class SettingController extends Controller
     public function destroy(Settings $setting)
     {
         $setting->delete();
+        Settings::flushCache();
 
         return redirect()->route('website.admin.settings.index')->with('success', 'Setting deleted successfully.');
     }

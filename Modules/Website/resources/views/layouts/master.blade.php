@@ -1013,7 +1013,6 @@
                             <a class="nav-link {{ request()->routeIs('website.offers') ? 'active' : '' }}"
                                 href="{{ route('website.offers') }}">Offers</a>
                         </li>
-                        @php $allProperties = \App\Models\Property::active()->get(); @endphp
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {{ request()->routeIs('website.location') ? 'active' : '' }}"
                                 href="#" id="ourHotelsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -1169,7 +1168,6 @@
             $facebook = $settings['social_facebook'] ?? 'https://fb.com/bpaparthotel';
             $twitter = $settings['social_twitter'] ?? 'https://x.com/bpaparthotel';
             $instagram = $settings['social_instagram'] ?? 'https://instagram.com/brickspoint_asokoro';
-            $allProperties = \App\Models\Property::active()->get();
         @endphp
         <div class="container">
             <div class="row g-4">

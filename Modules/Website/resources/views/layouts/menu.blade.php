@@ -21,7 +21,6 @@
     <a href="{{ route('website.admin.bookings.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.bookings.*') ? 'active' : '' }}">
         <i class="fas fa-calendar-check fa-fw me-2"></i> Web Bookings
-        @php $pendingBookings = \Modules\Website\Models\Booking::where('status', 'pending')->count(); @endphp
         @if ($pendingBookings > 0)
             <span class="badge bg-danger rounded-pill">{{ $pendingBookings }}</span>
         @endif
@@ -32,7 +31,6 @@
     <a href="{{ route('website.admin.contact-messages.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.contact-messages.*') ? 'active' : '' }}">
         <i class="fas fa-envelope fa-fw me-2"></i> Messages
-        @php $unreadMessages = \Modules\Website\Models\ContactMessage::where('status', 'unread')->count(); @endphp
         @if ($unreadMessages > 0)
             <span class="badge bg-danger rounded-pill">{{ $unreadMessages }}</span>
         @endif
@@ -122,7 +120,6 @@
         <a href="{{ route('website.admin.newsletter.campaigns.index') }}"
            class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.newsletter.campaigns.*') ? 'active' : '' }}">
             <i class="fas fa-paper-plane fa-fw me-2"></i> Campaigns
-            @php $draftCount = \Modules\Website\Models\Newsletter::where('status', 'draft')->count(); @endphp
             @if ($draftCount > 0)
                 <span class="badge bg-secondary rounded-pill">{{ $draftCount }}</span>
             @endif
@@ -130,7 +127,6 @@
         <a href="{{ route('website.admin.newsletter.subscribers') }}"
            class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.newsletter.subscribers*') ? 'active' : '' }}">
             <i class="fas fa-users fa-fw me-2"></i> Subscribers
-            @php $activeSubscribers = \Modules\Website\Models\NewsletterSubscriber::where('is_active', true)->count(); @endphp
             @if ($activeSubscribers > 0)
                 <span class="badge bg-success rounded-pill">{{ $activeSubscribers }}</span>
             @endif

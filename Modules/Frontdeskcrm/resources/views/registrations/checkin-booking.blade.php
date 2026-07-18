@@ -11,14 +11,6 @@
             <div class="card-body">
 
                 {{-- Alert if the preferred room is actually occupied by someone else (Overstay) --}}
-                @php
-                    $isPreferredRoomTaken = \Modules\Frontdeskcrm\Models\Registration::where(
-                        'room_id',
-                        $booking->room_id,
-                    )
-                        ->whereIn('stay_status', ['checked_in', 'draft_by_guest'])
-                        ->exists();
-                @endphp
 
                 @if ($isPreferredRoomTaken)
                     <div class="alert alert-warning border-start border-4 border-warning shadow-sm">
@@ -86,14 +78,9 @@
 
                                 {{-- Option B: Other Available Rooms --}}
                                 <optgroup label="Available Rooms">
-                                    @foreach (\App\Models\Room::whereIn('status', ['available', 'booked'])->where('id', '!=', $booking->room_id)->get() as $room)
+                                    @foreach ($availableRooms as $room)
                                         @php
-                                            $isOccupied = \Modules\Frontdeskcrm\Models\Registration::where(
-                                                'room_id',
-                                                $room->id,
-                                            )
-                                                ->whereIn('stay_status', ['checked_in'])
-                                                ->exists();
+                                            $isOccupied = in_array($room->id, $occupiedRoomIds);
                                         @endphp
 
                                         @unless ($isOccupied)

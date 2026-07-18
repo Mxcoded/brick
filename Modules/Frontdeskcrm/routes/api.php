@@ -15,10 +15,11 @@ use Modules\Frontdeskcrm\Http\Controllers\FrontdeskcrmController;
  *
 */
 
-Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->prefix('v1')->group(function () {
     Route::apiResource('frontdeskcrm', FrontdeskcrmController::class)->names('frontdeskcrm');
 });
 
 // Channel webhook endpoints (no auth — OTAs call these with their own signature)
 Route::post('/webhooks/channel/{channel}', ChannelWebhookController::class)
+    ->middleware('throttle:60,1')
     ->name('frontdesk.webhooks.channel');

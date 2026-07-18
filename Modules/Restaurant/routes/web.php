@@ -82,6 +82,7 @@ Route::prefix('restaurant-waiter')->middleware(['web'])->group(function () {
 
 Route::prefix('restaurant-waiter')->middleware(['web', 'waiter-auth', 'can:access_restaurant_dashboard'])->group(function () {
     Route::get('/dashboard', [RestaurantController::class, 'waiterDashboard'])->name('restaurant.waiter.dashboard');
+    Route::get('/dashboard/data', [RestaurantController::class, 'waiterDashboardData'])->name('restaurant.waiter.dashboard.data');
     Route::post('/order/{order}/accept', [RestaurantController::class, 'acceptOrder'])->name('restaurant.waiter.accept');
     Route::post('/order/{order}/update-status', [RestaurantController::class, 'updateOrderStatus'])->name('restaurant.waiter.update-status');
     Route::post('/order/{order}/reject', [RestaurantController::class, 'rejectOrder'])->name('restaurant.waiter.reject');
@@ -107,6 +108,12 @@ Route::prefix('restaurant-waiter')->middleware(['web', 'waiter-auth', 'can:acces
 
     // Payment
     Route::post('/order/{order}/pay', [RestaurantController::class, 'processPayment'])->name('restaurant.waiter.order.pay');
+
+    // Guest lookup (charge to room)
+    Route::get('/guest/lookup', [RestaurantController::class, 'guestLookup'])->name('restaurant.waiter.guest.lookup');
+
+    // Split order
+    Route::post('/order/{order}/split', [RestaurantController::class, 'splitOrder'])->name('restaurant.waiter.order.split');
 });
 
 Route::prefix('restaurant-admin')->middleware(['web', 'auth', 'can:access_restaurant_dashboard'])->group(function () {
@@ -150,6 +157,7 @@ Route::prefix('restaurant-admin')->middleware(['web', 'auth', 'can:access_restau
     Route::get('/kitchen', [RestaurantController::class, 'kdsOrders'])->name('restaurant.admin.kitchen');
     Route::get('/kitchen/data', [RestaurantController::class, 'kdsData'])->name('restaurant.admin.kitchen.data');
     Route::post('/kitchen/order/{order}/accept', [RestaurantController::class, 'kdsAcceptOrder'])->name('restaurant.admin.kitchen.accept');
+    Route::post('/kitchen/order/{order}/status', [RestaurantController::class, 'kdsUpdateStatus'])->name('restaurant.admin.kitchen.status');
 
     // Table Management
     Route::get('/tables', [RestaurantController::class, 'tableIndex'])->name('restaurant.admin.tables');

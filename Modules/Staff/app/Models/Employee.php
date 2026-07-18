@@ -6,13 +6,14 @@ use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Tasks\Models\Task;
 
 // use Modules\Staff\Database\Factories\EmployeeFactory;
 
 class Employee extends Model
 {
-    use HasFactory, HasProperty;
+    use HasFactory, HasProperty, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
