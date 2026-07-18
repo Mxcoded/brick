@@ -33,7 +33,7 @@ class SubdomainContextTest extends WebsiteModuleTestCase
 
     public function test_subdomain_sets_property_context(): void
     {
-        $request = Request::create('http://' . $this->property->domain . '.brickspoint.com/website');
+        $request = Request::create('http://'.$this->property->domain.'.brickspoint.com/website');
         $middleware = app(DetectWebsiteProperty::class);
 
         $middleware->handle($request, function ($req) {
@@ -90,7 +90,7 @@ class SubdomainContextTest extends WebsiteModuleTestCase
     {
         $otherCity = Property::factory()->create([
             'city' => 'Lagos',
-            'domain' => 'test-lagos-' . $this->faker->unique()->word(),
+            'domain' => 'test-lagos-'.$this->faker->unique()->word(),
             'is_active' => true,
         ]);
         $otherRoom = RoomType::factory()->create([
@@ -122,7 +122,7 @@ class SubdomainContextTest extends WebsiteModuleTestCase
     {
         $otherCity = Property::factory()->create([
             'city' => 'Lagos',
-            'domain' => 'test-lagos-' . $this->faker->unique()->word(),
+            'domain' => 'test-lagos-'.$this->faker->unique()->word(),
             'is_active' => true,
         ]);
         $otherRoom = RoomType::factory()->create([
@@ -154,7 +154,7 @@ class SubdomainContextTest extends WebsiteModuleTestCase
     {
         $otherCity = Property::factory()->create([
             'city' => 'Lagos',
-            'domain' => 'test-lagos-' . $this->faker->unique()->word(),
+            'domain' => 'test-lagos-'.$this->faker->unique()->word(),
             'is_active' => true,
         ]);
         $otherRoom = RoomType::factory()->create([

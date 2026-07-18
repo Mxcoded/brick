@@ -2,6 +2,7 @@
 
 namespace Modules\Staff\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class LeaveRequest extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     /**
      * The attributes that are mass assignable.
@@ -25,6 +26,7 @@ class LeaveRequest extends Model
         'status',
         'admin_note',
         'days_count',
+        'property_id',
     ];
 
     public function employee()

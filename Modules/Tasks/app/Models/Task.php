@@ -2,6 +2,7 @@
 
 namespace Modules\Tasks\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,9 +10,10 @@ use Modules\Staff\Models\Employee;
 
 class Task extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     protected $fillable = [
+        'property_id',
         'task_number',
         'date',
         'created_by',

@@ -25,12 +25,12 @@ class RegistrationPaymentFactory extends Factory
 
     public function deposit(): static
     {
-        return $this->state(fn() => ['payment_type' => 'deposit']);
+        return $this->state(fn () => ['payment_type' => 'deposit']);
     }
 
     public function securityDeposit(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'payment_type' => 'security_deposit',
             'payment_category' => 'security_deposit',
         ]);

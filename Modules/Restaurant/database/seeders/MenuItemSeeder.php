@@ -3,7 +3,6 @@
 namespace Modules\Restaurant\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
 
 class MenuItemSeeder extends Seeder

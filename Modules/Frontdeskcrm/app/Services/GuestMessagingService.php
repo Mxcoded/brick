@@ -2,24 +2,26 @@
 
 namespace Modules\Frontdeskcrm\Services;
 
-use Modules\Frontdeskcrm\Models\Guest;
+use App\Services\WhatsAppService;
+use Illuminate\Support\Facades\Mail;
 use Modules\Frontdeskcrm\Models\GuestMessage;
 use Modules\Frontdeskcrm\Models\MessageTemplate;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Staff\Services\BulkSmsNigeria;
 
 class GuestMessagingService
 {
     public function sendFromTemplate(Registration $registration, string $event, string $channel = 'email'): ?GuestMessage
     {
         $template = MessageTemplate::active()->forEvent($event)->first();
-        if (!$template) {
+        if (! $template) {
             return null;
         }
 
         $guest = $registration->guest;
         $placeholders = $this->buildPlaceholders($registration);
 
-        $body = $this->interpolate($template->{$channel . '_body'} ?? $template->email_body, $placeholders);
+        $body = $this->interpolate($template->{$channel.'_body'} ?? $template->email_body, $placeholders);
         $subject = $this->interpolate($template->email_subject, $placeholders);
 
         $recipient = match ($channel) {
@@ -27,7 +29,7 @@ class GuestMessagingService
             default => $guest->email,
         };
 
-        if (!$recipient) {
+        if (! $recipient) {
             return null;
         }
 
@@ -78,18 +80,18 @@ class GuestMessagingService
     {
         switch ($channel) {
             case 'email':
-                \Illuminate\Support\Facades\Mail::raw($body, function ($message) use ($recipient, $subject) {
+                Mail::raw($body, function ($message) use ($recipient, $subject) {
                     $message->to($recipient)->subject($subject ?? 'Message from Brickspoint');
                 });
                 break;
 
             case 'sms':
-                $sms = app(\Modules\Staff\Services\BulkSmsNigeria::class);
+                $sms = app(BulkSmsNigeria::class);
                 $sms->send($recipient, $body);
                 break;
 
             case 'whatsapp':
-                app(\App\Services\WhatsAppService::class)->send($recipient, $body);
+                app(WhatsAppService::class)->send($recipient, $body);
                 break;
         }
     }
@@ -107,7 +109,7 @@ class GuestMessagingService
             '{{check_out}}' => $registration->check_out?->format('M d, Y') ?? '',
             '{{room_type}}' => $registration->roomType?->name ?? '',
             '{{room_number}}' => $registration->roomUnit?->room_number ?? '',
-            '{{no_of_nights}}' => (string)($registration->no_of_nights ?? ''),
+            '{{no_of_nights}}' => (string) ($registration->no_of_nights ?? ''),
             '{{total_amount}}' => number_format($registration->total_amount ?? 0, 2),
             '{{pre_arrival_link}}' => $registration->pre_arrival_token
                 ? route('guest.pre-arrival.token', $registration->pre_arrival_token)
@@ -117,9 +119,10 @@ class GuestMessagingService
 
     private function interpolate(?string $text, array $placeholders): string
     {
-        if (!$text) {
+        if (! $text) {
             return '';
         }
+
         return str_replace(array_keys($placeholders), array_values($placeholders), $text);
     }
 }

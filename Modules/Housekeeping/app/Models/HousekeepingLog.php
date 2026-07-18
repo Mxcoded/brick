@@ -3,14 +3,18 @@
 namespace Modules\Housekeeping\Models;
 
 use App\Models\RoomUnit;
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class HousekeepingLog extends Model
 {
+    use HasProperty;
+
     public $timestamps = false;
 
     protected $fillable = [
+        'property_id',
         'room_unit_id',
         'cleaned_by',
         'status_from',

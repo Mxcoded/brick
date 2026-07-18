@@ -2,14 +2,16 @@
 
 namespace Modules\Banquet\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class BanquetEnquiry extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     protected $fillable = [
+        'property_id',
         'name',
         'email',
         'phone',

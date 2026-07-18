@@ -2,12 +2,13 @@
 
 namespace Modules\Restaurant\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
-    use SoftDeletes;
+    use HasProperty, SoftDeletes;
 
     protected $table = 'restaurant_customers';
 
@@ -19,6 +20,7 @@ class Customer extends Model
         'total_spent',
         'loyalty_points',
         'notes',
+        'property_id',
     ];
 
     protected function casts(): array

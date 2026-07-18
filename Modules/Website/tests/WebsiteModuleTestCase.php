@@ -7,6 +7,7 @@ use App\Models\RoomType;
 use App\Models\RoomUnit;
 use App\Services\PropertyService;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
@@ -16,8 +17,11 @@ abstract class WebsiteModuleTestCase extends TestCase
     use RefreshDatabase, WithFaker;
 
     protected Property $property;
+
     protected Property $secondProperty;
+
     protected RoomType $roomType;
+
     protected RoomUnit $roomUnit;
 
     protected function setUp(): void
@@ -32,19 +36,20 @@ abstract class WebsiteModuleTestCase extends TestCase
             if (str_starts_with($modelName, 'Modules\\Website\\')) {
                 return 'Modules\\Website\\Database\\Factories\\'.$basename.'Factory';
             }
+
             return 'Database\\Factories\\'.$basename.'Factory';
         });
 
-        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+        $this->withoutMiddleware(ValidateCsrfToken::class);
 
         $this->property = Property::factory()->create([
-            'domain' => 'test-asokoro-' . $this->faker->unique()->word(),
+            'domain' => 'test-asokoro-'.$this->faker->unique()->word(),
             'city' => 'Abuja',
             'is_active' => true,
         ]);
 
         $this->secondProperty = Property::factory()->create([
-            'domain' => 'test-wuse-' . $this->faker->unique()->word(),
+            'domain' => 'test-wuse-'.$this->faker->unique()->word(),
             'city' => 'Abuja',
             'is_active' => true,
         ]);

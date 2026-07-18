@@ -3,11 +3,12 @@
 namespace Database\Factories;
 
 use App\Models\RoomType;
+use App\Models\RoomUnit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class RoomUnitFactory extends Factory
 {
-    protected $model = \App\Models\RoomUnit::class;
+    protected $model = RoomUnit::class;
 
     public function definition(): array
     {
@@ -22,16 +23,16 @@ class RoomUnitFactory extends Factory
 
     public function occupied(): static
     {
-        return $this->state(fn() => ['status' => 'occupied']);
+        return $this->state(fn () => ['status' => 'occupied']);
     }
 
     public function available(): static
     {
-        return $this->state(fn() => ['status' => 'available']);
+        return $this->state(fn () => ['status' => 'available']);
     }
 
     public function dirty(): static
     {
-        return $this->state(fn() => ['status' => 'dirty']);
+        return $this->state(fn () => ['status' => 'dirty']);
     }
 }

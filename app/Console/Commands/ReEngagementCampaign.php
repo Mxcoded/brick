@@ -9,6 +9,7 @@ use Modules\Frontdeskcrm\Services\GuestMessagingService;
 class ReEngagementCampaign extends Command
 {
     protected $signature = 'hotel:re-engagement-campaign';
+
     protected $description = 'Sends re-engagement offers to past guests who have not visited in 90+ days';
 
     public function handle(GuestMessagingService $messaging): int
@@ -19,12 +20,13 @@ class ReEngagementCampaign extends Command
 
         $registrations = Registration::where('stay_status', 'checked_out')
             ->whereDate('check_out', '<=', $ninetyDaysAgo)
-            ->whereHas('guest', fn($q) => $q->whereNotNull('email'))
-            ->whereDoesntHave('messages', fn($q) => $q->where('status', 'sent'))
+            ->whereHas('guest', fn ($q) => $q->whereNotNull('email'))
+            ->whereDoesntHave('messages', fn ($q) => $q->where('status', 'sent'))
             ->get();
 
         if ($registrations->isEmpty()) {
             $this->info('No past guests eligible for re-engagement.');
+
             return self::SUCCESS;
         }
 
@@ -37,6 +39,7 @@ class ReEngagementCampaign extends Command
         }
 
         $this->info("Sent {$sent} re-engagement messages.");
+
         return self::SUCCESS;
     }
 }

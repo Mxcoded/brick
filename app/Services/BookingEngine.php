@@ -325,6 +325,7 @@ class BookingEngine
                 return $room->name;
             }
         }
+
         return null;
     }
 

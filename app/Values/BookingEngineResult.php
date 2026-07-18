@@ -7,9 +7,13 @@ use Illuminate\Support\Collection;
 class BookingEngineResult
 {
     public bool $success;
+
     public Collection $bookings;
+
     public ?string $bookingGroupId;
+
     public float $totalAmount;
+
     public ?string $error;
 
     public function __construct(

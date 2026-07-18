@@ -4,6 +4,7 @@ namespace Modules\Frontdeskcrm\Tests;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -16,7 +17,7 @@ abstract class ModuleTestCase extends TestCase
     {
         parent::setUp();
 
-        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+        $this->withoutMiddleware(ValidateCsrfToken::class);
 
         config(['services.numverify.key' => null, 'services.abstract_api.key' => null]);
 

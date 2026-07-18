@@ -52,6 +52,16 @@
     @endcan
 
     <div class="sidebar-divider"></div>
+    <div class="sidebar-subheading">Configuration</div>
+
+    @can('manage_settings')
+    <a href="{{ route('admin.properties.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('admin.properties.*') ? 'active' : '' }}">
+        <i class="fas fa-building fa-fw me-2"></i> Properties
+    </a>
+    @endcan
+
+    <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Audit &amp; Logs</div>
 
     <a href="{{ route('admin.activity-logs.index') }}"

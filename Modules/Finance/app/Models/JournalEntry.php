@@ -2,6 +2,7 @@
 
 namespace Modules\Finance\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,9 +11,12 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class JournalEntry extends Model
 {
+    use HasProperty;
+
     protected $table = 'finance_journal_entries';
 
     protected $fillable = [
+        'property_id',
         'entry_number',
         'date',
         'reference_type',

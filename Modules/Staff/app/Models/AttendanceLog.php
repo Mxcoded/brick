@@ -2,15 +2,18 @@
 
 namespace Modules\Staff\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
 
 class AttendanceLog extends Model
 {
+    use HasProperty;
+
     protected $fillable = [
         'employee_id', 'shift_assignment_id', 'date',
         'clock_in', 'clock_out', 'status',
         'late_minutes', 'overtime_minutes',
-        'clock_in_note', 'clock_out_note',
+        'clock_in_note', 'clock_out_note', 'property_id',
     ];
 
     protected function casts(): array

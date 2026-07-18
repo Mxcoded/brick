@@ -2,13 +2,16 @@
 
 namespace Modules\Inventory\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InventoryAdjustment extends Model
 {
-    protected $fillable = ['item_id', 'store_id', 'type', 'quantity_change', 'reason', 'adjusted_by'];
+    use HasProperty;
+
+    protected $fillable = ['item_id', 'store_id', 'type', 'quantity_change', 'reason', 'adjusted_by', 'property_id'];
 
     public function item(): BelongsTo
     {

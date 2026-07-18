@@ -18,7 +18,7 @@ class WhatsAppService
 
     public function send(string $recipient, string $message): array
     {
-        if (!$this->isConfigured()) {
+        if (! $this->isConfigured()) {
             Log::info('WhatsApp message queued (not configured)', [
                 'to' => $recipient,
                 'body' => $message,
@@ -46,6 +46,6 @@ class WhatsAppService
 
     public function isConfigured(): bool
     {
-        return !empty($this->apiToken) && !empty($this->phoneNumberId);
+        return ! empty($this->apiToken) && ! empty($this->phoneNumberId);
     }
 }

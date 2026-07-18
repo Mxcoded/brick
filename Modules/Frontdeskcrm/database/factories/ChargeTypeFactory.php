@@ -21,7 +21,7 @@ class ChargeTypeFactory extends Factory
 
     public function roomNight(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'name' => 'Room Night Charge',
             'code' => 'ROOM_NIGHT',
         ]);
@@ -29,7 +29,7 @@ class ChargeTypeFactory extends Factory
 
     public function roomUpgrade(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'name' => 'Room Upgrade',
             'code' => 'room_upgrade',
         ]);

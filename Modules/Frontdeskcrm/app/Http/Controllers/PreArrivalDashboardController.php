@@ -2,10 +2,13 @@
 
 namespace Modules\Frontdeskcrm\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Log;
 use Modules\Frontdeskcrm\Models\GuestDocument;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Frontdeskcrm\Services\GuestMessagingService;
 use Yajra\DataTables\Facades\DataTables;
 
 class PreArrivalDashboardController extends Controller
@@ -23,7 +26,7 @@ class PreArrivalDashboardController extends Controller
 
         return DataTables::of($query)
             ->addColumn('guest_name', function ($reg) {
-                return '<span class="fw-bold">' . e($reg->guest?->full_name ?? $reg->full_name) . '</span>';
+                return '<span class="fw-bold">'.e($reg->guest?->full_name ?? $reg->full_name).'</span>';
             })
             ->addColumn('room_type', function ($reg) {
                 return $reg->roomType?->name ?? 'N/A';
@@ -36,24 +39,27 @@ class PreArrivalDashboardController extends Controller
             })
             ->addColumn('arrival_time', function ($reg) {
                 return $reg->estimated_arrival_at
-                    ? \Carbon\Carbon::parse($reg->estimated_arrival_at)->format('h:i A')
+                    ? Carbon::parse($reg->estimated_arrival_at)->format('h:i A')
                     : '<span class="text-muted">—</span>';
             })
             ->addColumn('documents', function ($reg) {
                 $total = $reg->documents->count();
                 $pending = $reg->documents->whereNull('verified_at')->whereNull('rejected_at')->count();
                 $submitted = $total - $pending;
-                return $submitted . ' / ' . $total;
+
+                return $submitted.' / '.$total;
             })
             ->addColumn('status_badge', function ($reg) {
                 if ($reg->pre_arrival_completed_at) {
                     return '<span class="badge bg-success">Completed</span>';
                 }
+
                 return '<span class="badge bg-warning text-dark">Pending</span>';
             })
             ->addColumn('actions', function ($reg) {
                 $showUrl = route('frontdesk.pre-arrivals.show', $reg);
-                return '<a href="' . $showUrl . '" class="btn btn-sm btn-outline-dark"><i class="fas fa-eye me-1"></i>View</a>';
+
+                return '<a href="'.$showUrl.'" class="btn btn-sm btn-outline-dark"><i class="fas fa-eye me-1"></i>View</a>';
             })
             ->rawColumns(['guest_name', 'arrival_time', 'documents', 'status_badge', 'actions'])
             ->make(true);
@@ -61,7 +67,7 @@ class PreArrivalDashboardController extends Controller
 
     public function show(Registration $registration)
     {
-        if ($registration->stay_status !== 'reserved' || !$registration->pre_arrival_token) {
+        if ($registration->stay_status !== 'reserved' || ! $registration->pre_arrival_token) {
             return redirect()->route('frontdesk.pre-arrivals.index')
                 ->with('error', 'This registration is not a valid pre-arrival.');
         }
@@ -109,11 +115,11 @@ class PreArrivalDashboardController extends Controller
 
     public function approve(Registration $registration)
     {
-        if ($registration->stay_status !== 'reserved' || !$registration->pre_arrival_token) {
+        if ($registration->stay_status !== 'reserved' || ! $registration->pre_arrival_token) {
             return back()->with('error', 'This registration is not a valid pre-arrival.');
         }
 
-        if (!$registration->pre_arrival_completed_at) {
+        if (! $registration->pre_arrival_completed_at) {
             $registration->update(['pre_arrival_completed_at' => now()]);
         }
 
@@ -122,12 +128,12 @@ class PreArrivalDashboardController extends Controller
 
     public function sendReminder(Registration $registration)
     {
-        if ($registration->stay_status !== 'reserved' || !$registration->pre_arrival_token) {
+        if ($registration->stay_status !== 'reserved' || ! $registration->pre_arrival_token) {
             return back()->with('error', 'This registration is not a valid pre-arrival.');
         }
 
         try {
-            $messaging = app(\Modules\Frontdeskcrm\Services\GuestMessagingService::class);
+            $messaging = app(GuestMessagingService::class);
             $result = $messaging->sendFromTemplate($registration, 'pre_arrival_reminder', 'email');
 
             if ($result) {
@@ -136,11 +142,12 @@ class PreArrivalDashboardController extends Controller
 
             return back()->with('error', 'No pre-arrival reminder template found. Please seed the message templates.');
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to send pre-arrival reminder', [
+            Log::error('Failed to send pre-arrival reminder', [
                 'registration_id' => $registration->id,
                 'error' => $e->getMessage(),
             ]);
-            return back()->with('error', 'Failed to send reminder: ' . $e->getMessage());
+
+            return back()->with('error', 'Failed to send reminder: '.$e->getMessage());
         }
     }
 }

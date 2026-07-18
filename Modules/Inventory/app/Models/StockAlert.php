@@ -2,12 +2,15 @@
 
 namespace Modules\Inventory\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockAlert extends Model
 {
-    protected $fillable = ['item_id', 'store_id', 'type', 'severity', 'message', 'sent', 'sent_at', 'resolved', 'resolved_at'];
+    use HasProperty;
+
+    protected $fillable = ['item_id', 'store_id', 'type', 'severity', 'message', 'sent', 'sent_at', 'resolved', 'resolved_at', 'property_id'];
 
     protected function casts(): array
     {

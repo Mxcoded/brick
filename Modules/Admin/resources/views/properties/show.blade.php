@@ -10,8 +10,16 @@
             <p class="text-muted mb-0">{{ $property->city }}{{ $property->city && $property->state ? ', ' : '' }}{{ $property->state }}</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('frontdesk.properties.edit', $property) }}" class="btn btn-outline-secondary"><i class="fas fa-edit me-1"></i> Edit</a>
-            <a href="{{ route('frontdesk.properties.index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Back</a>
+            @if(! $property->is_headquarters)
+            <form action="{{ route('admin.properties.set-hq', $property) }}" method="POST" onsubmit="return confirm('Set this property as the headquarters? This will replace the current HQ.')" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-outline-warning"><i class="fas fa-star me-1"></i> Set as HQ</button>
+            </form>
+            @else
+            <span class="btn btn-outline-primary disabled"><i class="fas fa-star me-1"></i> Headquarters</span>
+            @endif
+            <a href="{{ route('admin.properties.edit', $property) }}" class="btn btn-outline-secondary"><i class="fas fa-edit me-1"></i> Edit</a>
+            <a href="{{ route('admin.properties.index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Back</a>
         </div>
     </div>
 
@@ -54,7 +62,7 @@
                     @else
                     <p class="text-muted mb-0">No users assigned.</p>
                     @endif
-                    <a href="{{ route('frontdesk.properties.users', $property) }}" class="btn btn-sm btn-outline-primary mt-3">Manage Users</a>
+                    <a href="{{ route('admin.properties.users', $property) }}" class="btn btn-sm btn-outline-primary mt-3">Manage Users</a>
                 </div>
             </div>
         </div>

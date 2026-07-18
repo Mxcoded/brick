@@ -2,18 +2,19 @@
 
 namespace Modules\Restaurant\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MenuCategory extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasProperty, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
      */
-    protected $fillable = ['name', 'parent_id'];
+    protected $fillable = ['name', 'parent_id', 'property_id'];
 
     protected $table = 'restaurant_menu_categories';
 

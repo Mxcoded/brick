@@ -34,13 +34,13 @@ class PreArrivalController extends Controller
             $request->contact
         );
 
-        if (!$registration) {
+        if (! $registration) {
             return back()->withErrors([
                 'reservation_code' => 'No upcoming reservation found with those details.',
             ])->withInput();
         }
 
-        if (!$registration->pre_arrival_token) {
+        if (! $registration->pre_arrival_token) {
             $this->preArrival->generateToken($registration);
         }
 
@@ -53,7 +53,7 @@ class PreArrivalController extends Controller
     {
         $registration = $this->preArrival->lookupByToken($token);
 
-        if (!$registration) {
+        if (! $registration) {
             return redirect()->route('guest.pre-arrival')
                 ->with('error', 'This pre-arrival link is invalid or expired.');
         }
@@ -169,12 +169,12 @@ class PreArrivalController extends Controller
 
     private function setSessionToken(Registration $registration): void
     {
-        session(['pre_arrival_token_' . $registration->id => $registration->pre_arrival_token]);
+        session(['pre_arrival_token_'.$registration->id => $registration->pre_arrival_token]);
     }
 
     private function authorizeAccess(Registration $registration): void
     {
-        $allowedToken = session('pre_arrival_token_' . $registration->id);
+        $allowedToken = session('pre_arrival_token_'.$registration->id);
 
         abort_unless(
             $allowedToken && $allowedToken === $registration->pre_arrival_token,

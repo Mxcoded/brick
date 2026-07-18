@@ -8,7 +8,6 @@ use App\Models\RoomUnit;
 use App\Services\BookingEngine;
 use App\Services\PropertyService;
 use App\Values\BookingEngineRequest;
-use Carbon\Carbon;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Tests\ModuleTestCase;
 use Modules\Website\Models\Booking;
@@ -16,8 +15,11 @@ use Modules\Website\Models\Booking;
 class BookingEngineTest extends ModuleTestCase
 {
     private BookingEngine $engine;
+
     private Property $property;
+
     private RoomType $roomType;
+
     private RoomUnit $roomUnit;
 
     protected function setUp(): void

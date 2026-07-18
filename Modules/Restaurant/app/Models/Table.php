@@ -2,6 +2,7 @@
 
 namespace Modules\Restaurant\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,12 +10,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Table extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     /**
      * The attributes that are mass assignable.
      */
-    protected $fillable = ['number', 'capacity', 'section'];
+    protected $fillable = ['number', 'capacity', 'section', 'property_id'];
 
     protected $table = 'restaurant_tables';
 

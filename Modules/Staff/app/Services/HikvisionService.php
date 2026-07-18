@@ -3,6 +3,7 @@
 namespace Modules\Staff\Services;
 
 use Carbon\Carbon;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -46,7 +47,7 @@ class HikvisionService
         return "http://{$this->ip}:{$this->port}";
     }
 
-    protected function http(): \Illuminate\Http\Client\PendingRequest
+    protected function http(): PendingRequest
     {
         return Http::timeout($this->timeout)
             ->withOptions([

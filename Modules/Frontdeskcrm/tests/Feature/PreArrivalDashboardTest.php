@@ -16,8 +16,11 @@ use Modules\Frontdeskcrm\Tests\ModuleTestCase;
 class PreArrivalDashboardTest extends ModuleTestCase
 {
     private Property $property;
+
     private RoomType $roomType;
+
     private Guest $guest;
+
     private Registration $registration;
 
     protected function setUp(): void
@@ -58,7 +61,7 @@ class PreArrivalDashboardTest extends ModuleTestCase
             'total_amount' => 50000,
             'agreed_to_policies' => true,
             'registration_date' => now()->format('Y-m-d'),
-            'pre_arrival_token' => 'test-token-' . str()->random(20),
+            'pre_arrival_token' => 'test-token-'.str()->random(20),
         ]);
 
         $this->createAuthenticatedUser();
@@ -160,7 +163,7 @@ class PreArrivalDashboardTest extends ModuleTestCase
         Storage::fake('public');
 
         $file = UploadedFile::fake()->image('passport.jpg');
-        $path = $file->store('guest-documents/' . $this->registration->id, 'public');
+        $path = $file->store('guest-documents/'.$this->registration->id, 'public');
 
         $document = GuestDocument::create([
             'registration_id' => $this->registration->id,
@@ -188,7 +191,7 @@ class PreArrivalDashboardTest extends ModuleTestCase
         Storage::fake('public');
 
         $file = UploadedFile::fake()->image('bad_id.jpg');
-        $path = $file->store('guest-documents/' . $this->registration->id, 'public');
+        $path = $file->store('guest-documents/'.$this->registration->id, 'public');
 
         $document = GuestDocument::create([
             'registration_id' => $this->registration->id,
@@ -218,7 +221,7 @@ class PreArrivalDashboardTest extends ModuleTestCase
         Storage::fake('public');
 
         $file = UploadedFile::fake()->image('id.jpg');
-        $path = $file->store('guest-documents/' . $this->registration->id, 'public');
+        $path = $file->store('guest-documents/'.$this->registration->id, 'public');
 
         $document = GuestDocument::create([
             'registration_id' => $this->registration->id,
@@ -265,7 +268,7 @@ class PreArrivalDashboardTest extends ModuleTestCase
         $response = $this->post(route('frontdesk.pre-arrivals.send-reminder', $this->registration));
 
         $response->assertSessionHas('error');
-        $response->assertSessionHas('error', fn($msg) => str_contains($msg, 'No pre-arrival reminder template'));
+        $response->assertSessionHas('error', fn ($msg) => str_contains($msg, 'No pre-arrival reminder template'));
     }
 
     public function test_send_reminder_invalid_registration(): void

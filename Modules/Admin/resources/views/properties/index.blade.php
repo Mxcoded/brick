@@ -9,7 +9,7 @@
             <h4 class="mb-1 fw-bold"><i class="fas fa-building me-2"></i>Properties</h4>
             <p class="text-muted mb-0">Manage multi-property hotels and branches</p>
         </div>
-        <a href="{{ route('frontdesk.properties.create') }}" class="btn btn-primary fw-bold">
+        <a href="{{ route('admin.properties.create') }}" class="btn btn-primary fw-bold">
             <i class="fas fa-plus me-1"></i> Add Property
         </a>
     </div>
@@ -56,11 +56,17 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-1">
-                                    <a href="{{ route('frontdesk.properties.show', $property) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
-                                    <a href="{{ route('frontdesk.properties.edit', $property) }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
-                                    <a href="{{ route('frontdesk.properties.users', $property) }}" class="btn btn-sm btn-outline-info"><i class="fas fa-users"></i></a>
-                                    @if(!$property->is_headquarters)
-                                    <form action="{{ route('frontdesk.properties.destroy', $property) }}" method="POST" onsubmit="return confirm('Delete this property?')" class="d-inline">
+                                    <a href="{{ route('admin.properties.show', $property) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a>
+                                    <a href="{{ route('admin.properties.edit', $property) }}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
+                                    <a href="{{ route('admin.properties.users', $property) }}" class="btn btn-sm btn-outline-info"><i class="fas fa-users"></i></a>
+                                    @if(! $property->is_headquarters)
+                                    <form action="{{ route('admin.properties.set-hq', $property) }}" method="POST" onsubmit="return confirm('Set as headquarters?')" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-warning" title="Set as HQ"><i class="fas fa-star"></i></button>
+                                    </form>
+                                    @endif
+                                    @if(! $property->is_headquarters)
+                                    <form action="{{ route('admin.properties.destroy', $property) }}" method="POST" onsubmit="return confirm('Delete this property?')" class="d-inline">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                     </form>

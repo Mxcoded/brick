@@ -9,7 +9,7 @@
             <h4 class="mb-1 fw-bold"><i class="fas fa-users me-2"></i>Manage Users</h4>
             <p class="text-muted mb-0">{{ $property->name }}</p>
         </div>
-        <a href="{{ route('frontdesk.properties.show', $property) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Back</a>
+        <a href="{{ route('admin.properties.show', $property) }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Back</a>
     </div>
 
     @if(session('success'))
@@ -42,7 +42,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <form action="{{ route('frontdesk.properties.removeUser', [$property, $user]) }}" method="POST" onsubmit="return confirm('Remove this user?')" class="d-inline">
+                                        <form action="{{ route('admin.properties.removeUser', [$property, $user]) }}" method="POST" onsubmit="return confirm('Remove this user?')" class="d-inline">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-times"></i></button>
                                         </form>
@@ -63,7 +63,7 @@
                 <div class="card-header bg-white border-0 py-3 fw-bold">Add User</div>
                 <div class="card-body">
                     @if($users->isNotEmpty())
-                    <form action="{{ route('frontdesk.properties.assignUser', $property) }}" method="POST" class="row g-3">
+                    <form action="{{ route('admin.properties.assignUser', $property) }}" method="POST" class="row g-3">
                         @csrf
                         <div class="col-12">
                             <label class="form-label">Select User</label>

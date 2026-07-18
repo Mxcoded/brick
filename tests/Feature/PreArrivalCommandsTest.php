@@ -18,7 +18,9 @@ class PreArrivalCommandsTest extends TestCase
     use RefreshDatabase;
 
     private Property $property;
+
     private RoomType $roomType;
+
     private Guest $guest;
 
     protected function setUp(): void
@@ -45,7 +47,7 @@ class PreArrivalCommandsTest extends TestCase
             'guest_id' => $this->guest->id,
             'room_type_id' => $this->roomType->id,
             'stay_status' => 'reserved',
-            'reservation_code' => 'CMD-' . str()->random(8),
+            'reservation_code' => 'CMD-'.str()->random(8),
             'check_in' => Carbon::tomorrow()->format('Y-m-d'),
             'check_out' => Carbon::tomorrow()->addDays(2)->format('Y-m-d'),
             'property_id' => $this->property->id,
@@ -58,7 +60,7 @@ class PreArrivalCommandsTest extends TestCase
             'total_amount' => 40000,
             'agreed_to_policies' => true,
             'registration_date' => now()->format('Y-m-d'),
-            'pre_arrival_token' => 'cmd-token-' . str()->random(20),
+            'pre_arrival_token' => 'cmd-token-'.str()->random(20),
         ], $overrides));
     }
 

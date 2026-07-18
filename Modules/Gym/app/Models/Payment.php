@@ -2,6 +2,7 @@
 
 namespace Modules\Gym\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     /**
      * The attributes that are mass assignable.
@@ -22,6 +23,7 @@ class Payment extends Model
         'payment_mode',
         'payment_type',
         'remaining_balance',
+        'property_id',
     ];
 
     protected $casts = [

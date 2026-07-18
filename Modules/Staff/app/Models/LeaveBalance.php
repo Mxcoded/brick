@@ -2,6 +2,7 @@
 
 namespace Modules\Staff\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class LeaveBalance extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     /**
      * The attributes that are mass assignable.
@@ -20,6 +21,7 @@ class LeaveBalance extends Model
         'total_days',
         'used_days',
         'year',
+        'property_id',
     ];
 
     public function employee()

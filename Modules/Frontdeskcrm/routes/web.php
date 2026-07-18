@@ -10,7 +10,6 @@ use Modules\Frontdeskcrm\Http\Controllers\GuestController;
 use Modules\Frontdeskcrm\Http\Controllers\GuestTypeController;
 use Modules\Frontdeskcrm\Http\Controllers\KioskController;
 use Modules\Frontdeskcrm\Http\Controllers\NightAuditController;
-use Modules\Frontdeskcrm\Http\Controllers\PropertyController;
 use Modules\Frontdeskcrm\Http\Controllers\PreArrivalDashboardController;
 use Modules\Frontdeskcrm\Http\Controllers\RateCalendarController;
 use Modules\Frontdeskcrm\Http\Controllers\RateCodeController;
@@ -205,21 +204,6 @@ Route::prefix('frontdesk')
             Route::get('/forecast', [ReportController::class, 'forecast'])->name('forecast');
             Route::get('/sources', [ReportController::class, 'sources'])->name('sources');
             Route::get('/demographics', [ReportController::class, 'demographics'])->name('demographics');
-        });
-
-        // --- PROPERTIES (Multi-Property) ---
-        Route::prefix('properties')->name('properties.')->group(function () {
-            Route::get('/', [PropertyController::class, 'index'])->name('index');
-            Route::get('/create', [PropertyController::class, 'create'])->name('create');
-            Route::post('/', [PropertyController::class, 'store'])->name('store');
-            Route::get('/{property}', [PropertyController::class, 'show'])->name('show');
-            Route::get('/{property}/edit', [PropertyController::class, 'edit'])->name('edit');
-            Route::put('/{property}', [PropertyController::class, 'update'])->name('update');
-            Route::delete('/{property}', [PropertyController::class, 'destroy'])->name('destroy');
-            Route::post('/{property}/switch', [PropertyController::class, 'switch'])->name('switch');
-            Route::get('/{property}/users', [PropertyController::class, 'manageUsers'])->name('users');
-            Route::post('/{property}/users', [PropertyController::class, 'assignUser'])->name('assignUser');
-            Route::delete('/{property}/users/{user}', [PropertyController::class, 'removeUser'])->name('removeUser');
         });
 
         // --- CITY LEDGER (Corporate Accounts) ---

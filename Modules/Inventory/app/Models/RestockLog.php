@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,9 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RestockLog extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
-    protected $fillable = ['item_id', 'store_id', 'quantity', 'total_cost', 'lot_number', 'restocked_by', 'restocked_by_id'];
+    protected $fillable = ['item_id', 'store_id', 'quantity', 'total_cost', 'lot_number', 'restocked_by', 'restocked_by_id', 'property_id'];
 
     public function item(): BelongsTo
     {

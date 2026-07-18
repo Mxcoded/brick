@@ -2,25 +2,38 @@
 
 namespace App\Values;
 
-use Illuminate\Support\Carbon;
-
 class BookingEngineRequest
 {
     public ?int $propertyId;
+
     public string $guestName;
+
     public string $guestEmail;
+
     public string $guestPhone;
+
     public ?string $guestGender;
+
     public ?string $guestAddress;
+
     public ?string $guestNationality;
+
     public ?string $guestDob;
+
     public ?string $guestIdType;
+
     public ?string $guestIdNumber;
+
     public ?int $userId;
+
     public ?int $guestProfileId;
+
     public string $paymentMethod;
+
     public ?string $specialRequests;
+
     public array $rooms;
+
     public ?string $bookingGroupId;
 
     public function __construct(array $data)

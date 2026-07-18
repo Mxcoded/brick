@@ -5,13 +5,13 @@ namespace Modules\Frontdeskcrm\Tests\Feature;
 use App\Models\RoomType;
 use App\Models\RoomUnit;
 use App\Models\User;
-use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Tests\ModuleTestCase;
 
 class GroupBookingTest extends ModuleTestCase
 {
     private User $user;
+
     private string $groupId;
 
     protected function setUp(): void

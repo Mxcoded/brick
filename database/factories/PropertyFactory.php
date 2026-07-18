@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Models\Property;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 class PropertyFactory extends Factory
 {
-    protected $model = \App\Models\Property::class;
+    protected $model = Property::class;
 
     public function definition(): array
     {
@@ -30,6 +31,6 @@ class PropertyFactory extends Factory
 
     public function headquarters(): static
     {
-        return $this->state(fn() => ['is_headquarters' => true]);
+        return $this->state(fn () => ['is_headquarters' => true]);
     }
 }

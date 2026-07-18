@@ -2,6 +2,7 @@
 
 namespace Modules\Gym\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SubscriptionConfig extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     /**
      * The attributes that are mass assignable.
@@ -20,6 +21,7 @@ class SubscriptionConfig extends Model
         'six_months_fee',
         'yearly_fee',
         'session_fee',
+        'property_id',
     ];
 
     /**

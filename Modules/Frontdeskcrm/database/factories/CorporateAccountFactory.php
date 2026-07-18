@@ -2,9 +2,7 @@
 
 namespace Modules\Frontdeskcrm\Database\Factories;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Modules\Frontdeskcrm\Models\CityLedgerTransaction;
 use Modules\Frontdeskcrm\Models\CorporateAccount;
 
 class CorporateAccountFactory extends Factory

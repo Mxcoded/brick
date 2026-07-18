@@ -2,13 +2,14 @@
 
 namespace Modules\Banquet\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class BanquetOrder extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     /**
      * The attributes that are mass assignable.
@@ -16,6 +17,7 @@ class BanquetOrder extends Model
      * @var array<string>
      */
     protected $fillable = [
+        'property_id',
         'order_id',
         'preparation_date',
         'customer_id',

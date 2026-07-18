@@ -2,6 +2,7 @@
 
 namespace Modules\Gym\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Member extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     /**
      * The attributes that are mass assignable.
@@ -27,6 +28,7 @@ class Member extends Model
         'emergency_contact_number',
         'medical_conditions',
         'fitness_goals',
+        'property_id',
     ];
 
     protected $casts = [

@@ -7,7 +7,6 @@ use App\Models\RoomUnit;
 use App\Models\User;
 use Modules\Frontdeskcrm\Models\ChargeType;
 use Modules\Frontdeskcrm\Models\Registration;
-use Modules\Frontdeskcrm\Models\RegistrationPayment;
 use Modules\Frontdeskcrm\Tests\ModuleTestCase;
 
 class UpgradeTest extends ModuleTestCase

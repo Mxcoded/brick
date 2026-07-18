@@ -2,12 +2,15 @@
 
 namespace Modules\Staff\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
 
 class Shift extends Model
 {
+    use HasProperty;
+
     protected $fillable = [
-        'name', 'start_time', 'end_time', 'grace_minutes', 'description', 'is_active',
+        'name', 'start_time', 'end_time', 'grace_minutes', 'description', 'is_active', 'property_id',
     ];
 
     protected function casts(): array

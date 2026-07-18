@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseOrder extends Model
 {
-    protected $fillable = ['po_number', 'supplier_id', 'store_id', 'status', 'notes', 'created_by', 'approved_by', 'approved_at', 'cancellation_reason', 'cancelled_by', 'cancelled_at'];
+    use HasProperty;
+
+    protected $fillable = ['po_number', 'supplier_id', 'store_id', 'status', 'notes', 'created_by', 'approved_by', 'approved_at', 'cancellation_reason', 'cancelled_by', 'cancelled_at', 'property_id'];
 
     public function supplier(): BelongsTo
     {

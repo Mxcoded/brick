@@ -1,12 +1,12 @@
 <?php
 
-namespace Modules\Frontdeskcrm\Http\Controllers;
+namespace Modules\Admin\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\PropertyService;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,12 +17,12 @@ class PropertyController extends Controller
     {
         $properties = Property::withCount('users')->latest()->get();
 
-        return view('frontdeskcrm::properties.index', compact('properties'));
+        return view('admin::properties.index', compact('properties'));
     }
 
     public function create()
     {
-        return view('frontdeskcrm::properties.create');
+        return view('admin::properties.create');
     }
 
     public function store(Request $request)
@@ -48,7 +48,6 @@ class PropertyController extends Controller
 
         Auth::user()->properties()->attach($property->id, ['is_default' => true]);
 
-        // Clone master data from selected source property
         if ($request->filled('clone_from')) {
             $source = Property::find($request->clone_from);
             if ($source) {
@@ -56,7 +55,7 @@ class PropertyController extends Controller
             }
         }
 
-        return redirect()->route('frontdesk.properties.index')
+        return redirect()->route('admin.properties.index')
             ->with('success', "Property \"{$property->name}\" created successfully.");
     }
 
@@ -65,12 +64,12 @@ class PropertyController extends Controller
         $property->loadCount('users');
         $recentUsers = $property->users()->latest('property_user.created_at')->take(10)->get();
 
-        return view('frontdeskcrm::properties.show', compact('property', 'recentUsers'));
+        return view('admin::properties.show', compact('property', 'recentUsers'));
     }
 
     public function edit(Property $property)
     {
-        return view('frontdeskcrm::properties.edit', compact('property'));
+        return view('admin::properties.edit', compact('property'));
     }
 
     public function update(Request $request, Property $property)
@@ -94,7 +93,7 @@ class PropertyController extends Controller
 
         $property->update($data);
 
-        return redirect()->route('frontdesk.properties.index')
+        return redirect()->route('admin.properties.index')
             ->with('success', "Property \"{$property->name}\" updated.");
     }
 
@@ -106,8 +105,21 @@ class PropertyController extends Controller
 
         $property->delete();
 
-        return redirect()->route('frontdesk.properties.index')
+        return redirect()->route('admin.properties.index')
             ->with('success', 'Property deleted.');
+    }
+
+    public function setHeadquarters(Property $property)
+    {
+        if ($property->is_headquarters) {
+            return back()->with('info', 'This property is already the headquarters.');
+        }
+
+        Property::where('is_headquarters', true)->update(['is_headquarters' => false]);
+
+        $property->update(['is_headquarters' => true]);
+
+        return back()->with('success', "\"{$property->name}\" is now the headquarters.");
     }
 
     public function switch(Property $property, PropertyService $service)
@@ -121,13 +133,20 @@ class PropertyController extends Controller
         return redirect()->back()->with('success', "Switched to \"{$property->name}\".");
     }
 
+    public function switchAll(PropertyService $service)
+    {
+        $service->setAll();
+
+        return redirect()->back()->with('success', 'Viewing all properties.');
+    }
+
     public function manageUsers(Property $property)
     {
         $assignedUserIds = $property->users->pluck('id')->toArray();
         $users = User::whereDoesntHave('properties', fn ($q) => $q->where('property_id', $property->id))
             ->orderBy('name')->get();
 
-        return view('frontdeskcrm::properties.users', compact('property', 'users', 'assignedUserIds'));
+        return view('admin::properties.users', compact('property', 'users', 'assignedUserIds'));
     }
 
     public function assignUser(Request $request, Property $property)

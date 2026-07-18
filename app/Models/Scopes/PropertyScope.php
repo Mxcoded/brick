@@ -12,7 +12,20 @@ class PropertyScope implements Scope
 {
     public function apply(Builder $builder, Model $model): void
     {
-        $propertyId = App::make(PropertyService::class)->id();
+        $service = App::make(PropertyService::class);
+
+        if ($service->isViewingAll()) {
+            $ids = $service->idsForUser();
+            if ($ids) {
+                $builder->whereIn($model->getTable().'.property_id', $ids);
+            } else {
+                $builder->whereRaw('1 = 0');
+            }
+
+            return;
+        }
+
+        $propertyId = $service->id();
         if ($propertyId) {
             $builder->where($model->getTable().'.property_id', $propertyId);
         }

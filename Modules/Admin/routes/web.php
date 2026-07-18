@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\LoginLogController;
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AdminController;
+use Modules\Admin\Http\Controllers\PropertyController;
 
 // Import the Enum
 
@@ -52,6 +53,23 @@ Route::prefix('admin')
         Route::post('/modules/{name}/toggle', [AdminController::class, 'toggleModule'])->name('modules.toggle');
 
         Route::get('/activity-logs', [AdminController::class, 'activityLogs'])->name('activity-logs.index');
+
+        // --- PROPERTIES (Multi-Property) ---
+        Route::prefix('properties')->name('properties.')->group(function () {
+            Route::get('/', [PropertyController::class, 'index'])->name('index');
+            Route::get('/create', [PropertyController::class, 'create'])->name('create');
+            Route::post('/', [PropertyController::class, 'store'])->name('store');
+            Route::get('/{property}', [PropertyController::class, 'show'])->name('show');
+            Route::get('/{property}/edit', [PropertyController::class, 'edit'])->name('edit');
+            Route::put('/{property}', [PropertyController::class, 'update'])->name('update');
+            Route::delete('/{property}', [PropertyController::class, 'destroy'])->name('destroy');
+            Route::post('/{property}/switch', [PropertyController::class, 'switch'])->name('switch');
+            Route::post('/switch-all', [PropertyController::class, 'switchAll'])->name('switch-all');
+            Route::post('/{property}/set-hq', [PropertyController::class, 'setHeadquarters'])->name('set-hq');
+            Route::get('/{property}/users', [PropertyController::class, 'manageUsers'])->name('users');
+            Route::post('/{property}/users', [PropertyController::class, 'assignUser'])->name('assignUser');
+            Route::delete('/{property}/users/{user}', [PropertyController::class, 'removeUser'])->name('removeUser');
+        });
 
         Route::get('/appearance', [AdminController::class, 'appearance'])->name('appearance');
         Route::put('/appearance', [AdminController::class, 'updateAppearance'])->name('appearance.update');

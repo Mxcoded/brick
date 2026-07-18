@@ -9,25 +9,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('restaurant_orders', function (Blueprint $table) {
-            if (!Schema::hasColumn('restaurant_orders', 'shift_id')) {
+            if (! Schema::hasColumn('restaurant_orders', 'shift_id')) {
                 $table->unsignedBigInteger('shift_id')->nullable()->after('id');
             }
-            if (!Schema::hasColumn('restaurant_orders', 'subtotal')) {
+            if (! Schema::hasColumn('restaurant_orders', 'subtotal')) {
                 $table->decimal('subtotal', 12, 2)->default(0)->after('tracking_status');
             }
-            if (!Schema::hasColumn('restaurant_orders', 'discount')) {
+            if (! Schema::hasColumn('restaurant_orders', 'discount')) {
                 $table->decimal('discount', 12, 2)->default(0)->after('subtotal');
             }
-            if (!Schema::hasColumn('restaurant_orders', 'discount_type')) {
+            if (! Schema::hasColumn('restaurant_orders', 'discount_type')) {
                 $table->string('discount_type')->nullable()->after('discount');
             }
-            if (!Schema::hasColumn('restaurant_orders', 'vat')) {
+            if (! Schema::hasColumn('restaurant_orders', 'vat')) {
                 $table->decimal('vat', 12, 2)->default(0)->after('discount_type');
             }
-            if (!Schema::hasColumn('restaurant_orders', 'vat_rate')) {
+            if (! Schema::hasColumn('restaurant_orders', 'vat_rate')) {
                 $table->decimal('vat_rate', 5, 2)->default(0)->after('vat');
             }
-            if (!Schema::hasColumn('restaurant_orders', 'grand_total')) {
+            if (! Schema::hasColumn('restaurant_orders', 'grand_total')) {
                 $table->decimal('grand_total', 12, 2)->default(0)->after('vat_rate');
             }
         });

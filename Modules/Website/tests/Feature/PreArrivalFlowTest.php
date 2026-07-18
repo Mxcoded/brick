@@ -13,7 +13,9 @@ use Modules\Website\Tests\WebsiteModuleTestCase;
 class PreArrivalFlowTest extends WebsiteModuleTestCase
 {
     private Guest $guest;
+
     private Registration $registration;
+
     private PreArrivalService $preArrival;
 
     protected function setUp(): void
@@ -126,7 +128,7 @@ class PreArrivalFlowTest extends WebsiteModuleTestCase
         $this->registration->update(['stay_status' => 'reserved']);
         $this->preArrival->generateToken($this->registration);
         $this->withSession([
-            'pre_arrival_token_' . $this->registration->id => $this->registration->pre_arrival_token,
+            'pre_arrival_token_'.$this->registration->id => $this->registration->pre_arrival_token,
         ]);
 
         $response = $this->get(route('guest.pre-arrival.details', $this->registration));
@@ -140,7 +142,7 @@ class PreArrivalFlowTest extends WebsiteModuleTestCase
         $this->registration->update(['stay_status' => 'reserved']);
         $this->preArrival->generateToken($this->registration);
         $this->withSession([
-            'pre_arrival_token_' . $this->registration->id => $this->registration->pre_arrival_token,
+            'pre_arrival_token_'.$this->registration->id => $this->registration->pre_arrival_token,
         ]);
 
         $response = $this->put(route('guest.pre-arrival.update-details', $this->registration), [
@@ -161,7 +163,7 @@ class PreArrivalFlowTest extends WebsiteModuleTestCase
         $this->registration->update(['stay_status' => 'reserved']);
         $this->preArrival->generateToken($this->registration);
         $this->withSession([
-            'pre_arrival_token_' . $this->registration->id => $this->registration->pre_arrival_token,
+            'pre_arrival_token_'.$this->registration->id => $this->registration->pre_arrival_token,
         ]);
 
         $file = UploadedFile::fake()->image('passport.jpg');
@@ -190,7 +192,7 @@ class PreArrivalFlowTest extends WebsiteModuleTestCase
         $this->registration->update(['stay_status' => 'reserved']);
         $this->preArrival->generateToken($this->registration);
         $this->withSession([
-            'pre_arrival_token_' . $this->registration->id => $this->registration->pre_arrival_token,
+            'pre_arrival_token_'.$this->registration->id => $this->registration->pre_arrival_token,
         ]);
 
         $this->put(route('guest.pre-arrival.update-details', $this->registration), [
@@ -210,7 +212,7 @@ class PreArrivalFlowTest extends WebsiteModuleTestCase
         ]);
 
         $response = $this->post(route('guest.pre-arrival.submit-signature', $this->registration), [
-            'signature' => 'data:image/png;base64,' . base64_encode('fake-signature-content'),
+            'signature' => 'data:image/png;base64,'.base64_encode('fake-signature-content'),
         ]);
 
         $response->assertRedirect(route('guest.pre-arrival.confirmation', $this->registration));

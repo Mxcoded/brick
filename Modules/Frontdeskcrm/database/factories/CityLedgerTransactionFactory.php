@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Modules\Frontdeskcrm\Models\CityLedgerTransaction;
 use Modules\Frontdeskcrm\Models\CorporateAccount;
-use Modules\Frontdeskcrm\Models\Registration;
 
 class CityLedgerTransactionFactory extends Factory
 {
@@ -29,11 +28,11 @@ class CityLedgerTransactionFactory extends Factory
 
     public function charge(): static
     {
-        return $this->state(fn() => ['type' => 'charge']);
+        return $this->state(fn () => ['type' => 'charge']);
     }
 
     public function payment(): static
     {
-        return $this->state(fn() => ['type' => 'payment']);
+        return $this->state(fn () => ['type' => 'payment']);
     }
 }

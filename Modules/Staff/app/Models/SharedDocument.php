@@ -2,6 +2,7 @@
 
 namespace Modules\Staff\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,8 @@ use Illuminate\Support\Str;
 
 class SharedDocument extends Model
 {
+    use HasProperty;
+
     protected $fillable = [
         'filename',
         'file_path',
@@ -20,6 +23,7 @@ class SharedDocument extends Model
         'uploaded_by',
         'downloads_count',
         'share_token',
+        'property_id',
     ];
 
     protected static function booted(): void

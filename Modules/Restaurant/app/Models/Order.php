@@ -3,6 +3,7 @@
 namespace Modules\Restaurant\Models;
 
 use App\Models\Room;
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     const STATUS_PENDING = 'pending';
 
@@ -34,6 +35,7 @@ class Order extends Model
         'vat',
         'vat_rate',
         'grand_total',
+        'property_id',
     ];
 
     protected $table = 'restaurant_orders';

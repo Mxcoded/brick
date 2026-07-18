@@ -2,12 +2,16 @@
 
 namespace Modules\Maintenance\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class MaintenanceReading extends Model
 {
+    use HasProperty;
+
     protected $fillable = [
+        'property_id',
         'reading_date',
         'reading_type',
         'category',

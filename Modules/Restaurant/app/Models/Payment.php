@@ -2,10 +2,13 @@
 
 namespace Modules\Restaurant\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
+    use HasProperty;
+
     protected $table = 'restaurant_payments';
 
     protected $fillable = [
@@ -17,6 +20,7 @@ class Payment extends Model
         'status',
         'paid_at',
         'notes',
+        'property_id',
     ];
 
     protected function casts(): array

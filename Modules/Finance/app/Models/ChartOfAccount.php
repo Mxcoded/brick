@@ -2,6 +2,7 @@
 
 namespace Modules\Finance\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,11 +10,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ChartOfAccount extends Model
 {
-    use SoftDeletes;
+    use HasProperty, SoftDeletes;
 
     protected $table = 'finance_chart_of_accounts';
 
     protected $fillable = [
+        'property_id',
         'code',
         'name',
         'type',

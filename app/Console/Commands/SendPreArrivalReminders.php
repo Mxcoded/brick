@@ -9,6 +9,7 @@ use Modules\Frontdeskcrm\Services\GuestMessagingService;
 class SendPreArrivalReminders extends Command
 {
     protected $signature = 'hotel:send-pre-arrival-reminders';
+
     protected $description = 'Sends pre-arrival email reminders to guests with upcoming reservations';
 
     public function handle(GuestMessagingService $messaging): int
@@ -17,13 +18,14 @@ class SendPreArrivalReminders extends Command
 
         $registrations = Registration::whereNull('pre_arrival_completed_at')
             ->whereIn('stay_status', ['reserved'])
-            ->whereHas('guest', fn($q) => $q->whereNotNull('email'))
+            ->whereHas('guest', fn ($q) => $q->whereNotNull('email'))
             ->where('check_in', '>=', now()->subDay())
             ->where('check_in', '<=', now()->addDays(3))
             ->get();
 
         if ($registrations->isEmpty()) {
             $this->info('No pending pre-arrivals found.');
+
             return self::SUCCESS;
         }
 
@@ -36,6 +38,7 @@ class SendPreArrivalReminders extends Command
         }
 
         $this->info("Sent {$sent} of {$registrations->count()} pre-arrival reminders.");
+
         return self::SUCCESS;
     }
 }

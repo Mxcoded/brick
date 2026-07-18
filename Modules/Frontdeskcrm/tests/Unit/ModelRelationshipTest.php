@@ -2,15 +2,11 @@
 
 namespace Modules\Frontdeskcrm\Tests\Unit;
 
-use App\Models\RoomType;
-use App\Models\RoomUnit;
-use App\Models\User;
-use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\ChargeType;
 use Modules\Frontdeskcrm\Models\CityLedgerTransaction;
 use Modules\Frontdeskcrm\Models\CorporateAccount;
 use Modules\Frontdeskcrm\Models\FolioCharge;
-use Modules\Frontdeskcrm\Models\LoyaltyPoint;
+use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\NightAudit;
 use Modules\Frontdeskcrm\Models\NightAuditLog;
 use Modules\Frontdeskcrm\Models\RateCode;

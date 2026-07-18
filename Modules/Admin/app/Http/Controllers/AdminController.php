@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Modules\Banquet\Models\BanquetEnquiry;
 use Modules\Banquet\Models\BanquetOrder;
 use Modules\Banquet\Models\BanquetPayment;
@@ -31,9 +32,7 @@ use Modules\Staff\Models\LeaveRequest;
 use Modules\Tasks\Models\Task;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\ContactMessage;
-use Modules\Website\Models\RoomUnit;
 use Modules\Website\Models\Settings;
-use Illuminate\Support\Facades\Storage;
 use Nwidart\Modules\Facades\Module;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -835,7 +834,7 @@ class AdminController extends Controller
     {
         $logo = Settings::where('key', 'logo')->first();
         if ($logo) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($logo->value);
+            Storage::disk('public')->delete($logo->value);
             $logo->delete();
             cache()->forget('app.logo');
         }

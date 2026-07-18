@@ -6,7 +6,6 @@ use App\Models\Property;
 use App\Models\RoomType;
 use App\Models\RoomUnit;
 use App\Models\Scopes\PropertyScope;
-use App\Services\PropertyService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 use Modules\Website\Models\Amenity;

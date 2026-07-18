@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,9 +15,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Transfer extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
-    protected $fillable = ['from_store_id', 'to_store_id', 'item_id', 'quantity', 'notes'];
+    protected $fillable = ['from_store_id', 'to_store_id', 'item_id', 'quantity', 'notes', 'property_id'];
 
     /**
      * Get the store from which the item was transferred.

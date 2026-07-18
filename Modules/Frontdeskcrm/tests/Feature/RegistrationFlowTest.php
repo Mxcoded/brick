@@ -5,18 +5,21 @@ namespace Modules\Frontdeskcrm\Tests\Feature;
 use App\Models\RoomType;
 use App\Models\RoomUnit;
 use App\Models\User;
-use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\ChargeType;
-use Modules\Frontdeskcrm\Models\NightAudit;
+use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Tests\ModuleTestCase;
 
 class RegistrationFlowTest extends ModuleTestCase
 {
     private User $user;
+
     private Guest $guest;
+
     private ChargeType $chargeType;
+
     private RoomType $roomType;
+
     private RoomUnit $roomUnit;
 
     protected function setUp(): void

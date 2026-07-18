@@ -2,12 +2,13 @@
 
 namespace Modules\Restaurant\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StockItem extends Model
 {
-    use SoftDeletes;
+    use HasProperty, SoftDeletes;
 
     protected $table = 'restaurant_stock_items';
 
@@ -18,6 +19,7 @@ class StockItem extends Model
         'min_stock_level',
         'unit_cost',
         'description',
+        'property_id',
     ];
 
     protected function casts(): array

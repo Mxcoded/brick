@@ -5,6 +5,7 @@ namespace Modules\Frontdeskcrm\Http\Controllers;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\RoomUnit;
+use App\Services\BookingEngine;
 use App\Services\PropertyService;
 use App\Services\RoomAvailabilityService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -16,9 +17,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Modules\Frontdeskcrm\Emails\CheckoutReceiptMail;
 use Modules\Finance\Services\PostingService;
+use Modules\Frontdeskcrm\Emails\CheckoutReceiptMail;
 use Modules\Frontdeskcrm\Emails\RegistrationStatusMail;
 use Modules\Frontdeskcrm\Http\Requests\FinalizeRegistrationRequest;
 use Modules\Frontdeskcrm\Http\Requests\StoreRegistrationRequest;
@@ -833,7 +833,7 @@ class RegistrationController extends Controller
 
         // 2. Delegate registration creation to the BookingEngine
         try {
-            $bookingEngine = app(\App\Services\BookingEngine::class);
+            $bookingEngine = app(BookingEngine::class);
             $registration = $bookingEngine->createRegistration(array_merge($request->validated(), [
                 'room_unit_id' => $resolvedRoomUnitId,
                 'room_id' => $resolvedRoomId,

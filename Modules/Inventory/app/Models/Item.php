@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,9 +15,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Item extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasProperty, SoftDeletes;
 
-    protected $fillable = ['sku', 'supplier_id', 'description', 'category', 'price', 'unit_of_measurement', 'unit_value', 'photo_path', 'min_stock', 'max_stock'];
+    protected $fillable = ['sku', 'supplier_id', 'description', 'category', 'price', 'unit_of_measurement', 'unit_value', 'photo_path', 'min_stock', 'max_stock', 'property_id'];
 
     /**
      * Get the supplier that owns the item.

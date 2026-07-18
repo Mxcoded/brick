@@ -33,31 +33,49 @@
 
             @auth
             @php
-                $currentProperty = app(\App\Services\PropertyService::class)->current();
+                $propertyService = app(\App\Services\PropertyService::class);
+                $currentProperty = $propertyService->current();
+                $viewingAll = $propertyService->isViewingAll();
                 $userProperties = Auth::user()->properties()->active()->get();
             @endphp
             @if($userProperties->count() > 0)
             <li class="nav-item dropdown me-3">
                 <a class="nav-link dropdown-toggle fw-semibold" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: #333;">
                     <i class="fas fa-building me-1"></i>
-                    {{ $currentProperty?->name ?? 'Select Property' }}
+                    @if($viewingAll)
+                        All Properties
+                    @else
+                        {{ $currentProperty?->name ?? 'Select Property' }}
+                    @endif
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    @if($userProperties->count() > 1)
+                    <li>
+                        <form action="{{ route('admin.properties.switch-all') }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="dropdown-item {{ $viewingAll ? 'active' : '' }}">
+                                <i class="fas fa-check-circle me-2 {{ $viewingAll ? '' : 'invisible' }}"></i>
+                                All Properties
+                            </button>
+                        </form>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    @endif
                     @foreach($userProperties as $property)
                     <li>
-                        <form action="{{ route('frontdesk.properties.switch', $property) }}" method="POST" class="d-inline">
+                        <form action="{{ route('admin.properties.switch', $property) }}" method="POST" class="d-inline">
                             @csrf
-                            <button type="submit" class="dropdown-item {{ $currentProperty?->id === $property->id ? 'active' : '' }}">
-                                <i class="fas fa-check-circle me-2 {{ $currentProperty?->id === $property->id ? '' : 'invisible' }}"></i>
+                            <button type="submit" class="dropdown-item {{ ! $viewingAll && $currentProperty?->id === $property->id ? 'active' : '' }}">
+                                <i class="fas fa-check-circle me-2 {{ ! $viewingAll && $currentProperty?->id === $property->id ? '' : 'invisible' }}"></i>
                                 {{ $property->name }}
                                 @if($property->code)<small class="text-muted ms-1">({{ $property->code }})</small>@endif
                             </button>
                         </form>
                     </li>
                     @endforeach
-                    @can('access_frontdesk_dashboard')
+                    @can('access_admin_dashboard')
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{{ route('frontdesk.properties.index') }}"><i class="fas fa-cog me-2"></i>Manage Properties</a></li>
+                    <li><a class="dropdown-item" href="{{ route('admin.properties.index') }}"><i class="fas fa-cog me-2"></i>Manage Properties</a></li>
                     @endcan
                 </ul>
             </li>

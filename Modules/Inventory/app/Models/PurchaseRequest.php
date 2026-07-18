@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,10 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseRequest extends Model
 {
+    use HasProperty;
+
     protected $fillable = [
         'pr_number', 'requester_id', 'department', 'urgency', 'justification',
         'status', 'current_role', 'gl_code', 'cost_center', 'supplier_id',
-        'invoice_path', 'pricing_details', 'procurement_notes',
+        'invoice_path', 'pricing_details', 'procurement_notes', 'property_id',
     ];
 
     protected function casts(): array

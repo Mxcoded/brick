@@ -2,13 +2,16 @@
 
 namespace Modules\Inventory\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockMovement extends Model
 {
-    protected $fillable = ['item_id', 'store_id', 'type', 'quantity_delta', 'cost_delta', 'reference_type', 'reference_id', 'user_id', 'notes'];
+    use HasProperty;
+
+    protected $fillable = ['item_id', 'store_id', 'type', 'quantity_delta', 'cost_delta', 'reference_type', 'reference_id', 'user_id', 'notes', 'property_id'];
 
     public function item(): BelongsTo
     {

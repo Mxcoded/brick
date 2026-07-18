@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\DetectWebsiteProperty;
 use App\Http\Middleware\LogUserActivity;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\SetPropertyContext;
@@ -25,7 +26,7 @@ return Application::configure(basePath: __DIR__.'/../')
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
-            'website.property' => \App\Http\Middleware\DetectWebsiteProperty::class,
+            'website.property' => DetectWebsiteProperty::class,
             'waiter-auth' => RedirectToWaiterLogin::class,
             'guest' => RedirectIfAuthenticated::class,
             'auth.session' => AuthenticateSession::class,

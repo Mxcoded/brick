@@ -142,11 +142,6 @@
         <i class="fas fa-th fa-fw me-2"></i> Room Schedule
     </a>
 
-    <a href="{{ route('website.admin.rooms.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.rooms.index') || request()->routeIs('website.admin.rooms.create') || request()->routeIs('website.admin.rooms.edit') || request()->routeIs('website.admin.rooms.show') ? 'active' : '' }}">
-        <i class="fas fa-door-open fa-fw me-2"></i> Rooms (Legacy)
-    </a>
-
     <a href="{{ route('website.admin.amenities.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.amenities.*') ? 'active' : '' }}">
         <i class="fas fa-wifi fa-fw me-2"></i> Amenities
@@ -165,10 +160,5 @@
         <i class="fas fa-receipt fa-fw me-2"></i> Charge Types
     </a>
 
-    <a href="{{ route('frontdesk.properties.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.properties.*') ? 'active' : '' }}">
-        <i class="fas fa-building fa-fw me-2"></i> Properties
-    </a>
-
-</div>
+    </div>
 @endcan

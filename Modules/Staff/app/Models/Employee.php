@@ -2,6 +2,7 @@
 
 namespace Modules\Staff\Models;
 
+use App\Models\Traits\HasProperty;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Modules\Tasks\Models\Task;
 
 class Employee extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     /**
      * The attributes that are mass assignable.
@@ -50,6 +51,7 @@ class Employee extends Model
         'staff_code',
         'biometric_pin',
         'user_id',
+        'property_id',
     ];
 
     public function employmentHistories()

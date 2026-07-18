@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('restaurant_tables', function (Blueprint $table) {
-            if (!Schema::hasColumn('restaurant_tables', 'capacity')) {
+            if (! Schema::hasColumn('restaurant_tables', 'capacity')) {
                 $table->integer('capacity')->nullable()->after('number');
             }
-            if (!Schema::hasColumn('restaurant_tables', 'section')) {
+            if (! Schema::hasColumn('restaurant_tables', 'section')) {
                 $table->string('section')->nullable()->after('capacity');
             }
         });
@@ -31,7 +31,7 @@ return new class extends Migration
             if (Schema::hasColumn('restaurant_tables', 'section')) {
                 $columnsToDrop[] = 'section';
             }
-            if (!empty($columnsToDrop)) {
+            if (! empty($columnsToDrop)) {
                 $table->dropColumn($columnsToDrop);
             }
         });

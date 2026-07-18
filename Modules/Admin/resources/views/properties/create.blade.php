@@ -6,12 +6,12 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold"><i class="fas fa-plus-circle me-2"></i>Add Property</h4>
-        <a href="{{ route('frontdesk.properties.index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Back</a>
+        <a href="{{ route('admin.properties.index') }}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i> Back</a>
     </div>
 
     <div class="card border-0 shadow-sm rounded-3">
         <div class="card-body">
-            <form action="{{ route('frontdesk.properties.store') }}" method="POST">
+            <form action="{{ route('admin.properties.store') }}" method="POST">
                 @csrf
                 <div class="row g-3">
                     <div class="col-md-6">

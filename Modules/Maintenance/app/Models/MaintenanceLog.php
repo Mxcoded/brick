@@ -2,15 +2,17 @@
 
 namespace Modules\Maintenance\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class MaintenanceLog extends Model
 {
-    use HasFactory;
+    use HasFactory, HasProperty;
 
     protected $fillable = [
+        'property_id',
         'location',
         'department',
         'priority',

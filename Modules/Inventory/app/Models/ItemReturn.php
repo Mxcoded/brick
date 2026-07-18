@@ -2,12 +2,15 @@
 
 namespace Modules\Inventory\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ItemReturn extends Model
 {
-    protected $fillable = ['item_id', 'store_id', 'department_id', 'quantity_returned', 'reason', 'returned_by', 'received_by', 'reference', 'notes'];
+    use HasProperty;
+
+    protected $fillable = ['item_id', 'store_id', 'department_id', 'quantity_returned', 'reason', 'returned_by', 'received_by', 'reference', 'notes', 'property_id'];
 
     public function item(): BelongsTo
     {

@@ -2,9 +2,9 @@
 
 namespace Modules\Frontdeskcrm\Database\Factories;
 
-use Modules\Frontdeskcrm\Models\Guest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
 
 class RegistrationFactory extends Factory
@@ -35,12 +35,12 @@ class RegistrationFactory extends Factory
 
     public function pending(): static
     {
-        return $this->state(fn() => ['stay_status' => 'draft_by_guest']);
+        return $this->state(fn () => ['stay_status' => 'draft_by_guest']);
     }
 
     public function checkedIn(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'stay_status' => 'checked_in',
             'checked_in_at' => now(),
             'front_desk_agent' => fake()->name,
@@ -49,7 +49,7 @@ class RegistrationFactory extends Factory
 
     public function checkedOut(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'stay_status' => 'checked_out',
             'checked_in_at' => now()->subDays(2),
             'actual_checkout_at' => now(),
@@ -59,6 +59,6 @@ class RegistrationFactory extends Factory
 
     public function withGroup(string $groupId): static
     {
-        return $this->state(fn() => ['booking_group_id' => $groupId]);
+        return $this->state(fn () => ['booking_group_id' => $groupId]);
     }
 }

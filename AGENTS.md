@@ -108,16 +108,39 @@ Multi-property support uses:
 - **`App\Models\Scopes\PropertyScope`** — Global scope that applies `WHERE property_id = ?` to all queries on scoped models
 - **`App\Services\PropertyService`** — Service with `current()`/`id()`/`scope()`/`setCurrent()`/`clear()` helpers
 - **`App\Http\Middleware\SetPropertyContext`** — Middleware registered in `web` group, sets property from query param or session
-- **`Modules\Frontdeskcrm\Http\Controllers\PropertyController`** — Full CRUD + `switch()` + user management
+- **`Modules\Admin\Http\Controllers\PropertyController`** — Full CRUD + `switch()` + user management
 - **Property switcher dropdown** in navbar (`resources/views/layouts/navbar.blade.php`)
-- **Menu entry** at `Modules/Frontdeskcrm/resources/views/layouts/menu.blade.php` under "Configuration"
-- **Routes** at `Modules/Frontdeskcrm/routes/web.php` under `frontdesk.properties.*` prefix
+- **Menu entry** at `Modules/Admin/resources/views/layouts/menu.blade.php` under "Configuration"
+- **Routes** at `Modules/Admin/routes/web.php` under `admin.properties.*` prefix
 
 ### Scoped Models (have `property_id` + `HasProperty` trait)
-`App\Models\RoomType`, `App\Models\RoomUnit`, `Modules\Frontdeskcrm\Models\Registration`, `RateCode`, `ChargeType`, `BookingSource`, `GuestType`, `Channel`, `NightAudit`, `Modules\Website\Models\Booking`
+
+**Core:** `App\Models\RoomType`, `App\Models\RoomUnit`
+
+**Frontdeskcrm:** `Registration`, `RateCode`, `ChargeType`, `BookingSource`, `GuestType`, `Channel`, `NightAudit`, `CorporateAccount`
+
+**Website:** `Booking`
+
+**Restaurant:** `Table`, `MenuCategory`, `MenuItem`, `Order`, `Payment`, `Customer`, `StockItem`, `RestaurantSetting`
+
+**Gym:** `SubscriptionConfig`, `Trainer`, `TrainerPayment`, `Member`, `Membership`, `Payment`
+
+**Staff:** `Employee`, `LeaveRequest`, `LeaveBalance`, `Shift`, `AttendanceLog`, `SharedDocument`, `StaffSetting`
+
+**Inventory:** `Item`, `Store`, `Supplier`, `Department`, `PurchaseRequest`, `PurchaseOrder`, `StockTake`, `CycleCount`, `InventoryAdjustment`, `Transfer`, `StockMovement`, `StockAlert`, `ItemReturn`, `RestockLog`
+
+**Maintenance:** `MaintenanceLog`, `MaintenanceReading`
+
+**Banquet:** `Customer`, `BanquetOrder`, `BanquetPayment`, `BanquetVenue`, `BanquetEnquiry`
+
+**Tasks:** `Task`
+
+**Housekeeping:** `HousekeepingLog`
+
+**Finance:** `ChartOfAccount`, `JournalEntry`, `JournalLine`
 
 ### NOT scoped
-`App\Models\Room` (legacy), `Property` itself, `User`, `Guest`, `FolioCharge`, `NightAuditLog`, `RateCalendar`, `RateCodePrice`
+`App\Models\Room` (legacy), `Property` itself, `User`, `Guest`, `FolioCharge`, `NightAuditLog`, `RateCalendar`, `RateCodePrice`, child records (OrderItem, BanquetOrderDay, TaskAssignment, TaskUpdate, TaskComment, PurchaseOrderItem, PurchaseRequestItem, PurchaseRequestApproval, StockTakeItem, TrainerPayment child records, etc.)
 
 ## Hikvision DS-K1A802AMF-B Attendance Middleware (Windows PC)
 

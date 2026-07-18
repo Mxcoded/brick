@@ -18,6 +18,7 @@ use Modules\Website\Http\Controllers\Admin\SettingController;
 use Modules\Website\Http\Controllers\Admin\TestimonialController;
 use Modules\Website\Http\Controllers\Admin\WebsiteAdminController;
 use Modules\Website\Http\Controllers\GuestController;
+use Modules\Website\Http\Controllers\PreArrivalController;
 use Modules\Website\Http\Controllers\WebsiteController;
 
 /*
@@ -315,31 +316,31 @@ Route::middleware(['web', 'website.property'])->group(function () {
             Route::post('/bookings/{id}/move', [AdminBookingController::class, 'moveRoom'])->name('bookings.move')->middleware($p('bookings', 'update'));
         });
 
-        // =========================================================================
-        // 3. GUEST PRE-ARRIVAL CHECK-IN
-        // =========================================================================
-        Route::prefix('guest')->name('guest.')->group(function () {
-            Route::get('/pre-arrival', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'index'])
-                ->name('pre-arrival');
-            Route::post('/pre-arrival/lookup', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'lookup'])
-                ->name('pre-arrival.lookup');
-            Route::get('/pre-arrival/token/{token}', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'token'])
-                ->name('pre-arrival.token');
-            Route::get('/pre-arrival/{registration}/details', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'details'])
-                ->name('pre-arrival.details');
-            Route::put('/pre-arrival/{registration}/details', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'updateDetails'])
-                ->name('pre-arrival.update-details');
-            Route::get('/pre-arrival/{registration}/documents', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'documents'])
-                ->name('pre-arrival.documents');
-            Route::post('/pre-arrival/{registration}/documents/upload', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'uploadDocument'])
-                ->name('pre-arrival.upload-document');
-            Route::delete('/pre-arrival/{registration}/documents/{document}', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'deleteDocument'])
-                ->name('pre-arrival.delete-document');
-            Route::get('/pre-arrival/{registration}/signature', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'signature'])
-                ->name('pre-arrival.signature');
-            Route::post('/pre-arrival/{registration}/signature', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'submitSignature'])
-                ->name('pre-arrival.submit-signature');
-            Route::get('/pre-arrival/{registration}/confirmation', [\Modules\Website\Http\Controllers\PreArrivalController::class, 'confirmation'])
-                ->name('pre-arrival.confirmation');
-        });
+    // =========================================================================
+    // 3. GUEST PRE-ARRIVAL CHECK-IN
+    // =========================================================================
+    Route::prefix('guest')->name('guest.')->group(function () {
+        Route::get('/pre-arrival', [PreArrivalController::class, 'index'])
+            ->name('pre-arrival');
+        Route::post('/pre-arrival/lookup', [PreArrivalController::class, 'lookup'])
+            ->name('pre-arrival.lookup');
+        Route::get('/pre-arrival/token/{token}', [PreArrivalController::class, 'token'])
+            ->name('pre-arrival.token');
+        Route::get('/pre-arrival/{registration}/details', [PreArrivalController::class, 'details'])
+            ->name('pre-arrival.details');
+        Route::put('/pre-arrival/{registration}/details', [PreArrivalController::class, 'updateDetails'])
+            ->name('pre-arrival.update-details');
+        Route::get('/pre-arrival/{registration}/documents', [PreArrivalController::class, 'documents'])
+            ->name('pre-arrival.documents');
+        Route::post('/pre-arrival/{registration}/documents/upload', [PreArrivalController::class, 'uploadDocument'])
+            ->name('pre-arrival.upload-document');
+        Route::delete('/pre-arrival/{registration}/documents/{document}', [PreArrivalController::class, 'deleteDocument'])
+            ->name('pre-arrival.delete-document');
+        Route::get('/pre-arrival/{registration}/signature', [PreArrivalController::class, 'signature'])
+            ->name('pre-arrival.signature');
+        Route::post('/pre-arrival/{registration}/signature', [PreArrivalController::class, 'submitSignature'])
+            ->name('pre-arrival.submit-signature');
+        Route::get('/pre-arrival/{registration}/confirmation', [PreArrivalController::class, 'confirmation'])
+            ->name('pre-arrival.confirmation');
     });
+});

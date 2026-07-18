@@ -23,7 +23,7 @@ class NightAuditFactory extends Factory
 
     public function completed(): static
     {
-        return $this->state(fn() => [
+        return $this->state(fn () => [
             'status' => 'completed',
             'completed_at' => now(),
             'completed_by' => User::factory(),

@@ -3,10 +3,11 @@
 namespace Modules\Frontdeskcrm\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Modules\Frontdeskcrm\Models\Guest;
 
 class GuestFactory extends Factory
 {
-    protected $model = \Modules\Frontdeskcrm\Models\Guest::class;
+    protected $model = Guest::class;
 
     public function definition(): array
     {

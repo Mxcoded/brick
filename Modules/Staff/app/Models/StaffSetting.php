@@ -2,11 +2,14 @@
 
 namespace Modules\Staff\Models;
 
+use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Model;
 
 class StaffSetting extends Model
 {
-    protected $fillable = ['key', 'value'];
+    use HasProperty;
+
+    protected $fillable = ['key', 'value', 'property_id'];
 
     public static function get(string $key, mixed $default = null): mixed
     {

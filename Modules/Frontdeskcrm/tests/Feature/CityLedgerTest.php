@@ -11,6 +11,7 @@ use Modules\Frontdeskcrm\Tests\ModuleTestCase;
 class CityLedgerTest extends ModuleTestCase
 {
     private User $user;
+
     private CorporateAccount $account;
 
     protected function setUp(): void
