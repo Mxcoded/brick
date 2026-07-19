@@ -13,9 +13,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Class Supplier
  * Represents a supplier or vendor of items.
  */
-class Supplier extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Supplier extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Auditable;
 
     protected $fillable = ['name', 'contact_person', 'email', 'phone', 'address'];
 

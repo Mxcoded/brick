@@ -9,9 +9,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Services\RoomAvailabilityService;
 
-class RoomUnit extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class RoomUnit extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Auditable;
 
     protected $fillable = [
         'room_type_id',

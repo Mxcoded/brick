@@ -32,8 +32,8 @@
     @endif
 
     <div class="alert alert-light border d-flex align-items-center py-2 px-3 mb-3 small" style="border-radius: 8px; color: #7f8c8d;">
-        <i class="fas fa-info-circle me-2" style="color: #C8A165;"></i>
-        Physical files are automatically removed after <strong class="mx-1">7 days</strong>. Records are kept for reporting.
+        <i class="fas fa-info-circle me-2" style="color: #d61929;"></i>
+        Physical files are automatically removed after <strong class="mx-1 text-danger">7 days</strong>. Records are kept for reporting.
     </div>
 
     <div class="card border-0 shadow-sm">

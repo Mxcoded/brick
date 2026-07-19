@@ -4,7 +4,10 @@ namespace Modules\Banquet\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class EventLead extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class EventLead extends Model implements AuditableContract
 {
     protected $fillable = [
         'event_id',
@@ -29,4 +32,5 @@ class EventLead extends Model
     {
         return $this->belongsTo(LeadEvent::class, 'event_id');
     }
+    use Auditable;
 }

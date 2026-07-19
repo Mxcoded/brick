@@ -60,8 +60,13 @@
     </a>
 
     <a href="{{ route('admin.login-logs.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('admin.login-logs.*') ? 'active' : '' }}">
+        class="list-group-item list-group-item-action {{ request()->routeIs('admin.login-logs.*') ? 'active' : '' }}">
         <i class="fas fa-sign-in-alt fa-fw me-2"></i> Login History
+    </a>
+
+    <a href="{{ route('admin.audit-trails.index') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('admin.audit-trails.*') ? 'active' : '' }}">
+        <i class="fas fa-clipboard-list fa-fw me-2"></i> Audit Trails
     </a>
 
 </div>

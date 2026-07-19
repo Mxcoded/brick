@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class LeadEvent extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class LeadEvent extends Model implements AuditableContract
 {
     protected $fillable = [
         'title',
@@ -69,4 +72,5 @@ class LeadEvent extends Model
             }
         });
     }
+    use Auditable;
 }

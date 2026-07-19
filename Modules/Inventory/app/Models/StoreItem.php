@@ -12,9 +12,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Class StoreItem
  * Represents a specific item's stock at a given store and lot.
  */
-class StoreItem extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class StoreItem extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     protected $fillable = ['store_id', 'item_id', 'lot_number', 'quantity', 'total_cost', 'expiry_date', 'location_id'];
 

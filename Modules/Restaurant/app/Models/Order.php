@@ -8,9 +8,12 @@ use Modules\Website\Models\Room;
 
 // use Modules\Restaurant\Database\Factories\OrderFactory;
 
-class Order extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Order extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     const STATUS_PENDING = 'pending';
 

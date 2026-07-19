@@ -4,7 +4,10 @@ namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class StaffSetting extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class StaffSetting extends Model implements AuditableContract
 {
     protected $fillable = ['key', 'value'];
 
@@ -17,4 +20,5 @@ class StaffSetting extends Model
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);
     }
+    use Auditable;
 }

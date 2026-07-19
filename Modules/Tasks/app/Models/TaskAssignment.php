@@ -8,9 +8,12 @@ use Modules\Staff\Models\Employee;
 
 // use Modules\Tasks\Database\Factories\TaskAssignmentFactory;
 
-class TaskAssignment extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class TaskAssignment extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     /**
      * The attributes that are mass assignable.

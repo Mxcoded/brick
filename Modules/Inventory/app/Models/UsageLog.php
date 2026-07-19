@@ -12,9 +12,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Class UsageLog
  * Represents a log of an item's usage for maintenance.
  */
-class UsageLog extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class UsageLog extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     protected $fillable = ['item_id', 'store_id', 'department_id', 'quantity_used', 'unit_cost', 'used_for', 'technician_name', 'date_used', 'reference'];
 

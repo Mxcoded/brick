@@ -6,9 +6,12 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Newsletter extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Newsletter extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     // Status Constants
     const STATUS_DRAFT = 'draft';

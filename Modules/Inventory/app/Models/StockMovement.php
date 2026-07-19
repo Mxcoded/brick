@@ -6,7 +6,10 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class StockMovement extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class StockMovement extends Model implements AuditableContract
 {
     protected $fillable = ['item_id', 'store_id', 'type', 'quantity_delta', 'cost_delta', 'reference_type', 'reference_id', 'user_id', 'notes'];
 
@@ -39,4 +42,5 @@ class StockMovement extends Model
             'notes' => $data['notes'] ?? null,
         ]);
     }
+    use Auditable;
 }

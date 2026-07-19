@@ -5,7 +5,10 @@ namespace Modules\Inventory\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ItemConversion extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class ItemConversion extends Model implements AuditableContract
 {
     protected $fillable = ['item_id', 'from_unit', 'to_unit', 'conversion_rate'];
 
@@ -13,4 +16,5 @@ class ItemConversion extends Model
     {
         return $this->belongsTo(Item::class);
     }
+    use Auditable;
 }

@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class JournalEntry extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class JournalEntry extends Model implements AuditableContract
 {
     protected $table = 'finance_journal_entries';
 
@@ -65,4 +68,5 @@ class JournalEntry extends Model
         $this->posted_at = now();
         $this->save();
     }
+    use Auditable;
 }

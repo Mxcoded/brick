@@ -12,9 +12,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Class Transfer
  * Represents a logged transfer of items between stores.
  */
-class Transfer extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Transfer extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     protected $fillable = ['from_store_id', 'to_store_id', 'item_id', 'quantity', 'notes'];
 

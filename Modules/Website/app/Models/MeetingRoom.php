@@ -4,7 +4,10 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class MeetingRoom extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class MeetingRoom extends Model implements AuditableContract
 {
     protected $fillable = [
         'meeting_page_id',
@@ -26,4 +29,5 @@ class MeetingRoom extends Model
     {
         return $this->belongsTo(MeetingPage::class);
     }
+    use Auditable;
 }

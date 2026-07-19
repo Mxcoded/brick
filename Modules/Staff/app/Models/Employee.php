@@ -9,9 +9,12 @@ use Modules\Tasks\Models\Task;
 
 // use Modules\Staff\Database\Factories\EmployeeFactory;
 
-class Employee extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Employee extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     /**
      * The attributes that are mass assignable.

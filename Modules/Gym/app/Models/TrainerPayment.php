@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 // use Modules\Gym\Database\Factories\TrainerPaymentFactory;
 
-class TrainerPayment extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class TrainerPayment extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     /**
      * The attributes that are mass assignable.

@@ -4,7 +4,10 @@ namespace Modules\Restaurant\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class RestaurantSetting extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class RestaurantSetting extends Model implements AuditableContract
 {
     protected $table = 'restaurant_settings';
 
@@ -21,4 +24,5 @@ class RestaurantSetting extends Model
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);
     }
+    use Auditable;
 }

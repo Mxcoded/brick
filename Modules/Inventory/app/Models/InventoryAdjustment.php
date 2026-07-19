@@ -6,7 +6,10 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class InventoryAdjustment extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class InventoryAdjustment extends Model implements AuditableContract
 {
     protected $fillable = ['item_id', 'store_id', 'type', 'quantity_change', 'reason', 'adjusted_by'];
 
@@ -24,4 +27,5 @@ class InventoryAdjustment extends Model
     {
         return $this->belongsTo(User::class, 'adjusted_by');
     }
+    use Auditable;
 }

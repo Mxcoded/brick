@@ -4,7 +4,10 @@ namespace Modules\Restaurant\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Payment extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Payment extends Model implements AuditableContract
 {
     protected $table = 'restaurant_payments';
 
@@ -37,4 +40,5 @@ class Payment extends Model
     {
         return $query->where('status', 'completed');
     }
+    use Auditable;
 }

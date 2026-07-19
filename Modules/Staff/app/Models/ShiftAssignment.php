@@ -4,7 +4,10 @@ namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class ShiftAssignment extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class ShiftAssignment extends Model implements AuditableContract
 {
     protected $fillable = [
         'employee_id', 'shift_id', 'date', 'note',
@@ -31,4 +34,5 @@ class ShiftAssignment extends Model
     {
         return $this->hasOne(AttendanceLog::class);
     }
+    use Auditable;
 }

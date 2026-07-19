@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-class FacilityItem extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class FacilityItem extends Model implements AuditableContract
 {
     protected $fillable = [
         'facilities_page_id',
@@ -57,4 +60,5 @@ class FacilityItem extends Model
 
         return $slug;
     }
+    use Auditable;
 }

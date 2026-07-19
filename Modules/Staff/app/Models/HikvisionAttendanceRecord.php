@@ -4,7 +4,10 @@ namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class HikvisionAttendanceRecord extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class HikvisionAttendanceRecord extends Model implements AuditableContract
 {
     protected $fillable = [
         'original_id',
@@ -29,4 +32,5 @@ class HikvisionAttendanceRecord extends Model
     {
         return $this->belongsTo(Employee::class);
     }
+    use Auditable;
 }

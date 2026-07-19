@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class PurchaseOrder extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class PurchaseOrder extends Model implements AuditableContract
 {
     protected $fillable = ['po_number', 'supplier_id', 'store_id', 'status', 'notes', 'created_by', 'approved_by', 'approved_at', 'cancellation_reason', 'cancelled_by', 'cancelled_at'];
 
@@ -40,4 +43,5 @@ class PurchaseOrder extends Model
     {
         return $this->belongsTo(User::class, 'cancelled_by');
     }
+    use Auditable;
 }

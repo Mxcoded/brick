@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-class Offer extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Offer extends Model implements AuditableContract
 {
     protected $fillable = [
         'offers_page_id',
@@ -60,4 +63,5 @@ class Offer extends Model
 
         return $slug;
     }
+    use Auditable;
 }

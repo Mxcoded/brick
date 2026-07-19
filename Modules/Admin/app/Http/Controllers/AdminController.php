@@ -7,10 +7,13 @@ use App\Mail\AccountCreated;
 use App\Models\User;
 use App\Models\UserActivityLog;
 use App\Models\UserLoginLog;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Modules\Banquet\Models\BanquetEnquiry;
 use Modules\Banquet\Models\BanquetOrder;
 use Modules\Banquet\Models\BanquetPayment;
@@ -32,8 +35,9 @@ use Modules\Website\Models\Booking;
 use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\RoomUnit;
 use Modules\Website\Models\Settings;
-use Illuminate\Support\Facades\Storage;
 use Nwidart\Modules\Facades\Module;
+use OwenIt\Auditing\Events\AuditCustom;
+use OwenIt\Auditing\Models\Audit;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -562,6 +566,8 @@ class AdminController extends Controller
             }
         }
 
+        $oldRoles = $user->roles->pluck('name')->all();
+
         $user->syncRoles($request->roles);
 
         if ($user->isGuest() && in_array('guest', $request->roles)) {
@@ -569,6 +575,8 @@ class AdminController extends Controller
         } elseif ($user->isStaff() || ! $user->type) {
             $user->update(['type' => 'staff']);
         }
+
+        $this->recordRoleAudit($user, $oldRoles, $user->roles->pluck('name')->all());
 
         return redirect()->route('admin.users.index')->with('success', 'Roles assigned successfully.');
     }
@@ -612,15 +620,21 @@ class AdminController extends Controller
             return redirect()->route('admin.users.index')->with('info', "User is already a {$newType} account.");
         }
 
+        $oldRoles = $user->roles->pluck('name')->all();
+
         if ($newType === 'guest') {
             $user->syncRoles(['guest']);
             $user->update(['type' => 'guest']);
             $msg = "{$user->name} changed to guest account with guest role.";
+            $event = 'role-assigned';
         } else {
             $user->removeRole('guest');
             $user->update(['type' => 'staff']);
             $msg = "{$user->name} changed to staff account. Assign roles via the Roles button.";
+            $event = 'role-detached';
         }
+
+        $this->recordRoleAudit($user, $oldRoles, $user->roles->pluck('name')->all(), $event);
 
         return redirect()->route('admin.users.index')->with('success', $msg);
     }
@@ -786,6 +800,124 @@ class AdminController extends Controller
         return view('admin::activity-logs.index', compact('logs', 'actions', 'users'));
     }
 
+    public function auditTrails(Request $request)
+    {
+        $query = Audit::with('user')->latest();
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('event', 'like', "%{$search}%")
+                    ->orWhere('auditable_type', 'like', "%{$search}%")
+                    ->orWhere('tags', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($event = $request->input('event')) {
+            $query->where('event', $event);
+        }
+
+        if ($auditableType = $request->input('auditable_type')) {
+            $query->where('auditable_type', $auditableType);
+        }
+
+        if ($userId = $request->input('user_id')) {
+            $query->where('user_id', $userId)
+                ->where('user_type', 'App\\Models\\User');
+        }
+
+        $audits = $query->paginate(50);
+        $events = Audit::select('event')->distinct()->pluck('event');
+        $auditableTypes = Audit::select('auditable_type')->distinct()->pluck('auditable_type');
+
+        return view('admin::audit-trails.index', compact('audits', 'events', 'auditableTypes'));
+    }
+
+    /**
+     * Revert a model to the state captured in an "updated" or "deleted" audit.
+     */
+    public function restoreAudit(Request $request, $id)
+    {
+        $audit = Audit::findOrFail($id);
+
+        if (! in_array($audit->event, ['updated', 'deleted'], true)) {
+            return back()->with('error', 'Only "updated" or "deleted" records can be restored.');
+        }
+
+        $modelClass = $audit->auditable_type;
+
+        if (! class_exists($modelClass)) {
+            return back()->with('error', 'The audited model class no longer exists.');
+        }
+
+        try {
+            $instance = new $modelClass;
+            $table = $instance->getTable();
+            $keyName = $instance->getKeyName();
+
+            $columns = Schema::getColumnListing($table);
+            $old = collect($audit->old_values)
+                ->only($columns)
+                ->toArray();
+
+            $existing = $this->findAuditable($modelClass, $audit->auditable_id);
+            $label = class_basename($modelClass).' #'.$audit->auditable_id;
+
+            if ($existing) {
+                $existing->forceFill($old)->save();
+
+                if (method_exists($existing, 'trashed') && $existing->trashed()) {
+                    $existing->restore();
+                }
+            } else {
+                $model = new $modelClass;
+                $model->forceFill($old);
+                $model->{$keyName} = $audit->auditable_id;
+                $model->save();
+            }
+
+            return back()->with('success', "Restored {$label} to its previous state.");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Unable to restore record: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Resolve an auditable model instance, including soft-deleted rows.
+     */
+    protected function findAuditable(string $modelClass, $id)
+    {
+        if (in_array(SoftDeletes::class, class_uses_recursive($modelClass), true)) {
+            return $modelClass::withTrashed()->find($id);
+        }
+
+        return $modelClass::find($id);
+    }
+
+    /**
+     * Record a role assignment/removal as a custom audit entry on the user.
+     *
+     * Role changes are written to Spatie's model_has_roles pivot and do not
+     * fire the Eloquent events laravel-auditing hooks into, so we dispatch a
+     * custom AuditCustom event manually.
+     */
+    protected function recordRoleAudit(User $user, array $oldRoles, array $newRoles, string $event = 'role-assigned'): void
+    {
+        if ($oldRoles === $newRoles) {
+            return;
+        }
+
+        $user->auditEvent = $event;
+        $user->auditCustomOld = ['roles' => $oldRoles];
+        $user->auditCustomNew = ['roles' => $newRoles];
+        $user->isCustomEvent = true;
+
+        event(new AuditCustom($user));
+
+        $user->isCustomEvent = false;
+        $user->auditCustomOld = $user->auditCustomNew = null;
+    }
+
     public function appearance()
     {
         $theme = Settings::where('key', 'theme')->value('value') ?? 'gold-legacy';
@@ -834,7 +966,7 @@ class AdminController extends Controller
     {
         $logo = Settings::where('key', 'logo')->first();
         if ($logo) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($logo->value);
+            Storage::disk('public')->delete($logo->value);
             $logo->delete();
             cache()->forget('app.logo');
         }

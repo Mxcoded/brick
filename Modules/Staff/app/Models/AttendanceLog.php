@@ -4,7 +4,10 @@ namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class AttendanceLog extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class AttendanceLog extends Model implements AuditableContract
 {
     protected $fillable = [
         'employee_id', 'shift_assignment_id', 'date',
@@ -70,4 +73,5 @@ class AttendanceLog extends Model
     {
         return $query->where('status', $status);
     }
+    use Auditable;
 }

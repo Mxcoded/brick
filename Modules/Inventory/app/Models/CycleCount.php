@@ -6,7 +6,10 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CycleCount extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class CycleCount extends Model implements AuditableContract
 {
     protected $fillable = ['item_id', 'store_id', 'expected_quantity', 'actual_quantity', 'discrepancy', 'counted_by', 'counted_at', 'status', 'notes'];
 
@@ -26,4 +29,5 @@ class CycleCount extends Model
     {
         return $this->belongsTo(User::class, 'counted_by');
     }
+    use Auditable;
 }

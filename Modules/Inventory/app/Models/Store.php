@@ -13,9 +13,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Class Store
  * Represents a physical store or location in the inventory system.
  */
-class Store extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Store extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Auditable;
 
     protected $fillable = ['name', 'address'];
 

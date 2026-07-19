@@ -4,7 +4,10 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class MeetingPage extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class MeetingPage extends Model implements AuditableContract
 {
     protected $fillable = [
         'hero_title',
@@ -45,4 +48,5 @@ class MeetingPage extends Model
     {
         return $this->hasMany(MeetingGallery::class)->orderBy('sort_order');
     }
+    use Auditable;
 }

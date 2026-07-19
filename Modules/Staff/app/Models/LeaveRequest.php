@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 // use Modules\Staff\Database\Factories\LeaveRequestFactory;
 
-class LeaveRequest extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class LeaveRequest extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     /**
      * The attributes that are mass assignable.

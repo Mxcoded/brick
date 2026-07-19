@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 // use Modules\Website\Database\Factories\DiningFactory;
 
-class Dining extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Dining extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     /**
      * The attributes that are mass assignable.

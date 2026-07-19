@@ -5,7 +5,10 @@ namespace Modules\Inventory\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ItemReturn extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class ItemReturn extends Model implements AuditableContract
 {
     protected $fillable = ['item_id', 'store_id', 'department_id', 'quantity_returned', 'reason', 'returned_by', 'received_by', 'reference', 'notes'];
 
@@ -23,4 +26,5 @@ class ItemReturn extends Model
     {
         return $this->belongsTo(Department::class);
     }
+    use Auditable;
 }

@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class PurchaseRequest extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class PurchaseRequest extends Model implements AuditableContract
 {
     protected $fillable = [
         'pr_number', 'requester_id', 'department', 'urgency', 'justification',
@@ -78,4 +81,5 @@ class PurchaseRequest extends Model
             default => 'bg-secondary',
         };
     }
+    use Auditable;
 }

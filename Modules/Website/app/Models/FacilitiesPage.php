@@ -5,7 +5,10 @@ namespace Modules\Website\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class FacilitiesPage extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class FacilitiesPage extends Model implements AuditableContract
 {
     protected $fillable = [
         'hero_title',
@@ -19,4 +22,5 @@ class FacilitiesPage extends Model
     {
         return $this->hasMany(FacilityItem::class, 'facilities_page_id')->orderBy('sort_order');
     }
+    use Auditable;
 }

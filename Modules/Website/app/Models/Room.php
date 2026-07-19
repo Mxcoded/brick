@@ -8,9 +8,12 @@ use Modules\Frontdeskcrm\Models\Registration;
 
 // use Modules\Website\Database\Factories\RoomFactory;
 
-class Room extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Room extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     /**
      * The attributes that are mass assignable.

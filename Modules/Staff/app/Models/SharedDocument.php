@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-class SharedDocument extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class SharedDocument extends Model implements AuditableContract
 {
     protected $fillable = [
         'filename',
@@ -108,4 +111,5 @@ class SharedDocument extends Model
             });
         }
     }
+    use Auditable;
 }

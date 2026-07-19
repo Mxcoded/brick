@@ -8,9 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 
 // use Modules\Gym\Database\Factories\MembershipFactory;
 
-class Membership extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class Membership extends Model implements AuditableContract
 {
-    use HasFactory;
+    use HasFactory, Auditable;
 
     /**
      * The attributes that are mass assignable.

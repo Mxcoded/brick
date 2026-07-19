@@ -5,7 +5,10 @@ namespace Modules\Inventory\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class StockAlert extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class StockAlert extends Model implements AuditableContract
 {
     protected $fillable = ['item_id', 'store_id', 'type', 'severity', 'message', 'sent', 'sent_at', 'resolved', 'resolved_at'];
 
@@ -38,4 +41,5 @@ class StockAlert extends Model
     {
         return $query->where('type', $type);
     }
+    use Auditable;
 }

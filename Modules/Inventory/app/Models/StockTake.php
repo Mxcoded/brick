@@ -7,7 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class StockTake extends Model
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+
+class StockTake extends Model implements AuditableContract
 {
     protected $fillable = ['store_id', 'taken_by', 'taken_at', 'completed_at', 'status', 'notes'];
 
@@ -27,4 +30,5 @@ class StockTake extends Model
     {
         return $this->hasMany(StockTakeItem::class);
     }
+    use Auditable;
 }
