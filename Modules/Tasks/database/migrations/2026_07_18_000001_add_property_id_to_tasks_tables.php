@@ -8,10 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('tasks', function (Blueprint $table) {
-            $table->foreignId('property_id')->nullable()->after('id')->constrained()->nullOnDelete();
-            $table->index('property_id');
-        });
+        if (! Schema::hasColumn('tasks', 'property_id')) {
+            Schema::table('tasks', function (Blueprint $table) {
+                $table->foreignId('property_id')->nullable()->after('id')->constrained()->nullOnDelete();
+                $table->index('property_id');
+            });
+        }
     }
 
     public function down(): void

@@ -58,6 +58,10 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Reports</div>
 
+    <a href="{{ route('frontdesk.reports.daily') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.reports.daily*') ? 'active' : '' }}">
+        <i class="fas fa-file-alt fa-fw me-2"></i> Daily Report
+    </a>
     <a href="{{ route('frontdesk.reports.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.reports.index') ? 'active' : '' }}">
         <i class="fas fa-tachometer-alt fa-fw me-2"></i> Dashboard

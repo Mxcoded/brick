@@ -199,6 +199,8 @@ Route::prefix('frontdesk')
         // --- REPORTS ---
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [ReportController::class, 'index'])->name('index');
+            Route::get('/daily', [ReportController::class, 'daily'])->name('daily');
+            Route::get('/daily/{date}', [ReportController::class, 'daily'])->name('daily.date');
             Route::get('/occupancy', [ReportController::class, 'occupancy'])->name('occupancy');
             Route::get('/revenue', [ReportController::class, 'revenue'])->name('revenue');
             Route::get('/forecast', [ReportController::class, 'forecast'])->name('forecast');

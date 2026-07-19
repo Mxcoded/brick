@@ -9,20 +9,26 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('waiter_shifts', function (Blueprint $table) {
-            $table->foreignId('property_id')->nullable()->after('id')->constrained()->nullOnDelete();
-            $table->index('property_id');
-        });
+        if (Schema::hasTable('waiter_shifts') && ! Schema::hasColumn('waiter_shifts', 'property_id')) {
+            Schema::table('waiter_shifts', function (Blueprint $table) {
+                $table->foreignId('property_id')->nullable()->after('id')->constrained()->nullOnDelete();
+                $table->index('property_id');
+            });
+        }
 
-        Schema::table('restaurant_stock_movements', function (Blueprint $table) {
-            $table->foreignId('property_id')->nullable()->after('id')->constrained()->nullOnDelete();
-            $table->index('property_id');
-        });
+        if (Schema::hasTable('restaurant_stock_movements') && ! Schema::hasColumn('restaurant_stock_movements', 'property_id')) {
+            Schema::table('restaurant_stock_movements', function (Blueprint $table) {
+                $table->foreignId('property_id')->nullable()->after('id')->constrained()->nullOnDelete();
+                $table->index('property_id');
+            });
+        }
 
-        Schema::table('restaurant_settings', function (Blueprint $table) {
-            $table->dropUnique('restaurant_settings_key_unique');
-            $table->unique(['property_id', 'key']);
-        });
+        if (Schema::hasTable('restaurant_settings') && Schema::hasIndex('restaurant_settings', 'restaurant_settings_key_unique')) {
+            Schema::table('restaurant_settings', function (Blueprint $table) {
+                $table->dropUnique('restaurant_settings_key_unique');
+                $table->unique(['property_id', 'key']);
+            });
+        }
 
         // Backfill property_id from parent relationships
         DB::table('waiter_shifts')

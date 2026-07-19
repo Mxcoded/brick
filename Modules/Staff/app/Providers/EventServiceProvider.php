@@ -3,6 +3,10 @@
 namespace Modules\Staff\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Modules\Frontdeskcrm\Events\NightAuditCompleted;
+use Modules\Restaurant\Events\OrderPaid;
+use Modules\Staff\Listeners\CalculateCommissionOnOrderPaid;
+use Modules\Staff\Listeners\UpdateAttendanceOnAudit;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -11,14 +15,21 @@ class EventServiceProvider extends ServiceProvider
      *
      * @var array<string, array<int, string>>
      */
-    protected $listen = [];
+    protected $listen = [
+        OrderPaid::class => [
+            CalculateCommissionOnOrderPaid::class,
+        ],
+        NightAuditCompleted::class => [
+            UpdateAttendanceOnAudit::class,
+        ],
+    ];
 
     /**
      * Indicates if events should be discovered.
      *
      * @var bool
      */
-    protected static $shouldDiscoverEvents = true;
+    protected static $shouldDiscoverEvents = false;
 
     /**
      * Configure the proper event listeners for email verification.

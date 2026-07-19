@@ -3,7 +3,12 @@
 namespace Modules\Frontdeskcrm\Providers;
 
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\ServiceProvider;
+use Modules\Frontdeskcrm\Console\Commands\GenerateDailyReport;
+use Modules\Frontdeskcrm\Console\Commands\NightAudit;
+use Modules\Frontdeskcrm\Console\Commands\PostRoomCharges;
+use Modules\Frontdeskcrm\Console\Commands\PostTaxes;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Observers\RegistrationObserver;
 use Nwidart\Modules\Traits\PathNamespace;
@@ -51,7 +56,12 @@ class FrontdeskcrmServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            NightAudit::class,
+            PostRoomCharges::class,
+            PostTaxes::class,
+            GenerateDailyReport::class,
+        ]);
     }
 
     /**
@@ -59,10 +69,7 @@ class FrontdeskcrmServiceProvider extends ServiceProvider
      */
     protected function registerCommandSchedules(): void
     {
-        // $this->app->booted(function () {
-        //     $schedule = $this->app->make(Schedule::class);
-        //     $schedule->command('inspire')->hourly();
-        // });
+        Schedule::command('night-audit')->dailyAt('02:00');
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\DetectWebsiteProperty;
+use App\Http\Middleware\EnsureApiPropertyAccess;
 use App\Http\Middleware\LogUserActivity;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\SetPropertyContext;
@@ -18,6 +19,7 @@ use Spatie\Permission\Middleware\RoleMiddleware;
 return Application::configure(basePath: __DIR__.'/../')
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -31,6 +33,7 @@ return Application::configure(basePath: __DIR__.'/../')
             'guest' => RedirectIfAuthenticated::class,
             'auth.session' => AuthenticateSession::class,
             'procurement.role' => ProcurementRole::class,
+            'api.property' => EnsureApiPropertyAccess::class,
         ]);
 
         // Track user activity for login session monitoring

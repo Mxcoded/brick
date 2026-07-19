@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Models\ChargeType;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Restaurant\Events\OrderPaid;
 use Modules\Restaurant\Models\Customer;
 use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
@@ -1225,6 +1226,8 @@ class RestaurantController extends Controller
             $order->status = 'completed';
             $order->tracking_status = 'paid';
             $order->save();
+
+            event(new OrderPaid($order, (float) $payment->amount));
         }
 
         // Finance posting: all methods including room_charge (Debit AR / Credit Revenue)

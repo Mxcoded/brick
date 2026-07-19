@@ -13,11 +13,13 @@ return new class extends Migration
             'maintenance_readings',
         ];
 
-        foreach ($tables as $table) {
-            Schema::table($table, function (Blueprint $table) {
-                $table->foreignId('property_id')->nullable()->after('id')->constrained()->nullOnDelete();
-                $table->index('property_id');
-            });
+        foreach ($tables as $tbl) {
+            if (! Schema::hasColumn($tbl, 'property_id')) {
+                Schema::table($tbl, function (Blueprint $table) {
+                    $table->foreignId('property_id')->nullable()->after('id')->constrained()->nullOnDelete();
+                    $table->index('property_id');
+                });
+            }
         }
     }
 

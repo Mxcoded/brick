@@ -8,10 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('registrations', fn (Blueprint $table) => $table->softDeletes());
-        Schema::table('guests', fn (Blueprint $table) => $table->softDeletes());
-        Schema::table('restaurant_payments', fn (Blueprint $table) => $table->softDeletes());
-        Schema::table('employees', fn (Blueprint $table) => $table->softDeletes());
+        $tables = ['registrations', 'guests', 'restaurant_payments', 'employees'];
+        foreach ($tables as $tbl) {
+            if (Schema::hasTable($tbl) && ! Schema::hasColumn($tbl, 'deleted_at')) {
+                Schema::table($tbl, fn (Blueprint $table) => $table->softDeletes());
+            }
+        }
     }
 
     public function down(): void

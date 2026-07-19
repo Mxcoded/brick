@@ -4,10 +4,14 @@ namespace Modules\Restaurant\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableInterface;
 
-class OrderItem extends Model
+class OrderItem extends Model implements AuditableInterface
 {
-    use HasFactory;
+    use Auditable, HasFactory;
+
+    protected $auditableIgnored = ['created_at', 'updated_at', 'deleted_at'];
 
     protected $fillable = ['restaurant_order_id', 'restaurant_menu_item_id', 'quantity', 'instructions', 'split_group'];
 

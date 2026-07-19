@@ -18,9 +18,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Modules\Finance\Events\PaymentReceived;
 use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Emails\CheckoutReceiptMail;
 use Modules\Frontdeskcrm\Emails\RegistrationStatusMail;
+use Modules\Frontdeskcrm\Events\FolioChargePosted;
+use Modules\Frontdeskcrm\Events\RegistrationCheckedIn;
+use Modules\Frontdeskcrm\Events\RegistrationCheckedOut;
 use Modules\Frontdeskcrm\Http\Requests\FinalizeRegistrationRequest;
 use Modules\Frontdeskcrm\Http\Requests\StoreRegistrationRequest;
 use Modules\Frontdeskcrm\Models\BookingSource;
@@ -1148,6 +1152,8 @@ class RegistrationController extends Controller
 
                 Log::info('Finalize completed successfully', ['registration_id' => $registration->id]);
 
+                event(new RegistrationCheckedIn($registration));
+
                 return redirect()->route('frontdesk.registrations.show', $registration)
                     ->with('success', $successMsg);
             });
@@ -1594,7 +1600,10 @@ class RegistrationController extends Controller
             }
         }
 
-        // 13. Redirect with optional print flag
+        // 13. Dispatch checkout event
+        event(new RegistrationCheckedOut($registration));
+
+        // 14. Redirect with optional print flag
         $redirect = $registration->parent_registration_id
             ? redirect()->route('frontdesk.registrations.show', $registration->parent_registration_id)
             : redirect()->route('frontdesk.registrations.index');
@@ -1685,6 +1694,8 @@ class RegistrationController extends Controller
             'amount' => $priceDiff,
             'posted_by' => Auth::id(),
         ]);
+
+        event(new FolioChargePosted($charge, $registration));
 
         $oldRoomNumber = $oldUnit?->room_number ?? 'N/A';
 
@@ -2188,6 +2199,12 @@ class RegistrationController extends Controller
             report($e);
         }
 
+        event(new PaymentReceived(
+            $registration->id,
+            (float) $payment->amount,
+            $payment->payment_method
+        ));
+
         return back()->with('success', 'Payment recorded successfully.');
     }
 
@@ -2202,7 +2219,7 @@ class RegistrationController extends Controller
 
         $amount = $validated['quantity'] * $validated['unit_price'];
 
-        $registration->folioCharges()->create([
+        $charge = $registration->folioCharges()->create([
             'charge_type_id' => $validated['charge_type_id'],
             'description' => $validated['description'],
             'quantity' => $validated['quantity'],
@@ -2210,6 +2227,8 @@ class RegistrationController extends Controller
             'amount' => $amount,
             'posted_by' => Auth::id(),
         ]);
+
+        event(new FolioChargePosted($charge, $registration));
 
         return back()->with('success', 'Charge posted to folio.');
     }

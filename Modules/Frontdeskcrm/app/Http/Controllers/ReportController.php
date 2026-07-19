@@ -382,6 +382,104 @@ class ReportController extends Controller
         ));
     }
 
+    public function daily(Request $request)
+    {
+        $date = $request->date ? Carbon::parse($request->date) : Carbon::today();
+        $propertyId = app(PropertyService::class)->id();
+
+        $totalRooms = RoomUnit::when($propertyId, fn ($q) => $q->where('property_id', $propertyId))->count();
+
+        $occupiedRooms = Registration::where('stay_status', 'checked_in')
+            ->whereDate('check_in', '<=', $date)
+            ->where(function ($q) use ($date) {
+                $q->whereDate('check_out', '>', $date)
+                    ->orWhereNull('check_out');
+            })
+            ->when($propertyId, fn ($q) => $q->where('property_id', $propertyId))
+            ->count();
+
+        $occupancyRate = $totalRooms > 0 ? round(($occupiedRooms / $totalRooms) * 100, 1) : 0;
+
+        $totalPayments = RegistrationPayment::whereHas('registration', function ($q) use ($propertyId) {
+            $q->when($propertyId, fn ($q) => $q->where('property_id', $propertyId));
+        })->whereDate('payment_date', $date)->sum('amount');
+
+        $roomRevenue = Registration::whereIn('stay_status', ['checked_in', 'checked_out'])
+            ->whereDate('check_in', '<=', $date)
+            ->where(function ($q) use ($date) {
+                $q->whereDate('check_out', '>', $date)
+                    ->orWhereNull('check_out');
+            })
+            ->when($propertyId, fn ($q) => $q->where('property_id', $propertyId))
+            ->sum('room_rate');
+
+        $restaurantRevenue = DB::table('restaurant_orders')
+            ->whereDate('created_at', $date)
+            ->when($propertyId, fn ($q) => $q->where('property_id', $propertyId))
+            ->sum('grand_total');
+
+        $totalRevenue = $roomRevenue + $restaurantRevenue;
+
+        $checkinsToday = Registration::whereDate('check_in', $date)
+            ->when($propertyId, fn ($q) => $q->where('property_id', $propertyId))
+            ->count();
+
+        $checkoutsToday = Registration::whereDate('actual_checkout_at', $date)
+            ->when($propertyId, fn ($q) => $q->where('property_id', $propertyId))
+            ->count();
+
+        $activeRegistrations = Registration::where('stay_status', 'checked_in')
+            ->when($propertyId, fn ($q) => $q->where('property_id', $propertyId))
+            ->count();
+
+        $outstandingBalance = DB::table('folio_charges')
+            ->join('registrations', 'folio_charges.registration_id', '=', 'registrations.id')
+            ->whereIn('registrations.stay_status', ['checked_in', 'checked_out'])
+            ->when($propertyId, fn ($q) => $q->where('registrations.property_id', $propertyId))
+            ->value(DB::raw('COALESCE(SUM(folio_charges.amount), 0)'))
+            - DB::table('registration_payments')
+                ->join('registrations', 'registration_payments.registration_id', '=', 'registrations.id')
+                ->whereIn('registrations.stay_status', ['checked_in', 'checked_out'])
+                ->when($propertyId, fn ($q) => $q->where('registrations.property_id', $propertyId))
+                ->value(DB::raw('COALESCE(SUM(registration_payments.amount), 0)'));
+
+        $outstandingBalance = max(0, $outstandingBalance);
+
+        $restaurantOrders = DB::table('restaurant_orders')
+            ->whereDate('created_at', $date)
+            ->when($propertyId, fn ($q) => $q->where('property_id', $propertyId))
+            ->count();
+
+        $registrations = Registration::with('guest', 'roomUnit')
+            ->whereDate('check_in', $date)
+            ->when($propertyId, fn ($q) => $q->where('property_id', $propertyId))
+            ->get();
+
+        $unpaidCharges = DB::table('folio_charges')
+            ->join('registrations', 'folio_charges.registration_id', '=', 'registrations.id')
+            ->leftJoin('registration_payments', 'registrations.id', '=', 'registration_payments.registration_id')
+            ->select(
+                'registrations.id as registration_id',
+                'registrations.full_name',
+                'registrations.room_rate',
+                DB::raw('COALESCE(SUM(DISTINCT folio_charges.amount), 0) as total_charges'),
+                DB::raw('COALESCE(SUM(registration_payments.amount), 0) as total_paid'),
+                DB::raw('COALESCE(SUM(DISTINCT folio_charges.amount), 0) - COALESCE(SUM(registration_payments.amount), 0) as balance')
+            )
+            ->whereIn('registrations.stay_status', ['checked_in', 'checked_out'])
+            ->when($propertyId, fn ($q) => $q->where('registrations.property_id', $propertyId))
+            ->groupBy('registrations.id', 'registrations.full_name', 'registrations.room_rate')
+            ->having('balance', '>', 0)
+            ->get();
+
+        return view('frontdeskcrm::reports.daily', compact(
+            'date', 'totalRooms', 'occupiedRooms', 'occupancyRate',
+            'totalRevenue', 'roomRevenue', 'restaurantRevenue', 'totalPayments',
+            'outstandingBalance', 'checkinsToday', 'checkoutsToday',
+            'activeRegistrations', 'registrations', 'unpaidCharges', 'restaurantOrders'
+        ));
+    }
+
     public function demographics(Request $request)
     {
         [$from, $to] = $this->getDateRange($request);

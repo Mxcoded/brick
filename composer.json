@@ -13,10 +13,12 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "intervention/image-laravel": "^1.5",
         "laravel/framework": "^12.61",
+        "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.6",
         "maatwebsite/excel": "*",
         "nwidart/laravel-modules": "^11.1",
+        "owen-it/laravel-auditing": "^14.0",
         "picqer/php-barcode-generator": "*",
         "spatie/laravel-permission": "^6.16",
         "yajra/laravel-datatables": "^12.0"

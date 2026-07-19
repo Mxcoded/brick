@@ -5,12 +5,16 @@ namespace Modules\Restaurant\Models;
 use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableInterface;
 
 // use Modules\Restaurant\Database\Factories\TableFactory;
 
-class Table extends Model
+class Table extends Model implements AuditableInterface
 {
-    use HasFactory, HasProperty;
+    use Auditable, HasFactory, HasProperty;
+
+    protected $auditableIgnored = ['created_at', 'updated_at', 'deleted_at'];
 
     /**
      * The attributes that are mass assignable.

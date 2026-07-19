@@ -8,10 +8,12 @@ use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Models\Amenity;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\RoomImage;
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableInterface;
 
-class Room extends Model
+class Room extends Model implements AuditableInterface
 {
-    use HasFactory;
+    use Auditable, HasFactory;
 
     protected $fillable = [
         'name',

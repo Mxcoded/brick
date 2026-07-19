@@ -7,10 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Schema;
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableInterface;
 
-class Property extends Model
+class Property extends Model implements AuditableInterface
 {
-    use HasFactory;
+    use Auditable, HasFactory;
+
+    protected $auditableIgnored = ['created_at', 'updated_at', 'deleted_at'];
 
     protected $fillable = [
         'name',

@@ -1,6 +1,7 @@
 @php
     $reportLinks = [
         ['route' => 'frontdesk.reports.index', 'icon' => 'tachometer-alt', 'label' => 'Dashboard'],
+        ['route' => 'frontdesk.reports.daily', 'icon' => 'file-alt', 'label' => 'Daily'],
         ['route' => 'frontdesk.reports.occupancy', 'icon' => 'bed', 'label' => 'Occupancy'],
         ['route' => 'frontdesk.reports.revenue', 'icon' => 'chart-line', 'label' => 'Revenue'],
         ['route' => 'frontdesk.reports.forecast', 'icon' => 'chart-bar', 'label' => 'Forecast'],

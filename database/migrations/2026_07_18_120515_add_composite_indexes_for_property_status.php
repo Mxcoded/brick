@@ -30,6 +30,12 @@ return new class extends Migration
         ];
 
         foreach ($indexes as $table => $columns) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+            if (Schema::hasIndex($table, $columns)) {
+                continue;
+            }
             Schema::table($table, function (Blueprint $table) use ($columns) {
                 $table->index($columns);
             });

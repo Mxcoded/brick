@@ -8,12 +8,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Tasks\Models\Task;
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableInterface;
 
 // use Modules\Staff\Database\Factories\EmployeeFactory;
 
-class Employee extends Model
+class Employee extends Model implements AuditableInterface
 {
-    use HasFactory, HasProperty, SoftDeletes;
+    use Auditable, HasFactory, HasProperty, SoftDeletes;
+
+    protected $auditableIgnored = ['created_at', 'updated_at', 'deleted_at'];
 
     /**
      * The attributes that are mass assignable.

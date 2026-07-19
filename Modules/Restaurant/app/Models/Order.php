@@ -6,12 +6,16 @@ use App\Models\Room;
 use App\Models\Traits\HasProperty;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableInterface;
 
 // use Modules\Restaurant\Database\Factories\OrderFactory;
 
-class Order extends Model
+class Order extends Model implements AuditableInterface
 {
-    use HasFactory, HasProperty;
+    use Auditable, HasFactory, HasProperty;
+
+    protected $auditableIgnored = ['created_at', 'updated_at', 'deleted_at'];
 
     const STATUS_PENDING = 'pending';
 

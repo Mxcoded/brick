@@ -13,10 +13,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Website\Models\Booking;
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableInterface;
 
-class Registration extends Model
+class Registration extends Model implements AuditableInterface
 {
-    use HasFactory, HasProperty, SoftDeletes;
+    use Auditable, HasFactory, HasProperty, SoftDeletes;
+
+    protected $auditableIgnored = ['created_at', 'updated_at', 'deleted_at'];
 
     protected $fillable = [
         'guest_id',

@@ -3,7 +3,9 @@
 use App\Http\Controllers\Admin\LoginLogController;
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AdminController;
+use Modules\Admin\Http\Controllers\AuditController;
 use Modules\Admin\Http\Controllers\PropertyController;
+use Modules\Admin\Http\Controllers\PropertySettingController;
 
 // Import the Enum
 
@@ -83,5 +85,18 @@ Route::prefix('admin')
             Route::get('/active-sessions', [LoginLogController::class, 'activeSessions'])->name('active-sessions');
             Route::get('/user/{userId}', [LoginLogController::class, 'userHistory'])->name('user-history');
             Route::get('/export', [LoginLogController::class, 'export'])->name('export');
+        });
+
+        // Audit Trail
+        Route::prefix('audits')->name('audits.')->group(function () {
+            Route::get('/', [AuditController::class, 'index'])->name('index');
+            Route::get('/{id}', [AuditController::class, 'show'])->name('show');
+            Route::get('/model/{model}/{id}', [AuditController::class, 'modelHistory'])->name('model');
+        });
+
+        // Property Settings
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', [PropertySettingController::class, 'index'])->name('index');
+            Route::put('/{group}', [PropertySettingController::class, 'update'])->name('update');
         });
     });

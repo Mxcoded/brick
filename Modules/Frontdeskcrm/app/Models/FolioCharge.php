@@ -6,10 +6,14 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableInterface;
 
-class FolioCharge extends Model
+class FolioCharge extends Model implements AuditableInterface
 {
-    use HasFactory;
+    use Auditable, HasFactory;
+
+    protected $auditableIgnored = ['created_at', 'updated_at', 'deleted_at'];
 
     protected $fillable = [
         'registration_id',

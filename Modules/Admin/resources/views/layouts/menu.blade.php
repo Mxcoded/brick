@@ -59,6 +59,11 @@
        class="list-group-item list-group-item-action {{ request()->routeIs('admin.properties.*') ? 'active' : '' }}">
         <i class="fas fa-building fa-fw me-2"></i> Properties
     </a>
+
+    <a href="{{ route('admin.settings.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+        <i class="fas fa-cog fa-fw me-2"></i> Settings
+    </a>
     @endcan
 
     <div class="sidebar-divider"></div>
@@ -67,6 +72,11 @@
     <a href="{{ route('admin.activity-logs.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('admin.activity-logs.*') ? 'active' : '' }}">
         <i class="fas fa-history fa-fw me-2"></i> Activity Logs
+    </a>
+
+    <a href="{{ route('admin.audits.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('admin.audits.*') ? 'active' : '' }}">
+        <i class="fas fa-shield-alt fa-fw me-2"></i> Audit Trail
     </a>
 
     <a href="{{ route('admin.login-logs.index') }}"

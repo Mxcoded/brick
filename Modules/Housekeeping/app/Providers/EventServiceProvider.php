@@ -3,6 +3,10 @@
 namespace Modules\Housekeeping\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Modules\Frontdeskcrm\Events\RegistrationCheckedIn;
+use Modules\Housekeeping\Listeners\AlertDeliveryOnRoomService;
+use Modules\Housekeeping\Listeners\SetRoomStatusOnCheckin;
+use Modules\Restaurant\Events\RoomServiceOrdered;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -11,14 +15,21 @@ class EventServiceProvider extends ServiceProvider
      *
      * @var array<string, array<int, string>>
      */
-    protected $listen = [];
+    protected $listen = [
+        RegistrationCheckedIn::class => [
+            SetRoomStatusOnCheckin::class,
+        ],
+        RoomServiceOrdered::class => [
+            AlertDeliveryOnRoomService::class,
+        ],
+    ];
 
     /**
      * Indicates if events should be discovered.
      *
      * @var bool
      */
-    protected static $shouldDiscoverEvents = true;
+    protected static $shouldDiscoverEvents = false;
 
     /**
      * Configure the proper event listeners for email verification.

@@ -11,10 +11,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Housekeeping\Models\HousekeepingLog;
 use Modules\Website\Models\Booking;
+use OwenIt\Auditing\Auditable;
+use OwenIt\Auditing\Contracts\Auditable as AuditableInterface;
 
-class RoomUnit extends Model
+class RoomUnit extends Model implements AuditableInterface
 {
-    use HasFactory, HasProperty, SoftDeletes;
+    use Auditable, HasFactory, HasProperty, SoftDeletes;
 
     protected $fillable = [
         'property_id',
