@@ -36,6 +36,11 @@ Route::post('/paystack/webhook', [WebsiteController::class, 'paystackWebhook'])
     ->name('website.paystack.webhook')
     ->withoutMiddleware(['web', 'csrf']);
 
+// Generic payment-gateway webhook dispatcher: /webhooks/payment/{gateway}
+Route::post('/webhooks/payment/{gateway}', [WebsiteController::class, 'paymentWebhook'])
+    ->name('website.payment.webhook')
+    ->withoutMiddleware(['web', 'csrf']);
+
 Route::middleware(['web'])->group(function () {
 
     // =========================================================================

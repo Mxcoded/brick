@@ -41,13 +41,20 @@
 
     @can('manage_settings')
     <a href="{{ route('admin.modules.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('admin.modules.*') ? 'active' : '' }}">
+        class="list-group-item list-group-item-action {{ request()->routeIs('admin.modules.*') ? 'active' : '' }}">
         <i class="fas fa-cubes fa-fw me-2"></i> Modules
     </a>
 
     <a href="{{ route('admin.appearance') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('admin.appearance') ? 'active' : '' }}">
+        class="list-group-item list-group-item-action {{ request()->routeIs('admin.appearance') ? 'active' : '' }}">
         <i class="fas fa-palette fa-fw me-2"></i> Appearance
+    </a>
+    @endcan
+
+    @can('manage_payment_gateways')
+    <a href="{{ route('admin.payment-gateways.index') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('admin.payment-gateways.*') ? 'active' : '' }}">
+        <i class="fas fa-credit-card fa-fw me-2"></i> Payment Gateways
     </a>
     @endcan
 

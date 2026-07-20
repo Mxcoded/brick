@@ -59,6 +59,11 @@ class RoleSeeder extends Seeder
             'settings.update',
 
             // ──────────────────────────────────────────
+            // PAYMENT GATEWAYS – management (pluggable)
+            // ──────────────────────────────────────────
+            'manage_payment_gateways',
+
+            // ──────────────────────────────────────────
             // FRONT DESK – legacy
             // ──────────────────────────────────────────
             'check_in_guest',

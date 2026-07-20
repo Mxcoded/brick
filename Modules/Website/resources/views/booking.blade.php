@@ -347,6 +347,22 @@
             box-shadow: 0 0 0 4px rgba(200, 161, 101, 0.12);
         }
 
+        .payment-option.selected {
+            border-color: var(--brand-gold);
+            background: rgba(200, 161, 101, 0.06);
+            box-shadow: 0 0 0 4px rgba(200, 161, 101, 0.12);
+        }
+
+        .payment-option.selected .check-indicator {
+            border-color: var(--brand-gold);
+            background: var(--brand-gold);
+        }
+
+        .payment-option.selected .check-indicator i {
+            color: #fff;
+            font-size: 0.65rem;
+        }
+
         .payment-option .payment-icon {
             width: 44px;
             height: 44px;
@@ -476,11 +492,12 @@
                 padding: 1.25rem;
             }
 
-            .payment-option {
-                padding: 1rem;
-            }
+        .payment-option {
+            padding: 1rem;
+        }
+    }
 
-            /* ── Fun UX: live progress, chips, steppers, reveal, confetti ── */
+    /* ── Fun UX: live progress, chips, steppers, reveal, confetti ── */
             .booking-progress-bar {
                 height: 8px;
                 border-radius: 20px;
@@ -637,6 +654,264 @@
                     animation: none !important;
                 }
             }
+
+            /* ── Step indicator ── */
+            .step-indicator {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0;
+                margin-bottom: 1.75rem;
+                padding: 0 0.5rem;
+            }
+
+            .step-indicator .step-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.3rem;
+                position: relative;
+                flex: 1;
+                max-width: 90px;
+            }
+
+            .step-indicator .step-dot {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.75rem;
+                font-weight: 800;
+                border: 2px solid #d1d5db;
+                background: #fff;
+                color: #999;
+                transition: all 0.3s ease;
+                flex-shrink: 0;
+            }
+
+            .step-indicator .step-item.active .step-dot {
+                border-color: var(--brand-gold);
+                background: linear-gradient(135deg, var(--brand-gold), var(--brand-gold-dark));
+                color: #fff;
+                box-shadow: 0 4px 12px rgba(200, 161, 101, 0.35);
+            }
+
+            .step-indicator .step-item.completed .step-dot {
+                border-color: #16a34a;
+                background: #16a34a;
+                color: #fff;
+            }
+
+            .step-indicator .step-item .step-label {
+                font-size: 0.6rem;
+                color: #999;
+                text-align: center;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+                line-height: 1.2;
+            }
+
+            .step-indicator .step-item.active .step-label {
+                color: var(--brand-dark);
+            }
+
+            .step-indicator .step-item.completed .step-label {
+                color: #16a34a;
+            }
+
+            .step-connector {
+                flex: 1;
+                height: 2px;
+                background: #e5e7eb;
+                min-width: 12px;
+                margin: 0 2px;
+                margin-bottom: 1.55rem;
+                transition: background 0.3s ease;
+            }
+
+            .step-connector.completed {
+                background: #16a34a;
+            }
+
+            /* ── Room type cards ── */
+            .room-cards {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 1rem;
+            }
+
+            .room-card {
+                border: 2px solid #e5e7eb;
+                border-radius: 14px;
+                overflow: hidden;
+                cursor: pointer;
+                transition: all 0.25s ease;
+                background: #fff;
+                position: relative;
+            }
+
+            .room-card:hover {
+                border-color: var(--brand-gold-light);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+            }
+
+            .room-card.selected {
+                border-color: var(--brand-gold);
+                box-shadow: 0 0 0 3px rgba(200, 161, 101, 0.2);
+            }
+
+            .room-card .card-img-top {
+                height: 120px;
+                object-fit: cover;
+                background: var(--brand-cream);
+            }
+
+            .room-card .card-body {
+                padding: 0.75rem 1rem 0.9rem;
+            }
+
+            .room-card .card-body .card-title {
+                font-weight: 700;
+                font-size: 0.92rem;
+                color: var(--brand-dark);
+            }
+
+            .room-card .card-body .card-price {
+                font-size: 1rem;
+                font-weight: 800;
+                color: var(--brand-gold-dark);
+            }
+
+            .room-card .card-body .card-meta {
+                font-size: 0.75rem;
+                color: #999;
+            }
+
+            .room-card .selected-badge {
+                position: absolute;
+                top: 0.5rem;
+                right: 0.5rem;
+                background: var(--brand-gold);
+                color: #fff;
+                font-size: 0.6rem;
+                font-weight: 700;
+                padding: 0.2rem 0.6rem;
+                border-radius: 20px;
+                opacity: 0;
+                transition: opacity 0.25s ease;
+            }
+
+            .room-card.selected .selected-badge {
+                opacity: 1;
+            }
+
+            .room-card .capacity-badge {
+                position: absolute;
+                top: 0.5rem;
+                left: 0.5rem;
+                background: rgba(0, 0, 0, 0.6);
+                color: #fff;
+                font-size: 0.65rem;
+                font-weight: 700;
+                padding: 0.2rem 0.6rem;
+                border-radius: 20px;
+                backdrop-filter: blur(4px);
+            }
+
+            /* ── Review strip ── */
+            .review-strip {
+                background: var(--brand-cream);
+                border-radius: 14px;
+                border: 1px solid #eee;
+                padding: 0.9rem 1.2rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 0.4rem 1.2rem;
+                margin-bottom: 1rem;
+            }
+
+            .review-strip .rv-item {
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+                font-size: 0.8rem;
+                color: #666;
+            }
+
+            .review-strip .rv-item i {
+                color: var(--brand-gold);
+                width: 15px;
+                text-align: center;
+                font-size: 0.75rem;
+            }
+
+            .review-strip .rv-item .rv-value {
+                font-weight: 700;
+                color: var(--brand-dark);
+            }
+
+            .review-strip .rv-divider {
+                width: 1px;
+                height: 28px;
+                background: #e5e7eb;
+                flex-shrink: 0;
+            }
+
+            @media (max-width: 576px) {
+                .room-cards {
+                    grid-template-columns: 1fr;
+                }
+
+                .step-indicator {
+                    gap: 0;
+                    overflow-x: auto;
+                    padding-bottom: 0.25rem;
+                    justify-content: flex-start;
+                }
+
+                .step-indicator .step-item {
+                    flex: 0 0 auto;
+                    min-width: 48px;
+                    max-width: 60px;
+                }
+
+                .step-indicator .step-dot {
+                    width: 26px;
+                    height: 26px;
+                    font-size: 0.65rem;
+                }
+
+                .step-indicator .step-item .step-label {
+                    font-size: 0.48rem;
+                    letter-spacing: 0;
+                }
+
+                .step-connector {
+                    flex: 0 0 8px;
+                    min-width: 6px;
+                    margin-bottom: 1.3rem;
+                }
+
+                .review-strip {
+                    flex-direction: column;
+                    align-items: stretch;
+                    gap: 0.4rem;
+                }
+
+                .review-strip .rv-divider {
+                    display: none;
+                }
+
+                .review-strip .rv-item {
+                    font-size: 0.75rem;
+                }
+            }
     </style>
 @endpush
 
@@ -650,7 +925,6 @@
     </div>
 
     <div class="container pb-5">
-        @include('website::partials.booking-progress', ['step' => 3])
 
         <div class="row g-4">
             <div class="col-lg-8">
@@ -658,6 +932,33 @@
                     <div class="fill" id="bookingProgressFill"></div>
                 </div>
                 <div class="progress-caption" id="bookingProgressCaption"></div>
+
+                <div class="step-indicator" id="stepIndicator">
+                    <div class="step-item active" data-step="1">
+                        <div class="step-dot">1</div>
+                        <div class="step-label">Dates</div>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-item" data-step="2">
+                        <div class="step-dot">2</div>
+                        <div class="step-label">Guest</div>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-item" data-step="3">
+                        <div class="step-dot">3</div>
+                        <div class="step-label">ID</div>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-item" data-step="4">
+                        <div class="step-dot">4</div>
+                        <div class="step-label">Options</div>
+                    </div>
+                    <div class="step-connector"></div>
+                    <div class="step-item" data-step="5">
+                        <div class="step-dot">5</div>
+                        <div class="step-label">Payment</div>
+                    </div>
+                </div>
 
                 @if (session('error'))
                     <div class="alert alert-danger alert-dismissible fade show availability-banner" role="alert">
@@ -759,11 +1060,30 @@
                                             min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label">Room Type <span class="text-danger">*</span></label>
-                                        <select name="room_type_id" id="room_type_id" class="form-select form-select-lg"
-                                            required>
-                                            <option value="" disabled {{ empty($reqRoomTypeId) ? 'selected' : '' }}>
-                                                -- Choose a Room Type --</option>
+                                        <label class="form-label">Choose Your Room <span class="text-danger">*</span></label>
+                                        <div class="room-cards mb-2" id="roomCards">
+                                            @foreach ($roomTypes as $roomOption)
+                                                <div class="room-card {{ $reqRoomTypeId == $roomOption->id ? 'selected' : '' }}"
+                                                    data-room-type-id="{{ $roomOption->id }}"
+                                                    data-price="{{ $roomOption->price }}"
+                                                    data-image="{{ $roomOption->image_url }}"
+                                                    data-name="{{ $roomOption->name }}"
+                                                    data-capacity="{{ $roomOption->capacity }}"
+                                                    data-units="{{ $roomOption->units_count }}">
+                                                    <img src="{{ $roomOption->image_url ?? asset('images/default-room.jpg') }}"
+                                                        alt="{{ $roomOption->name }}" class="card-img-top" loading="lazy"
+                                                        onerror="this.style.display='none'">
+                                                    <span class="capacity-badge"><i class="fas fa-user-friends me-1"></i>{{ $roomOption->capacity }}</span>
+                                                    <span class="selected-badge"><i class="fas fa-check me-1"></i>Selected</span>
+                                                    <div class="card-body">
+                                                        <div class="card-title">{{ $roomOption->name }}</div>
+                                                        <div class="card-price">₦{{ number_format($roomOption->price, 2) }}<span class="card-meta"> /night</span></div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                        <select name="room_type_id" id="room_type_id" class="d-none">
+                                            <option value="" disabled {{ empty($reqRoomTypeId) ? 'selected' : '' }}></option>
                                             @foreach ($roomTypes as $roomOption)
                                                 <option value="{{ $roomOption->id }}"
                                                     data-price="{{ $roomOption->price }}"
@@ -772,7 +1092,6 @@
                                                     data-capacity="{{ $roomOption->capacity }}"
                                                     data-units="{{ $roomOption->units_count }}"
                                                     {{ $reqRoomTypeId == $roomOption->id ? 'selected' : '' }}>
-                                                    {{ $roomOption->name }} (₦{{ number_format($roomOption->price, 2) }})
                                                 </option>
                                             @endforeach
                                         </select>
@@ -881,7 +1200,7 @@
                         <div class="form-section-header">
                             <div class="section-icon"><i class="fas fa-id-card"></i></div>
                             <h5>Identity Verification</h5>
-                            <span class="step-badge">Required</span>
+                            <span class="step-badge">Step 3</span>
                         </div>
                         <div class="form-section-body">
                             <div class="row g-3">
@@ -930,7 +1249,7 @@
                         <div class="form-section-header">
                             <div class="section-icon"><i class="fas fa-users"></i></div>
                             <h5>Guests &amp; Requests</h5>
-                            <span class="step-badge">Step 3</span>
+                            <span class="step-badge">Step 4</span>
                         </div>
                         <div class="form-section-body">
                             <div class="row g-3">
@@ -1005,7 +1324,7 @@
                         <div class="form-section-header">
                             <div class="section-icon"><i class="fas fa-credit-card"></i></div>
                             <h5>Payment Method</h5>
-                            <span class="step-badge">Step 4</span>
+                            <span class="step-badge">Step 5</span>
                         </div>
                         <div class="form-section-body">
                             <div class="row g-3">
@@ -1042,6 +1361,33 @@
                                 <i class="fas fa-lock me-1"></i> We never store your card details — payments are securely
                                 processed by Paystack.
                             </p>
+                        </div>
+                    </div>
+
+                    <div class="review-strip" id="reviewStrip">
+                        <div class="rv-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span class="rv-value" id="reviewRoom">Select a room</span>
+                        </div>
+                        <div class="rv-divider"></div>
+                        <div class="rv-item">
+                            <i class="fas fa-calendar-day"></i>
+                            <span><span class="rv-value" id="reviewDates">—</span></span>
+                        </div>
+                        <div class="rv-divider"></div>
+                        <div class="rv-item">
+                            <i class="fas fa-moon"></i>
+                            <span><span class="rv-value" id="reviewNights">1</span> night</span>
+                        </div>
+                        <div class="rv-divider"></div>
+                        <div class="rv-item">
+                            <i class="fas fa-users"></i>
+                            <span><span class="rv-value" id="reviewGuests">1 Adult</span></span>
+                        </div>
+                        <div class="rv-divider"></div>
+                        <div class="rv-item">
+                            <i class="fas fa-naira-sign"></i>
+                            <span class="rv-value" id="reviewTotal">₦0.00</span>
                         </div>
                     </div>
 
@@ -1153,6 +1499,10 @@
                             <div class="d-flex justify-content-between small mb-2">
                                 <span class="text-muted">Rate</span>
                                 <span id="summary-rate">₦{{ number_format($selectedRoomType->price ?? 0, 2) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between small mb-2">
+                                <span class="text-muted">Guests</span>
+                                <span class="fw-bold" id="summary-guests">1 Adult</span>
                             </div>
 
                             <hr class="my-3">
@@ -1471,7 +1821,21 @@
             }
 
             if (bookingForm) {
-                bookingForm.addEventListener('submit', function() {
+                bookingForm.addEventListener('submit', function(e) {
+                    // Validate room selection in non-cart flow (cards are present)
+                    const cards = document.querySelectorAll('.room-card');
+                    const selectedCard = document.querySelector('.room-card.selected');
+                    if (cards.length > 0 && !selectedCard) {
+                        e.preventDefault();
+                        const alertEl = document.getElementById('availabilityAlert');
+                        if (alertEl) {
+                            alertEl.classList.remove('d-none', 'alert-success');
+                            alertEl.classList.add('alert-danger');
+                            alertEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Please select a room type to continue.';
+                            alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        return;
+                    }
                     if (!submitBtn.disabled) {
                         submitBtn.disabled = true;
                         submitBtn.classList.add('loading');
@@ -1622,6 +1986,171 @@
                     if (!submitBtn.disabled) burstConfetti();
                 });
             }
+
+            // ── Payment method visual fallback (Safari :has() support) ──
+            document.querySelectorAll('.payment-option').forEach(opt => {
+                opt.addEventListener('click', function() {
+                    document.querySelectorAll('.payment-option').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    updateSubmitBtnText();
+                });
+                if (opt.querySelector('input[type="radio"]:checked')) {
+                    opt.classList.add('selected');
+                }
+            });
+
+            function updateSubmitBtnText() {
+                const selected = document.querySelector('input[name="payment_method"]:checked');
+                const btnTextEl = document.getElementById('btnText');
+                if (!btnTextEl) return;
+                if (selected && selected.value === 'pay_on_arrival') {
+                    btnTextEl.innerHTML = '<i class="fas fa-hotel me-2"></i>Reserve — Pay at Hotel';
+                } else {
+                    btnTextEl.innerHTML = '<i class="fas fa-lock me-2 lock-icon"></i>Complete Booking';
+                }
+            }
+            document.querySelectorAll('input[name="payment_method"]').forEach(r => {
+                r.addEventListener('change', updateSubmitBtnText);
+            });
+
+            // ── Smooth scroll to first error ──
+            if (bookingForm) {
+                bookingForm.addEventListener('submit', function(e) {
+                    const firstInvalid = this.querySelector('.is-invalid, :invalid');
+                    if (firstInvalid) {
+                        setTimeout(() => {
+                            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            firstInvalid.focus({ preventScroll: true });
+                        }, 150);
+                    }
+                });
+            }
+
+            // ── Smart date chip labels (show actual dates) ──
+            if (dateChips) {
+                dateChips.querySelectorAll('.date-chip').forEach(chip => {
+                    const offset = parseInt(chip.dataset.offset, 10);
+                    if (!isNaN(offset)) {
+                        const d = new Date();
+                        d.setDate(d.getDate() + offset);
+                        const month = d.toLocaleDateString('en-US', { month: 'short' });
+                        chip.textContent = chip.textContent + ' (' + month + ' ' + d.getDate() + ')';
+                    }
+                });
+            }
+
+            // ── Live guest count in summary ──
+            function updateGuestSummary() {
+                const el = document.getElementById('summary-guests');
+                if (!el) return;
+                const adults = parseInt(document.getElementById('adults')?.value || 1);
+                const children = parseInt(document.getElementById('children')?.value || 0);
+                const parts = [];
+                if (adults > 0) parts.push(adults + ' ' + (adults === 1 ? 'Adult' : 'Adults'));
+                if (children > 0) parts.push(children + ' ' + (children === 1 ? 'Child' : 'Children'));
+                el.textContent = parts.join(', ') || '1 Adult';
+            }
+            ['adults', 'children'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', updateGuestSummary);
+                    el.addEventListener('input', updateGuestSummary);
+                }
+            });
+            updateGuestSummary();
+
+            // ── Room card selection ──
+            const roomCards = document.querySelectorAll('.room-card');
+            const hiddenSelect = document.getElementById('room_type_id');
+            roomCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    roomCards.forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    const id = this.dataset.roomTypeId;
+                    if (hiddenSelect) {
+                        hiddenSelect.value = id;
+                        hiddenSelect.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+
+            // ── Step indicator update ──
+            function updateStepIndicator() {
+                const fill = document.getElementById('bookingProgressFill');
+                const pct = fill ? parseFloat(fill.style.width) : 0;
+                const steps = document.querySelectorAll('.step-item');
+                const connectors = document.querySelectorAll('.step-connector');
+                let activeIdx = 0;
+                if (pct >= 95) activeIdx = 4;
+                else if (pct >= 70) activeIdx = 3;
+                else if (pct >= 45) activeIdx = 2;
+                else if (pct >= 20) activeIdx = 1;
+                steps.forEach((s, i) => {
+                    s.classList.toggle('active', i === activeIdx);
+                    s.classList.toggle('completed', i < activeIdx);
+                });
+                connectors.forEach((c, i) => {
+                    c.classList.toggle('completed', i < activeIdx);
+                });
+            }
+            const origUpdate = updateProgressBar;
+            if (bookingForm) {
+                bookingForm.querySelectorAll('input, select, textarea').forEach(el => {
+                    el.addEventListener('input', updateStepIndicator);
+                    el.addEventListener('change', updateStepIndicator);
+                });
+            }
+            updateStepIndicator();
+
+            // ── Review strip update ──
+            function updateReviewStrip() {
+                const roomName = document.getElementById('reviewRoom');
+                const dates = document.getElementById('reviewDates');
+                const nights = document.getElementById('reviewNights');
+                const guests = document.getElementById('reviewGuests');
+                const total = document.getElementById('reviewTotal');
+                if (!roomName) return;
+
+                const opt = hiddenSelect?.options[hiddenSelect.selectedIndex];
+                if (opt && opt.value) {
+                    roomName.textContent = opt.dataset.name || 'Room';
+                    if (total) {
+                        const price = parseFloat(opt.dataset.price || 0);
+                        const n = parseInt(nights?.textContent || 1);
+                        total.textContent = '₦' + (price * n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    }
+                } else {
+                    roomName.textContent = 'Select a room';
+                    if (total) total.textContent = '₦0.00';
+                }
+
+                if (dates && checkInInput?.value) {
+                    const ci = new Date(checkInInput.value);
+                    const co = checkOutInput?.value ? new Date(checkOutInput.value) : new Date(ci.getTime() + 86400000);
+                    dates.textContent = ci.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' - ' + co.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                } else if (dates) {
+                    dates.textContent = '—';
+                }
+
+                const n = calculateNights();
+                if (nights) nights.textContent = n;
+
+                const a = parseInt(document.getElementById('adults')?.value || 1);
+                const c = parseInt(document.getElementById('children')?.value || 0);
+                if (guests) {
+                    const parts = [];
+                    if (a > 0) parts.push(a + (a === 1 ? ' Adult' : ' Adults'));
+                    if (c > 0) parts.push(c + (c === 1 ? ' Child' : ' Children'));
+                    guests.textContent = parts.join(', ') || '1 Adult';
+                }
+            }
+            if (bookingForm) {
+                bookingForm.querySelectorAll('input, select, textarea').forEach(el => {
+                    el.addEventListener('input', updateReviewStrip);
+                    el.addEventListener('change', updateReviewStrip);
+                });
+            }
+            updateReviewStrip();
         });
     </script>
 @endpush

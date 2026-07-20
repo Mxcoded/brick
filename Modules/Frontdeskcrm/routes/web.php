@@ -58,6 +58,9 @@ Route::prefix('frontdesk')
         // Route to mark a booking as no-show directly
         Route::post('/bookings/{booking}/no-show', [RegistrationController::class, 'markBookingNoShow'])
             ->name('bookings.no-show');
+        // Initiate a Paystack refund for a paid booking
+        Route::post('/bookings/{ref}/refund', [RegistrationController::class, 'refundBooking'])
+            ->name('bookings.refund');
         // records a payment made against a registration.
         Route::post('/registrations/{registration}/payment', [RegistrationController::class, 'storePayment'])
             ->name('registrations.payment.store');

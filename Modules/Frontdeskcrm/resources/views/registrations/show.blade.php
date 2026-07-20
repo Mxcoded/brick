@@ -703,6 +703,20 @@ $checkoutConfirmMsg = $isGroupLead
                                         <span class="fw-bold text-success">₦{{ number_format($registration->booking->amount_paid, 2) }}</span>
                                     </li>
                                 @endif
+                                @if ($registration->booking->payment_status === 'paid')
+                                    <li class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-danger w-100"
+                                            data-bs-toggle="modal" data-bs-target="#refundModal">
+                                            <i class="fas fa-undo me-1"></i> Refund Payment
+                                        </button>
+                                    </li>
+                                @elseif (in_array($registration->booking->payment_status, ['refund_pending', 'refunded']))
+                                    <li class="mt-2">
+                                        <span class="badge bg-info text-dark w-100 py-2">
+                                            {{ $registration->booking->payment_status === 'refunded' ? 'Refunded' : 'Refund Pending' }}
+                                        </span>
+                                    </li>
+                                @endif
                             </ul>
                         </div>
                     </div>
@@ -714,6 +728,42 @@ $checkoutConfirmMsg = $isGroupLead
 
         {{-- 1. Adjust Stay Modal (Lead) --}}
         @include('frontdeskcrm::registrations.partials._adjust_stay_modal', ['guest' => $registration])
+
+        {{-- Refund Modal --}}
+        <div class="modal fade" id="refundModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Refund Payment</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="{{ route('frontdesk.bookings.refund', $registration->booking->booking_reference) }}" method="POST">
+                        @csrf
+                        <div class="modal-body">
+                            <p class="text-muted small">
+                                Refunding <strong>{{ $registration->booking->booking_reference }}</strong>
+                                (₦{{ number_format($registration->booking->amount_paid, 2) }}).
+                                The refund is processed via Paystack and may take a few minutes to complete.
+                            </p>
+                            <div class="mb-3">
+                                <label class="form-label">Amount (leave blank to refund full amount)</label>
+                                <input type="number" step="0.01" min="0.01" name="amount" class="form-control"
+                                    placeholder="{{ $registration->booking->amount_paid }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Reason</label>
+                                <textarea name="reason" class="form-control" rows="2"
+                                    placeholder="e.g. Guest cancelled, overbooking"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-danger">Issue Refund</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         {{-- 2. Adjust Stay Modal (Members) --}}
         @if ($isGroupLead && $groupMembers->count() > 0)

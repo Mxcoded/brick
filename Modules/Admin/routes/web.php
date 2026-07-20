@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\LoginLogController;
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AdminController;
+use Modules\Admin\Http\Controllers\PaymentGatewayController;
 
 // Import the Enum
 
@@ -59,6 +60,18 @@ Route::prefix('admin')
         Route::put('/appearance', [AdminController::class, 'updateAppearance'])->name('appearance.update');
         Route::put('/appearance/logo', [AdminController::class, 'updateLogo'])->name('appearance.logo');
         Route::delete('/appearance/logo', [AdminController::class, 'removeLogo'])->name('appearance.logo.remove');
+
+        // Payment Gateways (pluggable)
+        Route::prefix('payment-gateways')->name('payment-gateways.')->middleware('can:manage_payment_gateways')->group(function () {
+            Route::get('/', [PaymentGatewayController::class, 'index'])->name('index');
+            Route::get('/create', [PaymentGatewayController::class, 'create'])->name('create');
+            Route::post('/', [PaymentGatewayController::class, 'store'])->name('store');
+            Route::get('/{paymentGateway}/edit', [PaymentGatewayController::class, 'edit'])->name('edit');
+            Route::put('/{paymentGateway}', [PaymentGatewayController::class, 'update'])->name('update');
+            Route::delete('/{paymentGateway}', [PaymentGatewayController::class, 'destroy'])->name('destroy');
+            Route::post('/{paymentGateway}/default', [PaymentGatewayController::class, 'setDefault'])->name('set-default');
+            Route::post('/{paymentGateway}/toggle', [PaymentGatewayController::class, 'toggleActive'])->name('toggle');
+        });
 
         // Login Logs / User Activity Tracking
         Route::prefix('login-logs')->name('login-logs.')->group(function () {

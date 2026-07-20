@@ -22,9 +22,11 @@ use Modules\Frontdeskcrm\Models\GuestType;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Models\Booking;
+use Modules\Website\Models\Refund;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
+use Modules\Website\Services\PaymentGatewayManager;
 use Modules\Website\Services\RoomAvailabilityService;
 
 class RegistrationController extends Controller
@@ -2029,5 +2031,63 @@ class RegistrationController extends Controller
         Log::info("Booking {$booking->booking_reference} marked as no-show by agent.");
 
         return back()->with('success', "Booking {$booking->booking_reference} marked as no-show.");
+    }
+
+    /**
+     * Initiate a Paystack refund for a paid booking.
+     *
+     * The original Paystack transaction reference is the booking reference for
+     * single bookings, or the group id (GRP...) for multi-room group bookings.
+     */
+    public function refundBooking(Request $request, $ref)
+    {
+        $booking = Booking::where('booking_reference', $ref)->firstOrFail();
+
+        if (! in_array($booking->payment_status, ['paid', 'partial'])) {
+            return back()->with('error', 'Only paid bookings can be refunded.');
+        }
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500',
+            'amount' => 'nullable|numeric|min:0.01',
+        ]);
+
+        $amount = isset($validated['amount'])
+            ? (float) $validated['amount']
+            : (float) $booking->amount_paid;
+
+        $paystackReference = $booking->booking_group_id ?? $booking->booking_reference;
+
+        $driver = app(PaymentGatewayManager::class)->driver();
+        $result = $driver->refund($paystackReference, $amount, $validated['reason'] ?? 'Booking refund', [
+            'booking_reference' => $booking->booking_reference,
+            'initiated_by' => Auth::id(),
+        ]);
+
+        if (! ($result['status'] ?? false)) {
+            return back()->with('error', 'Refund failed: '.($result['message'] ?? 'Gateway error'));
+        }
+
+        $refundData = $result['data'] ?? [];
+
+        Refund::create([
+            'gateway' => $driver->code(),
+            'gateway_reference' => $refundData['reference'] ?? null,
+            'transaction_reference' => $paystackReference,
+            'refundable_type' => Booking::class,
+            'refundable_id' => $booking->id,
+            'amount' => $amount,
+            'currency' => 'NGN',
+            'status' => $refundData['status'] ?? 'pending',
+            'reason' => $validated['reason'] ?? 'Booking refund',
+            'metadata' => $refundData,
+            'created_by' => Auth::id(),
+            'processed_at' => ($refundData['status'] ?? null) === 'processed' ? now() : null,
+        ]);
+
+        // Flag the booking so it can't be double-refunded while pending.
+        $booking->update(['payment_status' => 'refund_pending']);
+
+        return back()->with('success', 'Refund initiated. Reference: '.($refundData['reference'] ?? 'N/A'));
     }
 }

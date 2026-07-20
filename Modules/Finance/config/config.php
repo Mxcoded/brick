@@ -10,6 +10,8 @@ return [
     'accounts' => [
         'cash' => '1000',
         'bank' => '1100',
+        'paystack_clearing' => '1110',
+        'stripe_clearing' => '1120',
         'accounts_receivable' => '1200',
         'inventory' => '1300',
         'accounts_payable' => '2000',
@@ -43,5 +45,9 @@ return [
         'bank_transfer' => 'bank',
         'cheque' => 'bank',
         'crypto' => 'bank',
+
+        // Pluggable online gateways → dedicated clearing accounts for reconciliation
+        'paystack' => 'paystack_clearing',
+        'stripe' => 'stripe_clearing',
     ],
 ];

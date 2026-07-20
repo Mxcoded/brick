@@ -896,7 +896,7 @@
             .progress-line { margin-bottom: 1rem; }
         }
 
-        @stack('deferred-styles')
+        @stack('deferred-styles');
     </style>
     <script>
         window.addEventListener('load', function() {

@@ -15,6 +15,8 @@ class ChartOfAccountsSeeder extends Seeder
         // Assets (debit normal)
         ['code' => '1000', 'name' => 'Cash', 'type' => 'asset'],
         ['code' => '1100', 'name' => 'Bank', 'type' => 'asset'],
+        ['code' => '1110', 'name' => 'Paystack Clearing', 'type' => 'asset'],
+        ['code' => '1120', 'name' => 'Stripe Clearing', 'type' => 'asset'],
         ['code' => '1200', 'name' => 'Accounts Receivable', 'type' => 'asset'],
         ['code' => '1300', 'name' => 'Inventory', 'type' => 'asset'],
         ['code' => '1400', 'name' => 'Fixed Assets', 'type' => 'asset'],

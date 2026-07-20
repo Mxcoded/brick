@@ -20,7 +20,6 @@ use Modules\Banquet\Models\BanquetEnquiry;
 use Modules\Banquet\Models\EventLead;
 use Modules\Banquet\Models\LeadEvent;
 use Modules\Banquet\Notifications\NewEnquiryNotification;
-use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
@@ -41,6 +40,7 @@ use Modules\Website\Models\Settings;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Services\BookingCartService;
 use Modules\Website\Services\GoogleReviewsService;
+use Modules\Website\Services\PaymentGatewayManager;
 use Modules\Website\Services\RoomAvailabilityService;
 
 class WebsiteController extends Controller
@@ -576,28 +576,17 @@ class WebsiteController extends Controller
     private function initializePaystackGrouped(array $bookings, float $totalAmount)
     {
         $primaryBooking = $bookings[0];
-        $url = 'https://api.paystack.co/transaction/initialize';
-        $secretKey = config('services.paystack.secret');
-
-        if (! $secretKey) {
-            return back()->with('error', 'Payment configuration missing.');
-        }
 
         try {
             // Generate a unique reference for the group payment
             $paymentRef = $primaryBooking->booking_group_id ?? $primaryBooking->booking_reference;
 
-            $response = Http::withOptions([
-                'verify' => false,
-            ])->withHeaders([
-                'Authorization' => 'Bearer '.$secretKey,
-                'Content-Type' => 'application/json',
-            ])->post($url, [
-                'email' => $primaryBooking->guest_email,
-                'amount' => $totalAmount * 100, // Amount in Kobo
-                'reference' => $paymentRef,
-                'callback_url' => route('website.payment.callback'),
-                'metadata' => [
+            $result = app(PaymentGatewayManager::class)->driver()->initialize(
+                $primaryBooking->guest_email,
+                $totalAmount,
+                $paymentRef,
+                route('website.payment.callback'),
+                [
                     'booking_ids' => array_map(fn ($b) => $b->id, $bookings),
                     'booking_group_id' => $primaryBooking->booking_group_id,
                     'custom_fields' => [
@@ -605,10 +594,8 @@ class WebsiteController extends Controller
                         ['display_name' => 'Rooms', 'variable_name' => 'rooms_count', 'value' => count($bookings)],
                         ['display_name' => 'Primary Ref', 'variable_name' => 'primary_ref', 'value' => $primaryBooking->booking_reference],
                     ],
-                ],
-            ]);
-
-            $result = $response->json();
+                ]
+            );
 
             if ($result['status']) {
                 return redirect($result['data']['authorization_url']);
@@ -1321,33 +1308,20 @@ class WebsiteController extends Controller
      */
     private function initializePaystack(Booking $booking)
     {
-        $url = 'https://api.paystack.co/transaction/initialize';
-        $secretKey = config('services.paystack.secret');
-        if (! $secretKey) {
-            return back()->with('error', 'Payment configuration missing.');
-        }
-
         try {
-            $response = Http::withOptions([
-                'verify' => false, // ⚠️ DISABLES SSL CHECK (For Localhost/Dev Only)
-            ])->withHeaders([
-                'Authorization' => 'Bearer '.$secretKey,
-                'Content-Type' => 'application/json',
-            ])->post($url, [
-                'email' => $booking->guest_email,
-                'amount' => $booking->total_amount * 100, // Amount in Kobo
-                'reference' => $booking->booking_reference, // Use our Ref as Paystack Ref
-                'callback_url' => route('website.payment.callback'),
-                'metadata' => [
+            $result = app(PaymentGatewayManager::class)->driver()->initialize(
+                $booking->guest_email,
+                $booking->total_amount,
+                $booking->booking_reference, // Use our Ref as Paystack Ref
+                route('website.payment.callback'),
+                [
                     'booking_id' => $booking->id,
                     'custom_fields' => [
                         ['display_name' => 'Guest Name', 'variable_name' => 'guest_name', 'value' => $booking->guest_name],
                         ['display_name' => 'Booking Ref', 'variable_name' => 'booking_ref', 'value' => $booking->booking_reference],
                     ],
-                ],
-            ]);
-
-            $result = $response->json();
+                ]
+            );
 
             if ($result['status']) {
                 // Redirect user to Paystack Payment Page
@@ -1369,21 +1343,14 @@ class WebsiteController extends Controller
     public function verifyPayment(Request $request)
     {
         $reference = $request->query('reference'); // Paystack returns this
-        $secretKey = config('services.paystack.secret');
 
         if (! $reference) {
             return redirect()->route('website.home')->with('error', 'No payment reference provided.');
         }
 
         try {
-            // Verify with Paystack API
-            $response = Http::withOptions([
-                'verify' => false, // ⚠️ DISABLES SSL CHECK (For Localhost/Dev Only)
-            ])->withHeaders([
-                'Authorization' => 'Bearer '.$secretKey,
-            ])->get('https://api.paystack.co/transaction/verify/'.$reference);
-
-            $result = $response->json();
+            // Verify with the active payment gateway
+            $result = app(PaymentGatewayManager::class)->driver()->verify($reference);
 
             if ($result['status'] && $result['data']['status'] === 'success') {
                 // Check if this is a group payment (reference starts with GRP)
@@ -1445,123 +1412,46 @@ class WebsiteController extends Controller
      * Handles asynchronous payment notifications (bank transfers, delayed card payments, etc.)
      * Set your webhook URL in Paystack dashboard to: https://yourdomain.com/paystack/webhook
      */
+    /**
+     * ✅ Paystack Webhook Handler (legacy route alias)
+     * Dispatches to the active Paystack gateway driver.
+     */
     public function paystackWebhook(Request $request)
     {
-        // 1. Verify webhook signature
-        $secretKey = config('services.paystack.secret');
-        $signature = $request->header('x-paystack-signature');
+        return $this->handleGatewayWebhook($request, 'paystack');
+    }
+
+    /**
+     * ✅ Generic Payment Gateway Webhook Dispatcher
+     * Route: POST /webhooks/payment/{gateway}
+     * Verifies the signature, then delegates event handling to the gateway driver.
+     */
+    public function paymentWebhook(Request $request, string $gateway = 'paystack')
+    {
+        return $this->handleGatewayWebhook($request, $gateway);
+    }
+
+    private function handleGatewayWebhook(Request $request, string $gateway)
+    {
+        $driver = app(PaymentGatewayManager::class)->driver($gateway);
+
+        $signature = $request->header($driver->webhookSignatureHeader());
         $payload = $request->getContent();
 
-        if (! $signature || hash_hmac('sha512', $payload, $secretKey) !== $signature) {
-            Log::warning('Paystack webhook: Invalid signature');
+        if (! $driver->verifyWebhookSignature($payload, $signature)) {
+            Log::warning('Payment webhook: Invalid signature', ['gateway' => $gateway]);
 
             return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 401);
         }
 
-        // 2. Parse the event
-        $event = json_decode($payload, true);
-        $eventType = $event['event'] ?? null;
-        $data = $event['data'] ?? null;
+        $event = json_decode($payload, true) ?? [];
 
-        Log::info('Paystack webhook received', ['event' => $eventType, 'reference' => $data['reference'] ?? 'N/A']);
+        Log::info('Payment webhook received', [
+            'gateway' => $gateway,
+            'event' => $event['event'] ?? null,
+        ]);
 
-        // 3. Handle charge.success event (Bank Transfer, Card Payment Completed)
-        if ($eventType === 'charge.success' && $data) {
-            $reference = $data['reference'] ?? null;
-            $status = $data['status'] ?? null;
-            $amount = ($data['amount'] ?? 0) / 100; // Convert from kobo to naira
-            $channel = $data['channel'] ?? 'unknown'; // card, bank_transfer, ussd, etc.
-
-            if ($reference && $status === 'success') {
-                // Check if this is a group payment
-                $isGroupPayment = str_starts_with($reference, 'GRP');
-
-                if ($isGroupPayment) {
-                    // Update all bookings in the group
-                    $bookings = Booking::where('booking_group_id', $reference)
-                        ->where('payment_status', '!=', 'paid') // Only update if not already paid
-                        ->get();
-
-                    if ($bookings->isNotEmpty()) {
-                        foreach ($bookings as $booking) {
-                            $booking->update([
-                                'payment_status' => 'paid',
-                                'amount_paid' => $booking->total_amount,
-                                'payment_method' => $channel,
-                                'status' => 'confirmed',
-                            ]);
-
-                            try {
-                                app(PostingService::class)
-                                    ->recordSale('website', (float) $booking->total_amount, $booking->payment_method, 'booking', $booking->id);
-                            } catch (\Throwable $e) {
-                                report($e);
-                            }
-
-                            $this->sendConfirmationEmail($booking);
-                        }
-
-                        Log::info('Paystack webhook: Group payment confirmed via '.$channel, [
-                            'reference' => $reference,
-                            'bookings_count' => $bookings->count(),
-                            'total_amount' => $amount,
-                        ]);
-                    }
-                } else {
-                    // Single booking payment
-                    $booking = Booking::where('booking_reference', $reference)
-                        ->where('payment_status', '!=', 'paid') // Only update if not already paid
-                        ->first();
-
-                    if ($booking) {
-                        $booking->update([
-                            'payment_status' => 'paid',
-                            'amount_paid' => $booking->total_amount,
-                            'payment_method' => $channel,
-                            'status' => 'confirmed',
-                        ]);
-
-                        try {
-                            app(PostingService::class)
-                                ->recordSale('website', (float) $booking->total_amount, $booking->payment_method, 'booking', $booking->id);
-                        } catch (\Throwable $e) {
-                            report($e);
-                        }
-
-                        $this->sendConfirmationEmail($booking);
-
-                        Log::info('Paystack webhook: Payment confirmed via '.$channel, [
-                            'reference' => $reference,
-                            'booking_id' => $booking->id,
-                            'amount' => $amount,
-                        ]);
-                    }
-                }
-            }
-        }
-
-        // 4. Handle transfer.success event (for refunds/payouts if implemented later)
-        if ($eventType === 'transfer.success' && $data) {
-            Log::info('Paystack webhook: Transfer success', ['data' => $data]);
-            // Handle transfer success if needed
-        }
-
-        // 5. Handle payment failed event
-        if ($eventType === 'charge.failed' && $data) {
-            $reference = $data['reference'] ?? null;
-
-            if ($reference) {
-                $booking = Booking::where('booking_reference', $reference)->first();
-                if ($booking && $booking->payment_status === 'pending') {
-                    $booking->update(['payment_status' => 'failed']);
-
-                    Log::warning('Paystack webhook: Payment failed', [
-                        'reference' => $reference,
-                        'reason' => $data['gateway_response'] ?? 'Unknown',
-                    ]);
-                }
-            }
-        }
+        $driver->handleWebhook($event);
 
         // Always return 200 OK to acknowledge receipt
         return response()->json(['status' => 'success'], 200);
