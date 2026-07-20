@@ -72,6 +72,8 @@
                             <th>Model</th>
                             <th>Changes</th>
                             <th>IP</th>
+                            <th>URL</th>
+                            <th>User Agent</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -101,7 +103,15 @@
                                     @if($audit->user)
                                         <a href="{{ route('admin.audit-trails.index', ['user_id' => $audit->user->getKey()]) }}" class="text-decoration-none">{{ $audit->user->name }}</a>
                                     @else
-                                        <span class="text-muted">System</span>
+                                        @php
+                                            $guestTag = collect(explode(',', $audit->tags ?? ''))
+                                                ->first(fn ($t) => str_starts_with($t, 'guest:'));
+                                        @endphp
+                                        @if($guestTag)
+                                            <span class="text-muted" title="Guest booking (unregistered)"><i class="fas fa-user-clock me-1"></i>{{ Str::after($guestTag, 'guest:') }}</span>
+                                        @else
+                                            <span class="text-muted">System</span>
+                                        @endif
                                     @endif
                                 </td>
                                 <td>
@@ -121,6 +131,16 @@
                                                 @if($field === 'updated_at' || $field === 'created_at') @continue @endif
                                                 @php
                                                     $format = function ($val) use ($field) {
+                                                        // Array-cast columns are captured as raw JSON strings; decode for display.
+                                                        if (is_string($val)) {
+                                                            $trimmed = trim($val);
+                                                            if (in_array(substr($trimmed, 0, 1), ['[', '{'], true)) {
+                                                                $decoded = json_decode($trimmed, true);
+                                                                if (json_last_error() === JSON_ERROR_NONE) {
+                                                                    $val = $decoded;
+                                                                }
+                                                            }
+                                                        }
                                                         if (! is_array($val)) {
                                                             return $val ?? '—';
                                                         }
@@ -154,6 +174,20 @@
                                     @endif
                                 </td>
                                 <td class="small text-muted font-monospace">{{ $audit->ip_address }}</td>
+                                <td class="small text-muted" title="{{ $audit->url }}">
+                                    @if($audit->url)
+                                        <span class="d-inline-block text-truncate" style="max-width: 200px;">{{ $audit->url }}</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="small text-muted" title="{{ $audit->user_agent }}">
+                                    @if($audit->user_agent)
+                                        <span class="d-inline-block text-truncate" style="max-width: 170px;">{{ Str::limit($audit->user_agent, 48) }}</span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
                                 <td class="text-end">
                                     @if(in_array($audit->event, ['updated', 'deleted']))
                                         <form method="POST" action="{{ route('admin.audit-trails.restore', $audit->id) }}" onsubmit="return confirm('Restore this record to its previous state?');">
@@ -168,7 +202,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="7" class="text-center py-5 text-muted">No audit trails found.</td></tr>
+                            <tr><td colspan="9" class="text-center py-5 text-muted">No audit trails found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

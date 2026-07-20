@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class Booking extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes, Auditable;
+    use Auditable, HasFactory, SoftDeletes {
+        Auditable::resolveUser as auditResolveUser;
+    }
 
     protected $fillable = [
         'booking_reference',
@@ -78,6 +79,43 @@ class Booking extends Model implements AuditableContract
                 $booking->booking_reference = 'BK-'.strtoupper(uniqid());
             }
         });
+    }
+
+    /**
+     * Resolve the actor for the audit trail.
+     *
+     * Authenticated admins / logged-in guests are captured by the default
+     * resolver. Anonymous website bookings have no authenticated user, so we
+     * fall back to a registered guest whose email matches the booking, keeping
+     * the audit trail attributable instead of showing "System".
+     */
+    protected function resolveUser()
+    {
+        $user = $this->auditResolveUser();
+
+        if ($user) {
+            return $user;
+        }
+
+        if (! empty($this->guest_email)) {
+            return User::where('email', $this->guest_email)->first();
+        }
+
+        return null;
+    }
+
+    /**
+     * Tag audits with the guest email so anonymous bookings remain traceable
+     * even when no registered user account exists.
+     */
+    public function generateTags(): array
+    {
+        $tags = [];
+        if (! empty($this->guest_email)) {
+            $tags[] = 'guest:'.$this->guest_email;
+        }
+
+        return array_values(array_unique($tags));
     }
 
     /**
