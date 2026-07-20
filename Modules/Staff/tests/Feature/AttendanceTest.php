@@ -12,6 +12,7 @@ use Modules\Staff\Models\Shift;
 use Modules\Staff\Models\ShiftAssignment;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AttendanceTest extends TestCase
@@ -81,7 +82,7 @@ class AttendanceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function unauthenticated_user_cannot_access_attendance()
     {
         $this->get('/staff/attendance')->assertRedirect(route('login'));
@@ -89,7 +90,7 @@ class AttendanceTest extends TestCase
         $this->get('/staff/attendance/report')->assertRedirect(route('login'));
     }
 
-    /** @test */
+    #[Test]
     public function clock_in_form_shows_employee_info()
     {
         $this->actingAs($this->user);
@@ -100,7 +101,7 @@ class AttendanceTest extends TestCase
         $response->assertSee('Clock In');
     }
 
-    /** @test */
+    #[Test]
     public function employee_can_clock_in()
     {
         $this->actingAs($this->user);
@@ -122,7 +123,7 @@ class AttendanceTest extends TestCase
         $this->assertEquals('Arrived on time', $log->clock_in_note);
     }
 
-    /** @test */
+    #[Test]
     public function employee_cannot_clock_in_twice()
     {
         $this->actingAs($this->user);
@@ -133,7 +134,7 @@ class AttendanceTest extends TestCase
         $response->assertSessionHas('warning');
     }
 
-    /** @test */
+    #[Test]
     public function employee_cannot_clock_out_before_clocking_in()
     {
         $this->actingAs($this->user);
@@ -142,7 +143,7 @@ class AttendanceTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    /** @test */
+    #[Test]
     public function employee_can_complete_full_clock_cycle()
     {
         $this->actingAs($this->user);
@@ -161,7 +162,7 @@ class AttendanceTest extends TestCase
         $this->assertEquals('Ended', $log->clock_out_note);
     }
 
-    /** @test */
+    #[Test]
     public function employee_marked_late_when_shift_assigned_and_after_grace()
     {
         $this->actingAs($this->user);
@@ -189,7 +190,7 @@ class AttendanceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function attendance_index_shows_todays_records()
     {
         $this->actingAs($this->user);
@@ -207,7 +208,7 @@ class AttendanceTest extends TestCase
         $response->assertSee('Present');
     }
 
-    /** @test */
+    #[Test]
     public function attendance_report_shows_monthly_data()
     {
         $this->actingAs($this->user);
@@ -234,7 +235,7 @@ class AttendanceTest extends TestCase
         $response->assertSee('Attendance Report');
     }
 
-    /** @test */
+    #[Test]
     public function attendance_filtered_by_department()
     {
         $this->actingAs($this->user);
@@ -244,7 +245,7 @@ class AttendanceTest extends TestCase
         $response->assertSee($this->employee->name);
     }
 
-    /** @test */
+    #[Test]
     public function completed_cycle_shows_duration_on_clock_page()
     {
         $this->actingAs($this->user);
@@ -262,7 +263,7 @@ class AttendanceTest extends TestCase
         $response->assertSee('Duration');
     }
 
-    /** @test */
+    #[Test]
     public function week_history_shows_on_clock_page()
     {
         $this->actingAs($this->user);

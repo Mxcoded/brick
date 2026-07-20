@@ -905,6 +905,7 @@
         });
     </script>
 
+    @stack('styles')
     @stack('head')
 </head>
 

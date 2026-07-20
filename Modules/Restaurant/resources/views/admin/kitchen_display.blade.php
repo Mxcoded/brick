@@ -20,7 +20,7 @@
     </div>
 </div>
 
-@push('scripts')
+@section('admin-scripts')
 <script>
 let kdsAudio = null;
 
@@ -50,9 +50,7 @@ async function refreshKDS() {
         }
         previousOrderIds = currentIds;
 
-        const unaccepted = data.orders.filter(o => !o.tracking_status || o.tracking_status === 'pending');
-        const pending = data.orders.filter(o => o.tracking_status === 'pending');
-        const unacceptedOrders = data.orders.filter(o => !o.tracking_status && o.status === 'pending');
+        const unacceptedOrders = data.orders.filter(o => o.status === 'pending');
         const preparing = data.orders.filter(o => o.tracking_status === 'preparing');
         const ready = data.orders.filter(o => o.tracking_status === 'ready');
 
@@ -60,15 +58,8 @@ async function refreshKDS() {
 
         if (unacceptedOrders.length) {
             html += `
-                <div class="col-12"><h5 class="text-danger fw-bold"><i class="bi bi-bell-fill me-1"></i>Unaccepted Orders</h5></div>
+                <div class="col-12"><h5 class="text-danger fw-bold"><i class="bi bi-bell-fill me-1"></i>Pending Orders</h5></div>
                 ${unacceptedOrders.map(order => renderOrderCard(order, 'danger', true)).join('')}
-                <div class="col-12"><hr></div>`;
-        }
-
-        if (pending.length) {
-            html += `
-                <div class="col-12"><h5 class="text-warning fw-bold"><i class="bi bi-bell me-1"></i>New Orders</h5></div>
-                ${pending.map(order => renderOrderCard(order, 'warning')).join('')}
                 <div class="col-12"><hr></div>`;
         }
 
@@ -85,7 +76,7 @@ async function refreshKDS() {
                 ${ready.map(order => renderOrderCard(order, 'success')).join('')}`;
         }
 
-        if (!unacceptedOrders.length && !pending.length && !preparing.length && !ready.length) {
+        if (!unacceptedOrders.length && !preparing.length && !ready.length) {
             html = `<div class="col-12 text-center text-muted py-5">
                 <i class="bi bi-emoji-smile fs-1"></i>
                 <p class="mt-2">All caught up! No orders in the kitchen.</p>
@@ -153,5 +144,5 @@ function renderOrderCard(order, color, showAccept) {
 refreshKDS();
 setInterval(refreshKDS, 15000);
 </script>
-@endpush
+@endsection
 @endSection

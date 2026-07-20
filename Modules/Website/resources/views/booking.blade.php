@@ -492,10 +492,10 @@
                 padding: 1.25rem;
             }
 
-        .payment-option {
-            padding: 1rem;
+            .payment-option {
+                padding: 1rem;
+            }
         }
-    }
 
     /* ── Fun UX: live progress, chips, steppers, reveal, confetti ── */
             .booking-progress-bar {
@@ -988,7 +988,11 @@
 
                 <div id="availabilityAlert" class="alert d-none availability-banner"></div>
 
-                <form action="{{ route('website.booking.store') }}" method="POST" id="bookingForm">
+                @php
+                    $useCartFlow = isset($useCart) && $useCart && !empty($cart['items']);
+                @endphp
+
+                <form action="{{ route('website.booking.store') }}" method="POST" id="bookingForm" @if($useCartFlow) data-cart-flow="1" @endif>
                     @csrf
 
                     <div style="position: absolute; left: -9999px;" aria-hidden="true">
@@ -997,7 +1001,6 @@
                     <input type="hidden" name="register_time" value="{{ time() }}">
 
                     @php
-                        $useCartFlow = isset($useCart) && $useCart && !empty($cart['items']);
                         $reqRoomTypeId = old(
                             'room_type_id',
                             request('room_type_id', request('room_id', $selectedRoomType->id ?? '')),
@@ -1364,7 +1367,7 @@
                         </div>
                     </div>
 
-                    <div class="review-strip" id="reviewStrip">
+                    <div class="review-strip" id="reviewStrip" @if($useCartFlow) style="display:none;" @endif>
                         <div class="rv-item">
                             <i class="fas fa-calendar-alt"></i>
                             <span class="rv-value" id="reviewRoom">Select a room</span>
@@ -1392,7 +1395,7 @@
                     </div>
 
                     <div class="booking-cta">
-                        @if (isset($useCart) && $useCart && isset($cart['formatted_total']))
+                        @if ($useCartFlow)
                             <div class="total-row">
                                 <span class="total-label">Total Amount</span>
                                 <span class="total-amount">{{ $cart['formatted_total'] }}</span>
@@ -1591,17 +1594,18 @@
                 const fill = document.getElementById('bookingProgressFill');
                 const caption = document.getElementById('bookingProgressCaption');
                 if (!fill || !caption) return;
-                const required = [
+                const candidateFields = [
                     'guest_name', 'guest_email', 'guest_phone', 'guest_gender', 'guest_address',
                     'guest_nationality', 'guest_id_type', 'guest_id_number',
                     'check_in_date', 'check_out_date', 'room_type_id'
                 ];
+                const existing = candidateFields.filter(name => bookingForm.querySelector('[name="' + name + '"]'));
                 let filled = 0;
-                required.forEach(name => {
+                existing.forEach(name => {
                     const el = bookingForm.querySelector('[name="' + name + '"]');
                     if (el && el.value && el.value.trim() !== '') filled++;
                 });
-                const pct = Math.round((filled / required.length) * 100);
+                const pct = existing.length ? Math.round((filled / existing.length) * 100) : 0;
                 fill.style.width = pct + '%';
                 if (pct === 100) caption.innerHTML =
                     '<i class="fas fa-party-horn me-1"></i> You\'re all set — tap Complete Booking!';
@@ -1926,13 +1930,18 @@
             });
 
             // Live progress as the guest types
+            function refreshUI() {
+                updateProgressBar();
+                updateStepIndicator();
+                updateReviewStrip();
+            }
             if (bookingForm) {
                 bookingForm.querySelectorAll('input, select, textarea').forEach(el => {
-                    el.addEventListener('input', updateProgressBar);
-                    el.addEventListener('change', updateProgressBar);
+                    el.addEventListener('input', refreshUI);
+                    el.addEventListener('change', refreshUI);
                 });
             }
-            updateProgressBar();
+            refreshUI();
 
             // Confetti burst on a valid submit
             function burstConfetti() {
@@ -2076,15 +2085,27 @@
 
             // ── Step indicator update ──
             function updateStepIndicator() {
-                const fill = document.getElementById('bookingProgressFill');
-                const pct = fill ? parseFloat(fill.style.width) : 0;
                 const steps = document.querySelectorAll('.step-item');
                 const connectors = document.querySelectorAll('.step-connector');
+                const isCartFlow = bookingForm && bookingForm.hasAttribute('data-cart-flow');
+                const sections = [
+                    { name: 'dates', fields: ['check_in_date', 'check_out_date', 'room_type_id'] },
+                    { name: 'guest', fields: ['guest_name', 'guest_email', 'guest_phone', 'guest_gender', 'guest_address', 'guest_nationality'] },
+                    { name: 'id', fields: ['guest_id_type', 'guest_id_number'] },
+                    { name: 'extras', fields: [] },
+                    { name: 'payment', fields: [] },
+                ];
                 let activeIdx = 0;
-                if (pct >= 95) activeIdx = 4;
-                else if (pct >= 70) activeIdx = 3;
-                else if (pct >= 45) activeIdx = 2;
-                else if (pct >= 20) activeIdx = 1;
+                for (let i = 0; i < sections.length; i++) {
+                    if (i === 0 && isCartFlow) { activeIdx = 1; continue; }
+                    const allFilled = sections[i].fields.every(name => {
+                        const el = bookingForm.querySelector('[name="' + name + '"]');
+                        return el && el.value && el.value.trim() !== '';
+                    });
+                    if (!allFilled) { activeIdx = i; break; }
+                    activeIdx = i + 1;
+                }
+                if (activeIdx >= steps.length) activeIdx = steps.length - 1;
                 steps.forEach((s, i) => {
                     s.classList.toggle('active', i === activeIdx);
                     s.classList.toggle('completed', i < activeIdx);
@@ -2093,15 +2114,6 @@
                     c.classList.toggle('completed', i < activeIdx);
                 });
             }
-            const origUpdate = updateProgressBar;
-            if (bookingForm) {
-                bookingForm.querySelectorAll('input, select, textarea').forEach(el => {
-                    el.addEventListener('input', updateStepIndicator);
-                    el.addEventListener('change', updateStepIndicator);
-                });
-            }
-            updateStepIndicator();
-
             // ── Review strip update ──
             function updateReviewStrip() {
                 const roomName = document.getElementById('reviewRoom');
@@ -2144,13 +2156,6 @@
                     guests.textContent = parts.join(', ') || '1 Adult';
                 }
             }
-            if (bookingForm) {
-                bookingForm.querySelectorAll('input, select, textarea').forEach(el => {
-                    el.addEventListener('input', updateReviewStrip);
-                    el.addEventListener('change', updateReviewStrip);
-                });
-            }
-            updateReviewStrip();
         });
     </script>
 @endpush

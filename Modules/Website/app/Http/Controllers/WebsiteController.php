@@ -618,7 +618,7 @@ class WebsiteController extends Controller
 
         if (session('just_booked_ref') === $ref) {
             $canView = true;
-        } elseif (session('just_booked_group') === $booking->booking_group_id) {
+        } elseif ($booking->booking_group_id && session('just_booked_group') === $booking->booking_group_id) {
             $canView = true;
         } elseif (Auth::check() && $booking->user_id === Auth::id()) {
             $canView = true;

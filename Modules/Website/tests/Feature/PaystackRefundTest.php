@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
 use Modules\Website\Models\Booking;
+use Modules\Website\Models\PaymentGateway;
 use Modules\Website\Models\Refund;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Services\PaymentGatewayManager;
@@ -23,7 +24,15 @@ class PaystackRefundTest extends TestCase
 
         $this->withoutMiddleware([ValidateCsrfToken::class]);
 
-        config(['services.paystack.secret' => $this->secret]);
+        PaymentGateway::query()->delete();
+        PaymentGateway::create([
+            'code' => 'paystack',
+            'name' => 'Paystack',
+            'driver' => 'paystack',
+            'is_active' => true,
+            'is_default' => true,
+            'credentials' => ['secret' => $this->secret, 'public' => 'pk_test_xxx'],
+        ]);
     }
 
     private function makePaidBooking(float $amount = 20000.00): Booking
@@ -70,14 +79,15 @@ class PaystackRefundTest extends TestCase
 
         $booking = $this->makePaidBooking();
 
-        $result = app(PaymentGatewayManager::class)->driver()->refund($booking->booking_reference, (float) $booking->amount_paid, 'Test refund');
+        $driver = app(PaymentGatewayManager::class)->driver();
+        $result = $driver->refund($booking->booking_reference, (float) $booking->amount_paid, 'Test refund');
 
         $this->assertTrue($result['status']);
         $this->assertEquals('RFR_abc123', $result['data']['reference']);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request) use ($booking) {
             return $request->url() === 'https://api.paystack.co/refund'
-                && $request->data()['transaction'] === Booking::first()->booking_reference;
+                && $request->data()['transaction'] === $booking->booking_reference;
         });
     }
 

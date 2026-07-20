@@ -1126,6 +1126,8 @@ document.addEventListener('alpine:init', function () {
         init() {
             this.checkShift();
             this.loadSettings();
+            this.refreshOrders();
+            setInterval(() => this.refreshOrders(), 30000);
         },
 
         get pendingCount() { return this.pendingOrders.length; },
@@ -1244,6 +1246,20 @@ document.addEventListener('alpine:init', function () {
                 }
             } catch (e) {
                 console.error('load settings error', e);
+            }
+        },
+
+        async refreshOrders() {
+            try {
+                const res = await fetch('/restaurant-waiter/pos/orders-data');
+                const data = await res.json();
+                if (data.success) {
+                    this.pendingOrders = data.pendingOrders;
+                    this.activeOrders = data.activeOrders;
+                    this.paidOrders = data.paidOrders;
+                }
+            } catch (e) {
+                console.error('refresh orders error', e);
             }
         },
 
@@ -1405,6 +1421,7 @@ document.addEventListener('alpine:init', function () {
                     document.getElementById('successOrderId').textContent = data.order_id;
                     new bootstrap.Modal(document.getElementById('orderSuccessModal')).show();
                     this.checkShift();
+                    this.refreshOrders();
                 } else {
                     this.showToast('danger', data.message || 'Failed to submit order');
                 }

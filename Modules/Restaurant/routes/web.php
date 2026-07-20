@@ -93,6 +93,7 @@ Route::prefix('restaurant-waiter')->middleware(['web', 'waiter-auth', 'can:acces
     Route::post('/pos/cart/remove', [RestaurantController::class, 'posRemoveFromCart'])->name('restaurant.waiter.pos.cart.remove');
     Route::get('/pos/cart', [RestaurantController::class, 'posGetCart'])->name('restaurant.waiter.pos.cart.get');
     Route::post('/pos/order/submit', [RestaurantController::class, 'posSubmitOrder'])->name('restaurant.waiter.pos.order.submit');
+    Route::get('/pos/orders-data', [RestaurantController::class, 'posOrderData'])->name('restaurant.waiter.pos.orders-data');
 
     // Shift routes
     Route::get('/shift/current', [RestaurantController::class, 'currentShift'])->name('restaurant.waiter.shift.current');

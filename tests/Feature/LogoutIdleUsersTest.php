@@ -67,7 +67,7 @@ class LogoutIdleUsersTest extends TestCase
 
         $boundaryId = 'boundary-session';
         $this->makeSession($boundaryId, $user->id);
-        $boundary = $this->makeLoginLog($user, $boundaryId, now()->subHours(3));
+        $boundary = $this->makeLoginLog($user, $boundaryId, now()->subHours(3)->addMinutes(5));
 
         $this->artisan('auth:logout-idle', ['--hours' => 3])
             ->assertSuccessful();

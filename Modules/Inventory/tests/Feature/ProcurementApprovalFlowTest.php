@@ -9,6 +9,7 @@ use Modules\Inventory\Models\PurchaseRequest;
 use Modules\Inventory\Models\Store;
 use Modules\Inventory\Models\Supplier;
 use Spatie\Permission\Models\Permission;
+use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -133,7 +134,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function line_manager_can_create_and_submit_request()
     {
         $this->actingAs($this->lineManager);
@@ -168,7 +169,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function purchaser_can_review_and_forward_to_gm()
     {
         $pr = $this->createSubmittedRequest();
@@ -203,7 +204,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function gm_can_approve_and_forward_to_finance()
     {
         $pr = $this->createRequestAtStage('pending_gm');
@@ -221,7 +222,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function finance_can_confirm_and_forward_to_auditor()
     {
         $pr = $this->createRequestAtStage('pending_finance');
@@ -239,7 +240,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function auditor_can_confirm_and_forward_to_ggm()
     {
         $pr = $this->createRequestAtStage('pending_auditor');
@@ -257,7 +258,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function ggm_can_final_approve_request()
     {
         $pr = $this->createRequestAtStage('pending_ggm');
@@ -275,7 +276,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function ggm_can_convert_approved_request_to_purchase_order()
     {
         $pr = $this->createRequestAtStage('approved');
@@ -298,7 +299,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function full_happy_path_approval_flow()
     {
         $this->actingAs($this->lineManager);
@@ -349,7 +350,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function gm_can_reject_request_back_to_purchaser()
     {
         $pr = $this->createRequestAtStage('pending_gm');
@@ -376,7 +377,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function purchaser_can_flag_request_as_incomplete()
     {
         $pr = $this->createSubmittedRequest();
@@ -396,7 +397,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function line_manager_can_edit_flagged_request_and_resubmit()
     {
         $pr = $this->createSubmittedRequest();
@@ -428,7 +429,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function unauthorized_role_cannot_approve_at_wrong_stage()
     {
         $pr = $this->createSubmittedRequest();
@@ -444,7 +445,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function drafts_can_only_be_submitted_by_requester()
     {
         $pr = $this->createSubmittedRequest();
@@ -458,7 +459,7 @@ class ProcurementApprovalFlowTest extends TestCase
         $this->assertEquals('draft', $pr->fresh()->status);
     }
 
-    /** @test */
+    #[Test]
     public function staff_can_create_and_submit_request_like_line_manager()
     {
         $this->actingAs($this->staff);
@@ -492,7 +493,7 @@ class ProcurementApprovalFlowTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function staff_can_view_own_requests_only()
     {
         $this->actingAs($this->staff);
@@ -517,7 +518,7 @@ class ProcurementApprovalFlowTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
+    #[Test]
     public function staff_submitted_request_triggers_full_approval_flow()
     {
         $this->actingAs($this->staff);
@@ -620,7 +621,7 @@ class ProcurementApprovalFlowTest extends TestCase
         return $pr;
     }
 
-    /** @test */
+    #[Test]
     public function create_page_shows_approval_flow_context()
     {
         $this->actingAs($this->lineManager);

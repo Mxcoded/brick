@@ -11,6 +11,7 @@ use Modules\Staff\Models\LeaveBalance;
 use Modules\Staff\Models\LeaveRequest;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class LeaveCalendarTest extends TestCase
@@ -87,7 +88,7 @@ class LeaveCalendarTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function calendar_page_loads()
     {
         $this->actingAs($this->user);
@@ -99,7 +100,7 @@ class LeaveCalendarTest extends TestCase
         $response->assertSee('Mon');
     }
 
-    /** @test */
+    #[Test]
     public function calendar_shows_approved_leaves()
     {
         $this->actingAs($this->user);
@@ -118,7 +119,7 @@ class LeaveCalendarTest extends TestCase
         $response->assertSee('Alice OnLeave');
     }
 
-    /** @test */
+    #[Test]
     public function calendar_hides_pending_or_rejected_leaves()
     {
         $this->actingAs($this->user);
@@ -136,7 +137,7 @@ class LeaveCalendarTest extends TestCase
         $response->assertDontSee('Alice OnLeave');
     }
 
-    /** @test */
+    #[Test]
     public function admin_apply_form_shows_coverage_dropdown()
     {
         $this->actingAs($this->user);
@@ -148,7 +149,7 @@ class LeaveCalendarTest extends TestCase
         $response->assertSee('Alice OnLeave');
     }
 
-    /** @test */
+    #[Test]
     public function leave_request_can_be_created_with_coverage()
     {
         $this->actingAs($this->user);
@@ -175,7 +176,7 @@ class LeaveCalendarTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function leave_request_rejects_same_employee_as_coverage()
     {
         $this->actingAs($this->user);
@@ -195,7 +196,7 @@ class LeaveCalendarTest extends TestCase
         $response->assertSessionHasErrors(['covered_by']);
     }
 
-    /** @test */
+    #[Test]
     public function calendar_can_be_filtered_by_department()
     {
         $this->actingAs($this->user);
@@ -205,7 +206,7 @@ class LeaveCalendarTest extends TestCase
         $response->assertSee('Leave Calendar');
     }
 
-    /** @test */
+    #[Test]
     public function calendar_navigates_previous_and_next_month()
     {
         $this->actingAs($this->user);

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -129,13 +130,13 @@ class PermissionGateTest extends TestCase
     // UNAUTHENTICATED & NO-PERM GUARD
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function unauthenticated_user_is_redirected_to_login()
     {
         $this->get('/admin')->assertRedirect(route('login'));
     }
 
-    /** @test */
+    #[Test]
     public function user_without_any_permission_cannot_access_any_module()
     {
         // A guest account type has no module permissions and is not granted any
@@ -158,19 +159,19 @@ class PermissionGateTest extends TestCase
     // MODULE ACCESS (10 permissions)
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function access_admin_dashboard()
     {
         $this->assertModuleAccess('/admin', 'access_admin_dashboard');
     }
 
-    /** @test */
+    #[Test]
     public function access_frontdesk_dashboard()
     {
         $this->assertModuleAccess('/frontdesk/registrations', 'access_frontdesk_dashboard');
     }
 
-    /** @test */
+    #[Test]
     public function access_staff_dashboard()
     {
         $this->assertBlocked('/staff', []);
@@ -180,31 +181,31 @@ class PermissionGateTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function access_restaurant_dashboard()
     {
         $this->assertModuleAccess('/restaurant-admin/dashboard', 'access_restaurant_dashboard');
     }
 
-    /** @test */
+    #[Test]
     public function access_gym_dashboard()
     {
         $this->assertModuleAccess('/gym', 'access_gym_dashboard');
     }
 
-    /** @test */
+    #[Test]
     public function access_inventory_dashboard()
     {
         $this->assertModuleAccess('/inventory', 'access_inventory_dashboard');
     }
 
-    /** @test */
+    #[Test]
     public function access_maintenance_dashboard()
     {
         $this->assertModuleAccess('/maintenance/dashboard', 'access_maintenance_dashboard');
     }
 
-    /** @test */
+    #[Test]
     public function access_tasks_dashboard()
     {
         // Staff account-type users reach the tasks dashboard by account type alone.
@@ -219,13 +220,13 @@ class PermissionGateTest extends TestCase
         $this->assertPasses('/tasks', ['access_tasks_dashboard']);
     }
 
-    /** @test */
+    #[Test]
     public function access_banquet_dashboard()
     {
         $this->assertModuleAccess('/banquet', 'access_banquet_dashboard');
     }
 
-    /** @test */
+    #[Test]
     public function access_website_dashboard()
     {
         $this->assertModuleAccess('/website/admin', 'access_website_dashboard');
@@ -235,13 +236,13 @@ class PermissionGateTest extends TestCase
     // STAFF GRANULAR PERMISSIONS
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function staff_employees_read()
     {
         $this->assertGranularAccess('/staff/export', 'access_staff_dashboard', ['employees.read']);
     }
 
-    /** @test */
+    #[Test]
     public function staff_employees_create()
     {
         $this->assertGranularAccess('/staff/create', 'access_staff_dashboard', ['employees.create']);
@@ -251,91 +252,91 @@ class PermissionGateTest extends TestCase
     // INVENTORY GRANULAR PERMISSIONS
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function inventory_create()
     {
         $this->assertGranularAccess('/inventory/items/create', 'access_inventory_dashboard', ['inventory.create']);
     }
 
-    /** @test */
+    #[Test]
     public function inventory_read()
     {
         $this->assertGranularAccess('/inventory/barcode-labels', 'access_inventory_dashboard', ['inventory.read']);
     }
 
-    /** @test */
+    #[Test]
     public function inventory_transfer()
     {
         $this->assertGranularAccess('/inventory/transfers', 'access_inventory_dashboard', ['inventory.transfer']);
     }
 
-    /** @test */
+    #[Test]
     public function inventory_usage()
     {
         $this->assertGranularAccess('/inventory/usage', 'access_inventory_dashboard', ['inventory.usage']);
     }
 
-    /** @test */
+    #[Test]
     public function inventory_adjustments()
     {
         $this->assertGranularAccess('/inventory/adjustments', 'access_inventory_dashboard', ['inventory.adjustments']);
     }
 
-    /** @test */
+    #[Test]
     public function inventory_reports()
     {
         $this->assertGranularAccess('/inventory/report', 'access_inventory_dashboard', ['inventory.reports']);
     }
 
-    /** @test */
+    #[Test]
     public function inventory_export()
     {
         $this->assertGranularAccess('/inventory/export/items', 'access_inventory_dashboard', ['inventory.export']);
     }
 
-    /** @test */
+    #[Test]
     public function inventory_scan()
     {
         $this->assertGranularAccess('/inventory/scan', 'access_inventory_dashboard', ['inventory.scan']);
     }
 
-    /** @test */
+    #[Test]
     public function suppliers_read()
     {
         $this->assertGranularAccess('/inventory/suppliers', 'access_inventory_dashboard', ['suppliers.read']);
     }
 
-    /** @test */
+    #[Test]
     public function suppliers_create()
     {
         $this->assertGranularAccess('/inventory/suppliers/create', 'access_inventory_dashboard', ['suppliers.create']);
     }
 
-    /** @test */
+    #[Test]
     public function purchase_orders_create()
     {
         $this->assertGranularAccess('/inventory/purchase-orders/create', 'access_inventory_dashboard', ['purchase_orders.create']);
     }
 
-    /** @test */
+    #[Test]
     public function stores_read()
     {
         $this->assertGranularAccess('/inventory/stores', 'access_inventory_dashboard', ['stores.read']);
     }
 
-    /** @test */
+    #[Test]
     public function stores_create()
     {
         $this->assertGranularAccess('/inventory/stores/create', 'access_inventory_dashboard', ['stores.create']);
     }
 
-    /** @test */
+    #[Test]
     public function departments_read()
     {
         $this->assertGranularAccess('/inventory/departments', 'access_inventory_dashboard', ['departments.read']);
     }
 
-    /** @test */
+    #[Test]
     public function departments_create()
     {
         $this->assertGranularAccess('/inventory/departments/create', 'access_inventory_dashboard', ['departments.create']);
@@ -345,7 +346,7 @@ class PermissionGateTest extends TestCase
     // BANQUET GRANULAR PERMISSIONS
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function banquet_create()
     {
         $this->assertGranularAccess('/banquet/customers/create', 'access_banquet_dashboard', ['banquet.create']);
@@ -355,7 +356,7 @@ class PermissionGateTest extends TestCase
     // MAINTENANCE GRANULAR PERMISSIONS
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function maintenance_create()
     {
         $user = $this->createUser();
@@ -365,7 +366,7 @@ class PermissionGateTest extends TestCase
         $this->assertPasses('/maintenance/create', ['maintenance.create']);
     }
 
-    /** @test */
+    #[Test]
     public function maintenance_read()
     {
         $user = $this->createUser();
@@ -375,7 +376,7 @@ class PermissionGateTest extends TestCase
         $this->assertPasses('/maintenance/dashboard', ['maintenance.read']);
     }
 
-    /** @test */
+    #[Test]
     public function maintenance_update()
     {
         $user = $this->createUser();
@@ -389,13 +390,13 @@ class PermissionGateTest extends TestCase
     // FRONT DESK GRANULAR PERMISSIONS
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function guests_read()
     {
         $this->assertGranularAccess('/frontdesk/guests', 'access_frontdesk_dashboard', ['guests.read']);
     }
 
-    /** @test */
+    #[Test]
     public function guests_create()
     {
         $this->assertGranularAccess('/frontdesk/guests/create', 'access_frontdesk_dashboard', ['guests.create']);
@@ -405,7 +406,7 @@ class PermissionGateTest extends TestCase
     // GYM GRANULAR PERMISSIONS
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function gym_granular_permissions_exist()
     {
         // Gym routes only gate on access_gym_dashboard at the group level.
@@ -425,14 +426,14 @@ class PermissionGateTest extends TestCase
     // WEBSITE GRANULAR PAGES
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function website_newsletter_admin()
     {
         $this->assertBlocked('/website/admin/newsletter/campaigns', []);
         $this->assertPasses('/website/admin/newsletter/campaigns', ['access_website_dashboard']);
     }
 
-    /** @test */
+    #[Test]
     public function website_settings_requires_dashboard_not_manage_settings()
     {
         // manage_settings is blade-only — route is gated by access_website_dashboard
@@ -440,42 +441,42 @@ class PermissionGateTest extends TestCase
         $this->assertPasses('/website/admin/settings', ['access_website_dashboard']);
     }
 
-    /** @test */
+    #[Test]
     public function website_subscribers_admin()
     {
         $this->assertBlocked('/website/admin/newsletter/subscribers', []);
         $this->assertPasses('/website/admin/newsletter/subscribers', ['access_website_dashboard']);
     }
 
-    /** @test */
+    #[Test]
     public function website_contact_messages_admin()
     {
         $this->assertBlocked('/website/admin/contact-messages', []);
         $this->assertPasses('/website/admin/contact-messages', ['access_website_dashboard']);
     }
 
-    /** @test */
+    #[Test]
     public function website_rooms_calendar()
     {
         $this->assertBlocked('/website/admin/calendar', []);
         $this->assertPasses('/website/admin/calendar', ['access_website_dashboard']);
     }
 
-    /** @test */
+    #[Test]
     public function website_bookings_admin()
     {
         $this->assertBlocked('/website/admin/bookings', []);
         $this->assertPasses('/website/admin/bookings', ['access_website_dashboard']);
     }
 
-    /** @test */
+    #[Test]
     public function website_room_types_admin()
     {
         $this->assertBlocked('/website/admin/room-types', []);
         $this->assertPasses('/website/admin/room-types', ['access_website_dashboard']);
     }
 
-    /** @test */
+    #[Test]
     public function website_inventory_calendar_admin()
     {
         $this->assertBlocked('/website/admin/inventory', []);
@@ -486,7 +487,7 @@ class PermissionGateTest extends TestCase
     // CONTROLLER-LEVEL PERMISSION CHECKS
     // ==========================================
 
-    /** @test */
+    #[Test]
     public function tasks_assign_is_checked_in_controller()
     {
         // The tasks.assign permission is checked via $user->can('tasks.assign')
@@ -495,7 +496,7 @@ class PermissionGateTest extends TestCase
         $this->assertPasses('/tasks/create', ['access_tasks_dashboard', 'tasks.create']);
     }
 
-    /** @test */
+    #[Test]
     public function leaves_apply_for_others_is_checked_in_controller()
     {
         // The /staff/leaves/admin/apply route is gated by leaves.apply-for-others

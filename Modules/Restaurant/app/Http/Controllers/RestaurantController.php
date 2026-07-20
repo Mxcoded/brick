@@ -697,6 +697,35 @@ class RestaurantController extends Controller
         return response()->json(['success' => true, 'order_id' => $order->id]);
     }
 
+    public function posOrderData()
+    {
+        $pendingOrders = Order::where('status', 'pending')
+            ->whereIn('type', ['table', 'room', 'walk_in'])
+            ->with('orderItems.menuItem')
+            ->get();
+
+        $activeOrders = Order::where('status', 'accepted')
+            ->whereIn('tracking_status', ['preparing', 'ready', 'served'])
+            ->whereIn('type', ['table', 'room', 'walk_in'])
+            ->with('orderItems.menuItem')
+            ->get();
+
+        $paidOrders = Order::where('status', 'completed')
+            ->where('tracking_status', 'paid')
+            ->whereIn('type', ['table', 'room', 'walk_in'])
+            ->with('orderItems.menuItem')
+            ->latest()
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'pendingOrders' => $pendingOrders,
+            'activeOrders' => $activeOrders,
+            'paidOrders' => $paidOrders,
+        ]);
+    }
+
     public function currentShift()
     {
         $shift = WaiterShift::where('user_id', auth()->id())
