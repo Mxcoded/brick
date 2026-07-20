@@ -56,6 +56,20 @@ class Order extends Model implements AuditableContract
         return $this->hasMany(Payment::class, 'restaurant_order_id');
     }
 
+    public function getBalanceAttribute(): float
+    {
+        $paid = $this->payments()
+            ->whereIn('status', ['completed'])
+            ->sum('amount');
+
+        return max(0, (float) $this->grand_total - (float) $paid);
+    }
+
+    public function getIsFullyPaidAttribute(): bool
+    {
+        return $this->balance <= 0;
+    }
+
     public function getSourceAttribute()
     {
         if ($this->type === 'table') {

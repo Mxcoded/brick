@@ -43,7 +43,9 @@ class RestaurantServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            \Modules\Restaurant\Console\ReconcileFinance::class,
+        ]);
     }
 
     /**

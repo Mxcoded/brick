@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Modules\Finance\Services\PostingService;
+use Modules\Restaurant\Events\OrderPaid;
+use Modules\Restaurant\Events\OrderRefunded;
+use Modules\Restaurant\Events\PaymentRecorded;
 use Modules\Restaurant\Models\Customer;
 use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
@@ -1097,6 +1100,8 @@ class RestaurantController extends Controller
         $request->validate([
             'status' => 'required|in:pending,accepted,completed',
             'tracking_status' => 'nullable|in:pending,preparing,delivered',
+            'payment_method' => 'required_if:status,completed|in:cash,card,mobile_money,transfer',
+            'amount_tendered' => 'nullable|numeric|min:0',
         ]);
 
         $order = Order::findOrFail($order);
@@ -1105,6 +1110,29 @@ class RestaurantController extends Controller
             $order->tracking_status = $request->input('tracking_status');
         }
         $order->save();
+
+        if ($request->input('status') === 'completed' && ! $order->payments()->where('status', 'completed')->exists()) {
+            $tendered = $request->input('amount_tendered', $order->grand_total);
+            $payment = \Modules\Restaurant\Models\Payment::create([
+                'restaurant_order_id' => $order->id,
+                'amount' => $order->grand_total,
+                'method' => $request->input('payment_method', 'cash'),
+                'change_due' => max(0, $tendered - $order->grand_total),
+                'status' => 'completed',
+                'paid_at' => now(),
+            ]);
+
+            try {
+                $entry = app(PostingService::class)
+                    ->recordSale('restaurant', (float) $payment->amount, $payment->method, 'restaurant_payment', $payment->id);
+                if ($entry) {
+                    $payment->finance_posted = true;
+                    $payment->save();
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         return redirect()->back()->with('success', 'Order updated successfully!');
     }
@@ -1122,56 +1150,113 @@ class RestaurantController extends Controller
     public function processPayment(Request $request, Order $order)
     {
         $validated = $request->validate([
+            'amount' => 'nullable|numeric|min:0',
             'amount_tendered' => 'nullable|numeric|min:0',
             'method' => 'required|in:cash,card,mobile_money,transfer',
             'reference' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $tendered = $validated['amount_tendered'] ?? $order->grand_total;
-        $change = max(0, $tendered - $order->grand_total);
+        $balance = $order->balance;
+        $amount = $validated['amount'] ?? $balance;
+        $amount = min($amount, $balance);
+
+        if ($amount <= 0) {
+            return response()->json(['success' => false, 'message' => 'No balance due.'], 422);
+        }
+
+        $amountTendered = $validated['amount_tendered'] ?? $amount;
+        $changeDue = max(0, (float) $amountTendered - (float) $amount);
 
         $payment = Payment::create([
             'restaurant_order_id' => $order->id,
-            'amount' => $order->grand_total,
+            'amount' => $amount,
             'method' => $validated['method'],
             'reference' => $validated['reference'] ?? null,
-            'change_due' => $change,
+            'change_due' => $changeDue,
             'status' => 'completed',
             'paid_at' => now(),
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        $order->status = 'completed';
-        $order->tracking_status = 'paid';
-        $order->save();
-
         try {
-            app(PostingService::class)
+            $entry = app(PostingService::class)
                 ->recordSale('restaurant', (float) $payment->amount, $payment->method, 'restaurant_payment', $payment->id);
+            if ($entry) {
+                $payment->finance_posted = true;
+                $payment->save();
+            }
         } catch (\Throwable $e) {
             report($e);
         }
 
-        // Track customer if phone exists
-        if ($order->customer_phone) {
-            $customer = Customer::firstOrCreate(
-                ['phone' => $order->customer_phone],
-                ['name' => $order->customer_name ?? 'Unknown']
-            );
-            $customer->increment('visit_count');
-            $customer->increment('total_spent', $order->grand_total);
-            $customer->increment('loyalty_points', (int) floor($order->grand_total / 100));
+        $order->load('payments');
+        $balanceRemaining = $order->balance;
+
+        if ($order->is_fully_paid) {
+            $order->status = 'completed';
+            $order->tracking_status = 'paid';
+            $order->save();
+
+            OrderPaid::dispatch($order, $payment);
+
+            if ($order->customer_phone) {
+                $customer = Customer::firstOrCreate(
+                    ['phone' => $order->customer_phone],
+                    ['name' => $order->customer_name ?? 'Unknown']
+                );
+                $customer->increment('visit_count');
+                $customer->increment('total_spent', $order->grand_total);
+                $customer->increment('loyalty_points', (int) floor($order->grand_total / 100));
+            }
         }
 
-        $order->load('payments');
+        PaymentRecorded::dispatch($payment, $balanceRemaining);
 
         return response()->json([
             'success' => true,
             'payment' => $payment,
-            'change' => $change,
+            'change' => $changeDue,
+            'balance_remaining' => $balanceRemaining,
+            'fully_paid' => $order->is_fully_paid,
             'order' => $order,
         ]);
+    }
+
+    public function refundPayment(Request $request, Order $order)
+    {
+        if ($order->status !== 'completed' || $order->tracking_status !== 'paid') {
+            return response()->json(['success' => false, 'message' => 'Only paid orders can be refunded.'], 422);
+        }
+
+        $request->validate(['reason' => 'required|string|max:500']);
+
+        $payment = $order->payments()->where('status', 'completed')->first();
+        if (! $payment) {
+            return response()->json(['success' => false, 'message' => 'No completed payment found for this order.'], 404);
+        }
+
+        $payment->status = 'refunded';
+        $payment->refunded_at = now();
+        $payment->refund_reason = $request->input('reason');
+        $payment->save();
+
+        $order->status = 'completed';
+        $order->tracking_status = 'refunded';
+        $order->save();
+
+        if ($payment->finance_posted) {
+            try {
+                app(PostingService::class)
+                    ->recordRefund('restaurant', (float) $payment->amount, $payment->method, 'restaurant_payment', $payment->id);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        OrderRefunded::dispatch($order, $payment, $request->input('reason'));
+
+        return response()->json(['success' => true, 'payment' => $payment]);
     }
 
     // ─── Phase 2: Reports & Analytics ────────────────────────────────

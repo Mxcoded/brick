@@ -20,6 +20,9 @@ class Payment extends Model implements AuditableContract
         'status',
         'paid_at',
         'notes',
+        'finance_posted',
+        'refunded_at',
+        'refund_reason',
     ];
 
     protected function casts(): array
@@ -28,6 +31,8 @@ class Payment extends Model implements AuditableContract
             'amount' => 'decimal:2',
             'change_due' => 'decimal:2',
             'paid_at' => 'datetime',
+            'finance_posted' => 'boolean',
+            'refunded_at' => 'datetime',
         ];
     }
 
@@ -40,5 +45,11 @@ class Payment extends Model implements AuditableContract
     {
         return $query->where('status', 'completed');
     }
+
+    public function scopeRefunded($query)
+    {
+        return $query->where('status', 'refunded');
+    }
+
     use Auditable;
 }

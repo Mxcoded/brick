@@ -108,6 +108,7 @@ Route::prefix('restaurant-waiter')->middleware(['web', 'waiter-auth', 'can:acces
 
     // Payment
     Route::post('/order/{order}/pay', [RestaurantController::class, 'processPayment'])->name('restaurant.waiter.order.pay');
+    Route::post('/order/{order}/refund', [RestaurantController::class, 'refundPayment'])->name('restaurant.waiter.order.refund');
 });
 
 Route::prefix('restaurant-admin')->middleware(['web', 'auth', 'can:access_restaurant_dashboard'])->group(function () {

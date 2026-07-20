@@ -913,6 +913,10 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                             @click="reprintReceipt(order)">
                             <i class="bi bi-printer me-1"></i>Print Receipt
                         </button>
+                        <button class="btn btn-outline-danger btn-sm fw-bold"
+                            @click="refundOrder(order)">
+                            <i class="bi bi-arrow-return-left me-1"></i>Refund
+                        </button>
                     </div>
                 </div>
             </template>
@@ -954,8 +958,8 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                 </div>
                 <div class="modal-body">
                     <div class="text-center mb-3">
-                        <div class="text-muted small">Amount Due</div>
-                        <div class="fs-3 fw-bold" x-text="'₦' + Number(paymentOrder?.grand_total || 0).toLocaleString()"></div>
+                        <div class="text-muted small">Balance Due</div>
+                        <div class="fs-3 fw-bold" x-text="'₦' + Number(paymentAmountDue).toLocaleString()"></div>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small fw-medium">Payment Method</label>
@@ -965,6 +969,14 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                             <option value="mobile_money">Mobile Money</option>
                             <option value="transfer">Transfer</option>
                         </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-medium">Amount to Pay (₦)</label>
+                        <input type="number" class="form-control" x-model="paymentAmount" min="1" :max="paymentAmountDue" step="100">
+                        <div class="d-flex gap-1 mt-1">
+                            <button class="btn btn-outline-secondary btn-xs py-0 px-2" @click="paymentAmount = Math.ceil(paymentAmountDue / 2)" style="font-size:0.7rem">½</button>
+                            <button class="btn btn-outline-secondary btn-xs py-0 px-2" @click="paymentAmount = paymentAmountDue" style="font-size:0.7rem">Full</button>
+                        </div>
                     </div>
                     <div class="mb-2" x-show="paymentMethod === 'cash'">
                         <label class="form-label small fw-medium">Amount Tendered (₦)</label>
@@ -984,8 +996,8 @@ body.dark-mode .order-tray .nav-link:not(.active):hover {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-success btn-sm fw-bold" @click="submitPayment" :disabled="paymentLoading || !amountTendered || amountTendered < (paymentOrder?.grand_total || 0)">
-                        <span x-show="!paymentLoading"><i class="bi bi-check-circle me-1"></i>Complete Payment</span>
+                    <button class="btn btn-success btn-sm fw-bold" @click="submitPayment" :disabled="paymentLoading || !paymentAmount || paymentAmount > paymentAmountDue">
+                        <span x-show="!paymentLoading"><i class="bi bi-check-circle me-1"></i><span x-text="paymentAmount < paymentAmountDue ? 'Record Partial Payment' : 'Complete Payment'"></span></span>
                         <span x-show="paymentLoading"><span class="spinner-border spinner-border-sm me-1"></span>Processing...</span>
                     </button>
                 </div>
@@ -1118,10 +1130,12 @@ document.addEventListener('alpine:init', function () {
 
         paymentOrder: null,
         paymentMethod: 'cash',
+        paymentAmount: 0,
         amountTendered: 0,
         paymentReference: '',
         paymentLoading: false,
         paystackKey: '',
+        paymentAmountDue: 0,
 
         init() {
             this.checkShift();
@@ -1435,14 +1449,17 @@ document.addEventListener('alpine:init', function () {
         openPayment(order) {
             this.paymentOrder = order;
             this.paymentMethod = 'cash';
-            this.amountTendered = order.grand_total;
+            this.paymentAmountDue = order.balance ?? order.grand_total;
+            this.paymentAmount = this.paymentAmountDue;
+            this.amountTendered = this.paymentAmountDue;
             this.paymentReference = '';
             new bootstrap.Modal(document.getElementById('paymentModal')).show();
         },
 
         async submitPayment() {
             if (!this.paymentOrder) return;
-            if (this.paymentMethod === 'cash' && this.amountTendered < this.paymentOrder.grand_total) return;
+            if (!this.paymentAmount || this.paymentAmount <= 0) return;
+            if (this.paymentMethod === 'cash' && this.amountTendered < this.paymentAmount) return;
 
             if (this.paymentMethod === 'card') {
                 await this.payWithPaystack();
@@ -1459,11 +1476,12 @@ document.addEventListener('alpine:init', function () {
             }
             this.paymentLoading = true;
             try {
+                const payAmount = this.paymentAmount || this.paymentAmountDue;
                 const ref = 'POS-' + this.paymentOrder.id + '-' + Date.now();
                 const handler = PaystackPop.setup({
                     key: this.paystackKey,
                     email: this.paymentOrder.customer_name + '@brick.pos' || 'pos@restaurant.local',
-                    amount: Math.round(this.paymentOrder.grand_total * 100),
+                    amount: Math.round(payAmount * 100),
                     ref: ref,
                     currency: 'NGN',
                     callback: async (response) => {
@@ -1489,20 +1507,26 @@ document.addEventListener('alpine:init', function () {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrfToken },
                     body: JSON.stringify({
-                        amount_tendered: this.amountTendered || this.paymentOrder.grand_total,
+                        amount: this.paymentAmount || this.paymentAmountDue,
+                        amount_tendered: this.amountTendered,
                         method: this.paymentMethod,
                         reference: this.paymentReference,
                     })
                 });
                 const data = await res.json();
                 if (data.success) {
-                    this.activeOrders = this.activeOrders.filter(o => o.id !== this.paymentOrder.id);
-                    this.paymentOrder.status = 'completed';
-                    this.paymentOrder.tracking_status = 'paid';
-                    this.paidOrders.unshift({...this.paymentOrder});
+                    if (data.fully_paid) {
+                        this.activeOrders = this.activeOrders.filter(o => o.id !== this.paymentOrder.id);
+                        this.paymentOrder.status = 'completed';
+                        this.paymentOrder.tracking_status = 'paid';
+                        this.paidOrders.unshift({...this.paymentOrder});
+                        this.showToast('success', 'Order #' + this.paymentOrder.id + ' paid (' + this.paymentMethod + ')');
+                        this.reprintReceipt(this.paymentOrder);
+                    } else {
+                        this.showToast('info', 'Partial payment of ₦' + Number(data.payment.amount).toLocaleString() + ' recorded. Balance: ₦' + Number(data.balance_remaining).toLocaleString());
+                    }
                     bootstrap.Modal.getInstance(document.getElementById('paymentModal'))?.hide();
-                    this.showToast('success', 'Order #' + this.paymentOrder.id + ' paid (' + this.paymentMethod + ')');
-                    this.reprintReceipt(this.paymentOrder);
+                    this.refreshOrders();
                     this.paymentOrder = null;
                 } else {
                     this.showToast('danger', data.message || 'Payment failed');
@@ -1516,6 +1540,27 @@ document.addEventListener('alpine:init', function () {
 
         reprintReceipt(order) {
             window.open('/restaurant-waiter/order/' + order.id + '/receipt', '_blank', 'width=400,height=700');
+        },
+
+        async refundOrder(order) {
+            const reason = prompt('Reason for refunding Order #' + order.id + ':');
+            if (!reason) return;
+            try {
+                const res = await fetch('/restaurant-waiter/order/' + order.id + '/refund', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrfToken },
+                    body: JSON.stringify({ reason })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.showToast('success', 'Order #' + order.id + ' refunded');
+                    this.refreshOrders();
+                } else {
+                    this.showToast('danger', data.message || 'Refund failed');
+                }
+            } catch (e) {
+                this.showToast('danger', 'Refund failed');
+            }
         },
 
         openReason(action, orderId) {

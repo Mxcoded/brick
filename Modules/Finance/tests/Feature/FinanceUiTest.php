@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Modules\Finance\Database\Seeders\ChartOfAccountsSeeder;
 use Modules\Finance\Database\Seeders\FinancePermissionSeeder;
+use Modules\Finance\Models\JournalEntry;
 use Modules\Finance\Services\PostingService;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -22,6 +23,8 @@ class FinanceUiTest extends TestCase
 
         (new ChartOfAccountsSeeder)->run();
         (new FinancePermissionSeeder)->run();
+
+        JournalEntry::query()->delete();
 
         $this->user = User::factory()->create();
         $this->user->assignRole(Role::findOrCreate('finance', 'web'));

@@ -128,6 +128,42 @@ class PostingService
     }
 
     /**
+     * Reverses a sale: debit revenue, credit asset.
+     * Idempotent per (reference_type, reference_id).
+     * Use the same reference_type/reference_id as the original sale to reverse it.
+     */
+    public function recordRefund(
+        string $module,
+        float $amount,
+        string $paymentMethod,
+        string $referenceType,
+        int $referenceId,
+        ?string $date = null,
+        ?string $description = null
+    ): ?JournalEntry {
+        if ($amount <= 0) {
+            return null;
+        }
+
+        $assetCode = $this->assetForMethod($paymentMethod);
+        $revenueCode = config("finance.accounts.revenue.$module", '4900');
+
+        return $this->postIdempotent(
+            "REF-$referenceType-$referenceId",
+            [
+                ['account_code' => $revenueCode, 'debit' => $amount],
+                ['account_code' => $assetCode, 'credit' => $amount],
+            ],
+            [
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'date' => $date,
+                'description' => $description ?? "Refund: $module #$referenceId",
+            ]
+        );
+    }
+
+    /**
      * Posts settlement of a payable: debit AP, credit asset.
      */
     public function recordApPayment(

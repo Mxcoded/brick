@@ -31,6 +31,8 @@ class KitchenFlowTest extends TestCase
     {
         parent::setUp();
 
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+
         $role = Role::firstOrCreate(['name' => RoleEnum::WAITER->value, 'guard_name' => 'web']);
         $permission = Permission::firstOrCreate(['name' => 'access_restaurant_dashboard', 'guard_name' => 'web']);
         if (! $role->hasPermissionTo($permission)) {
