@@ -4,7 +4,6 @@ namespace Modules\Finance\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -35,5 +34,6 @@ class JournalLine extends Model implements AuditableContract
     {
         return $this->belongsTo(ChartOfAccount::class);
     }
+
     use Auditable;
 }

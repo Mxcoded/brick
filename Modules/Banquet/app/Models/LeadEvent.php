@@ -5,7 +5,6 @@ namespace Modules\Banquet\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -72,5 +71,6 @@ class LeadEvent extends Model implements AuditableContract
             }
         });
     }
+
     use Auditable;
 }

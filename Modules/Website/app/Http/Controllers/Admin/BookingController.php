@@ -14,6 +14,7 @@ use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
 use Modules\Website\Services\RoomAssignmentService;
+use Modules\Website\Services\WebsiteRateService;
 
 class BookingController extends Controller
 {
@@ -187,7 +188,7 @@ class BookingController extends Controller
 
             // Auto-recalculate total when room type or dates change (includes guest fees)
             $roomType = RoomType::find($validated['room_type_id']);
-            $rateService = app(\Modules\Website\Services\WebsiteRateService::class);
+            $rateService = app(WebsiteRateService::class);
             $rate = $rateService->calculateWithGuests(
                 $roomType,
                 $validated['check_in_date'],

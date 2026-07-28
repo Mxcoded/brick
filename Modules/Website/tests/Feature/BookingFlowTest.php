@@ -23,7 +23,7 @@ class BookingFlowTest extends TestCase
 
         $this->roomType = RoomType::create([
             'name' => 'Deluxe Suite',
-            'slug' => 'deluxe-suite-' . uniqid(),
+            'slug' => 'deluxe-suite-'.uniqid(),
             'price' => 25000,
             'capacity' => 2,
             'is_active' => true,
@@ -159,7 +159,7 @@ class BookingFlowTest extends TestCase
     public function test_confirmation_page_shows_booking_details()
     {
         $booking = Booking::create([
-            'booking_reference' => 'BK' . now()->year . strtoupper(substr(uniqid(), -4)),
+            'booking_reference' => 'BK'.now()->year.strtoupper(substr(uniqid(), -4)),
             'room_type_id' => $this->roomType->id,
             'source' => 'website',
             'guest_name' => 'John Doe',
@@ -188,7 +188,7 @@ class BookingFlowTest extends TestCase
     public function test_confirmation_page_denies_unauthorized_access()
     {
         $booking = Booking::create([
-            'booking_reference' => 'BK' . now()->year . strtoupper(substr(uniqid(), -4)),
+            'booking_reference' => 'BK'.now()->year.strtoupper(substr(uniqid(), -4)),
             'room_type_id' => $this->roomType->id,
             'source' => 'website',
             'guest_name' => 'Jane Doe',

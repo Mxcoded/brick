@@ -5,7 +5,6 @@ namespace Modules\Restaurant\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Website\Models\Room;
-
 // use Modules\Restaurant\Database\Factories\OrderFactory;
 
 use OwenIt\Auditing\Auditable;
@@ -13,7 +12,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class Order extends Model implements AuditableContract
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     const STATUS_PENDING = 'pending';
 

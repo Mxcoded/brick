@@ -5,7 +5,6 @@ namespace Modules\Frontdeskcrm\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -101,11 +100,9 @@ class GuestType extends Model implements AuditableContract
      */
     public function getTotalRevenueAttribute()
     {
-        $query = $this->registrations();
-        if (Schema::hasColumn('registrations', 'stay_status')) {
-            $query->where('stay_status', 'checked_out');
-        }
-
-        return $query->sum(DB::raw('total_paid'));
+        return $this->registrations()
+            ->when(Schema::hasColumn('registrations', 'stay_status'), fn ($q) => $q->where('stay_status', 'checked_out'))
+            ->join('registration_payments', 'registration_payments.registration_id', '=', 'registrations.id')
+            ->sum('registration_payments.amount');
     }
 }

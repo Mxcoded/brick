@@ -4,7 +4,6 @@ namespace Modules\Restaurant\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 // use Modules\Restaurant\Database\Factories\TableFactory;
 
 use OwenIt\Auditing\Auditable;
@@ -12,7 +11,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class Table extends Model implements AuditableContract
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     /**
      * The attributes that are mass assignable.

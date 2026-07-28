@@ -4,7 +4,6 @@ namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -27,5 +26,6 @@ class PurchaseRequestItem extends Model implements AuditableContract
     {
         return $this->belongsTo(PurchaseRequest::class);
     }
+
     use Auditable;
 }

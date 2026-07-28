@@ -94,6 +94,7 @@ Route::middleware(['web'])->group(function () {
         // Booking Cart API
         Route::get('/api/available-units', 'getAvailableUnits')->name('website.api.available-units');
         Route::get('/api/room-availability', 'getRoomAvailability')->name('website.api.room-availability');
+        Route::get('/api/room-rate', 'getRoomRate')->name('website.api.room-rate');
         Route::post('/cart/add', 'cartAdd')->name('website.cart.add');
         Route::put('/cart/update', 'cartUpdate')->name('website.cart.update');
         Route::put('/cart/update-guests', 'cartUpdateGuests')->name('website.cart.update-guests');

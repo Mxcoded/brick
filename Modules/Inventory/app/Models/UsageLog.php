@@ -5,7 +5,6 @@ namespace Modules\Inventory\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
 // use Modules\Inventory\Database\Factories\UsageLogFactory;
 
 /**
@@ -17,7 +16,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class UsageLog extends Model implements AuditableContract
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = ['item_id', 'store_id', 'department_id', 'quantity_used', 'unit_cost', 'used_for', 'technician_name', 'date_used', 'reference'];
 

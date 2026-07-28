@@ -2,8 +2,8 @@
 
 namespace Modules\Restaurant\Tests\Feature;
 
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-
 use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
 use Modules\Restaurant\Models\Order;
@@ -21,7 +21,7 @@ class OnlineOrderTest extends TestCase
     {
         parent::setUp();
 
-        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+        $this->withoutMiddleware(ValidateCsrfToken::class);
 
         $category = MenuCategory::create(['name' => 'Main Courses']);
         $this->burger = MenuItem::create([

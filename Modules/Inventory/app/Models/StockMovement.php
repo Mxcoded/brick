@@ -5,7 +5,6 @@ namespace Modules\Inventory\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -42,5 +41,6 @@ class StockMovement extends Model implements AuditableContract
             'notes' => $data['notes'] ?? null,
         ]);
     }
+
     use Auditable;
 }

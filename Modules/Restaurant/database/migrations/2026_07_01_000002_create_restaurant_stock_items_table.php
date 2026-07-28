@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('restaurant_stock_items')) {
+        if (! Schema::hasTable('restaurant_stock_items')) {
             Schema::create('restaurant_stock_items', function (Blueprint $table) {
                 $table->id();
                 $table->string('name');
@@ -22,7 +22,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('restaurant_recipe_items')) {
+        if (! Schema::hasTable('restaurant_recipe_items')) {
             Schema::create('restaurant_recipe_items', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('restaurant_menu_item_id')->constrained()->cascadeOnDelete();
@@ -32,7 +32,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('restaurant_stock_movements')) {
+        if (! Schema::hasTable('restaurant_stock_movements')) {
             Schema::create('restaurant_stock_movements', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('restaurant_stock_item_id')->constrained()->cascadeOnDelete();

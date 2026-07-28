@@ -4,7 +4,6 @@ namespace Modules\Maintenance\Models;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -73,5 +72,6 @@ class MaintenanceReading extends Model implements AuditableContract
     {
         return $query->whereBetween('reading_date', [$from, $to]);
     }
+
     use Auditable;
 }

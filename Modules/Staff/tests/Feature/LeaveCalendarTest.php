@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\Mail;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveBalance;
 use Modules\Staff\Models\LeaveRequest;
+use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class LeaveCalendarTest extends TestCase

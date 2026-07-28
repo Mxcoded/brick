@@ -111,7 +111,7 @@
                     <div class="card shadow border-0 sticky-top" style="top: 100px; z-index: 10;">
                         <div class="card-body p-4">
                             <div class="mb-4">
-                                <span class="h2 fw-bold text-primary">₦{{ number_format($roomType->price, 2) }}</span>
+                                <span class="h2 fw-bold text-primary">₦{{ number_format($roomType->display_price, 2) }}</span>
                                 <span class="text-muted">/ night</span>
                             </div>
 
@@ -193,7 +193,7 @@
                                 @endif
                                 <div class="card-body">
                                     <h5 class="card-title">{{ $related->name }}</h5>
-                                    <p class="card-text text-primary fw-bold">₦{{ number_format($related->price, 2) }} <small class="text-muted fw-normal">/ night</small></p>
+                                    <p class="card-text text-primary fw-bold">₦{{ number_format($related->display_price, 2) }} <small class="text-muted fw-normal">/ night</small></p>
                                     <a href="{{ route('website.rooms.show', $related->slug ?? $related->id) }}"
                                         class="btn btn-primary btn-sm stretched-link">
                                         <i class="fas fa-arrow-right me-1"></i> Select Room

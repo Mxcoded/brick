@@ -3,7 +3,6 @@
 namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -27,5 +26,6 @@ class Shift extends Model implements AuditableContract
     {
         return $this->hasMany(ShiftAssignment::class);
     }
+
     use Auditable;
 }

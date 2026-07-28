@@ -1113,7 +1113,7 @@ class RestaurantController extends Controller
 
         if ($request->input('status') === 'completed' && ! $order->payments()->where('status', 'completed')->exists()) {
             $tendered = $request->input('amount_tendered', $order->grand_total);
-            $payment = \Modules\Restaurant\Models\Payment::create([
+            $payment = Payment::create([
                 'restaurant_order_id' => $order->id,
                 'amount' => $order->grand_total,
                 'method' => $request->input('payment_method', 'cash'),

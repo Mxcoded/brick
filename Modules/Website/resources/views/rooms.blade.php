@@ -92,7 +92,7 @@
                                             loading="lazy">
                                         <div class="price-badge position-absolute top-0 end-0 btn-primary text-white p-3">
                                             <span
-                                                class="d-block fs-4 fw-bold">&#8358;{{ number_format($roomType->price) }}</span>
+                                                class="d-block fs-4 fw-bold">&#8358;{{ number_format($roomType->display_price) }}</span>
                                             <small class="d-block text-center">per night</small>
                                         </div>
                                         {{-- Availability Badge --}}

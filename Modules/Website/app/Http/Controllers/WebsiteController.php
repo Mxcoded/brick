@@ -42,6 +42,7 @@ use Modules\Website\Services\BookingCartService;
 use Modules\Website\Services\GoogleReviewsService;
 use Modules\Website\Services\PaymentGatewayManager;
 use Modules\Website\Services\RoomAvailabilityService;
+use Modules\Website\Services\WebsiteRateService;
 
 class WebsiteController extends Controller
 {
@@ -79,8 +80,13 @@ class WebsiteController extends Controller
      */
     public function rooms(Request $request)
     {
-        // 1. Base Query - Room Types (not individual rooms)
-        $query = RoomType::where('is_active', true)
+        // 1. Base Query - Room Types with effective price (rate code or base price)
+        $query = RoomType::where('room_types.is_active', true)
+            ->leftJoin('rate_codes', 'room_types.rate_code_id', '=', 'rate_codes.id')
+            ->selectRaw('room_types.*, COALESCE(
+                CASE WHEN rate_codes.id IS NOT NULL AND rate_codes.is_active = 1 THEN rate_codes.default_rate END,
+                room_types.price
+            ) as effective_price')
             ->withCount('units')
             ->with(['amenities', 'units']);
 
@@ -92,14 +98,14 @@ class WebsiteController extends Controller
             });
         });
 
-        // 3. Filter by Min Price
+        // 3. Filter by Min Price (uses effective_price which respects rate codes)
         $query->when($request->filled('min_price'), function ($q) use ($request) {
-            $q->where('price', '>=', $request->min_price);
+            $q->where('effective_price', '>=', $request->min_price);
         });
 
         // 4. Filter by Max Price
         $query->when($request->filled('max_price'), function ($q) use ($request) {
-            $q->where('price', '<=', $request->max_price);
+            $q->where('effective_price', '<=', $request->max_price);
         });
 
         // 5. Filter by Guests
@@ -111,17 +117,17 @@ class WebsiteController extends Controller
         if ($request->filled('sort')) {
             switch ($request->sort) {
                 case 'price_asc':
-                    $query->orderBy('price', 'asc');
+                    $query->orderBy('effective_price', 'asc');
                     break;
                 case 'price_desc':
-                    $query->orderBy('price', 'desc');
+                    $query->orderBy('effective_price', 'desc');
                     break;
                 default:
-                    $query->ordered();
+                    $query->orderBy('display_order')->orderBy('name');
                     break;
             }
         } else {
-            $query->ordered();
+            $query->orderBy('display_order')->orderBy('name');
         }
 
         // 7. Pagination
@@ -325,6 +331,7 @@ class WebsiteController extends Controller
             'adults' => 'required|integer|min:1',
             'children' => 'nullable|integer|min:0',
             'payment_method' => 'required|in:paystack,pay_on_arrival',
+            'special_requests' => 'nullable|string|max:1000',
         ];
 
         // Legacy single-room validation (when not using cart)
@@ -540,7 +547,7 @@ class WebsiteController extends Controller
 
                     $days = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']) ?: 1;
 
-                    $rateService = app(\Modules\Website\Services\WebsiteRateService::class);
+                    $rateService = app(WebsiteRateService::class);
                     $rate = $rateService->calculateWithGuests(
                         $roomType,
                         $validated['check_in_date'],
@@ -1604,7 +1611,7 @@ class WebsiteController extends Controller
         $cartDates = $cartService->getDates();
         $checkIn = $request->check_in ?? $cartDates['check_in'] ?? date('Y-m-d');
         $checkOut = $request->check_out ?? $cartDates['check_out'] ?? date('Y-m-d', strtotime('+1 day'));
-        $adults = $request->adults ?? 1;
+        $adults = $request->adults ?? $request->guests ?? 1;
         $children = $request->children ?? 0;
 
         // If a specific room_type_id is passed (from room-details availability check), auto-add to cart
@@ -1669,7 +1676,7 @@ class WebsiteController extends Controller
                     'id' => $roomType->id,
                     'name' => $roomType->name,
                     'slug' => $roomType->slug,
-                    'price' => (float) $roomType->price,
+                    'price' => (float) $roomType->display_price,
                     'capacity' => $roomType->capacity,
                     'image_url' => $roomType->image_url,
                     'bed_type' => $roomType->bed_type,
@@ -1691,6 +1698,45 @@ class WebsiteController extends Controller
             'room_types' => $roomTypes,
             'check_in' => $validated['check_in'],
             'check_out' => $validated['check_out'],
+        ]);
+    }
+
+    /**
+     * API: Get calculated rate for a room type with dates and guest counts.
+     * Returns the rate code–aware pricing (calendar overrides, seasons, guest fees).
+     */
+    public function getRoomRate(Request $request)
+    {
+        $validated = $request->validate([
+            'room_type_id' => 'required|exists:room_types,id',
+            'check_in_date' => 'required|date|after_or_equal:today',
+            'check_out_date' => 'required|date|after:check_in_date',
+            'adults' => 'nullable|integer|min:1',
+            'children' => 'nullable|integer|min:0',
+        ]);
+
+        $roomType = RoomType::find($validated['room_type_id']);
+
+        $rateService = app(WebsiteRateService::class);
+        $result = $rateService->calculateWithGuests(
+            $roomType,
+            $validated['check_in_date'],
+            $validated['check_out_date'],
+            $validated['adults'] ?? 2,
+            $validated['children'] ?? 0
+        );
+
+        $nights = Carbon::parse($validated['check_in_date'])
+            ->diffInDays(Carbon::parse($validated['check_out_date']));
+
+        return response()->json([
+            'price_per_night' => $result['price_per_night'],
+            'total' => $result['total'],
+            'base_total' => $result['base_total'],
+            'guest_fee_per_night' => $result['guest_fee_per_night'],
+            'guest_fee_total' => $result['guest_fee_total'],
+            'rate_code_id' => $result['rate_code_id'],
+            'nights' => $nights,
         ]);
     }
 

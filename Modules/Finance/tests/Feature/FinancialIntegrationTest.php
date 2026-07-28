@@ -7,7 +7,6 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Modules\Finance\Database\Seeders\ChartOfAccountsSeeder;
 use Modules\Finance\Models\ChartOfAccount;
 use Modules\Finance\Models\JournalEntry;
-use Modules\Finance\Models\JournalLine;
 use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Models\RegistrationPayment;
@@ -37,10 +36,10 @@ class FinancialIntegrationTest extends TestCase
     {
         $scenarios = [
             'frontdesk' => ['ref' => 'registration_payment', 'expected_revenue' => '4000'],
-            'website'   => ['ref' => 'booking',              'expected_revenue' => '4000'],
-            'restaurant'=> ['ref' => 'restaurant_payment',    'expected_revenue' => '4100'],
-            'banquet'   => ['ref' => 'banquet_payment',       'expected_revenue' => '4200'],
-            'gym'       => ['ref' => 'gym_payment',           'expected_revenue' => '4300'],
+            'website' => ['ref' => 'booking',              'expected_revenue' => '4000'],
+            'restaurant' => ['ref' => 'restaurant_payment',    'expected_revenue' => '4100'],
+            'banquet' => ['ref' => 'banquet_payment',       'expected_revenue' => '4200'],
+            'gym' => ['ref' => 'gym_payment',           'expected_revenue' => '4300'],
         ];
 
         $id = 1;
@@ -64,16 +63,16 @@ class FinancialIntegrationTest extends TestCase
     public function test_each_payment_method_maps_to_correct_asset_account(): void
     {
         $methods = [
-            'cash'          => '1000',
-            'pos'           => '1100',
-            'card'          => '1100',
-            'mobile_money'  => '1100',
-            'transfer'      => '1100',
+            'cash' => '1000',
+            'pos' => '1100',
+            'card' => '1100',
+            'mobile_money' => '1100',
+            'transfer' => '1100',
             'bank_transfer' => '1100',
-            'cheque'        => '1100',
-            'crypto'        => '1100',
-            'paystack'      => '1110',
-            'stripe'        => '1120',
+            'cheque' => '1100',
+            'crypto' => '1100',
+            'paystack' => '1110',
+            'stripe' => '1120',
         ];
 
         $id = 1;

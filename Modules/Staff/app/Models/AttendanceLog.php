@@ -3,7 +3,6 @@
 namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -73,5 +72,6 @@ class AttendanceLog extends Model implements AuditableContract
     {
         return $query->where('status', $status);
     }
+
     use Auditable;
 }

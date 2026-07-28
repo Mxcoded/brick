@@ -3,9 +3,8 @@
 namespace Modules\Website\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Frontdeskcrm\Models\RateCode;
 use Modules\Frontdeskcrm\Models\RateCalendar;
-use Modules\Frontdeskcrm\Models\Season;
+use Modules\Frontdeskcrm\Models\RateCode;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Services\WebsiteRateService;
 use Tests\TestCase;
@@ -26,7 +25,7 @@ class WebsiteRateServiceTest extends TestCase
     {
         $roomType = RoomType::create([
             'name' => 'Standard',
-            'slug' => 'std-rate-' . uniqid(),
+            'slug' => 'std-rate-'.uniqid(),
             'price' => 25000,
             'capacity' => 2,
         ]);
@@ -41,7 +40,7 @@ class WebsiteRateServiceTest extends TestCase
     public function test_uses_rate_code_when_assigned(): void
     {
         $rateCode = RateCode::create([
-            'code' => 'WEB' . uniqid(),
+            'code' => 'WEB'.uniqid(),
             'name' => 'Website Rate',
             'default_rate' => 35000,
             'currency' => 'NGN',
@@ -50,7 +49,7 @@ class WebsiteRateServiceTest extends TestCase
 
         $roomType = RoomType::create([
             'name' => 'Deluxe',
-            'slug' => 'dlx-rate-' . uniqid(),
+            'slug' => 'dlx-rate-'.uniqid(),
             'price' => 25000,
             'rate_code_id' => $rateCode->id,
             'capacity' => 2,
@@ -66,7 +65,7 @@ class WebsiteRateServiceTest extends TestCase
     public function test_rate_calendar_override_applies(): void
     {
         $rateCode = RateCode::create([
-            'code' => 'CAL' . uniqid(),
+            'code' => 'CAL'.uniqid(),
             'name' => 'Calendar Rate',
             'default_rate' => 30000,
             'currency' => 'NGN',
@@ -83,7 +82,7 @@ class WebsiteRateServiceTest extends TestCase
 
         $roomType = RoomType::create([
             'name' => 'Suite',
-            'slug' => 'suite-rate-' . uniqid(),
+            'slug' => 'suite-rate-'.uniqid(),
             'price' => 25000,
             'rate_code_id' => $rateCode->id,
             'capacity' => 2,
@@ -101,7 +100,7 @@ class WebsiteRateServiceTest extends TestCase
     public function test_inactive_rate_code_falls_back_to_flat(): void
     {
         $rateCode = RateCode::create([
-            'code' => 'INA' . uniqid(),
+            'code' => 'INA'.uniqid(),
             'name' => 'Inactive Rate',
             'default_rate' => 50000,
             'currency' => 'NGN',
@@ -110,7 +109,7 @@ class WebsiteRateServiceTest extends TestCase
 
         $roomType = RoomType::create([
             'name' => 'Premium',
-            'slug' => 'prem-rate-' . uniqid(),
+            'slug' => 'prem-rate-'.uniqid(),
             'price' => 25000,
             'rate_code_id' => $rateCode->id,
             'capacity' => 2,
@@ -126,7 +125,7 @@ class WebsiteRateServiceTest extends TestCase
     {
         $roomType = RoomType::create([
             'name' => 'Single',
-            'slug' => 'single-rate-' . uniqid(),
+            'slug' => 'single-rate-'.uniqid(),
             'price' => 20000,
             'capacity' => 2,
         ]);

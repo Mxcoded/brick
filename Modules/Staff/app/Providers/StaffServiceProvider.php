@@ -9,6 +9,7 @@ use Modules\Staff\Console\BackfillLeaveDaysCount;
 use Modules\Staff\Console\CleanupDocuments;
 use Modules\Staff\Console\ImportHikvisionAttendance;
 use Modules\Staff\Console\SendBirthdaySms;
+use Modules\Staff\Models\StaffSetting;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -67,7 +68,7 @@ class StaffServiceProvider extends ServiceProvider
             $schedule->command('documents:cleanup')->dailyAt('03:00');
             $schedule->command('attendance:import-hikvision')
                 ->everyFiveMinutes()
-                ->when(fn () => \Modules\Staff\Models\StaffSetting::get('hikvision_device_type', 'attendance') === 'attendance');
+                ->when(fn () => StaffSetting::get('hikvision_device_type', 'attendance') === 'attendance');
         });
     }
 

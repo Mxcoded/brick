@@ -3,13 +3,14 @@
 namespace Tests\Browser;
 
 use Laravel\Dusk\Browser;
-use Tests\DuskTestCase;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
+use Tests\DuskTestCase;
 
 class BookingFormTest extends DuskTestCase
 {
     protected RoomType $roomType;
+
     protected RoomUnit $roomUnit;
 
     protected function setUp(): void
@@ -19,8 +20,8 @@ class BookingFormTest extends DuskTestCase
         $uid = uniqid();
 
         $this->roomType = RoomType::create([
-            'name' => 'Dusk Test Suite ' . $uid,
-            'slug' => 'dusk-test-room-' . $uid,
+            'name' => 'Dusk Test Suite '.$uid,
+            'slug' => 'dusk-test-room-'.$uid,
             'price' => 50000.00,
             'capacity' => 2,
             'is_active' => true,
@@ -29,7 +30,7 @@ class BookingFormTest extends DuskTestCase
 
         $this->roomUnit = RoomUnit::create([
             'room_type_id' => $this->roomType->id,
-            'room_number' => 'DN' . rand(100, 999),
+            'room_number' => 'DN'.rand(100, 999),
             'floor' => 1,
             'status' => 'available',
         ]);
@@ -49,7 +50,7 @@ class BookingFormTest extends DuskTestCase
     public function test_booking_page_renders_correctly(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/booking?room_type_id=' . $this->roomType->id)
+            $browser->visit('/booking?room_type_id='.$this->roomType->id)
                 ->assertSee('Complete Your Reservation')
                 ->assertPresent('.step-indicator')
                 ->assertPresent('#bookingForm')
@@ -63,9 +64,9 @@ class BookingFormTest extends DuskTestCase
     public function test_room_card_selection(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/booking?room_type_id=' . $this->roomType->id);
+            $browser->visit('/booking?room_type_id='.$this->roomType->id);
 
-            $browser->click('.room-card[data-room-type-id="' . $this->roomType->id . '"]');
+            $browser->click('.room-card[data-room-type-id="'.$this->roomType->id.'"]');
 
             $selected = $browser->script(
                 "return document.querySelector('.room-card.selected') !== null;"
@@ -85,7 +86,7 @@ class BookingFormTest extends DuskTestCase
     public function test_form_validation_prevents_submission(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/booking?room_type_id=' . $this->roomType->id);
+            $browser->visit('/booking?room_type_id='.$this->roomType->id);
             $browser->script("document.getElementById('bookingForm').submit();");
             $browser->pause(2000)->assertPathIs('/booking');
         });
@@ -94,7 +95,7 @@ class BookingFormTest extends DuskTestCase
     public function test_stepper_increments_adults(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/booking?room_type_id=' . $this->roomType->id);
+            $browser->visit('/booking?room_type_id='.$this->roomType->id);
 
             $initial = $browser->script(
                 "return parseInt(document.getElementById('adults').value);"
@@ -116,14 +117,14 @@ class BookingFormTest extends DuskTestCase
             $tomorrow = now()->addDay()->format('Y-m-d');
             $dayAfter = now()->addDays(2)->format('Y-m-d');
 
-            $browser->visit('/booking?room_type_id=' . $this->roomType->id);
+            $browser->visit('/booking?room_type_id='.$this->roomType->id);
 
             $browser->script(
-                "document.getElementById('check_in_date').value = '$tomorrow';" .
-                "document.getElementById('check_out_date').value = '$dayAfter';" .
-                "document.getElementById('check_in_date').dispatchEvent(new Event('input', { bubbles: true }));" .
-                "document.getElementById('check_out_date').dispatchEvent(new Event('input', { bubbles: true }));" .
-                "document.querySelector('.room-card[data-room-type-id=\"" . $this->roomType->id . "\"]')?.click();"
+                "document.getElementById('check_in_date').value = '$tomorrow';".
+                "document.getElementById('check_out_date').value = '$dayAfter';".
+                "document.getElementById('check_in_date').dispatchEvent(new Event('input', { bubbles: true }));".
+                "document.getElementById('check_out_date').dispatchEvent(new Event('input', { bubbles: true }));".
+                "document.querySelector('.room-card[data-room-type-id=\"".$this->roomType->id."\"]')?.click();"
             );
 
             $browser->pause(500);
@@ -141,13 +142,13 @@ class BookingFormTest extends DuskTestCase
             $browser->pause(300);
 
             $activeStep = $browser->script(
-                "var items = document.querySelectorAll('.step-indicator .step-item');" .
-                "for (var i = items.length - 1; i >= 0; i--) {" .
-                "  if (items[i].classList.contains('active') || items[i].classList.contains('completed')) {" .
-                "    return i + 1;" .
-                "  }" .
-                "}" .
-                "return 0;"
+                "var items = document.querySelectorAll('.step-indicator .step-item');".
+                'for (var i = items.length - 1; i >= 0; i--) {'.
+                "  if (items[i].classList.contains('active') || items[i].classList.contains('completed')) {".
+                '    return i + 1;'.
+                '  }'.
+                '}'.
+                'return 0;'
             )[0];
 
             $this->assertGreaterThanOrEqual(3, $activeStep,
@@ -161,14 +162,14 @@ class BookingFormTest extends DuskTestCase
             $tomorrow = now()->addDay()->format('Y-m-d');
             $dayAfter = now()->addDays(2)->format('Y-m-d');
 
-            $browser->visit('/booking?room_type_id=' . $this->roomType->id);
+            $browser->visit('/booking?room_type_id='.$this->roomType->id);
 
             $browser->script(
-                "document.getElementById('check_in_date').value = '$tomorrow';" .
+                "document.getElementById('check_in_date').value = '$tomorrow';".
                 "document.getElementById('check_out_date').value = '$dayAfter';"
             );
 
-            $browser->click('.room-card[data-room-type-id="' . $this->roomType->id . '"]');
+            $browser->click('.room-card[data-room-type-id="'.$this->roomType->id.'"]');
 
             $browser->type('guest_name', 'Alice Dusk')
                 ->type('guest_email', 'alice.dusk@example.com')

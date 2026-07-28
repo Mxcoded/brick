@@ -134,6 +134,19 @@ class RoomType extends Model implements AuditableContract
     // ==========================================
 
     /**
+     * The price shown to website visitors.
+     * Returns the rate code's default_rate when one is assigned, otherwise the flat price.
+     */
+    public function getDisplayPriceAttribute(): float
+    {
+        if ($this->rate_code_id && $this->rateCode && $this->rateCode->is_active) {
+            return (float) $this->rateCode->default_rate;
+        }
+
+        return (float) $this->price;
+    }
+
+    /**
      * Get total number of units.
      */
     public function getTotalUnitsAttribute()

@@ -4,7 +4,6 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -22,5 +21,6 @@ class OffersPage extends Model implements AuditableContract
     {
         return $this->hasMany(Offer::class, 'offers_page_id')->orderBy('sort_order');
     }
+
     use Auditable;
 }

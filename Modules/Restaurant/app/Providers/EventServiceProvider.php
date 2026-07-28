@@ -3,6 +3,9 @@
 namespace Modules\Restaurant\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Modules\Restaurant\Events\OrderPaid;
+use Modules\Restaurant\Events\OrderRefunded;
+use Modules\Restaurant\Events\PaymentRecorded;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -12,9 +15,9 @@ class EventServiceProvider extends ServiceProvider
      * @var array<string, array<int, string>>
      */
     protected $listen = [
-        \Modules\Restaurant\Events\OrderPaid::class => [],
-        \Modules\Restaurant\Events\OrderRefunded::class => [],
-        \Modules\Restaurant\Events\PaymentRecorded::class => [],
+        OrderPaid::class => [],
+        OrderRefunded::class => [],
+        PaymentRecorded::class => [],
     ];
 
     /**

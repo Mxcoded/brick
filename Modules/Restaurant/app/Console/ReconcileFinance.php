@@ -9,6 +9,7 @@ use Modules\Restaurant\Models\Payment;
 class ReconcileFinance extends Command
 {
     protected $signature = 'restaurant:reconcile-finance {--dry-run : Preview without posting}';
+
     protected $description = 'Retry finance posting for restaurant payments that were not posted';
 
     public function handle(): int
@@ -41,7 +42,7 @@ class ReconcileFinance extends Command
                     $payment->save();
                     $this->info("  ✓ Posted (entry: {$entry->entry_number})");
                 } else {
-                    $this->warn("  — Skipped (duplicate key)");
+                    $this->warn('  — Skipped (duplicate key)');
                 }
             } catch (\Throwable $e) {
                 $this->error("  ✗ Failed: {$e->getMessage()}");

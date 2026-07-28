@@ -10,9 +10,9 @@ use Modules\Staff\Models\AttendanceLog;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\Shift;
 use Modules\Staff\Models\ShiftAssignment;
+use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AttendanceTest extends TestCase

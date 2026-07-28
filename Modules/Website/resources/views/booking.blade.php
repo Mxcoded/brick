@@ -421,6 +421,29 @@
             min-height: 80px;
         }
 
+        .request-chip {
+            background: #fff;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 20px;
+            padding: 0.3rem 0.75rem;
+            font-size: 0.78rem;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .request-chip:hover {
+            border-color: var(--brand-gold-light);
+            color: var(--brand-gold-dark);
+        }
+
+        .request-chip.active {
+            background: var(--brand-gold);
+            border-color: var(--brand-gold);
+            color: #fff;
+        }
+
         .special-requests-box textarea:focus {
             border-color: var(--brand-gold);
             box-shadow: 0 0 0 4px rgba(200, 161, 101, 0.12);
@@ -511,20 +534,37 @@
             font-weight: 600;
         }
 
-        .max-capacity-badge {
-            background: linear-gradient(135deg, var(--brand-gold), var(--brand-gold-dark));
-            color: #fff;
-            padding: 0.4rem 0.85rem;
+        .capacity-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: var(--brand-cream);
+            border: 1.5px solid var(--brand-gold-light);
+            color: var(--brand-gold-dark);
+            padding: 0.35rem 0.75rem;
             border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            box-shadow: 0 4px 12px rgba(200, 161, 101, 0.3);
-            animation: capacityBadgePulse 2s ease-in-out infinite;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.3s ease;
         }
 
-        @keyframes capacityBadgePulse {
-            0%, 100% { box-shadow: 0 4px 12px rgba(200, 161, 101, 0.3); }
-            50% { box-shadow: 0 4px 18px rgba(200, 161, 101, 0.5); }
+        .capacity-pill.has-room {
+            background: linear-gradient(135deg, var(--brand-gold), var(--brand-gold-dark));
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .capacity-pill.is-full {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .capacity-pill.is-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff;
+            border-color: transparent;
         }
 
         @media (max-width: 991px) {
@@ -801,10 +841,12 @@
                 position: relative;
             }
 
-            .room-card:hover {
+            .room-card:hover,
+            .room-card:focus-visible {
                 border-color: var(--brand-gold-light);
                 transform: translateY(-2px);
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+                outline: none;
             }
 
             .room-card.selected {
@@ -936,8 +978,11 @@
                 }
 
                 .step-indicator .step-item .step-label {
-                    font-size: 0.48rem;
+                    font-size: 0.6rem;
                     letter-spacing: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
                 }
 
                 .step-connector {
@@ -967,6 +1012,9 @@
     <canvas id="confettiCanvas"></canvas>
     <div class="booking-hero">
         <div class="container">
+            <a href="{{ route('website.book') }}" class="text-white-50 small mb-2 d-inline-block text-decoration-none" style="transition: color 0.2s;">
+                <i class="fas fa-arrow-left me-1"></i>Back to Rooms
+            </a>
             <h1><i class="fas fa-pen-alt me-2" style="color: var(--brand-gold);"></i>Complete Your Reservation</h1>
             <p class="mb-0">Fill in your details below to secure your stay at Brickspoint Boutique Aparthotel</p>
         </div>
@@ -1066,6 +1114,30 @@
                         $hasIdNumber = Auth::check() && $guest && !empty($guest->identification_number);
                         $hasNationality = Auth::check() && $guest && !empty($guest->nationality);
                         $hasDob = Auth::check() && $guest && !is_null($guest->birthday);
+
+                        $initialNights = 1;
+                        if ($reqCheckIn && $reqCheckOut) {
+                            $diff = \Carbon\Carbon::parse($reqCheckIn)->diffInDays(\Carbon\Carbon::parse($reqCheckOut));
+                            $initialNights = max(1, $diff);
+                        }
+
+                        $initialPrice = $selectedRoomType->display_price ?? 0;
+                        $initialTotal = $initialPrice * $initialNights;
+                        $initialCapacity = $selectedRoomType->capacity ?? 0;
+                        $hasSelectedRoom = (!empty($reqRoomTypeId) && $initialCapacity > 0) || $useCartFlow;
+
+                        if ($selectedRoomType && $reqCheckIn && $reqCheckOut) {
+                            $rateService = app(\Modules\Website\Services\WebsiteRateService::class);
+                            $rateResult = $rateService->calculateWithGuests(
+                                $selectedRoomType,
+                                $reqCheckIn,
+                                $reqCheckOut,
+                                2,
+                                0
+                            );
+                            $initialPrice = $rateResult['price_per_night'];
+                            $initialTotal = $rateResult['total'];
+                        }
                     @endphp
 
                     @if ($useCartFlow)
@@ -1092,10 +1164,10 @@
                             <div class="form-section-body">
                                 <div class="date-chips" id="dateChips">
                                     <span class="text-muted small me-1 align-self-center">Quick pick:</span>
-                                    <button type="button" class="date-chip" data-offset="0">Tonight</button>
-                                    <button type="button" class="date-chip" data-offset="1">Tomorrow</button>
-                                    <button type="button" class="date-chip" data-offset="3">+3 Days</button>
-                                    <button type="button" class="date-chip" data-offset="7">+1 Week</button>
+                                    <button type="button" class="date-chip" data-offset="0" data-nights="1">Tonight</button>
+                                    <button type="button" class="date-chip" data-offset="1" data-nights="1">Tomorrow</button>
+                                    <button type="button" class="date-chip" data-offset="3" data-nights="3">3 Nights</button>
+                                    <button type="button" class="date-chip" data-offset="7" data-nights="7">1 Week</button>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -1111,12 +1183,28 @@
                                             min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
                                     </div>
                                     <div class="col-12">
+                                        <div id="availabilityStatus" class="d-none text-muted small py-1">
+                                            <i class="fas fa-circle-notch fa-spin me-1"></i>Checking availability...
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
                                         <label class="form-label">Choose Your Room <span class="text-danger">*</span></label>
                                         <div class="room-cards mb-2" id="roomCards">
+                                            @if ($roomTypes->isEmpty())
+                                                <div class="text-center text-muted py-4">
+                                                    <i class="fas fa-bed fa-2x mb-2 d-block" style="color: var(--brand-gold-light);"></i>
+                                                    <p class="mb-1">No room types are currently available.</p>
+                                                    <small>Please contact us for assistance or try different dates.</small>
+                                                </div>
+                                            @endif
                                             @foreach ($roomTypes as $roomOption)
                                                 <div class="room-card {{ $reqRoomTypeId == $roomOption->id ? 'selected' : '' }}"
+                                                    role="button" tabindex="0"
+                                                    aria-label="{{ $roomOption->name }}: ₦{{ number_format($roomOption->display_price, 2) }} per night, capacity {{ $roomOption->capacity }} guests"
                                                     data-room-type-id="{{ $roomOption->id }}"
-                                                    data-price="{{ $roomOption->price }}"
+                                                    data-price="{{ $roomOption->display_price }}"
+                                                    data-flat-price="{{ $roomOption->price }}"
+                                                    data-rate-code-id="{{ $roomOption->rate_code_id ?? '' }}"
                                                     data-image="{{ $roomOption->image_url }}"
                                                     data-name="{{ $roomOption->name }}"
                                                     data-capacity="{{ $roomOption->capacity }}"
@@ -1126,12 +1214,12 @@
                                                     data-units="{{ $roomOption->units_count }}">
                                                     <img src="{{ $roomOption->image_url ?? asset('images/default-room.jpg') }}"
                                                         alt="{{ $roomOption->name }}" class="card-img-top" loading="lazy"
-                                                        onerror="this.style.display='none'">
+                                                        onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22120%22 fill=%22%23C8A165%22%3E%3Crect width=%22400%22 height=%22120%22 fill=%22%23faf8f5%22/%3E%3Ctext x=%22200%22 y=%2265%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22 fill=%22%23b08c54%22%3ENo Image Available%3C/text%3E%3C/svg%3E'">
                                                     <span class="capacity-badge"><i class="fas fa-user-friends me-1"></i>{{ $roomOption->capacity }}</span>
                                                     <span class="selected-badge"><i class="fas fa-check me-1"></i>Selected</span>
                                                     <div class="card-body">
                                                         <div class="card-title">{{ $roomOption->name }}</div>
-                                                        <div class="card-price">₦{{ number_format($roomOption->price, 2) }}<span class="card-meta"> /night</span></div>
+                                                        <div class="card-price">₦{{ number_format($roomOption->display_price, 2) }}<span class="card-meta"> /night</span></div>
                                                     </div>
                                                 </div>
                                             @endforeach
@@ -1140,7 +1228,9 @@
                                             <option value="" disabled {{ empty($reqRoomTypeId) ? 'selected' : '' }}></option>
                                             @foreach ($roomTypes as $roomOption)
                                                 <option value="{{ $roomOption->id }}"
-                                                    data-price="{{ $roomOption->price }}"
+                                                    data-price="{{ $roomOption->display_price }}"
+                                                    data-flat-price="{{ $roomOption->price }}"
+                                                    data-rate-code-id="{{ $roomOption->rate_code_id ?? '' }}"
                                                     data-image="{{ $roomOption->image_url }}"
                                                     data-name="{{ $roomOption->name }}"
                                                     data-capacity="{{ $roomOption->capacity }}"
@@ -1339,14 +1429,16 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="max-capacity-badge" id="maxCapacityBadge" style="display: none;">
-                                                <i class="fas fa-users me-1"></i>Max <span id="maxCapacityValue">-</span> guests
+                                            <div class="capacity-pill{{ $hasSelectedRoom ? ' has-room' : '' }}" id="capacityPill">
+                                                <span id="capacityPillText">
+                                                    <i class="fas fa-users me-1"></i>{{ $useCartFlow ? $cart['total_rooms'].' room(s) in cart' : ($hasSelectedRoom ? 'Max '.$initialCapacity.' guests' : 'Select a room') }}
+                                                </span>
                                             </div>
                                         </div>
                                         <div class="occupancy-bar-wrap">
                                             <div class="d-flex justify-content-between align-items-center mb-1">
                                                 <span class="occupancy-label" id="occupancyLabel">
-                                                    <i class="fas fa-bed me-1"></i>Select a room
+                                                    <i class="fas fa-bed me-1"></i>{{ $useCartFlow ? $cart['total_rooms'].' room(s) for '.$cart['total_guests'].' guests' : ($hasSelectedRoom ? e($selectedRoomType->name).' — room for '.$initialCapacity.' guests' : 'Select a room') }}
                                                 </span>
                                                 <span class="occupancy-count" id="occupancyCount"></span>
                                             </div>
@@ -1355,7 +1447,7 @@
                                             </div>
                                             <div class="d-flex justify-content-between align-items-center mt-1">
                                                 <small class="text-muted" id="capacityHint">
-                                                    <i class="fas fa-info-circle me-1"></i>Pick a room above to see occupancy &amp; fees
+                                                    <i class="fas fa-info-circle me-1"></i>{{ $useCartFlow ? 'Guest count across all rooms selected.' : ($hasSelectedRoom ? 'Room capacity: '.$initialCapacity.' guests max.' : 'Pick a room above to see occupancy & fees') }}
                                                 </small>
                                                 <small class="occupancy-fee-hint d-none" id="guestFeeHint"></small>
                                             </div>
@@ -1367,7 +1459,15 @@
                                     <div class="special-requests-box">
                                         <label class="form-label mb-2"><i class="far fa-comment-dots me-2"
                                                 style="color: var(--brand-gold);"></i>Special Requests</label>
-                                        <textarea name="special_requests" class="form-control" rows="2"
+                                        <div class="d-flex flex-wrap gap-2 mb-2">
+                                            <button type="button" class="request-chip" data-text="Late check-in">Late check-in</button>
+                                            <button type="button" class="request-chip" data-text="Early check-in">Early check-in</button>
+                                            <button type="button" class="request-chip" data-text="Extra pillows">Extra pillows</button>
+                                            <button type="button" class="request-chip" data-text="Extra towels">Extra towels</button>
+                                            <button type="button" class="request-chip" data-text="Airport transfer">Airport transfer</button>
+                                            <button type="button" class="request-chip" data-text="Anniversary setup">Anniversary setup</button>
+                                        </div>
+                                        <textarea name="special_requests" class="form-control" rows="3"
                                             placeholder="e.g. Late check-in, extra pillows, anniversary celebration...">{{ old('special_requests') }}</textarea>
                                     </div>
                                 </div>
@@ -1576,11 +1676,11 @@
                             </div>
                             <div class="d-flex justify-content-between small mb-2">
                                 <span class="text-muted">Nights</span>
-                                <span class="fw-bold" id="summary-nights">1</span>
+                                <span class="fw-bold" id="summary-nights">{{ $initialNights }}</span>
                             </div>
                             <div class="d-flex justify-content-between small mb-2">
                                 <span class="text-muted">Rate</span>
-                                <span id="summary-rate">₦{{ number_format($selectedRoomType->price ?? 0, 2) }}</span>
+                                <span id="summary-rate">₦{{ number_format($selectedRoomType->display_price ?? 0, 2) }}</span>
                             </div>
                             <div class="d-flex justify-content-between small mb-2">
                                 <span class="text-muted">Guests</span>
@@ -1596,7 +1696,7 @@
                             <div class="summary-total-row">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="fw-bold small">Total</span>
-                                    <span class="amount" id="summary-total">₦0.00</span>
+                                    <span class="amount" id="summary-total">₦{{ number_format($initialTotal, 2) }}</span>
                                 </div>
                             </div>
 
@@ -1744,8 +1844,44 @@
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                         return diffDays > 0 ? diffDays : 1;
                     }
+                    return 0;
                 }
                 return 1;
+            }
+
+            let _rateFetchTimer = null;
+            function fetchRatePrice(roomTypeId, checkIn, checkOut, adults, children) {
+                clearTimeout(_rateFetchTimer);
+                if (!roomTypeId || !checkIn || !checkOut) return;
+                _rateFetchTimer = setTimeout(() => {
+                    const params = new URLSearchParams({
+                        room_type_id: roomTypeId,
+                        check_in_date: checkIn,
+                        check_out_date: checkOut,
+                        adults: adults,
+                        children: children,
+                    });
+                    fetch('/website/api/room-rate?' + params.toString(), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (summaryRate && data.price_per_night != null) summaryRate.textContent = formatMoney(data.price_per_night);
+                        if (summaryTotal && data.total != null) setMoneyAnimated(summaryTotal, data.total);
+
+                        const guestFeeRow = document.getElementById('guest-fee-row');
+                        const guestFeeEl = document.getElementById('summary-guest-fee');
+                        if (guestFeeRow && guestFeeEl) {
+                            if (data.guest_fee_total > 0) {
+                                guestFeeRow.classList.remove('d-none');
+                                guestFeeEl.textContent = formatMoney(data.guest_fee_total);
+                            } else {
+                                guestFeeRow.classList.add('d-none');
+                            }
+                        }
+                    })
+                    .catch(() => {});
+                }, 250);
             }
 
             function updateSummary() {
@@ -1756,7 +1892,19 @@
                 if (summaryCheckOut && checkOutInput?.value) summaryCheckOut.textContent = formatDate(checkOutInput.value);
 
                 const nights = calculateNights();
-                if (summaryNights) summaryNights.textContent = nights;
+                if (summaryNights) summaryNights.textContent = nights || '—';
+
+                if (checkInInput?.value && checkOutInput) {
+                    const nextDay = new Date(checkInInput.value);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    checkOutInput.min = isoDate(nextDay);
+                }
+
+                if (nights === 0 && checkInInput?.value && checkOutInput?.value) {
+                    if (summaryTotal) summaryTotal.textContent = '—';
+                    if (summaryNights) summaryNights.textContent = '—';
+                    return;
+                }
 
                 if (selectedOption.value) {
                     const price = parseFloat(selectedOption.dataset.price);
@@ -1772,15 +1920,15 @@
                     // Update stepper max based on capacity
                     const adultsInput = document.getElementById('adults');
                     const childrenInput = document.getElementById('children');
-                    const maxCapacityBadge = document.getElementById('maxCapacityBadge');
-                    const maxCapacityValue = document.getElementById('maxCapacityValue');
-                    
-                    // Show max capacity badge
-                    if (maxCapacityBadge && maxCapacityValue) {
-                        maxCapacityBadge.style.display = 'inline-block';
-                        maxCapacityValue.textContent = capacity;
+                    const capacityPill = document.getElementById('capacityPill');
+                    const capacityPillText = document.getElementById('capacityPillText');
+
+                    // Update capacity pill
+                    if (capacityPill && capacityPillText) {
+                        capacityPillText.innerHTML = '<i class="fas fa-users me-1"></i>Max ' + capacity + ' guests';
+                        capacityPill.classList.add('has-room');
                     }
-                    
+
                     if (adultsInput) {
                         adultsInput.max = capacity;
                         if (parseInt(adultsInput.value) > capacity) adultsInput.value = capacity;
@@ -1791,6 +1939,7 @@
                         if (parseInt(childrenInput.value) > maxChildren) childrenInput.value = maxChildren;
                     }
                     syncSteppers();
+                    updateGuestSummary();
 
                     // ── Occupancy bar ──
                     const adults = parseInt(adultsInput?.value || 1);
@@ -1823,6 +1972,16 @@
                         } else {
                             occCount.textContent = 'Over capacity!';
                             occCount.style.color = '#ef4444';
+                        }
+                    }
+
+                    // Update capacity pill based on occupancy
+                    if (capacityPill) {
+                        capacityPill.classList.remove('is-full', 'is-warning');
+                        if (pct >= 100) {
+                            capacityPill.classList.add('is-full');
+                        } else if (pct >= 75) {
+                            capacityPill.classList.add('is-warning');
                         }
                     }
 
@@ -1865,10 +2024,13 @@
                         }
                     }
 
-                    // For cart flow: price/total will be set by AJAX response (server-side pricing)
-                    // For non-cart flow: compute client-side
                     const isCartFlow = bookingForm && bookingForm.hasAttribute('data-cart-flow');
-                    if (!isCartFlow) {
+                    const rateCodeId = selectedOption.dataset.rateCodeId;
+
+                    if (!isCartFlow && rateCodeId && checkInInput?.value && checkOutInput?.value && nights > 0) {
+                        fetchRatePrice(selectedOption.value, checkInInput.value, checkOutInput.value,
+                            parseInt(adultsInput?.value || 1), parseInt(childrenInput?.value || 0));
+                    } else if (!isCartFlow) {
                         if (summaryTotal) setMoneyAnimated(summaryTotal, total);
                     }
 
@@ -1880,15 +2042,21 @@
                     checkAvailability();
                     loadAvailableUnits();
                 } else {
-                    // No room selected — clear occupancy bar and hide capacity badge
+                    // No room selected — clear occupancy bar and reset capacity pill
                     const occBar = document.getElementById('occupancyBarFill');
                     const occLabel = document.getElementById('occupancyLabel');
                     const occCount = document.getElementById('occupancyCount');
-                    const maxCapacityBadge = document.getElementById('maxCapacityBadge');
+                    const capacityPill = document.getElementById('capacityPill');
+                    const capacityPillText = document.getElementById('capacityPillText');
                     if (occBar) { occBar.style.width = '0%'; occBar.classList.remove('occupancy-warning', 'occupancy-full'); }
                     if (occLabel) occLabel.innerHTML = '<i class="fas fa-bed me-1"></i>Select a room';
                     if (occCount) { occCount.textContent = ''; occCount.style.color = ''; }
-                    if (maxCapacityBadge) maxCapacityBadge.style.display = 'none';
+                    if (capacityPill) {
+                        capacityPill.classList.remove('has-room', 'is-full', 'is-warning');
+                    }
+                    if (capacityPillText) {
+                        capacityPillText.innerHTML = '<i class="fas fa-users me-1"></i>Select a room';
+                    }
                     const feeHint = document.getElementById('guestFeeHint');
                     if (feeHint) feeHint.classList.add('d-none');
                     const capacityHint = document.getElementById('capacityHint');
@@ -1958,10 +2126,12 @@
                 const roomTypeId = roomSelect.value;
                 const checkIn = checkInInput.value;
                 const checkOut = checkOutInput.value;
+                const availabilityStatus = document.getElementById('availabilityStatus');
 
                 if (roomTypeId && checkIn && checkOut) {
                     btnText.textContent = 'Checking Availability...';
                     submitBtn.disabled = true;
+                    if (availabilityStatus) availabilityStatus.classList.remove('d-none');
 
                     const queryParams = new URLSearchParams({
                         room_type_id: roomTypeId,
@@ -1977,6 +2147,7 @@
                         })
                         .then(r => r.json())
                         .then(data => {
+                            if (availabilityStatus) availabilityStatus.classList.add('d-none');
                             if (data.available === false) {
                                 availabilityAlert.classList.remove('d-none', 'alert-success', 'alert-warning');
                                 availabilityAlert.classList.add('alert-danger');
@@ -2006,13 +2177,17 @@
                                 submitBtn.disabled = false;
                                 submitBtn.classList.add('btn-brand');
                                 submitBtn.classList.remove('btn-secondary');
-                                btnText.textContent = 'Confirm & Pay Reservation';
+                                updateSubmitBtnText();
                             }
                         })
                         .catch(err => {
                             console.error('Check failed:', err);
+                            if (availabilityStatus) availabilityStatus.classList.add('d-none');
+                            availabilityAlert.classList.remove('d-none', 'alert-success');
+                            availabilityAlert.classList.add('alert-warning');
+                            availabilityAlert.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Unable to check availability. Please try again.';
                             submitBtn.disabled = false;
-                            btnText.textContent = 'Confirm & Pay Reservation';
+                            updateSubmitBtnText();
                         });
                 }
             }
@@ -2044,6 +2219,7 @@
                         return;
                     }
                     if (!submitBtn.disabled) {
+                        burstConfetti();
                         submitBtn.disabled = true;
                         submitBtn.classList.add('loading');
                         btnText.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>Processing...';
@@ -2094,11 +2270,12 @@
                 dateChips.querySelectorAll('.date-chip').forEach(chip => {
                     chip.addEventListener('click', function() {
                         const offset = parseInt(this.dataset.offset, 10);
+                        const nights = parseInt(this.dataset.nights, 10) || 1;
                         const base = new Date();
                         base.setDate(base.getDate() + offset);
                         const ci = new Date(base);
                         const co = new Date(base);
-                        co.setDate(co.getDate() + 1);
+                        co.setDate(co.getDate() + nights);
                         checkInInput.value = isoDate(ci);
                         checkOutInput.value = isoDate(co);
                         dateChips.querySelectorAll('.date-chip').forEach(c => c.classList.remove(
@@ -2292,12 +2469,6 @@
                     else ctx.clearRect(0, 0, canvas.width, canvas.height);
                 })();
             }
-            if (bookingForm) {
-                bookingForm.addEventListener('submit', function() {
-                    if (!submitBtn.disabled) burstConfetti();
-                });
-            }
-
             // ── Payment method visual fallback (Safari :has() support) ──
             document.querySelectorAll('.payment-option').forEach(opt => {
                 opt.addEventListener('click', function() {
@@ -2370,6 +2541,22 @@
             });
             updateGuestSummary();
 
+            // ── Special request chips ──
+            document.querySelectorAll('.request-chip').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    const textarea = document.querySelector('textarea[name="special_requests"]');
+                    if (!textarea) return;
+                    const text = this.dataset.text;
+                    const current = textarea.value.trim();
+                    this.classList.toggle('active');
+                    if (this.classList.contains('active')) {
+                        textarea.value = current ? current + ', ' + text : text;
+                    } else {
+                        textarea.value = current.replace(new RegExp('(^|,\\s*)' + text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(,\\s*|$)', 'g'), '').replace(/,\s*,/g, ', ').replace(/^,\s*|,\s*$/g, '').trim();
+                    }
+                });
+            });
+
             // ── Room card selection ──
             const roomCards = document.querySelectorAll('.room-card');
             roomCards.forEach(card => {
@@ -2380,6 +2567,12 @@
                     if (roomSelect) {
                         roomSelect.value = id;
                         roomSelect.dispatchEvent(new Event('change'));
+                    }
+                });
+                card.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
                     }
                 });
             });

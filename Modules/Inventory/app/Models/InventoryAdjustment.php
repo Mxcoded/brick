@@ -5,7 +5,6 @@ namespace Modules\Inventory\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -27,5 +26,6 @@ class InventoryAdjustment extends Model implements AuditableContract
     {
         return $this->belongsTo(User::class, 'adjusted_by');
     }
+
     use Auditable;
 }

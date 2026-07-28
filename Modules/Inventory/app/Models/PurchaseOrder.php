@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -43,5 +42,6 @@ class PurchaseOrder extends Model implements AuditableContract
     {
         return $this->belongsTo(User::class, 'cancelled_by');
     }
+
     use Auditable;
 }

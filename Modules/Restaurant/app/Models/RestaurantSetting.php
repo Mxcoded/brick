@@ -3,7 +3,6 @@
 namespace Modules\Restaurant\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -24,5 +23,6 @@ class RestaurantSetting extends Model implements AuditableContract
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);
     }
+
     use Auditable;
 }

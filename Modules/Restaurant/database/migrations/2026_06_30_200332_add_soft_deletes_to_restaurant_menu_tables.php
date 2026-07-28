@@ -2,20 +2,19 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('restaurant_menu_items', 'deleted_at')) {
+        if (! Schema::hasColumn('restaurant_menu_items', 'deleted_at')) {
             Schema::table('restaurant_menu_items', function (Blueprint $table) {
                 $table->softDeletes();
             });
         }
 
-        if (!Schema::hasColumn('restaurant_menu_categories', 'deleted_at')) {
+        if (! Schema::hasColumn('restaurant_menu_categories', 'deleted_at')) {
             Schema::table('restaurant_menu_categories', function (Blueprint $table) {
                 $table->softDeletes();
             });
@@ -25,7 +24,7 @@ return new class extends Migration
             Schema::table('restaurant_menu_items', function (Blueprint $table) {
                 $table->dropForeign(['restaurant_menu_categories_id']);
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // FK may have already been dropped
         }
 
@@ -49,7 +48,7 @@ return new class extends Migration
             Schema::table('restaurant_menu_items', function (Blueprint $table) {
                 $table->dropForeign(['restaurant_menu_categories_id']);
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // FK may have already been dropped
         }
 

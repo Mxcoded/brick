@@ -4,7 +4,6 @@ namespace Modules\Staff\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 // use Modules\Staff\Database\Factories\EmploymentHistoryFactory;
 
 use OwenIt\Auditing\Auditable;
@@ -12,7 +11,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class EmploymentHistory extends Model implements AuditableContract
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     /**
      * The attributes that are mass assignable.

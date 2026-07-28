@@ -6,7 +6,6 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Mail;
 use Modules\Website\Emails\ReviewSubmitted;
-use Modules\Website\Models\Testimonial;
 use Tests\TestCase;
 
 class ReviewSubmissionTest extends TestCase

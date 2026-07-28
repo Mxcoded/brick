@@ -11,7 +11,7 @@ class RateAndSeasonSeeder extends Seeder
 {
     public function run(): void
     {
-        RateCode::create([
+        RateCode::updateOrCreate(['code' => 'RACK'], [
             'code' => 'RACK',
             'name' => 'Rack Rate',
             'description' => 'Standard published rate for all room types.',
@@ -27,7 +27,7 @@ class RateAndSeasonSeeder extends Seeder
             'sort_order' => 0,
         ]);
 
-        RateCode::create([
+        RateCode::updateOrCreate(['code' => 'BAR'], [
             'code' => 'BAR',
             'name' => 'Best Available Rate',
             'description' => 'Dynamic best available rate with seasonal adjustments.',
@@ -39,7 +39,7 @@ class RateAndSeasonSeeder extends Seeder
             'sort_order' => 1,
         ]);
 
-        RateCode::create([
+        RateCode::updateOrCreate(['code' => 'CORP'], [
             'code' => 'CORP',
             'name' => 'Corporate Rate',
             'description' => 'Negotiated rate for corporate accounts.',
@@ -51,7 +51,7 @@ class RateAndSeasonSeeder extends Seeder
             'sort_order' => 2,
         ]);
 
-        RateCode::create([
+        RateCode::updateOrCreate(['code' => 'PROMO'], [
             'code' => 'PROMO',
             'name' => 'Promotional Rate',
             'description' => 'Special promotion rate with restrictions.',
@@ -67,7 +67,7 @@ class RateAndSeasonSeeder extends Seeder
             'sort_order' => 3,
         ]);
 
-        RateCode::create([
+        RateCode::updateOrCreate(['code' => 'LTO'], [
             'code' => 'LTO',
             'name' => 'Long Stay Rate',
             'description' => 'Discounted rate for extended stays (7+ nights).',
@@ -79,7 +79,7 @@ class RateAndSeasonSeeder extends Seeder
             'sort_order' => 4,
         ]);
 
-        Season::create([
+        Season::updateOrCreate(['code' => 'PEAK'], [
             'code' => 'PEAK',
             'name' => 'Peak Season',
             'description' => 'High demand period (Dec–Jan holidays)',
@@ -89,7 +89,7 @@ class RateAndSeasonSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        Season::create([
+        Season::updateOrCreate(['code' => 'OFFPEAK'], [
             'code' => 'OFFPEAK',
             'name' => 'Off-Peak Season',
             'description' => 'Low demand period (Feb–Mar)',
@@ -99,7 +99,7 @@ class RateAndSeasonSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        Season::create([
+        Season::updateOrCreate(['code' => 'EASTER'], [
             'code' => 'EASTER',
             'name' => 'Easter Period',
             'description' => 'Easter holiday premium',

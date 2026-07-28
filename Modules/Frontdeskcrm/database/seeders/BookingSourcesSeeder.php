@@ -18,7 +18,10 @@ class BookingSourcesSeeder extends Seeder
         ];
 
         foreach ($sources as $source) {
-            BookingSource::create($source);
+            BookingSource::updateOrCreate(
+                ['name' => $source['name']],
+                $source
+            );
         }
     }
 }

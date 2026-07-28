@@ -3,7 +3,6 @@
 namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -48,5 +47,6 @@ class MeetingPage extends Model implements AuditableContract
     {
         return $this->hasMany(MeetingGallery::class)->orderBy('sort_order');
     }
+
     use Auditable;
 }

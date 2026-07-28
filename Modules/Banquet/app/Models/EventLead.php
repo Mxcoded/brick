@@ -3,7 +3,6 @@
 namespace Modules\Banquet\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -32,5 +31,6 @@ class EventLead extends Model implements AuditableContract
     {
         return $this->belongsTo(LeadEvent::class, 'event_id');
     }
+
     use Auditable;
 }

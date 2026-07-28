@@ -5,7 +5,6 @@ namespace Modules\Website\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -60,5 +59,6 @@ class FacilityItem extends Model implements AuditableContract
 
         return $slug;
     }
+
     use Auditable;
 }

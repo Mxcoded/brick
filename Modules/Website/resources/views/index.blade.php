@@ -207,8 +207,8 @@
                             <div class="room-img-container position-relative overflow-hidden">
                                 <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
                                     class="card-img-top room-image" alt="{{ $roomType->name }}" loading="lazy" width="400" height="300">
-                                <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
-                                    ₦{{ number_format($roomType->price, 2) }} <small>/ night</small>
+                                    <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
+                                    ₦{{ number_format($roomType->display_price, 2) }} <small>/ night</small>
                                 </div>
                                 <span class="position-absolute bottom-0 start-0 m-2 badge bg-info">
                                     <i class="fas fa-door-open me-1"></i>{{ $roomType->units_count }}

@@ -5,7 +5,6 @@ namespace Modules\Website\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Frontdeskcrm\Models\Registration;
-
 // use Modules\Website\Database\Factories\RoomFactory;
 
 use OwenIt\Auditing\Auditable;
@@ -13,7 +12,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class Room extends Model implements AuditableContract
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     /**
      * The attributes that are mass assignable.

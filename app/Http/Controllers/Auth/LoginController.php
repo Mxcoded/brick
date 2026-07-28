@@ -125,7 +125,7 @@ class LoginController extends Controller
         return redirect()->back()
             ->withInput($request->only('email', 'remember'))
             ->withErrors([
-                'email' => trans('auth.failed') . ($remaining > 0 ? " You have {$remaining} attempt(s) remaining." : ''),
+                'email' => trans('auth.failed').($remaining > 0 ? " You have {$remaining} attempt(s) remaining." : ''),
             ]);
     }
 }

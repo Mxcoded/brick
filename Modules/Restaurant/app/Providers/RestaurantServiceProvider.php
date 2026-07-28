@@ -4,6 +4,7 @@ namespace Modules\Restaurant\Providers;
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Modules\Restaurant\Console\ReconcileFinance;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -44,7 +45,7 @@ class RestaurantServiceProvider extends ServiceProvider
     protected function registerCommands(): void
     {
         $this->commands([
-            \Modules\Restaurant\Console\ReconcileFinance::class,
+            ReconcileFinance::class,
         ]);
     }
 

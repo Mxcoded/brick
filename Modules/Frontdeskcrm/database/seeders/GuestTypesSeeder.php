@@ -61,7 +61,10 @@ class GuestTypesSeeder extends Seeder
         ];
 
         foreach ($types as $type) {
-            GuestType::create($type);
+            GuestType::updateOrCreate(
+                ['name' => $type['name']],
+                $type
+            );
         }
     }
 }

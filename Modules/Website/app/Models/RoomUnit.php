@@ -6,15 +6,15 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Frontdeskcrm\Models\HousekeepingTask;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Services\RoomAvailabilityService;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class RoomUnit extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes, Auditable;
+    use Auditable, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'room_type_id',
@@ -82,8 +82,8 @@ class RoomUnit extends Model implements AuditableContract
      */
     public function housekeepingTasks()
     {
-        if (class_exists(\Modules\Frontdeskcrm\Models\HousekeepingTask::class)) {
-            return $this->hasMany(\Modules\Frontdeskcrm\Models\HousekeepingTask::class);
+        if (class_exists(HousekeepingTask::class)) {
+            return $this->hasMany(HousekeepingTask::class);
         }
 
         return $this->hasMany(Booking::class)->whereRaw('1 = 0');

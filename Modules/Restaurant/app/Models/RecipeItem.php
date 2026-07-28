@@ -3,7 +3,6 @@
 namespace Modules\Restaurant\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -33,5 +32,6 @@ class RecipeItem extends Model implements AuditableContract
     {
         return $this->belongsTo(StockItem::class, 'restaurant_stock_item_id');
     }
+
     use Auditable;
 }

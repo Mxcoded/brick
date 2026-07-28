@@ -8,8 +8,8 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Modules\Inventory\Models\PurchaseRequest;
 use Modules\Inventory\Models\Store;
 use Modules\Inventory\Models\Supplier;
-use Spatie\Permission\Models\Permission;
 use PHPUnit\Framework\Attributes\Test;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 

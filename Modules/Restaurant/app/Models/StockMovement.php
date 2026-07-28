@@ -4,7 +4,6 @@ namespace Modules\Restaurant\Models;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -39,5 +38,6 @@ class StockMovement extends Model implements AuditableContract
     {
         return $this->belongsTo(User::class);
     }
+
     use Auditable;
 }

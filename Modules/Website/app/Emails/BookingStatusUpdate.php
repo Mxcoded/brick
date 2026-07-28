@@ -18,9 +18,7 @@ class BookingStatusUpdate extends Mailable
     public $isStaffCopy;
 
     /**
-     * @param  Booking  $booking
      * @param  string  $statusLabel  Human-readable status label (e.g. "Checked In", "Checkout Complete")
-     * @param  bool  $isStaffCopy
      */
     public function __construct(Booking $booking, string $statusLabel = '', bool $isStaffCopy = false)
     {

@@ -89,8 +89,8 @@
                     {{-- Room Cards Container --}}
                     <div id="roomCardsContainer">
                         @forelse ($roomTypes as $roomType)
-                            <div class="room-card card border-0 shadow-sm mb-4" data-room-id="{{ $roomType->id }}"
-                                 data-price="{{ $roomType->price }}" data-name="{{ $roomType->name }}" data-capacity="{{ $roomType->capacity }}">
+                             <div class="room-card card border-0 shadow-sm mb-4" data-room-id="{{ $roomType->id }}"
+                                  data-price="{{ $roomType->display_price }}" data-name="{{ $roomType->name }}" data-capacity="{{ $roomType->capacity }}">
                                 <div class="row g-0">
                                     {{-- Room Image --}}
                                     <div class="col-md-4 position-relative">
@@ -113,7 +113,7 @@
                                                     </div>
                                                 </div>
                                                 <div class="text-end">
-                                                    <div class="h4 text-success fw-bold mb-0">₦{{ number_format($roomType->price, 2) }}</div>
+                                                    <div class="h4 text-success fw-bold mb-0">₦{{ number_format($roomType->display_price, 2) }}</div>
                                                     <small class="text-muted">per night</small>
                                                 </div>
                                             </div>
@@ -183,7 +183,7 @@
                                                 class="btn btn-primary select-room-btn"
                                                 data-room-id="{{ $roomType->id }}"
                                                 data-room-name="{{ $roomType->name }}"
-                                                data-room-price="{{ $roomType->price }}"
+                                                data-room-price="{{ $roomType->display_price }}"
                                                 data-room-capacity="{{ $roomType->capacity }}"
                                                 data-base-occupancy="{{ $roomType->base_occupancy ?? 2 }}"
                                                 data-extra-adult-fee="{{ $roomType->extra_adult_fee ?? 0 }}"
@@ -426,7 +426,6 @@
             const cartRemoveUrl = '{{ url("/website/cart/remove") }}';
             const cartClearUrl = '{{ route("website.cart.clear") }}';
             const cartGetUrl = '{{ route("website.cart.get") }}';
-            const roomAvailabilityUrl = '{{ route("website.api.room-availability") }}';
 
             // Elements
             const checkInInput = document.getElementById('checkIn');

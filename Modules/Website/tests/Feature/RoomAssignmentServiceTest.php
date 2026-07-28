@@ -15,6 +15,7 @@ class RoomAssignmentServiceTest extends TestCase
     use DatabaseTransactions;
 
     private RoomAvailabilityService $availabilityService;
+
     private RoomAssignmentService $assignmentService;
 
     protected function setUp(): void
