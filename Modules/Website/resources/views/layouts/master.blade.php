@@ -9,8 +9,10 @@
 
     <title>{{ config('app.name', 'Brickspoint ApartHotel') }} — @yield('title')</title>
 
-    <meta name="description" content="{{ $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays, world-class dining, and exceptional service in the heart of Abuja.' }}">
-    <meta name="keywords" content="{{ $meta_keywords ?? $keywords ?? 'boutique hotel Abuja, best hotel in Asokoro Abuja, luxury apart-hotel Nigeria, short let Abuja, Brickspoint Abuja, Asokoro hotel, luxury accommodation Abuja, apart-hotel Nigeria, Abuja boutique hotel, extended stay Abuja, corporate housing Abuja' }}">
+    <meta name="description"
+        content="{{ $meta_description ?? ($description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays, world-class dining, and exceptional service in the heart of Abuja.') }}">
+    <meta name="keywords"
+        content="{{ $meta_keywords ?? ($keywords ?? 'boutique hotel Abuja, best hotel in Asokoro Abuja, luxury apart-hotel Nigeria, short let Abuja, Brickspoint Abuja, Asokoro hotel, luxury accommodation Abuja, apart-hotel Nigeria, Abuja boutique hotel, extended stay Abuja, corporate housing Abuja') }}">
     <meta name="author" content="{{ $author ?? config('app.name') }}">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="{{ url()->current() }}">
@@ -22,8 +24,10 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="{{ config('app.name') }}">
-    <meta property="og:title" content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
-    <meta property="og:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays with world-class amenities.' }}">
+    <meta property="og:title"
+        content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
+    <meta property="og:description"
+        content="{{ $og_description ?? ($meta_description ?? ($description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria. Premium short & long stays with world-class amenities.')) }}">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image" content="{{ $og_image ?? asset('images/og-default.jpg') }}">
     <meta property="og:locale" content="en_NG">
@@ -34,8 +38,10 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
-    <meta name="twitter:description" content="{{ $og_description ?? $meta_description ?? $description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria.' }}">
+    <meta name="twitter:title"
+        content="{{ $og_title ?? config('app.name', 'Brickspoint ApartHotel') . ' — ' . ($__env->yieldContent('title') ?? 'Home') }}">
+    <meta name="twitter:description"
+        content="{{ $og_description ?? ($meta_description ?? ($description ?? 'Brickspoint Boutique Aparthotel in Asokoro, Abuja — the finest luxury apart-hotel in Nigeria.')) }}">
     <meta name="twitter:image" content="{{ $og_image ?? asset('images/og-default.jpg') }}">
 
     <!-- Geo Tags -->
@@ -57,8 +63,14 @@
 
     <!-- Critical CSS (render-blocking, above-the-fold) -->
     @vite(['resources/sass/app.scss'])
-    <link rel="preload" href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap" rel="stylesheet"></noscript>
+    <link rel="preload"
+        href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap"
+        as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link
+            href="https://fonts.bunny.net/css?family=Montserrat:400,500,600,700|Playfair+Display:400,500,700&display=swap"
+            rel="stylesheet">
+    </noscript>
 
     <style>
         /* Design System Tokens */
@@ -164,7 +176,8 @@
                 transform: translateY(8px);
                 pointer-events: none;
             }
-            .navbar .dropdown:hover > .dropdown-menu,
+
+            .navbar .dropdown:hover>.dropdown-menu,
             .navbar .dropdown-menu.show {
                 opacity: 1;
                 transform: translateY(0);
@@ -182,7 +195,7 @@
             padding-top: 0.75rem;
             padding-bottom: 0.75rem;
             transition: all 0.3s ease;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
             background: rgba(26, 26, 26, 0.92) !important;
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -191,7 +204,7 @@
         .navbar.navbar-shrink {
             padding-top: 0.35rem;
             padding-bottom: 0.35rem;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
             border-bottom-color: rgba(200, 161, 101, 0.15);
         }
 
@@ -205,7 +218,7 @@
             height: 80px;
             width: auto;
             transition: all 0.3s ease;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
         }
 
         .navbar.navbar-shrink .navbar-brand img {
@@ -230,7 +243,7 @@
             padding: 0.5rem 1.1rem !important;
             transition: all 0.3s ease;
             position: relative;
-            color: rgba(255,255,255,0.8) !important;
+            color: rgba(255, 255, 255, 0.8) !important;
         }
 
         .nav-link::after {
@@ -295,12 +308,19 @@
         }
 
         @keyframes bookPulse {
-            0%, 100% { box-shadow: 0 2px 8px rgba(200, 161, 101, 0.3); }
-            50% { box-shadow: 0 2px 20px rgba(200, 161, 101, 0.6); }
+
+            0%,
+            100% {
+                box-shadow: 0 2px 8px rgba(200, 161, 101, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 2px 20px rgba(200, 161, 101, 0.6);
+            }
         }
 
         .btn-nav-outline {
-            border: 1px solid rgba(255,255,255,0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             color: #fff !important;
             background: transparent;
         }
@@ -347,9 +367,11 @@
         .navbar-toggler-icon span:nth-child(1) {
             top: 0;
         }
+
         .navbar-toggler-icon span:nth-child(2) {
             top: 9px;
         }
+
         .navbar-toggler-icon span:nth-child(3) {
             top: 18px;
         }
@@ -358,9 +380,11 @@
             top: 9px;
             transform: rotate(45deg);
         }
+
         .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon span:nth-child(2) {
             opacity: 0;
         }
+
         .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon span:nth-child(3) {
             top: 9px;
             transform: rotate(-45deg);
@@ -415,7 +439,7 @@
                 font-size: 1rem;
                 font-weight: 500;
                 padding: 0.85rem 0 !important;
-                border-bottom: 1px solid rgba(255,255,255,0.06);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
@@ -434,7 +458,7 @@
             }
 
             .navbar-nav .nav-link:hover:not(.active) {
-                background: rgba(255,255,255,0.03);
+                background: rgba(255, 255, 255, 0.03);
                 padding-left: 0.5rem !important;
             }
 
@@ -454,7 +478,7 @@
             .navbar .dropdown-item {
                 font-size: 0.9rem;
                 padding: 0.65rem 1rem;
-                color: rgba(255,255,255,0.8);
+                color: rgba(255, 255, 255, 0.8);
                 border-radius: 6px;
                 margin-bottom: 2px;
             }
@@ -470,7 +494,7 @@
             }
 
             .navbar .dropdown-divider {
-                border-color: rgba(255,255,255,0.08) !important;
+                border-color: rgba(255, 255, 255, 0.08) !important;
                 margin: 0.35rem 0.5rem !important;
                 display: block !important;
             }
@@ -497,7 +521,7 @@
                 font-size: 0.7rem;
                 text-transform: uppercase;
                 letter-spacing: 1.5px;
-                color: rgba(255,255,255,0.4);
+                color: rgba(255, 255, 255, 0.4);
                 margin-bottom: 0.25rem;
             }
 
@@ -517,7 +541,7 @@
 
             .btn-mobile-signin {
                 background: transparent;
-                border: 2px solid rgba(255,255,255,0.2);
+                border: 2px solid rgba(255, 255, 255, 0.2);
                 color: #fff;
             }
 
@@ -556,7 +580,7 @@
             .mobile-contact-info {
                 margin-top: 1.5rem;
                 padding-top: 1rem;
-                border-top: 1px solid rgba(255,255,255,0.06);
+                border-top: 1px solid rgba(255, 255, 255, 0.06);
             }
 
             .mobile-contact-item {
@@ -564,7 +588,7 @@
                 align-items: center;
                 gap: 0.75rem;
                 padding: 0.5rem 0;
-                color: rgba(255,255,255,0.6);
+                color: rgba(255, 255, 255, 0.6);
                 font-size: 0.85rem;
             }
 
@@ -575,7 +599,7 @@
             }
 
             .mobile-contact-item a {
-                color: rgba(255,255,255,0.6);
+                color: rgba(255, 255, 255, 0.6);
                 text-decoration: none;
             }
 
@@ -596,11 +620,11 @@
                 width: 40px;
                 height: 40px;
                 border-radius: 50%;
-                background: rgba(255,255,255,0.08);
+                background: rgba(255, 255, 255, 0.08);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                color: rgba(255,255,255,0.7);
+                color: rgba(255, 255, 255, 0.7);
                 transition: all 0.2s ease;
             }
 
@@ -625,6 +649,7 @@
             .navbar-brand img {
                 height: 48px;
             }
+
             .navbar.navbar-shrink .navbar-brand img {
                 height: 42px;
             }
@@ -653,6 +678,7 @@
             .navbar-toggler-icon span:nth-child(2) {
                 top: 7px;
             }
+
             .navbar-toggler-icon span:nth-child(3) {
                 top: 14px;
             }
@@ -690,6 +716,7 @@
             .navbar-toggler-icon span:nth-child(2) {
                 top: 6px;
             }
+
             .navbar-toggler-icon span:nth-child(3) {
                 top: 12px;
             }
@@ -733,7 +760,7 @@
         /* ===== Dropdown ===== */
         .navbar .dropdown-menu {
             background: #1e1e1e;
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 10px;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
             padding: 0.5rem;
@@ -746,15 +773,22 @@
         }
 
         @keyframes dropdownIn {
-            from { opacity: 0; transform: translateY(-6px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .navbar .dropdown-item {
             padding: 0.6rem 0.9rem;
             border-radius: 6px;
             transition: all 0.2s ease;
-            color: rgba(255,255,255,0.85);
+            color: rgba(255, 255, 255, 0.85);
         }
 
         .navbar .dropdown-item:hover {
@@ -768,7 +802,7 @@
         }
 
         .navbar .dropdown-divider {
-            border-color: rgba(255,255,255,0.08);
+            border-color: rgba(255, 255, 255, 0.08);
         }
 
         /* Footer logo styling */
@@ -816,6 +850,7 @@
             padding: 0;
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
         }
+
         .btn-book-sticky,
         .btn-call-sticky {
             flex: 1;
@@ -832,26 +867,32 @@
             transition: all 0.2s ease;
             text-decoration: none;
         }
+
         .btn-book-sticky {
             background: linear-gradient(135deg, #C8A165, #b8924f);
             color: #1a1a1a;
         }
+
         .btn-book-sticky:hover {
             background: linear-gradient(135deg, #b8924f, #a07d3e);
             color: #1a1a1a;
         }
+
         .btn-call-sticky {
             background: rgba(255, 255, 255, 0.08);
             color: #fff;
         }
+
         .btn-call-sticky:hover {
             background: rgba(255, 255, 255, 0.15);
             color: #fff;
         }
+
         @media (min-width: 992px) {
             .mobile-sticky-bar {
                 display: none !important;
             }
+
             .btn-newsletter-trigger {
                 bottom: 30px;
             }
@@ -865,43 +906,97 @@
             max-width: 600px;
             margin: 0 auto;
         }
-        .booking-progress { position: relative; }
-        .progress-step { display: flex; flex-direction: column; align-items: center; z-index: 2; }
+
+        .booking-progress {
+            position: relative;
+        }
+
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+
         .progress-step .step-icon {
-            width: 45px; height: 45px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1rem; transition: all 0.3s ease;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
         }
+
         .progress-step.pending .step-icon {
-            background-color: #e9ecef; color: #6c757d; border: 2px solid #dee2e6;
+            background-color: #e9ecef;
+            color: #6c757d;
+            border: 2px solid #dee2e6;
         }
+
         .progress-step.active .step-icon {
-            background-color: var(--color-gold); color: #fff;
+            background-color: var(--color-gold);
+            color: #fff;
             border: 2px solid var(--color-gold);
             box-shadow: 0 0 0 4px rgba(200, 161, 101, 0.2);
         }
+
         .progress-step.completed .step-icon {
-            background-color: #198754; color: #fff; border: 2px solid #198754;
-        }
-        .progress-step .step-label {
-            margin-top: 0.5rem; font-size: 0.75rem; font-weight: 600;
-            text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d;
-        }
-        .progress-step.active .step-label { color: var(--color-gold); }
-        .progress-step.completed .step-label { color: #198754; }
-        .progress-line { flex: 1; height: 3px; background-color: #dee2e6; margin: 0 0.5rem; margin-bottom: 1.5rem; }
-        .progress-line.completed { background-color: #198754; }
-        @media (max-width: 576px) {
-            .progress-step .step-icon { width: 36px; height: 36px; font-size: 0.85rem; }
-            .progress-line { margin-bottom: 1rem; }
+            background-color: #198754;
+            color: #fff;
+            border: 2px solid #198754;
         }
 
-        @stack('deferred-styles');
+        .progress-step .step-label {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+        }
+
+        .progress-step.active .step-label {
+            color: var(--color-gold);
+        }
+
+        .progress-step.completed .step-label {
+            color: #198754;
+        }
+
+        .progress-line {
+            flex: 1;
+            height: 3px;
+            background-color: #dee2e6;
+            margin: 0 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-line.completed {
+            background-color: #198754;
+        }
+
+        @media (max-width: 576px) {
+            .progress-step .step-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 0.85rem;
+            }
+
+            .progress-line {
+                margin-bottom: 1rem;
+            }
+        }
+
+        @stack('deferred-styles')
     </style>
     <script>
         window.addEventListener('load', function() {
             var d = document.getElementById('deferred-styles');
-            if (d) { d.media = 'all'; }
+            if (d) {
+                d.media = 'all';
+            }
         });
     </script>
 
@@ -919,12 +1014,11 @@
             <div class="container">
                 <a class="navbar-brand d-flex align-items-center" href="{{ route('website.home') }}">
                     <img src="{{ Storage::url($settings['logo'] ?? 'images/brickspoint_logo.png') }}"
-                        alt="Brickspoint ApartHotel" class="d-inline-block"
-                        width="80" height="80" style="width: auto; height: 80px; object-fit: contain;">
+                        alt="Brickspoint ApartHotel" class="d-inline-block" width="80" height="80"
+                        style="width: auto; height: 80px; object-fit: contain;">
                 </a>
 
-                <button class="navbar-toggler" type="button" id="navToggler"
-                    aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" id="navToggler" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon">
                         <span></span><span></span><span></span>
                     </span>
@@ -942,7 +1036,8 @@
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {{ request()->routeIs('website.facilities') || request()->routeIs('website.dining') || request()->routeIs('website.meetings') || request()->routeIs('website.meeting-enquiry*') ? 'active' : '' }}"
-                                href="{{ route('website.facilities') }}" id="facilitiesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                href="{{ route('website.facilities') }}" id="facilitiesDropdown" role="button"
+                                data-bs-toggle="dropdown" aria-expanded="false">
                                 Facilities
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="facilitiesDropdown">
@@ -951,7 +1046,9 @@
                                         <i class="fas fa-th-large me-2" style="color: #C8A165;"></i>All Facilities
                                     </a>
                                 </li>
-                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li>
                                     <a class="dropdown-item" href="{{ route('website.dining') }}">
                                         <i class="fas fa-utensils me-2" style="color: #C8A165;"></i>On-site Restaurant
@@ -959,7 +1056,8 @@
                                 </li>
                                 <li>
                                     <a class="dropdown-item" href="{{ route('website.meetings') }}">
-                                        <i class="fas fa-users me-2" style="color: #C8A165;"></i>Meeting & Event Spaces
+                                        <i class="fas fa-users me-2" style="color: #C8A165;"></i>Meeting & Event
+                                        Spaces
                                     </a>
                                 </li>
                             </ul>
@@ -970,7 +1068,8 @@
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {{ request()->routeIs('website.location') ? 'active' : '' }}"
-                                href="#" id="ourHotelsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                href="#" id="ourHotelsDropdown" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 Our Hotels
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="ourHotelsDropdown">
@@ -979,24 +1078,32 @@
                                         <i class="fas fa-building me-2" style="color: #C8A165;"></i>All Locations
                                     </a>
                                 </li>
-                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li>
                                     <a class="dropdown-item" href="{{ route('website.location') }}#asokoro">
-                                        <i class="fas fa-location-dot me-2" style="color: #28a745;"></i>Brickspoint Asokoro
-                                        <small class="d-block ps-4" style="color: rgba(255,255,255,0.5);">24 Jose Marti Crescent</small>
+                                        <i class="fas fa-location-dot me-2" style="color: #28a745;"></i>Brickspoint
+                                        Asokoro
+                                        <small class="d-block ps-4" style="color: rgba(255,255,255,0.5);">24 Jose
+                                            Marti Crescent</small>
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="https://brickspoint.ng" target="_blank" rel="noopener noreferrer">
-                                        <i class="fas fa-location-dot me-2" style="color: #17a2b8;"></i>Brickspoint Wuse II
-                                        <small class="d-block ps-4" style="color: rgba(255,255,255,0.5);">11 Adzope Crescent <i class="fas fa-external-link-alt ms-1 small"></i></small>
+                                    <a class="dropdown-item" href="https://brickspoint.ng" target="_blank"
+                                        rel="noopener noreferrer">
+                                        <i class="fas fa-location-dot me-2" style="color: #17a2b8;"></i>Brickspoint
+                                        Wuse II
+                                        <small class="d-block ps-4" style="color: rgba(255,255,255,0.5);">11 Adzope
+                                            Crescent <i class="fas fa-external-link-alt ms-1 small"></i></small>
                                     </a>
                                 </li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle {{ request()->routeIs('website.about') || request()->routeIs('website.contact') ? 'active' : '' }}"
-                                href="{{ route('website.about') }}" id="aboutDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                href="{{ route('website.about') }}" id="aboutDropdown" role="button"
+                                data-bs-toggle="dropdown" aria-expanded="false">
                                 About
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="aboutDropdown">
@@ -1023,12 +1130,10 @@
                     {{-- Desktop CTA --}}
                     <div class="d-flex align-items-center gap-2 desktop-cta">
                         @guest
-                            <a href="{{ route('login') }}"
-                                class="btn btn-nav-auth btn-nav-outline">
+                            <a href="{{ route('login') }}" class="btn btn-nav-auth btn-nav-outline">
                                 Sign In
                             </a>
-                            <a href="{{ route('register') }}"
-                                class="btn btn-nav-auth btn-nav-gold">
+                            <a href="{{ route('register') }}" class="btn btn-nav-auth btn-nav-gold">
                                 Register
                             </a>
                             <a href="{{ route('website.book') }}"
@@ -1036,8 +1141,7 @@
                                 <i class="fas fa-calendar-check me-1"></i>Book Now
                             </a>
                         @else
-                            <a href="{{ route('home') }}"
-                                class="btn btn-nav-auth btn-nav-gold">
+                            <a href="{{ route('home') }}" class="btn btn-nav-auth btn-nav-gold">
                                 <i class="fas fa-dashboard me-1"></i>Dashboard
                             </a>
                         @endguest
@@ -1076,9 +1180,12 @@
 
                             {{-- Mobile Social Links --}}
                             <div class="mobile-social-links">
-                                <a href="https://fb.com/bpaparthotel" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-                                <a href="https://instagram.com/brickspoint_asokoro" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-                                <a href="https://x.com/bpaparthotel" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+                                <a href="https://fb.com/bpaparthotel" aria-label="Facebook"><i
+                                        class="fab fa-facebook-f"></i></a>
+                                <a href="https://instagram.com/brickspoint_asokoro" aria-label="Instagram"><i
+                                        class="fab fa-instagram"></i></a>
+                                <a href="https://x.com/bpaparthotel" aria-label="Twitter"><i
+                                        class="fab fa-x-twitter"></i></a>
                             </div>
                         </div>
                     @else
@@ -1106,7 +1213,7 @@
 
     <!-- Main Content -->
     <main class="flex-grow-1">
-        @if (! empty(trim($__env->yieldContent('page-content'))))
+        @if (!empty(trim($__env->yieldContent('page-content'))))
             @yield('page-content')
         @else
             @yield('content')
@@ -1146,16 +1253,20 @@
                         <li class="mb-2"><a href="{{ route('website.meetings') }}"
                                 class="text-muted-footer text-decoration-none">Meetings & Events</a></li>
                         <li class="mb-2">
-                            <a href="{{ route('website.location') }}" class="text-muted-footer text-decoration-none">Our Hotels</a>
+                            <a href="{{ route('website.location') }}"
+                                class="text-muted-footer text-decoration-none">Our Hotels</a>
                             <ul class="list-unstyled ps-3 mt-1" style="font-size: 0.85rem;">
                                 <li class="mb-1">
-                                    <a href="{{ route('website.location') }}#asokoro" class="text-muted-footer text-decoration-none">
+                                    <a href="{{ route('website.location') }}#asokoro"
+                                        class="text-muted-footer text-decoration-none">
                                         <i class="fas fa-location-dot me-1 small text-success"></i>Asokoro
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="https://brickspoint.ng" target="_blank" rel="noopener noreferrer" class="text-muted-footer text-decoration-none">
-                                        <i class="fas fa-location-dot me-1 small text-info"></i>Wuse II <i class="fas fa-external-link-alt ms-1" style="font-size: 0.65rem;"></i>
+                                    <a href="https://brickspoint.ng" target="_blank" rel="noopener noreferrer"
+                                        class="text-muted-footer text-decoration-none">
+                                        <i class="fas fa-location-dot me-1 small text-info"></i>Wuse II <i
+                                            class="fas fa-external-link-alt ms-1" style="font-size: 0.65rem;"></i>
                                     </a>
                                 </li>
                             </ul>
@@ -1196,7 +1307,8 @@
                     <form id="newsletterForm" class="mb-3">
                         <div class="mb-2">
                             <input type="text" id="newsletterName"
-                                class="form-control bg-secondary border-0 text-white" placeholder="Your Name (optional)">
+                                class="form-control bg-secondary border-0 text-white"
+                                placeholder="Your Name (optional)">
                         </div>
                         <div class="input-group">
                             <input type="email" id="newsletterEmail"
@@ -1318,9 +1430,12 @@
             var lastScroll = 0;
             window.addEventListener('scroll', function() {
                 var current = window.scrollY;
-                bar.style.transform = current > lastScroll && current > 300 ? 'translateY(100%)' : 'translateY(0)';
+                bar.style.transform = current > lastScroll && current > 300 ? 'translateY(100%)' :
+                    'translateY(0)';
                 lastScroll = current;
-            }, { passive: true });
+            }, {
+                passive: true
+            });
         })();
 
         // === Run after DOM ready ===
@@ -1354,7 +1469,9 @@
                         collapse.classList.remove('show');
                         toggler.setAttribute('aria-expanded', 'false');
                     }
-                }, { passive: true });
+                }, {
+                    passive: true
+                });
             }
 
             // Scroll progress bar + navbar shrink
@@ -1371,7 +1488,9 @@
                     var scrollTop = window.scrollY;
                     var docHeight = document.documentElement.scrollHeight - window.innerHeight;
                     progressBar.style.width = (docHeight > 0 ? (scrollTop / docHeight) * 100 : 0) + '%';
-                }, { passive: true });
+                }, {
+                    passive: true
+                });
             }
 
             // Newsletter forms (footer + popup)
@@ -1383,28 +1502,40 @@
                 try {
                     var response = await fetch('{{ route('website.newsletter.subscribe') }}', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                        body: JSON.stringify({ name: name, email: email })
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: name,
+                            email: email
+                        })
                     });
                     var data = await response.json();
                     feedbackEl.style.display = 'block';
                     feedbackEl.className = 'mt-2 small ' + (data.success ? 'text-success' : 'text-warning');
-                    feedbackEl.innerHTML = '<i class="fas fa-' + (data.success ? 'check-circle' : 'info-circle') + ' me-1"></i>' + data.message;
+                    feedbackEl.innerHTML = '<i class="fas fa-' + (data.success ? 'check-circle' :
+                        'info-circle') + ' me-1"></i>' + data.message;
                     if (data.success) {
                         inputEl.value = '';
                         localStorage.setItem('newsletter_subscribed', 'true');
                         if (btnEl.id === 'newsletterPopupBtn') {
                             setTimeout(function() {
-                                var modal = bootstrap.Modal.getInstance(document.getElementById('newsletterPopup'));
+                                var modal = bootstrap.Modal.getInstance(document.getElementById(
+                                    'newsletterPopup'));
                                 if (modal) modal.hide();
                             }, 2000);
                         }
                     }
-                    setTimeout(function() { feedbackEl.style.display = 'none'; }, 5000);
+                    setTimeout(function() {
+                        feedbackEl.style.display = 'none';
+                    }, 5000);
                 } catch (error) {
                     feedbackEl.style.display = 'block';
                     feedbackEl.className = 'mt-2 small text-danger';
-                    feedbackEl.innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
+                    feedbackEl.innerHTML =
+                        '<i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.';
                 } finally {
                     btnEl.disabled = false;
                     btnEl.innerHTML = originalBtnHtml;
@@ -1437,7 +1568,8 @@
                 popupForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     var email = popupEmailInput.value.trim();
-                    if (email) handleNewsletterSubmit(email, popupFeedback, popupSubmitBtn, popupEmailInput, popupNameInput);
+                    if (email) handleNewsletterSubmit(email, popupFeedback, popupSubmitBtn, popupEmailInput,
+                        popupNameInput);
                 });
             }
 
@@ -1524,19 +1656,20 @@
     }
     </script>
     <!--Start of Tawk.to Script-->
-<script type="text/javascript">
-var Tawk_API=Tawk_API||{};
-Tawk_LoadStart=new Date();
-(function(){
-var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-s1.async=true;
-s1.src='https://embed.tawk.to/6a486fab1f54021d42ef772e/1jslf8ea6';
-s1.charset='UTF-8';
-s1.setAttribute('crossorigin','*');
-s0.parentNode.insertBefore(s1,s0);
-})();
-</script>
-<!--End of Tawk.to Script-->
+    <script type="text/javascript">
+        var Tawk_API = Tawk_API || {};
+        Tawk_LoadStart = new Date();
+        (function() {
+            var s1 = document.createElement("script"),
+                s0 = document.getElementsByTagName("script")[0];
+            s1.async = true;
+            s1.src = 'https://embed.tawk.to/6a486fab1f54021d42ef772e/1jslf8ea6';
+            s1.charset = 'UTF-8';
+            s1.setAttribute('crossorigin', '*');
+            s0.parentNode.insertBefore(s1, s0);
+        })();
+    </script>
+    <!--End of Tawk.to Script-->
 </body>
 
 </html>

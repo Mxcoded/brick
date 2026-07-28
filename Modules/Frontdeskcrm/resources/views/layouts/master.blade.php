@@ -239,7 +239,7 @@
     {{-- Structured Data for SEO --}}
     <script type="application/ld+json">
     {
-        "@context": "https://schema.org",
+        "@@context": "https://schema.org",
         "@type": "Hotel",
         "name": "Brickspoint Aparthotel",
         "description": "Luxury apartment hotel offering premium accommodations with personalized service",
@@ -283,7 +283,6 @@
                     <div class="flex items-center space-x-4">
                         @auth
                             <div class="flex items-center space-x-3">
-                                {{-- UPDATED: Applied brand colors --}}
                                 <div
                                     class="w-8 h-8 bg-gold rounded-full flex items-center justify-center text-white text-sm font-medium">
                                     {{ substr(Auth::user()->name, 0, 1) }}
@@ -291,7 +290,6 @@
                                 <span class="text-charcoal font-medium hidden sm:inline">Welcome,
                                     {{ Auth::user()->name }}</span>
 
-                                {{-- UPDATED: Applied brand colors (using default <a> tag styling) --}}
                                 <a href="{{ route('logout') }}"
                                     class="text-red-600 hover:text-red-800 transition-colors duration-200 font-medium flex items-center space-x-1"
                                     onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
@@ -302,12 +300,6 @@
                                     @csrf
                                 </form>
                             </div>
-                        @else
-                            {{-- <div class="flex items-center space-x-3">
-                            <a href="{{ route('login') }}" class="font-medium">
-                                Staff Login
-                            </a>
-                            </div> --}}
                         @endauth
                     </div>
                 </div>

@@ -7,8 +7,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Modules\Frontdeskcrm\Models\Guest;
+use Modules\Frontdeskcrm\Models\RateCode;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Website\Emails\BookingCancellation;
+use Modules\Website\Emails\BookingConfirmation;
+use Modules\Website\Emails\BookingStatusUpdate;
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -24,6 +30,7 @@ class Booking extends Model implements AuditableContract
         'room_id',            // Legacy: will be deprecated
         'room_type_id',       // NEW: The room type booked
         'room_unit_id',       // NEW: Assigned unit (nullable until check-in)
+        'rate_code_id',       // Rate code used for pricing
         'user_id',            // Optional: links to registered user
         'guest_profile_id',   // Optional: links to CRM profile
 
@@ -127,6 +134,14 @@ class Booking extends Model implements AuditableContract
     }
 
     /**
+     * Relationship: The rate code used for pricing.
+     */
+    public function rateCode()
+    {
+        return $this->belongsTo(RateCode::class);
+    }
+
+    /**
      * Relationship: The assigned room unit (assigned at check-in).
      */
     public function roomUnit()
@@ -165,10 +180,9 @@ class Booking extends Model implements AuditableContract
      * ✅ FIXED: Changed from 'scopeIsAvailable' to 'public static function isAvailable'
      * This ensures it returns a Boolean (true/false), not a Query Builder.
      */
-    public static function isAvailable($roomId, $checkIn, $checkOut, $ignoreBookingId = null)
+    public static function isAvailable($roomUnitId, $checkIn, $checkOut, $ignoreBookingId = null)
     {
-        // 1. Check Website Bookings (Existing Logic)
-        $hasBookingConflict = self::where('room_id', $roomId)
+        $hasBookingConflict = self::where('room_unit_id', $roomUnitId)
             ->where('status', '!=', 'cancelled')
             ->where(function ($q) use ($checkIn, $checkOut) {
                 $q->where('check_in_date', '<', $checkOut)
@@ -183,10 +197,8 @@ class Booking extends Model implements AuditableContract
             return false;
         }
 
-        // 2. Check Frontdesk Registrations (THE FIX)
         if (class_exists(Registration::class)) {
-            $hasPhysicalConflict = Registration::where('room_id', $roomId)
-                // ✅ FIX: Add 'reserved' to block future walk-ins too
+            $hasPhysicalConflict = Registration::where('room_unit_id', $roomUnitId)
                 ->whereIn('stay_status', ['checked_in', 'draft_by_guest', 'reserved'])
                 ->where(function ($q) use ($checkIn, $checkOut) {
                     $q->where('check_in', '<', $checkOut)
@@ -200,5 +212,63 @@ class Booking extends Model implements AuditableContract
         }
 
         return true;
+    }
+
+    /**
+     * Send email notification to guest and reservation staff for a status change.
+     *
+     * @param  string|null  $statusLabel  Override the status label (e.g. "Checked In", "Checkout Complete")
+     * @param  bool  $skipGuest  Skip sending to guest (e.g. when guest initiated the action)
+     */
+    public function sendNotification(?string $statusLabel = null, bool $skipGuest = false): void
+    {
+        $label = $statusLabel ?? ucfirst(str_replace('_', ' ', $this->status));
+
+        try {
+            // Send to guest
+            if (! $skipGuest && ! empty($this->guest_email)) {
+                $this->sendGuestNotification($label);
+            }
+
+            // Send staff copy
+            $this->sendStaffNotification($label);
+        } catch (\Throwable $e) {
+            Log::error('Booking notification failed for '.$this->booking_reference.': '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Send the appropriate email to the guest based on status.
+     */
+    protected function sendGuestNotification(string $label): void
+    {
+        if ($this->status === 'cancelled') {
+            Mail::to($this->guest_email)->send(new BookingCancellation($this));
+        } elseif (in_array($this->status, ['pending', 'confirmed'])) {
+            // For new/confirmed bookings, use the dedicated confirmation Mailable
+            Mail::to($this->guest_email)->send(new BookingConfirmation($this));
+        } else {
+            // For checked_in, completed, and other status changes
+            Mail::to($this->guest_email)->send(new BookingStatusUpdate($this, $label));
+        }
+    }
+
+    /**
+     * Send staff copy to the reservations team.
+     */
+    protected function sendStaffNotification(string $label): void
+    {
+        $reservationsEmail = config('mail.reservations_email');
+        if (empty($reservationsEmail)) {
+            return;
+        }
+
+        if ($this->status === 'cancelled') {
+            Mail::to($reservationsEmail)->send(new BookingCancellation($this, true));
+        } elseif (in_array($this->status, ['pending', 'confirmed'])) {
+            Mail::to($reservationsEmail)->send(new BookingConfirmation($this, true));
+        } else {
+            Mail::to($reservationsEmail)->send(new BookingStatusUpdate($this, $label, true));
+        }
     }
 }

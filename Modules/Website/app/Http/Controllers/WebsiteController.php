@@ -355,7 +355,7 @@ class WebsiteController extends Controller
         $availabilityService = app(RoomAvailabilityService::class);
 
         if ($useCart) {
-            // Cart-based: Check each room type in cart
+            // Cart-based: Check each room type in cart + capacity
             foreach ($cart['items'] as $item) {
                 $result = $availabilityService->checkRoomTypeAvailability(
                     $item['room_type_id'],
@@ -366,6 +366,14 @@ class WebsiteController extends Controller
 
                 if (! $result['available']) {
                     return back()->with('error', $item['room_type_name'].': '.$result['message'])->withInput();
+                }
+
+                // Validate guest capacity per cart item
+                $itemAdults = $item['adults'] ?? $validated['adults'] ?? 1;
+                $itemChildren = $item['children'] ?? $validated['children'] ?? 0;
+                $roomType = RoomType::find($item['room_type_id']);
+                if ($roomType && ($itemAdults + $itemChildren) > $roomType->capacity) {
+                    return back()->with('error', $roomType->name.': Total guests ('.($itemAdults + $itemChildren).') exceed room capacity ('.$roomType->capacity.').')->withInput();
                 }
             }
         } else {
@@ -378,6 +386,13 @@ class WebsiteController extends Controller
 
             if (! $result['available']) {
                 return back()->with('error', $result['message'])->withInput();
+            }
+
+            // Validate guest capacity
+            $roomType = RoomType::findOrFail($validated['room_type_id']);
+            $totalGuests = $validated['adults'] + ($validated['children'] ?? 0);
+            if ($totalGuests > $roomType->capacity) {
+                return back()->with('error', 'Total guests ('.$totalGuests.') exceed room capacity ('.$roomType->capacity.').')->withInput();
             }
 
             // If specific unit selected, verify it's in the available list
@@ -456,7 +471,28 @@ class WebsiteController extends Controller
                         $bookingGroupId = 'GRP'.date('y').strtoupper(Str::random(6));
                     }
 
+                    $rateService = app(WebsiteRateService::class);
+
                     foreach ($cart['items'] as $item) {
+                        // Recalculate total using submitted guest counts (not stale cart total)
+                        $itemAdults = $validated['adults'];
+                        $itemChildren = $validated['children'] ?? 0;
+                        $roomType = RoomType::find($item['room_type_id']);
+                        if ($roomType) {
+                            $recalc = $rateService->calculateWithGuests(
+                                $roomType,
+                                $cart['check_in'],
+                                $cart['check_out'],
+                                $itemAdults,
+                                $itemChildren
+                            );
+                            $itemTotal = $recalc['total'];
+                            $rateCodeId = $recalc['rate_code_id'] ?? $item['rate_code_id'] ?? null;
+                        } else {
+                            $itemTotal = $item['total_rate'];
+                            $rateCodeId = $item['rate_code_id'] ?? null;
+                        }
+
                         // Create one booking per room quantity
                         for ($i = 0; $i < $item['quantity']; $i++) {
                             do {
@@ -470,15 +506,16 @@ class WebsiteController extends Controller
                                 'guest_profile_id' => $guest->id,
                                 'room_type_id' => $item['room_type_id'],
                                 'room_unit_id' => null, // Assigned at check-in
+                                'rate_code_id' => $rateCodeId,
                                 'source' => 'website',
                                 'guest_name' => $validated['guest_name'],
                                 'guest_email' => $validated['guest_email'],
                                 'guest_phone' => $validated['guest_phone'],
                                 'check_in_date' => $cart['check_in'],
                                 'check_out_date' => $cart['check_out'],
-                                'adults' => $validated['adults'],
-                                'children' => $validated['children'] ?? 0,
-                                'total_amount' => $item['price_per_night'] * $item['nights'],
+                                'adults' => $itemAdults,
+                                'children' => $itemChildren,
+                                'total_amount' => $itemTotal,
                                 'payment_status' => 'pending',
                                 'status' => 'pending',
                                 'payment_method' => $validated['payment_method'],
@@ -502,7 +539,16 @@ class WebsiteController extends Controller
                     } while (Booking::where('booking_reference', $reference)->exists());
 
                     $days = Carbon::parse($validated['check_in_date'])->diffInDays($validated['check_out_date']) ?: 1;
-                    $totalAmount = $roomType->price * $days;
+
+                    $rateService = app(\Modules\Website\Services\WebsiteRateService::class);
+                    $rate = $rateService->calculateWithGuests(
+                        $roomType,
+                        $validated['check_in_date'],
+                        $validated['check_out_date'],
+                        $validated['adults'],
+                        $validated['children'] ?? 0
+                    );
+                    $totalAmount = $rate['total'];
 
                     $booking = Booking::create([
                         'booking_reference' => $reference,
@@ -510,6 +556,7 @@ class WebsiteController extends Controller
                         'guest_profile_id' => $guest->id,
                         'room_type_id' => $roomType->id,
                         'room_unit_id' => $selectedUnitId,
+                        'rate_code_id' => $rate['rate_code_id'],
                         'source' => 'website',
                         'guest_name' => $validated['guest_name'],
                         'guest_email' => $validated['guest_email'],
@@ -1657,6 +1704,8 @@ class WebsiteController extends Controller
             'quantity' => 'required|integer|min:1|max:10',
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
+            'adults' => 'nullable|integer|min:1',
+            'children' => 'nullable|integer|min:0',
         ]);
 
         $cartService = new BookingCartService;
@@ -1664,7 +1713,9 @@ class WebsiteController extends Controller
             $validated['room_type_id'],
             $validated['quantity'],
             $validated['check_in'],
-            $validated['check_out']
+            $validated['check_out'],
+            $validated['adults'] ?? 1,
+            $validated['children'] ?? 0
         );
 
         return response()->json($result);
@@ -1682,6 +1733,27 @@ class WebsiteController extends Controller
 
         $cartService = new BookingCartService;
         $result = $cartService->update($validated['room_type_id'], $validated['quantity']);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Cart: Update guest count for a room type
+     */
+    public function cartUpdateGuests(Request $request)
+    {
+        $validated = $request->validate([
+            'room_type_id' => 'required|exists:room_types,id',
+            'adults' => 'required|integer|min:1',
+            'children' => 'required|integer|min:0',
+        ]);
+
+        $cartService = new BookingCartService;
+        $result = $cartService->updateGuests(
+            $validated['room_type_id'],
+            $validated['adults'],
+            $validated['children']
+        );
 
         return response()->json($result);
     }

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveBalance;
 use Modules\Staff\Models\LeaveRequest;
@@ -153,6 +154,7 @@ class LeaveCalendarTest extends TestCase
     public function leave_request_can_be_created_with_coverage()
     {
         $this->actingAs($this->user);
+        Mail::fake();
 
         $start = now()->addDays(5)->format('Y-m-d');
         $end = now()->addDays(7)->format('Y-m-d');

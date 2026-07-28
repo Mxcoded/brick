@@ -45,7 +45,10 @@ class PruneActivityLogsTest extends TestCase
     public function test_default_is_recommended_ninety_days()
     {
         $old = $this->makeLog(91);
+        // Add 1 second so the boundary log is clearly at/after the cutoff,
+        // avoiding microsecond timing differences between makeLog and the command.
         $boundary = $this->makeLog(90);
+        $boundary->forceFill(['created_at' => now()->subDays(90)->addSecond()])->save();
 
         $this->artisan('activity-logs:prune')->assertSuccessful();
 

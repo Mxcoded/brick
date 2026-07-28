@@ -10,30 +10,35 @@
             </div>
             <div class="card-body">
 
-                {{-- Alert if the preferred room is actually occupied by someone else (Overstay) --}}
                 @php
-                    $isPreferredRoomTaken = \Modules\Frontdeskcrm\Models\Registration::where(
-                        'room_id',
-                        $booking->room_id,
-                    )
-                        ->whereIn('stay_status', ['checked_in', 'draft_by_guest'])
-                        ->exists();
+                    $preferredUnit = $booking->roomUnit;
+                    $preferredUnitTaken = false;
+                    if ($preferredUnit) {
+                        $preferredUnitTaken = \Modules\Frontdeskcrm\Models\Registration::where('room_unit_id', $preferredUnit->id)
+                            ->whereIn('stay_status', ['checked_in', 'draft_by_guest', 'reserved'])
+                            ->exists();
+                    }
                 @endphp
 
-                @if ($isPreferredRoomTaken)
+                @if ($preferredUnitTaken)
                     <div class="alert alert-warning border-start border-4 border-warning shadow-sm">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Attention:</strong> The guest preferred <strong>{{ $booking->room->name }}</strong>, but it
-                        is currently occupied (perhaps an overstay). Please allocate a different room below.
+                        <strong>Attention:</strong> The guest preferred <strong>Room {{ $preferredUnit->room_number }} ({{ $booking->roomType->name ?? 'N/A' }})</strong>, but it
+                        is currently occupied. Please allocate a different room below.
+                    </div>
+                @elseif ($preferredUnit)
+                    <div class="alert alert-info border-start border-4 border-info shadow-sm">
+                        <i class="fas fa-info-circle me-2"></i>
+                        The guest selected <strong>Room {{ $preferredUnit->room_number }} ({{ $booking->roomType->name ?? 'N/A' }})</strong>. You can confirm this or move them to
+                        another room.
                     </div>
                 @else
                     <div class="alert alert-info border-start border-4 border-info shadow-sm">
                         <i class="fas fa-info-circle me-2"></i>
-                        The guest selected <strong>{{ $booking->room->name }}</strong>. You can confirm this or move them to
-                        another room.
+                        No room was assigned during booking. Please select a room below, or one will be auto-assigned.
                     </div>
                 @endif
-                {{-- ✅ NEW: Identity Verification Card --}}
+
                 <div class="card bg-light border mb-4">
                     <div class="card-body">
                         <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
@@ -47,18 +52,18 @@
                             <div class="col-md-4">
                                 <small class="text-muted d-block text-uppercase">ID Type</small>
                                 <span class="fw-bold text-primary">
-                                    {{ $booking->guest->identification_type ?? 'Not Provided' }}
+                                    {{ $booking->guest?->identification_type ?? 'Not Provided' }}
                                 </span>
                             </div>
                             <div class="col-md-4">
                                 <small class="text-muted d-block text-uppercase">ID Number</small>
                                 <span class="fw-bold text-primary">
-                                    {{ $booking->guest->identification_number ?? 'Not Provided' }}
+                                    {{ $booking->guest?->identification_number ?? 'Not Provided' }}
                                 </span>
                             </div>
                             <div class="col-md-8">
                                 <small class="text-muted d-block text-uppercase">Address</small>
-                                <span>{{ $booking->guest->home_address ?? 'Not Provided' }}</span>
+                                <span>{{ $booking->guest?->home_address ?? 'Not Provided' }}</span>
                             </div>
                             <div class="col-md-4">
                                 <small class="text-muted d-block text-uppercase">Contact</small>
@@ -67,45 +72,52 @@
                         </div>
                     </div>
                 </div>
+
                 <form action="{{ route('frontdesk.bookings.process', $booking->booking_reference) }}" method="POST">
                     @csrf
                     <div class="row g-3">
-
-                        {{-- ✅ 1. DYNAMIC ROOM ALLOCATION (The Fix) --}}
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Allocate Room <span class="text-danger">*</span></label>
-                            <select name="room_id"
-                                class="form-select form-select-lg {{ $isPreferredRoomTaken ? 'is-invalid' : '' }}">
+                            <select name="room_unit_id" class="form-select form-select-lg {{ ($preferredUnit && $preferredUnitTaken) ? 'is-invalid' : '' }}">
+                                @if ($preferredUnit && ! $preferredUnitTaken)
+                                    <option value="{{ $preferredUnit->id }}" selected class="fw-bold">
+                                        Room {{ $preferredUnit->room_number }} ({{ $booking->roomType->name ?? 'N/A' }}) — Guest Preference
+                                    </option>
+                                @elseif ($preferredUnit && $preferredUnitTaken)
+                                    <option value="" disabled selected class="text-danger fw-bold">
+                                        Room {{ $preferredUnit->room_number }} (Occupied)
+                                    </option>
+                                @else
+                                    <option value="" disabled selected>Select a room...</option>
+                                @endif
 
-                                {{-- Option A: The Preferred Room --}}
-                                <option value="{{ $booking->room_id }}" {{ !$isPreferredRoomTaken ? 'selected' : '' }}
-                                    class="{{ $isPreferredRoomTaken ? 'text-danger fw-bold' : 'fw-bold' }}">
-                                    {{ $booking->room->name }} (Guest Preference)
-                                    {{ $isPreferredRoomTaken ? '[OCCUPIED]' : '' }}
-                                </option>
+                                @php
+                                    $availabilityService = app(\Modules\Website\Services\RoomAvailabilityService::class);
+                                    $availableUnits = $availabilityService->getAvailableUnits(
+                                        $booking->room_type_id,
+                                        $booking->check_in_date,
+                                        $booking->check_out_date
+                                    );
+                                @endphp
 
-                                {{-- Option B: Other Available Rooms --}}
-                                <optgroup label="Available Rooms">
-                                    @foreach (\Modules\Website\Models\Room::whereIn('status', ['available', 'booked'])->where('id', '!=', $booking->room_id)->get() as $room)
-                                        @php
-                                            $isOccupied = \Modules\Frontdeskcrm\Models\Registration::where(
-                                                'room_id',
-                                                $room->id,
-                                            )
-                                                ->whereIn('stay_status', ['checked_in'])
-                                                ->exists();
-                                        @endphp
-
-                                        @unless ($isOccupied)
-                                            <option value="{{ $room->id }}">
-                                                {{ $room->name }} ({{ $room->capacity }} Guests) -
-                                                ₦{{ number_format($room->price) }}
+                                @if ($availableUnits->count() > 0)
+                                    <optgroup label="Available Rooms ({{ $booking->roomType->name ?? 'All Types' }})">
+                                        @foreach ($availableUnits as $unit)
+                                            @if ($preferredUnit && $unit->id === $preferredUnit->id)
+                                                @continue
+                                            @endif
+                                            <option value="{{ $unit->id }}">
+                                                Room {{ $unit->room_number }} ({{ $unit->roomType->name ?? 'N/A' }})
+                                                — ₦{{ number_format($booking->roomType->price ?? $unit->roomType->price ?? 0) }}/night
                                             </option>
-                                        @endunless
-                                    @endforeach
-                                </optgroup>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
                             </select>
-                            <div class="form-text text-muted">Finalize the physical room assignment here.</div>
+                            @error('room_unit_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <div class="form-text text-muted">Select the physical room or leave blank to auto-assign the best available.</div>
                         </div>
 
                         <div class="col-md-6">

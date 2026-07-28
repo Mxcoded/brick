@@ -133,7 +133,8 @@ class RoomAvailabilityService
         int $roomTypeId,
         string|Carbon $checkIn,
         string|Carbon $checkOut,
-        ?int $ignoreBookingId = null
+        ?int $ignoreBookingId = null,
+        ?int $ignoreRegistrationId = null
     ): Collection {
         $checkIn = Carbon::parse($checkIn);
         $checkOut = Carbon::parse($checkOut);
@@ -160,13 +161,14 @@ class RoomAvailabilityService
                     ->when($ignoreBookingId, fn ($q) => $q->where('id', '!=', $ignoreBookingId));
             })
             // 3. Exclude units with conflicting frontdesk registrations
-            ->when(class_exists(Registration::class), function ($q) use ($checkIn, $checkOut) {
-                $q->whereDoesntHave('registrations', function ($sub) use ($checkIn, $checkOut) {
+            ->when(class_exists(Registration::class), function ($q) use ($checkIn, $checkOut, $ignoreRegistrationId) {
+                $q->whereDoesntHave('registrations', function ($sub) use ($checkIn, $checkOut, $ignoreRegistrationId) {
                     $sub->whereIn('stay_status', self::ACTIVE_REGISTRATION_STATUSES)
                         ->where(function ($inner) use ($checkIn, $checkOut) {
                             $inner->where('check_in', '<', $checkOut)
                                 ->where('check_out', '>', $checkIn);
-                        });
+                        })
+                        ->when($ignoreRegistrationId, fn ($sub) => $sub->where('id', '!=', $ignoreRegistrationId));
                 });
             })
             ->get();
@@ -472,7 +474,8 @@ class RoomAvailabilityService
         int $unitId,
         string|Carbon $checkIn,
         string|Carbon $checkOut,
-        ?int $ignoreBookingId = null
+        ?int $ignoreBookingId = null,
+        ?int $ignoreRegistrationId = null
     ): bool {
         $unit = RoomUnit::find($unitId);
         if (! $unit) {
@@ -519,6 +522,7 @@ class RoomAvailabilityService
                     $q->where('check_in', '<', $checkOut)
                         ->where('check_out', '>', $checkIn);
                 })
+                ->when($ignoreRegistrationId, fn ($q) => $q->where('id', '!=', $ignoreRegistrationId))
                 ->exists();
 
             if ($hasConflictingRegistration) {

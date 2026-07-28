@@ -6,16 +6,14 @@ use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
-use Modules\Website\Emails\BookingCancellation;
-use Modules\Website\Emails\BookingConfirmation;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
+use Modules\Website\Services\RoomAssignmentService;
 
 class BookingController extends Controller
 {
@@ -103,7 +101,7 @@ class BookingController extends Controller
         $totalAmount = $room->price * $nights;
 
         // 3. Create Booking
-        Booking::create([
+        $booking = Booking::create([
             'booking_reference' => 'BK-'.strtoupper(Str::random(8)),
             'room_id' => $validated['room_id'],
             'guest_name' => $validated['guest_name'],
@@ -118,6 +116,8 @@ class BookingController extends Controller
             'status' => $validated['status'],
             'admin_notes' => $validated['admin_notes'],
         ]);
+
+        $booking->sendNotification('Booking Created');
 
         return redirect()->route('website.admin.bookings.index')
             ->with('success', 'Booking created successfully.');
@@ -138,10 +138,10 @@ class BookingController extends Controller
      */
     public function edit($id)
     {
-        $booking = Booking::findOrFail($id);
-        $rooms = Room::all();
+        $booking = Booking::with(['roomType', 'roomUnit'])->findOrFail($id);
+        $roomTypes = RoomType::active()->ordered()->get();
 
-        return view('website::admin.bookings.edit', compact('booking', 'rooms'));
+        return view('website::admin.bookings.edit', compact('booking', 'roomTypes'));
     }
 
     /**
@@ -151,41 +151,108 @@ class BookingController extends Controller
     {
         $booking = Booking::findOrFail($id);
 
+        // Financial fields are never edited via form — only through payment workflows
         $validated = $request->validate([
-            'room_id' => 'required|exists:rooms,id',
+            'room_type_id' => 'required|exists:room_types,id',
+            'room_unit_id' => 'nullable|exists:room_units,id',
             'check_in_date' => 'required|date',
             'check_out_date' => 'required|date|after:check_in_date',
-            'payment_status' => 'required|in:pending,paid,failed,partial',
+            'guest_name' => 'required|string|max:255',
+            'guest_email' => 'required|email|max:255',
+            'guest_phone' => 'nullable|string|max:50',
+            'adults' => 'required|integer|min:1|max:10',
+            'children' => 'nullable|integer|min:0|max:10',
             'status' => 'required|in:pending,confirmed,cancelled,checked_in,completed',
+            'special_requests' => 'nullable|string',
             'admin_notes' => 'nullable|string',
         ]);
 
-        // 1. Availability Check (Only if dates or room changed)
+        // Check availability if dates or room type changed
         if (
-            $booking->room_id != $request->room_id ||
-            $booking->check_in_date->format('Y-m-d') != $request->check_in_date ||
-            $booking->check_out_date->format('Y-m-d') != $request->check_out_date
+            $booking->room_type_id != $validated['room_type_id'] ||
+            $booking->check_in_date->format('Y-m-d') != $validated['check_in_date'] ||
+            $booking->check_out_date->format('Y-m-d') != $validated['check_out_date']
         ) {
-            $isAvailable = Booking::isAvailable(
-                $request->room_id,
-                $request->check_in_date,
-                $request->check_out_date,
-                $id // Ignore current booking ID
-            );
+            if (! empty($validated['room_unit_id'])) {
+                $isAvailable = RoomUnit::find($validated['room_unit_id'])?->isAvailableForDates(
+                    $validated['check_in_date'],
+                    $validated['check_out_date'],
+                    $id
+                );
 
-            if (! $isAvailable) {
-                return back()->withErrors(['room_id' => 'Room unavailable for these new dates.'])->withInput();
+                if (! $isAvailable) {
+                    return back()->withErrors(['room_unit_id' => 'Selected room unit is unavailable for these dates.'])->withInput();
+                }
             }
 
-            // Recalculate price if dates/room changed
-            $room = Room::findOrFail($request->room_id);
-            $nights = Carbon::parse($request->check_in_date)->diffInDays(Carbon::parse($request->check_out_date));
-            $booking->total_amount = $room->price * ($nights < 1 ? 1 : $nights);
+            // Auto-recalculate total when room type or dates change (includes guest fees)
+            $roomType = RoomType::find($validated['room_type_id']);
+            $rateService = app(\Modules\Website\Services\WebsiteRateService::class);
+            $rate = $rateService->calculateWithGuests(
+                $roomType,
+                $validated['check_in_date'],
+                $validated['check_out_date'],
+                $validated['adults'],
+                $validated['children'] ?? 0
+            );
+            $booking->total_amount = $rate['total'];
         }
 
+        // Validate guest count against capacity
+        $roomType = $roomType ?? RoomType::find($validated['room_type_id'] ?? $booking->room_type_id);
+        if ($roomType) {
+            $totalGuests = $validated['adults'] + ($validated['children'] ?? 0);
+            if ($totalGuests > $roomType->capacity) {
+                return back()->withErrors(['adults' => 'Total guests ('.$totalGuests.') exceed room capacity ('.$roomType->capacity.').'])->withInput();
+            }
+        }
+
+        // Prevent status regression (e.g. checked_in → confirmed)
+        $statusFlow = ['pending' => 0, 'confirmed' => 1, 'checked_in' => 2, 'completed' => 3, 'cancelled' => 4];
+        $currentRank = $statusFlow[$booking->status] ?? 0;
+        $newRank = $statusFlow[$validated['status']] ?? 0;
+        if ($newRank < $currentRank && $validated['status'] !== 'cancelled') {
+            return back()->withErrors(['status' => 'Cannot move booking backwards from '.ucfirst(str_replace('_', ' ', $booking->status)).' to '.ucfirst(str_replace('_', ' ', $validated['status'])).'.'])->withInput();
+        }
+
+        $previousStatus = $booking->status;
         $booking->update($validated);
 
+        // Send notification if status actually changed
+        if ($previousStatus !== $validated['status']) {
+            $labels = [
+                'checked_in' => 'Checked In',
+                'completed' => 'Checkout Complete',
+                'cancelled' => 'Booking Cancelled',
+                'confirmed' => 'Booking Confirmed',
+            ];
+            $booking->sendNotification($labels[$validated['status']] ?? null);
+        }
+
         return redirect()->back()->with('success', 'Booking updated successfully.');
+    }
+
+    /**
+     * Mark a booking as fully paid (manual payment confirmation).
+     */
+    public function markPaid($id)
+    {
+        $booking = Booking::findOrFail($id);
+        $balance = $booking->total_amount - ($booking->amount_paid ?? 0);
+
+        if ($balance <= 0) {
+            return back()->with('error', 'This booking has no outstanding balance.');
+        }
+
+        $booking->update([
+            'amount_paid' => $booking->total_amount,
+            'payment_status' => 'paid',
+        ]);
+
+        // The model's saving event auto-confirms pending → confirmed, so send confirmation
+        $booking->fresh()->sendNotification('Payment Confirmed');
+
+        return redirect()->back()->with('success', 'Payment recorded. Booking marked as paid (₦'.number_format($booking->total_amount, 2).').');
     }
 
     /**
@@ -243,13 +310,7 @@ class BookingController extends Controller
         }
 
         // 2. Send Confirmation Email
-        try {
-            Mail::to($booking->guest_email)->send(new BookingConfirmation($booking));
-            $message = 'Booking confirmed, marked as PAID, and email sent.';
-        } catch (\Exception $e) {
-            Log::error('Manual Confirm Email Failed: '.$e->getMessage());
-            $message = 'Booking confirmed and marked as PAID, but email failed to send.';
-        }
+        $booking->sendNotification('Booking Confirmed');
 
         return back()->with('success', 'Booking confirmed successfully.');
     }
@@ -266,15 +327,9 @@ class BookingController extends Controller
             'payment_status' => 'void',
         ]);
 
-        try {
-            Mail::to($booking->guest_email)->send(new BookingCancellation($booking));
-            $message = 'Booking cancelled successfully. Cancellation email sent.';
-        } catch (\Exception $e) {
-            Log::error('Cancel Email Failed: '.$e->getMessage());
-            $message = 'Booking cancelled, but cancellation email failed to send.';
-        }
+        $booking->sendNotification('Booking Cancelled');
 
-        return back()->with('success', $message);
+        return back()->with('success', 'Booking cancelled successfully.');
     }
 
     /**
@@ -361,6 +416,37 @@ class BookingController extends Controller
         ]);
 
         return back()->with('success', 'Room '.$roomUnit->room_number.' has been assigned to this booking.');
+    }
+
+    /**
+     * Auto-assign the best available room to a booking.
+     */
+    public function autoAssignRoom(Request $request, $id)
+    {
+        $booking = Booking::with(['roomType'])->findOrFail($id);
+
+        if (! $booking->room_type_id) {
+            return back()->with('error', 'This booking has no room type assigned. Please set a room type first.');
+        }
+
+        if ($booking->room_unit_id) {
+            return back()->with('error', 'This booking already has a room assigned. Unassign it first or use the manual selector.');
+        }
+
+        $assignmentService = app(RoomAssignmentService::class);
+        $unit = $assignmentService->autoAssign($booking);
+
+        if (! $unit) {
+            return back()->with('error', 'No available rooms for the booked type and dates.');
+        }
+
+        Log::info('Room auto-assigned to booking:', [
+            'booking_id' => $booking->id,
+            'booking_reference' => $booking->booking_reference,
+            'room' => $unit->room_number,
+        ]);
+
+        return back()->with('success', 'Room '.$unit->room_number.' auto-assigned to this booking.');
     }
 
     /**

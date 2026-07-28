@@ -20,13 +20,16 @@ use Modules\Frontdeskcrm\Models\BookingSource;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\GuestType;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Frontdeskcrm\Models\RegistrationCharge;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Frontdeskcrm\Services\FolioService;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\Refund;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
 use Modules\Website\Services\PaymentGatewayManager;
+use Modules\Website\Services\RoomAssignmentService;
 use Modules\Website\Services\RoomAvailabilityService;
 
 class RegistrationController extends Controller
@@ -544,6 +547,11 @@ class RegistrationController extends Controller
                     // New room type/unit support
                     $roomTypeId = $linkedBooking->room_type_id;
                     $roomUnitId = $linkedBooking->room_unit_id;
+
+                    // Build room_allocation from roomUnit if available
+                    if ($linkedBooking->roomUnit && ! $roomAllocation) {
+                        $roomAllocation = $linkedBooking->roomUnit->room_number.' ('.($linkedBooking->roomType->name ?? '').')';
+                    }
                 }
             }
 
@@ -678,7 +686,7 @@ class RegistrationController extends Controller
     public function index(Request $request)
     {
         // 1. Existing Registration Logic (Search/Filter)
-        $query = Registration::query()->with(['room', 'guest']);
+        $query = Registration::query()->with(['room', 'roomUnit', 'roomType', 'guest']);
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -686,7 +694,7 @@ class RegistrationController extends Controller
                 $q->where('full_name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('contact_number', 'like', "%{$search}%")
-                    ->orWhere('booking_reference', 'like', "%{$search}%");
+                    ->orWhereHas('booking', fn ($b) => $b->where('booking_reference', 'like', "%{$search}%"));
             });
         }
 
@@ -960,7 +968,7 @@ class RegistrationController extends Controller
         }
 
         // Load relationships for comprehensive display
-        $registration->load(['booking.roomType', 'guest']);
+        $registration->load(['booking.roomType', 'booking.roomUnit', 'roomUnit', 'roomType', 'guest']);
 
         $groupMembers = Registration::where('parent_registration_id', $registration->id)->get();
         $bookingSources = BookingSource::where('is_active', true)->get();
@@ -976,7 +984,9 @@ class RegistrationController extends Controller
                 $result = $availabilityService->getAvailableUnits(
                     $roomType->id,
                     $registration->check_in,
-                    $registration->check_out
+                    $registration->check_out,
+                    null,
+                    $registration->id
                 );
                 $roomType->setRelation('units', $result);
 
@@ -1078,7 +1088,7 @@ class RegistrationController extends Controller
                     return back()->withInput()->withErrors(['room_unit_id' => 'Please select a room for the guest.']);
                 }
 
-                if (! $availabilityService->isUnitAvailable($leadRoomUnitId, $effectiveCheckIn, $checkOutDate, $registration->id)) {
+                if (! $availabilityService->isUnitAvailable($leadRoomUnitId, $effectiveCheckIn, $checkOutDate, $registration->booking_id, $registration->id)) {
                     $roomUnit = RoomUnit::find($leadRoomUnitId);
                     $roomName = $roomUnit ? "Room {$roomUnit->room_number}" : 'Selected Room';
 
@@ -1130,7 +1140,7 @@ class RegistrationController extends Controller
                             ]);
                         }
 
-                        if (! $availabilityService->isUnitAvailable($memberRoomUnitId, $effectiveCheckIn, $checkOutDate, $member->id)) {
+                        if (! $availabilityService->isUnitAvailable($memberRoomUnitId, $effectiveCheckIn, $checkOutDate, $member->booking_id, $member->id)) {
                             $roomUnit = RoomUnit::find($memberRoomUnitId);
                             $roomName = $roomUnit ? "Room {$roomUnit->room_number}" : 'Selected Room';
 
@@ -1216,7 +1226,27 @@ class RegistrationController extends Controller
                 RoomUnit::where('id', $leadRoomUnitId)->update(['status' => 'occupied']);
 
                 // =========================================================
-                // 7. SYNC & NOTIFY
+                // 7. SYNC ONLINE PAYMENT
+                // =========================================================
+                if ($registration->booking && $registration->booking->amount_paid > 0) {
+                    $existing = $registration->payments()
+                        ->where('reference', $registration->booking->booking_reference)
+                        ->exists();
+
+                    if (! $existing) {
+                        $registration->payments()->create([
+                            'amount' => $registration->booking->amount_paid,
+                            'payment_method' => $registration->booking->payment_method ?? 'online',
+                            'payment_date' => now()->toDateString(),
+                            'reference' => $registration->booking->booking_reference,
+                            'notes' => 'Online payment synced from booking.',
+                            'received_by' => Auth::id(),
+                        ]);
+                    }
+                }
+
+                // =========================================================
+                // 8. SYNC & NOTIFY
                 // =========================================================
                 $this->syncBookingStatus($registration);
 
@@ -1462,8 +1492,8 @@ class RegistrationController extends Controller
             return redirect()->route('frontdesk.registrations.show', $registration->parent_registration_id);
         }
 
-        $registration->load('guest', 'guestType', 'bookingSource');
-        $groupMembers = Registration::where('parent_registration_id', $registration->id)->get();
+        $registration->load('guest', 'guestType', 'bookingSource', 'roomUnit', 'roomType', 'room', 'booking');
+        $groupMembers = Registration::with(['roomUnit', 'roomType', 'room'])->where('parent_registration_id', $registration->id)->get();
 
         // Calculate Group Financial Summary
         $membersBill = $groupMembers->where('stay_status', 'checked_in')->sum('total_amount');
@@ -1815,27 +1845,32 @@ class RegistrationController extends Controller
      */
     public function processBookingCheckin(Request $request, $ref)
     {
-        // 1. Fetch Booking
         $booking = Booking::where('booking_reference', $ref)->firstOrFail();
 
-        // 2. Validate Room (Ensure room is still valid)
         $request->validate([
-            'room_id' => 'required|exists:rooms,id',
+            'room_unit_id' => 'nullable|exists:room_units,id',
         ]);
 
-        $room = Room::find($request->room_id);
-        if ($room && $room->status === 'maintenance') {
-            return back()->with('error', 'The selected room is under maintenance and cannot be assigned.');
+        $roomUnit = null;
+        $autoAssigned = false;
+
+        if ($request->filled('room_unit_id')) {
+            $roomUnit = RoomUnit::findOrFail($request->room_unit_id);
+            if ($roomUnit->status === 'maintenance') {
+                return back()->with('error', 'The selected room is under maintenance and cannot be assigned.');
+            }
+        } else {
+            $assignmentService = app(RoomAssignmentService::class);
+            $roomUnit = $assignmentService->autoAssign($booking);
+
+            if (! $roomUnit) {
+                return back()->with('error', 'No room unit could be auto-assigned. Please select one manually.');
+            }
+
+            $autoAssigned = true;
         }
 
-        $legacyRoom = Room::find($request->room_id);
-        $resolvedRoomUnitId = $legacyRoom ? RoomUnit::where('room_number', $legacyRoom->name)->value('id') : null;
-
-        return DB::transaction(function () use ($booking, $request, $legacyRoom, $resolvedRoomUnitId) {
-
-            // =========================================================
-            // 3. SMART STATUS LOGIC (The Fix)
-            // =========================================================
+        return DB::transaction(function () use ($booking, $roomUnit, $autoAssigned) {
             $bookedDate = Carbon::parse($booking->check_in_date)->startOfDay();
             $today = Carbon::today();
 
@@ -1849,41 +1884,52 @@ class RegistrationController extends Controller
                 $message = 'Guest checked in successfully.';
             }
 
-            // 4. Create Registration Record
+            if ($autoAssigned) {
+                $message .= ' (Room '.$roomUnit->room_number.' auto-assigned)';
+            }
+
+            $nights = Carbon::parse($checkInTime)->diffInDays($booking->check_out_date) ?: 1;
+            $roomRate = $nights > 0 ? round($booking->total_amount / $nights, 2) : $booking->total_amount;
+
             $registration = Registration::create([
                 'guest_id' => $booking->guest_profile_id,
                 'booking_id' => $booking->id,
-                'room_id' => $request->room_id,
-                'room_unit_id' => $resolvedRoomUnitId,
-                'room_allocation' => $legacyRoom?->name,
+                'room_type_id' => $roomUnit->room_type_id,
+                'room_unit_id' => $roomUnit->id,
+                'room_allocation' => $roomUnit->room_number,
 
-                // Guest Info
                 'full_name' => $booking->guest_name,
                 'email' => $booking->guest_email,
                 'contact_number' => $booking->guest_phone,
 
-                // Timing & Status (Using Smart Logic)
                 'check_in' => $checkInTime,
                 'check_out' => $booking->check_out_date,
-                'no_of_nights' => Carbon::parse($checkInTime)->diffInDays($booking->check_out_date) ?: 1,
+                'no_of_nights' => $nights,
 
-                // Financials
-                'room_rate' => $legacyRoom?->price ?? 0,
+                'room_rate' => $roomRate,
                 'total_amount' => $booking->total_amount,
                 'stay_status' => $status,
-
                 'front_desk_agent' => Auth::user()->name,
             ]);
 
-            // 5. Update room unit status if checked in now
-            if ($status === 'checked_in' && $resolvedRoomUnitId) {
-                RoomUnit::where('id', $resolvedRoomUnitId)->update(['status' => 'occupied']);
+            if ($status === 'checked_in') {
+                $roomUnit->update(['status' => 'occupied']);
             }
 
-            // 6. Sync Online Booking Status
+            if ($booking->amount_paid > 0) {
+                $registration->payments()->create([
+                    'amount' => $booking->amount_paid,
+                    'payment_method' => $booking->payment_method ?? 'online',
+                    'payment_date' => now()->toDateString(),
+                    'reference' => $booking->booking_reference,
+                    'notes' => 'Online payment synced from booking.',
+                    'received_by' => Auth::id(),
+                ]);
+            }
+
             $booking->update([
                 'status' => $status,
-                'room_id' => $request->room_id,
+                'room_unit_id' => $roomUnit->id,
             ]);
 
             return redirect()->route('frontdesk.registrations.show', $registration)
@@ -2016,6 +2062,40 @@ class RegistrationController extends Controller
         }
 
         return back()->with('success', 'Payment recorded successfully.');
+    }
+
+    /**
+     * Post an incidental charge to the registration's folio.
+     */
+    public function postCharge(Request $request, Registration $registration)
+    {
+        $validated = $request->validate([
+            'charge_type' => 'required|string|max:50',
+            'description' => 'required|string|max:500',
+            'amount' => 'required|numeric|min:0.01',
+            'charge_date' => 'nullable|date',
+        ]);
+
+        $folio = app(FolioService::class)->ensureFolio($registration);
+        $folio->refresh();
+
+        app(FolioService::class)->postCharge($folio, [
+            'charge_type' => $validated['charge_type'],
+            'description' => $validated['description'],
+            'amount' => $validated['amount'],
+            'post_date' => $validated['charge_date'] ?? now()->toDateString(),
+        ], Auth::id());
+
+        RegistrationCharge::create([
+            'registration_id' => $registration->id,
+            'charge_type' => $validated['charge_type'],
+            'description' => $validated['description'],
+            'amount' => $validated['amount'],
+            'charge_date' => $validated['charge_date'] ?? now()->toDateString(),
+            'folio_id' => $folio->id,
+        ]);
+
+        return back()->with('success', 'Charge posted successfully.');
     }
 
     /**

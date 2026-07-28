@@ -4,22 +4,28 @@ namespace Modules\Website\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Frontdeskcrm\Models\RateCode;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Services\RoomAvailabilityService;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class RoomType extends Model implements AuditableContract
 {
-    use HasFactory, SoftDeletes, Auditable;
+    use Auditable, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',
         'slug',
         'price',
+        'rate_code_id',
         'capacity',
+        'base_occupancy',
+        'extra_adult_fee',
+        'extra_child_fee',
         'size',
         'bed_type',
         'description',
@@ -34,6 +40,9 @@ class RoomType extends Model implements AuditableContract
         'is_featured' => 'boolean',
         'is_active' => 'boolean',
         'price' => 'decimal:2',
+        'base_occupancy' => 'integer',
+        'extra_adult_fee' => 'decimal:2',
+        'extra_child_fee' => 'decimal:2',
     ];
 
     // ==========================================
@@ -43,9 +52,17 @@ class RoomType extends Model implements AuditableContract
     /**
      * Get all units (physical rooms) of this type.
      */
-    public function units()
+    public function units(): HasMany
     {
         return $this->hasMany(RoomUnit::class);
+    }
+
+    /**
+     * The rate code used for website pricing.
+     */
+    public function rateCode(): BelongsTo
+    {
+        return $this->belongsTo(RateCode::class);
     }
 
     /**
@@ -190,5 +207,36 @@ class RoomType extends Model implements AuditableContract
         $service = app(RoomAvailabilityService::class);
 
         return $service->checkRoomTypeAvailability($this->id, $checkIn, $checkOut);
+    }
+
+    /**
+     * Calculate extra guest fee per night.
+     *
+     * @return array{extra_fee_per_night: float, extra_adults: int, extra_children: int, breakdown: string}
+     */
+    public function calculateGuestFee(int $adults, int $children): array
+    {
+        $baseOccupancy = $this->base_occupancy ?? 2;
+        $extraAdults = max(0, $adults - $baseOccupancy);
+        $extraChildren = max(0, $children);
+
+        $adultFee = $extraAdults * (float) ($this->extra_adult_fee ?? 0);
+        $childFee = $extraChildren * (float) ($this->extra_child_fee ?? 0);
+        $totalFeePerNight = $adultFee + $childFee;
+
+        $parts = [];
+        if ($extraAdults > 0) {
+            $parts[] = "{$extraAdults} extra adult(s) x ₱".number_format($this->extra_adult_fee ?? 0, 2);
+        }
+        if ($extraChildren > 0) {
+            $parts[] = "{$extraChildren} child(ren) x ₱".number_format($this->extra_child_fee ?? 0, 2);
+        }
+
+        return [
+            'extra_fee_per_night' => $totalFeePerNight,
+            'extra_adults' => $extraAdults,
+            'extra_children' => $extraChildren,
+            'breakdown' => implode(' + ', $parts),
+        ];
     }
 }

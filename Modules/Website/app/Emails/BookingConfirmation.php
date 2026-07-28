@@ -35,7 +35,11 @@ class BookingConfirmation extends Mailable
             ? '[NEW BOOKING] '.$this->booking->booking_reference.' - '.$this->booking->guest_name
             : 'Booking Confirmation - '.$this->booking->booking_reference;
 
+        $view = $this->isStaffCopy
+            ? 'website::emails.booking-confirmation-staff'
+            : 'website::emails.booking-confirmation';
+
         return $this->subject($subject)
-            ->view('website::emails.booking-confirmation');
+            ->view($view);
     }
 }

@@ -11,6 +11,8 @@
     .btn-gold { background-color: #C8A165; border-color: #C8A165; color: #fff; }
     .btn-gold:hover { background-color: #b08d55; border-color: #b08d55; color: #fff; }
     .form-check-label { cursor: pointer; }
+    .recurrence-section { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 16px; }
+    .recurrence-section.disabled { opacity: 0.5; pointer-events: none; }
 </style>
 @endsection
 
@@ -63,6 +65,41 @@
                     </div>
                 </div>
 
+                {{-- Recurrence Section --}}
+                <div class="mb-3">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="isRecurring" name="is_recurring" value="1" {{ old('is_recurring', $task->is_recurring) ? 'checked' : '' }}>
+                        <label class="form-check-label fw-semibold" for="isRecurring">
+                            <i class="fas fa-redo me-1" style="color: #C8A165;"></i>Make this a recurring task
+                        </label>
+                    </div>
+                    <div class="recurrence-section {{ old('is_recurring', $task->is_recurring) ? '' : 'disabled' }}" id="recurrenceFields">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="recurrence_type" class="form-label">Repeat Every</label>
+                                <select name="recurrence_type" id="recurrence_type" class="form-select" {{ old('is_recurring', $task->is_recurring) ? '' : 'disabled' }}>
+                                    <option value="">Select frequency...</option>
+                                    <option value="daily" {{ old('recurrence_type', $task->recurrence_type) === 'daily' ? 'selected' : '' }}>Daily</option>
+                                    <option value="weekly" {{ old('recurrence_type', $task->recurrence_type) === 'weekly' ? 'selected' : '' }}>Weekly</option>
+                                    <option value="biweekly" {{ old('recurrence_type', $task->recurrence_type) === 'biweekly' ? 'selected' : '' }}>Every 2 Weeks</option>
+                                    <option value="monthly" {{ old('recurrence_type', $task->recurrence_type) === 'monthly' ? 'selected' : '' }}>Monthly</option>
+                                </select>
+                                @error('recurrence_type')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label for="recurrence_end_date" class="form-label">End Date <small class="text-muted">(optional)</small></label>
+                                <input type="date" name="recurrence_end_date" id="recurrence_end_date" class="form-control" value="{{ old('recurrence_end_date', $task->recurrence_end_date?->format('Y-m-d')) }}" {{ old('is_recurring', $task->is_recurring) ? '' : 'disabled' }}>
+                                <div class="form-text">Leave empty to recur indefinitely.</div>
+                                @error('recurrence_end_date')
+                                    <div class="text-danger small">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 @if ($canAssign)
                     <div class="mb-3">
                         <label class="form-label">Assign to Staff</label>
@@ -92,4 +129,22 @@
     </div>
 @endsection
 
+@section('page-scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggle = document.getElementById('isRecurring');
+        const fields = document.getElementById('recurrenceFields');
+        const typeSelect = document.getElementById('recurrence_type');
+        const endDate = document.getElementById('recurrence_end_date');
 
+        function updateRecurrenceUI() {
+            const enabled = toggle.checked;
+            fields.classList.toggle('disabled', !enabled);
+            typeSelect.disabled = !enabled;
+            endDate.disabled = !enabled;
+        }
+
+        toggle.addEventListener('change', updateRecurrenceUI);
+    });
+</script>
+@endsection

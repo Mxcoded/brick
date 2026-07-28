@@ -3,10 +3,19 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Frontdeskcrm\Http\Controllers\BookingSourceController;
 use Modules\Frontdeskcrm\Http\Controllers\ChannelController;
+use Modules\Frontdeskcrm\Http\Controllers\CityLedgerController;
+use Modules\Frontdeskcrm\Http\Controllers\FolioController;
 use Modules\Frontdeskcrm\Http\Controllers\GuestController;
 use Modules\Frontdeskcrm\Http\Controllers\GuestTypeController;
+use Modules\Frontdeskcrm\Http\Controllers\HousekeepingController;
+use Modules\Frontdeskcrm\Http\Controllers\InvoiceController;
 use Modules\Frontdeskcrm\Http\Controllers\KioskController;
+use Modules\Frontdeskcrm\Http\Controllers\NightAuditController;
+use Modules\Frontdeskcrm\Http\Controllers\OperationsController;
+use Modules\Frontdeskcrm\Http\Controllers\RateCodeController;
 use Modules\Frontdeskcrm\Http\Controllers\RegistrationController;
+use Modules\Frontdeskcrm\Http\Controllers\ReportController;
+use Modules\Frontdeskcrm\Http\Controllers\SeasonController;
 
 // Import the Enum
 
@@ -49,6 +58,9 @@ Route::prefix('frontdesk')
     ->middleware(['web', 'auth', 'can:access_frontdesk_dashboard']) // Updated
     ->name('frontdesk.')
     ->group(function () {
+        // --- OPERATIONS DASHBOARD ---
+        Route::get('/dashboard', [OperationsController::class, 'dashboard'])->name('dashboard');
+
         // Route to show the "Confirm Check-in" screen for an online booking
         Route::get('/bookings/{ref}/checkin', [RegistrationController::class, 'checkinFromBooking'])
             ->name('bookings.checkin');
@@ -100,6 +112,7 @@ Route::prefix('frontdesk')
 
             // --- REOPEN ROUTE (From No-Show or Checked-Out) ---
             Route::post('/{registration}/reopen', [RegistrationController::class, 'reopen'])->name('reopen');
+            Route::post('/{registration}/post-charge', [RegistrationController::class, 'postCharge'])->name('post-charge');
 
             // --- NEW "DELETE DRAFT" ROUTE (Feature) ---
             Route::delete('/{registration}', [RegistrationController::class, 'destroy'])->name('destroy');
@@ -116,6 +129,9 @@ Route::prefix('frontdesk')
 
         // Routes for managing Guest Types (e.g., Corporate, VIP).
         Route::resource('guest-types', GuestTypeController::class);
+        Route::get('guest-types/{guestType}/rate/{roomTypeId}', [GuestTypeController::class, 'negotiatedRate'])->name('guest-types.negotiated-rate');
+        Route::post('guest-types/{guestType}/rates', [GuestTypeController::class, 'storeRate'])->name('guest-types.store-rate');
+        Route::delete('guest-types/{guestType}/rates/{rate}', [GuestTypeController::class, 'destroyRate'])->name('guest-types.destroy-rate');
 
         // --- GUEST DIRECTORY MANAGEMENT ---
         Route::prefix('guests')->name('guests.')->group(function () {
@@ -137,6 +153,82 @@ Route::prefix('frontdesk')
 
             // 2. The Calendar View (Timeline)
             Route::get('/schedule', [RegistrationController::class, 'schedule'])->name('schedule');
+        });
+
+        // --- RATE CODES ---
+        Route::prefix('rate-codes')->name('rate-codes.')->group(function () {
+            Route::get('/', [RateCodeController::class, 'index'])->name('index');
+            Route::get('/create', [RateCodeController::class, 'create'])->name('create');
+            Route::post('/', [RateCodeController::class, 'store'])->name('store');
+            Route::get('/{rateCode}/edit', [RateCodeController::class, 'edit'])->name('edit');
+            Route::put('/{rateCode}', [RateCodeController::class, 'update'])->name('update');
+            Route::delete('/{rateCode}', [RateCodeController::class, 'destroy'])->name('destroy');
+            Route::get('/{rateCode}/calendar', [RateCodeController::class, 'calendar'])->name('calendar');
+            Route::post('/{rateCode}/calendar', [RateCodeController::class, 'updateCalendar'])->name('calendar.update');
+        });
+
+        // --- SEASONS ---
+        Route::resource('seasons', SeasonController::class);
+
+        // --- NIGHT AUDIT ---
+        Route::prefix('night-audit')->name('night-audit.')->group(function () {
+            Route::get('/', [NightAuditController::class, 'index'])->name('index');
+            Route::post('/run', [NightAuditController::class, 'run'])->name('run');
+            Route::get('/preview', [NightAuditController::class, 'preview'])->name('preview');
+            Route::get('/{nightAuditLog}', [NightAuditController::class, 'show'])->name('show');
+        });
+
+        // --- REPORTS ---
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [ReportController::class, 'index'])->name('index');
+            Route::get('/daily-revenue', [ReportController::class, 'dailyRevenue'])->name('daily-revenue');
+            Route::get('/arrivals-departures', [ReportController::class, 'arrivalsDepartures'])->name('arrivals-departures');
+            Route::get('/occupancy', [ReportController::class, 'occupancy'])->name('occupancy');
+        });
+
+        // --- FOLIO SYSTEM ---
+        Route::prefix('folios')->name('folios.')->group(function () {
+            Route::get('/registration/{registration}', [FolioController::class, 'index'])->name('index');
+            Route::get('/{folio}', [FolioController::class, 'show'])->name('show');
+            Route::post('/{folio}/post-charge', [FolioController::class, 'postCharge'])->name('post-charge');
+            Route::post('/{folio}/split', [FolioController::class, 'split'])->name('split');
+            Route::post('/{folio}/close', [FolioController::class, 'close'])->name('close');
+        });
+
+        // --- INVOICE ENGINE ---
+        Route::prefix('invoices')->name('invoices.')->group(function () {
+            Route::get('/', [InvoiceController::class, 'index'])->name('index');
+            Route::get('/{invoice}', [InvoiceController::class, 'show'])->name('show');
+            Route::get('/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('pdf');
+            Route::post('/from-folio/{folio}', [InvoiceController::class, 'createFromFolio'])->name('create-from-folio');
+            Route::post('/{invoice}/issue', [InvoiceController::class, 'issue'])->name('issue');
+            Route::post('/{invoice}/void', [InvoiceController::class, 'void'])->name('void');
+            Route::post('/{invoice}/credit-note', [InvoiceController::class, 'creditNote'])->name('credit-note');
+            Route::get('/receipt/{receipt}/pdf', [InvoiceController::class, 'receiptPdf'])->name('receipt.pdf');
+            Route::get('/credit-note/{creditNote}/pdf', [InvoiceController::class, 'creditNotePdf'])->name('credit-note.pdf');
+        });
+
+        // --- CITY LEDGER ---
+        Route::prefix('city-ledger')->name('city-ledger.')->group(function () {
+            Route::get('/', [CityLedgerController::class, 'index'])->name('index');
+            Route::get('/create', [CityLedgerController::class, 'create'])->name('create');
+            Route::post('/', [CityLedgerController::class, 'store'])->name('store');
+            Route::get('/aging', [CityLedgerController::class, 'aging'])->name('aging');
+            Route::get('/{cityLedgerAccount}', [CityLedgerController::class, 'show'])->name('show');
+            Route::get('/{cityLedgerAccount}/edit', [CityLedgerController::class, 'edit'])->name('edit');
+            Route::put('/{cityLedgerAccount}', [CityLedgerController::class, 'update'])->name('update');
+            Route::post('/{cityLedgerAccount}/post-charge', [CityLedgerController::class, 'postCharge'])->name('post-charge');
+            Route::post('/{cityLedgerAccount}/record-payment', [CityLedgerController::class, 'recordPayment'])->name('record-payment');
+        });
+
+        // --- HOUSEKEEPING ---
+        Route::prefix('housekeeping')->name('housekeeping.')->group(function () {
+            Route::get('/', [HousekeepingController::class, 'index'])->name('index');
+            Route::get('/tasks', [HousekeepingController::class, 'tasks'])->name('tasks');
+            Route::post('/rooms/{roomUnit}/status', [HousekeepingController::class, 'updateStatus'])->name('update-status');
+            Route::post('/rooms/{roomUnit}/create-task', [HousekeepingController::class, 'createTask'])->name('create-task');
+            Route::post('/tasks/{task}/assign', [HousekeepingController::class, 'assignTask'])->name('assign-task');
+            Route::post('/tasks/{task}/complete', [HousekeepingController::class, 'completeTask'])->name('complete-task');
         });
     });
 

@@ -2,11 +2,11 @@
 
 namespace Modules\Frontdeskcrm\Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
 use Modules\Website\Models\Booking;
-use Modules\Website\Models\Refund;
 use Modules\Website\Models\RoomType;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -29,7 +29,7 @@ class BookingRefundTest extends TestCase
             'name' => 'access_frontdesk_dashboard',
             'guard_name' => 'web',
         ]);
-        $this->user = \App\Models\User::factory()->create(['type' => 'staff', 'status' => 'active']);
+        $this->user = User::factory()->create(['type' => 'staff', 'status' => 'active']);
         $this->user->givePermissionTo($permission);
         $this->actingAs($this->user);
     }

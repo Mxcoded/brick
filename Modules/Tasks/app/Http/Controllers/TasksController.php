@@ -12,9 +12,14 @@ use Modules\Staff\Models\Employee;
 use Modules\Tasks\Models\Task;
 use Modules\Tasks\Models\TaskAssignment;
 use Modules\Tasks\Models\TaskUpdate;
+use Modules\Tasks\Services\TaskRecurrenceService;
 
 class TasksController extends Controller
 {
+    public function __construct(
+        protected TaskRecurrenceService $recurrenceService
+    ) {}
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -90,12 +95,17 @@ class TasksController extends Controller
             'deadline' => 'required|date|after_or_equal:'.Carbon::today()->toDateString(),
             'assignees' => $canAssign ? 'nullable|array' : 'nullable',
             'assignees.*' => $canAssign ? 'exists:employees,id' : '',
+            'is_recurring' => 'nullable|boolean',
+            'recurrence_type' => 'required_if:is_recurring,1|nullable|in:'.implode(',', Task::RECURRENCE_TYPES),
+            'recurrence_end_date' => 'nullable|date|after_or_equal:deadline',
         ]);
 
         $today = Carbon::today();
         $datePart = $today->format('dmy');
         $taskCount = Task::whereDate('created_at', $today)->count() + 1;
         $taskNumber = sprintf('TASK-%s-%d', $datePart, $taskCount);
+
+        $isRecurring = (bool) $request->input('is_recurring', false);
 
         $task = Task::create([
             'task_number' => $taskNumber,
@@ -104,13 +114,21 @@ class TasksController extends Controller
             'description' => $request->description,
             'priority' => $request->priority,
             'deadline' => $request->deadline,
+            'is_recurring' => $isRecurring,
+            'recurrence_type' => $isRecurring ? $request->recurrence_type : null,
+            'recurrence_end_date' => $isRecurring ? $request->recurrence_end_date : null,
         ]);
 
         TaskUpdate::create([
             'task_id' => $task->id,
             'user_id' => $user->id,
             'action' => 'created',
-            'changes' => ['description' => $request->description, 'priority' => $request->priority, 'deadline' => $request->deadline],
+            'changes' => [
+                'description' => $request->description,
+                'priority' => $request->priority,
+                'deadline' => $request->deadline,
+                'is_recurring' => $isRecurring,
+            ],
         ]);
 
         $assignedEmployeeIds = [];
@@ -145,7 +163,7 @@ class TasksController extends Controller
 
     public function show($id)
     {
-        $task = Task::with('employees', 'creator', 'updates.user', 'comments.user')->findOrFail($id);
+        $task = Task::with('employees', 'creator', 'updates.user', 'comments.user', 'parentTask', 'childTasks')->findOrFail($id);
 
         $user = Auth::user();
         $isCreator = $task->created_by === $user->id;
@@ -188,6 +206,9 @@ class TasksController extends Controller
             'deadline' => 'required|date',
             'assignees' => $canAssign ? 'nullable|array' : 'nullable',
             'assignees.*' => $canAssign ? 'exists:employees,id' : '',
+            'is_recurring' => 'nullable|boolean',
+            'recurrence_type' => 'required_if:is_recurring,1|nullable|in:'.implode(',', Task::RECURRENCE_TYPES),
+            'recurrence_end_date' => 'nullable|date',
         ]);
 
         $changes = [];
@@ -201,10 +222,28 @@ class TasksController extends Controller
             $changes['deadline'] = ['from' => $task->deadline->toDateString(), 'to' => $request->deadline];
         }
 
+        $isRecurring = (bool) $request->input('is_recurring', false);
+
+        if ($task->is_recurring !== $isRecurring) {
+            $changes['is_recurring'] = ['from' => $task->is_recurring, 'to' => $isRecurring];
+        }
+        if ($isRecurring && $task->recurrence_type !== $request->recurrence_type) {
+            $changes['recurrence_type'] = ['from' => $task->recurrence_type, 'to' => $request->recurrence_type];
+        }
+        if ($isRecurring && $task->recurrence_end_date?->toDateString() !== $request->recurrence_end_date) {
+            $changes['recurrence_end_date'] = [
+                'from' => $task->recurrence_end_date?->toDateString(),
+                'to' => $request->recurrence_end_date,
+            ];
+        }
+
         $task->update([
             'description' => $request->description,
             'priority' => $request->priority,
             'deadline' => $request->deadline,
+            'is_recurring' => $isRecurring,
+            'recurrence_type' => $isRecurring ? $request->recurrence_type : null,
+            'recurrence_end_date' => $isRecurring ? $request->recurrence_end_date : null,
         ]);
 
         if ($canAssign && $request->has('assignees')) {
@@ -265,6 +304,10 @@ class TasksController extends Controller
             'changes' => ['from' => $oldStatus, 'to' => $next],
         ]);
 
+        if ($next === 'completed') {
+            $this->recurrenceService->createNextOccurrence($task);
+        }
+
         $label = match ($next) {
             'in_progress' => 'Task is now in progress.',
             'completed' => 'Task marked complete.',
@@ -302,6 +345,10 @@ class TasksController extends Controller
             'action' => 'status_changed',
             'changes' => ['from' => $oldStatus, 'to' => $request->status],
         ]);
+
+        if ($request->status === 'completed' && $oldStatus !== 'completed') {
+            $this->recurrenceService->createNextOccurrence($task);
+        }
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -370,6 +417,11 @@ class TasksController extends Controller
                 'action' => 'bulk_status_changed',
                 'changes' => ['from' => $oldStatus, 'to' => $request->status],
             ]);
+
+            if ($request->status === 'completed' && $oldStatus !== 'completed') {
+                $this->recurrenceService->createNextOccurrence($task);
+            }
+
             $count++;
         }
 

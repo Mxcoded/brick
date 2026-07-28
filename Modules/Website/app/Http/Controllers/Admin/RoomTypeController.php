@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Modules\Frontdeskcrm\Models\RateCode;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Models\Amenity;
 use Modules\Website\Models\Booking;
@@ -47,8 +48,9 @@ class RoomTypeController extends Controller
     public function create()
     {
         $amenities = Amenity::all();
+        $rateCodes = RateCode::where('is_active', true)->orderBy('name')->get();
 
-        return view('website::admin.room-types.create', compact('amenities'));
+        return view('website::admin.room-types.create', compact('amenities', 'rateCodes'));
     }
 
     /**
@@ -61,6 +63,10 @@ class RoomTypeController extends Controller
                 'name' => 'required|string|max:255|unique:room_types,name',
                 'price' => 'required|numeric|min:0',
                 'capacity' => 'required|integer|min:1',
+                'base_occupancy' => 'nullable|integer|min:1',
+                'extra_adult_fee' => 'nullable|numeric|min:0',
+                'extra_child_fee' => 'nullable|numeric|min:0',
+                'rate_code_id' => 'nullable|integer|exists:rate_codes,id',
                 'size' => 'nullable|string',
                 'bed_type' => 'nullable|string',
                 'description' => 'required|string',
@@ -177,8 +183,9 @@ class RoomTypeController extends Controller
     {
         $roomType = RoomType::with(['images', 'amenities', 'units'])->findOrFail($id);
         $amenities = Amenity::all();
+        $rateCodes = RateCode::where('is_active', true)->orderBy('name')->get();
 
-        return view('website::admin.room-types.edit', compact('roomType', 'amenities'));
+        return view('website::admin.room-types.edit', compact('roomType', 'amenities', 'rateCodes'));
     }
 
     /**
@@ -193,6 +200,10 @@ class RoomTypeController extends Controller
                 'name' => 'required|string|max:255|unique:room_types,name,'.$id,
                 'price' => 'required|numeric|min:0',
                 'capacity' => 'required|integer|min:1',
+                'base_occupancy' => 'nullable|integer|min:1',
+                'extra_adult_fee' => 'nullable|numeric|min:0',
+                'extra_child_fee' => 'nullable|numeric|min:0',
+                'rate_code_id' => 'nullable|integer|exists:rate_codes,id',
                 'size' => 'nullable|string',
                 'bed_type' => 'nullable|string',
                 'description' => 'required|string',

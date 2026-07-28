@@ -471,12 +471,60 @@
             border: 1px solid #eee;
         }
 
-        .guest-count-box input[type="number"] {
-            border-radius: 8px;
-            border: 1.5px solid #e5e7eb;
-            text-align: center;
+        .occupancy-bar {
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .occupancy-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--brand-gold), var(--brand-gold-dark));
+            transition: width 0.4s ease, background 0.3s ease;
+        }
+
+        .occupancy-bar-fill.occupancy-warning {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+
+        .occupancy-bar-fill.occupancy-full {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+
+        .occupancy-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--brand-dark);
+        }
+
+        .occupancy-count {
+            font-size: 0.75rem;
             font-weight: 700;
-            width: 80px;
+            color: var(--brand-gold-dark);
+        }
+
+        .occupancy-fee-hint {
+            font-size: 0.75rem;
+            color: #d97706;
+            font-weight: 600;
+        }
+
+        .max-capacity-badge {
+            background: linear-gradient(135deg, var(--brand-gold), var(--brand-gold-dark));
+            color: #fff;
+            padding: 0.4rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(200, 161, 101, 0.3);
+            animation: capacityBadgePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes capacityBadgePulse {
+            0%, 100% { box-shadow: 0 4px 12px rgba(200, 161, 101, 0.3); }
+            50% { box-shadow: 0 4px 18px rgba(200, 161, 101, 0.5); }
         }
 
         @media (max-width: 991px) {
@@ -1072,6 +1120,9 @@
                                                     data-image="{{ $roomOption->image_url }}"
                                                     data-name="{{ $roomOption->name }}"
                                                     data-capacity="{{ $roomOption->capacity }}"
+                                                    data-base-occupancy="{{ $roomOption->base_occupancy ?? 2 }}"
+                                                    data-extra-adult-fee="{{ $roomOption->extra_adult_fee ?? 0 }}"
+                                                    data-extra-child-fee="{{ $roomOption->extra_child_fee ?? 0 }}"
                                                     data-units="{{ $roomOption->units_count }}">
                                                     <img src="{{ $roomOption->image_url ?? asset('images/default-room.jpg') }}"
                                                         alt="{{ $roomOption->name }}" class="card-img-top" loading="lazy"
@@ -1093,6 +1144,9 @@
                                                     data-image="{{ $roomOption->image_url }}"
                                                     data-name="{{ $roomOption->name }}"
                                                     data-capacity="{{ $roomOption->capacity }}"
+                                                    data-base-occupancy="{{ $roomOption->base_occupancy ?? 2 }}"
+                                                    data-extra-adult-fee="{{ $roomOption->extra_adult_fee ?? 0 }}"
+                                                    data-extra-child-fee="{{ $roomOption->extra_child_fee ?? 0 }}"
                                                     data-units="{{ $roomOption->units_count }}"
                                                     {{ $reqRoomTypeId == $roomOption->id ? 'selected' : '' }}>
                                                 </option>
@@ -1257,32 +1311,57 @@
                         <div class="form-section-body">
                             <div class="row g-3">
                                 <div class="col-12">
-                                    <div class="guest-count-box d-flex align-items-center gap-4 flex-wrap">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <label class="form-label mb-0 text-nowrap">Adults</label>
-                                            <div class="guest-stepper">
-                                                <button type="button" class="step-dec" data-target="adults"
-                                                    aria-label="Decrease adults">−</button>
-                                                <input type="number" name="adults" id="adults"
-                                                    value="{{ old('adults', 1) }}" min="1" max="20"
-                                                    required readonly>
-                                                <button type="button" class="step-inc" data-target="adults"
-                                                    aria-label="Increase adults">+</button>
+                                    <div class="guest-count-box">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+                                            <div class="d-flex align-items-center gap-4 flex-wrap">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <label class="form-label mb-0 text-nowrap">Adults</label>
+                                                    <div class="guest-stepper">
+                                                        <button type="button" class="step-dec" data-target="adults"
+                                                            aria-label="Decrease adults">−</button>
+                                                        <input type="number" name="adults" id="adults"
+                                                            value="{{ old('adults', 1) }}" min="1" max="{{ $selectedRoomType->capacity ?? 2 }}"
+                                                            required readonly>
+                                                        <button type="button" class="step-inc" data-target="adults"
+                                                            aria-label="Increase adults">+</button>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <label class="form-label mb-0 text-nowrap">Children</label>
+                                                    <div class="guest-stepper">
+                                                        <button type="button" class="step-dec" data-target="children"
+                                                            aria-label="Decrease children">−</button>
+                                                        <input type="number" name="children" id="children"
+                                                            value="{{ old('children', 0) }}" min="0" max="{{ ($selectedRoomType->capacity ?? 2) - 1 }}"
+                                                            readonly>
+                                                        <button type="button" class="step-inc" data-target="children"
+                                                            aria-label="Increase children">+</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="max-capacity-badge" id="maxCapacityBadge" style="display: none;">
+                                                <i class="fas fa-users me-1"></i>Max <span id="maxCapacityValue">-</span> guests
                                             </div>
                                         </div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <label class="form-label mb-0 text-nowrap">Children</label>
-                                            <div class="guest-stepper">
-                                                <button type="button" class="step-dec" data-target="children"
-                                                    aria-label="Decrease children">−</button>
-                                                <input type="number" name="children" id="children"
-                                                    value="{{ old('children', 0) }}" min="0" max="20"
-                                                    readonly>
-                                                <button type="button" class="step-inc" data-target="children"
-                                                    aria-label="Increase children">+</button>
+                                        <div class="occupancy-bar-wrap">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="occupancy-label" id="occupancyLabel">
+                                                    <i class="fas fa-bed me-1"></i>Select a room
+                                                </span>
+                                                <span class="occupancy-count" id="occupancyCount"></span>
+                                            </div>
+                                            <div class="occupancy-bar">
+                                                <div class="occupancy-bar-fill" id="occupancyBarFill" style="width: 0%"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                                <small class="text-muted" id="capacityHint">
+                                                    <i class="fas fa-info-circle me-1"></i>Pick a room above to see occupancy &amp; fees
+                                                </small>
+                                                <small class="occupancy-fee-hint d-none" id="guestFeeHint"></small>
                                             </div>
                                         </div>
                                     </div>
+                                    <div id="capacityError" class="text-danger small mt-2 d-none"></div>
                                 </div>
                                 <div class="col-12">
                                     <div class="special-requests-box">
@@ -1507,6 +1586,10 @@
                                 <span class="text-muted">Guests</span>
                                 <span class="fw-bold" id="summary-guests">1 Adult</span>
                             </div>
+                            <div class="d-flex justify-content-between small mb-2 d-none" id="guest-fee-row">
+                                <span class="text-muted">Guest Fee</span>
+                                <span id="summary-guest-fee">₦0.00</span>
+                            </div>
 
                             <hr class="my-3">
 
@@ -1653,7 +1736,7 @@
             }
 
             function calculateNights() {
-                if (checkInInput.value && checkOutInput.value) {
+                if (checkInInput?.value && checkOutInput?.value) {
                     const start = new Date(checkInInput.value);
                     const end = new Date(checkOutInput.value);
                     if (end > start) {
@@ -1669,19 +1752,125 @@
                 if (!roomSelect) return;
                 const selectedOption = roomSelect.options[roomSelect.selectedIndex];
 
-                if (summaryCheckIn) summaryCheckIn.textContent = formatDate(checkInInput.value);
-                if (summaryCheckOut) summaryCheckOut.textContent = formatDate(checkOutInput.value);
+                if (summaryCheckIn && checkInInput?.value) summaryCheckIn.textContent = formatDate(checkInInput.value);
+                if (summaryCheckOut && checkOutInput?.value) summaryCheckOut.textContent = formatDate(checkOutInput.value);
 
                 const nights = calculateNights();
                 if (summaryNights) summaryNights.textContent = nights;
 
                 if (selectedOption.value) {
                     const price = parseFloat(selectedOption.dataset.price);
+                    const capacity = parseInt(selectedOption.dataset.capacity || 2);
+                    const baseOccupancy = parseInt(selectedOption.dataset.baseOccupancy || 2);
+                    const extraAdultFee = parseFloat(selectedOption.dataset.extraAdultFee || 0);
+                    const extraChildFee = parseFloat(selectedOption.dataset.extraChildFee || 0);
 
                     if (summaryName) summaryName.textContent = selectedOption.dataset.name;
-                    if (summaryCapacity) summaryCapacity.textContent = selectedOption.dataset.capacity;
+                    if (summaryCapacity) summaryCapacity.textContent = capacity;
                     if (summaryRate) summaryRate.textContent = formatMoney(price);
-                    if (summaryTotal) setMoneyAnimated(summaryTotal, price * nights);
+
+                    // Update stepper max based on capacity
+                    const adultsInput = document.getElementById('adults');
+                    const childrenInput = document.getElementById('children');
+                    const maxCapacityBadge = document.getElementById('maxCapacityBadge');
+                    const maxCapacityValue = document.getElementById('maxCapacityValue');
+                    
+                    // Show max capacity badge
+                    if (maxCapacityBadge && maxCapacityValue) {
+                        maxCapacityBadge.style.display = 'inline-block';
+                        maxCapacityValue.textContent = capacity;
+                    }
+                    
+                    if (adultsInput) {
+                        adultsInput.max = capacity;
+                        if (parseInt(adultsInput.value) > capacity) adultsInput.value = capacity;
+                    }
+                    if (childrenInput) {
+                        const maxChildren = Math.max(0, capacity - parseInt(adultsInput?.value || 1));
+                        childrenInput.max = maxChildren;
+                        if (parseInt(childrenInput.value) > maxChildren) childrenInput.value = maxChildren;
+                    }
+                    syncSteppers();
+
+                    // ── Occupancy bar ──
+                    const adults = parseInt(adultsInput?.value || 1);
+                    const children = parseInt(childrenInput?.value || 0);
+                    const totalGuests = adults + children;
+                    const pct = Math.min(100, Math.round((totalGuests / capacity) * 100));
+                    const occBar = document.getElementById('occupancyBarFill');
+                    const occLabel = document.getElementById('occupancyLabel');
+                    const occCount = document.getElementById('occupancyCount');
+                    const feeHint = document.getElementById('guestFeeHint');
+                    if (occBar) {
+                        occBar.style.width = pct + '%';
+                        occBar.classList.toggle('occupancy-warning', pct >= 75 && pct < 100);
+                        occBar.classList.toggle('occupancy-full', pct >= 100);
+                    }
+                    if (occLabel) {
+                        const parts = [];
+                        if (adults > 0) parts.push(adults + ' Adult' + (adults !== 1 ? 's' : ''));
+                        if (children > 0) parts.push(children + ' Child' + (children !== 1 ? 'ren' : ''));
+                        occLabel.innerHTML = '<i class="fas fa-bed me-1"></i>' + parts.join(' + ');
+                    }
+                    if (occCount) {
+                        const remaining = capacity - totalGuests;
+                        if (remaining > 0) {
+                            occCount.textContent = remaining + ' spot' + (remaining !== 1 ? 's' : '') + ' left';
+                            occCount.style.color = '';
+                        } else if (remaining === 0) {
+                            occCount.textContent = 'Full';
+                            occCount.style.color = '#ef4444';
+                        } else {
+                            occCount.textContent = 'Over capacity!';
+                            occCount.style.color = '#ef4444';
+                        }
+                    }
+
+                    // Guest fee hint
+                    const extraAdults = Math.max(0, adults - baseOccupancy);
+                    const extraChildren = children;
+                    const guestFeePerNight = (extraAdults * extraAdultFee) + (extraChildren * extraChildFee);
+                    if (feeHint) {
+                        if (guestFeePerNight > 0) {
+                            feeHint.classList.remove('d-none');
+                            feeHint.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Extra ₦' + guestFeePerNight.toLocaleString() + '/night for extra guest' + ((extraAdults + extraChildren) !== 1 ? 's' : '');
+                        } else {
+                            feeHint.classList.add('d-none');
+                        }
+                    }
+                    
+                    // Update capacity hint with room info
+                    const capacityHint = document.getElementById('capacityHint');
+                    if (capacityHint) {
+                        if (baseOccupancy < capacity && (extraAdultFee > 0 || extraChildFee > 0)) {
+                            capacityHint.innerHTML = '<i class="fas fa-info-circle me-1"></i>Base occupancy: ' + baseOccupancy + ' guests. Extra fees apply for additional guests.';
+                        } else {
+                            capacityHint.innerHTML = '<i class="fas fa-info-circle me-1"></i>Room capacity: ' + capacity + ' guests max.';
+                        }
+                    }
+
+                    const guestFeeTotal = guestFeePerNight * nights;
+                    const baseTotal = price * nights;
+                    const total = baseTotal + guestFeeTotal;
+
+                    // Update guest fee row
+                    const guestFeeRow = document.getElementById('guest-fee-row');
+                    const guestFeeEl = document.getElementById('summary-guest-fee');
+                    if (guestFeeRow && guestFeeEl) {
+                        if (guestFeeTotal > 0) {
+                            guestFeeRow.classList.remove('d-none');
+                            guestFeeEl.textContent = formatMoney(guestFeeTotal);
+                        } else {
+                            guestFeeRow.classList.add('d-none');
+                        }
+                    }
+
+                    // For cart flow: price/total will be set by AJAX response (server-side pricing)
+                    // For non-cart flow: compute client-side
+                    const isCartFlow = bookingForm && bookingForm.hasAttribute('data-cart-flow');
+                    if (!isCartFlow) {
+                        if (summaryTotal) setMoneyAnimated(summaryTotal, total);
+                    }
 
                     if (summaryImage && selectedOption.dataset.image) {
                         summaryImage.src = selectedOption.dataset.image;
@@ -1690,6 +1879,20 @@
 
                     checkAvailability();
                     loadAvailableUnits();
+                } else {
+                    // No room selected — clear occupancy bar and hide capacity badge
+                    const occBar = document.getElementById('occupancyBarFill');
+                    const occLabel = document.getElementById('occupancyLabel');
+                    const occCount = document.getElementById('occupancyCount');
+                    const maxCapacityBadge = document.getElementById('maxCapacityBadge');
+                    if (occBar) { occBar.style.width = '0%'; occBar.classList.remove('occupancy-warning', 'occupancy-full'); }
+                    if (occLabel) occLabel.innerHTML = '<i class="fas fa-bed me-1"></i>Select a room';
+                    if (occCount) { occCount.textContent = ''; occCount.style.color = ''; }
+                    if (maxCapacityBadge) maxCapacityBadge.style.display = 'none';
+                    const feeHint = document.getElementById('guestFeeHint');
+                    if (feeHint) feeHint.classList.add('d-none');
+                    const capacityHint = document.getElementById('capacityHint');
+                    if (capacityHint) capacityHint.innerHTML = '<i class="fas fa-info-circle me-1"></i>Choose a room to see occupancy';
                 }
             }
 
@@ -1908,21 +2111,119 @@
             }
 
             // Guest steppers
+            function syncSteppers() {
+                document.querySelectorAll('.guest-stepper').forEach(stepper => {
+                    const input = stepper.querySelector('input[type="number"]');
+                    const min = parseInt(input.min, 10) || 0;
+                    const max = parseInt(input.max, 10) || 20;
+                    const v = parseInt(input.value, 10) || min;
+                    stepper.querySelector('.step-dec').disabled = v <= min;
+                    stepper.querySelector('.step-inc').disabled = v >= max;
+                });
+            }
+
+            // Debounced AJAX call to persist guest counts to cart session
+            let _guestSyncTimer = null;
+            function persistGuestCountsToCart() {
+                if (!bookingForm || !bookingForm.hasAttribute('data-cart-flow')) return;
+                const roomTypeId = document.getElementById('room_type_id')?.value;
+                if (!roomTypeId) return;
+                const adults = parseInt(document.getElementById('adults')?.value || 1);
+                const children = parseInt(document.getElementById('children')?.value || 0);
+                clearTimeout(_guestSyncTimer);
+                _guestSyncTimer = setTimeout(() => {
+                    fetch('{{ route("website.cart.update-guests") }}', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ room_type_id: roomTypeId, adults, children }),
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && data.item) {
+                            const item = data.item;
+                            // Fix: Use correct element IDs with hyphens
+                            const rateEl = document.getElementById('summary-rate');
+                            const totalEl = document.getElementById('summary-total');
+                            const guestFeeRow = document.getElementById('guest-fee-row');
+                            const guestFeeEl = document.getElementById('summary-guest-fee');
+                            const guestsSummaryEl = document.getElementById('summary-guests');
+
+                            if (rateEl && item.price_per_night != null) rateEl.textContent = formatMoney(item.price_per_night);
+                            if (totalEl && item.total_rate != null) setMoneyAnimated(totalEl, item.total_rate);
+
+                            if (guestFeeRow && guestFeeEl) {
+                                if (item.guest_fee_total > 0) {
+                                    guestFeeRow.classList.remove('d-none');
+                                    guestFeeEl.textContent = formatMoney(item.guest_fee_total);
+                                } else {
+                                    guestFeeRow.classList.add('d-none');
+                                }
+                            }
+                            
+                            // Update guest summary display
+                            if (guestsSummaryEl) {
+                                const parts = [];
+                                if (item.adults > 0) parts.push(item.adults + (item.adults === 1 ? ' Adult' : ' Adults'));
+                                if (item.children > 0) parts.push(item.children + (item.children === 1 ? ' Child' : ' Children'));
+                                guestsSummaryEl.textContent = parts.join(', ') || '1 Adult';
+                            }
+                        }
+                    })
+                    .catch(() => {});
+                }, 200);
+            }
+
             document.querySelectorAll('.guest-stepper').forEach(stepper => {
                 const input = stepper.querySelector('input[type="number"]');
-                const min = parseInt(input.min, 10) || 0;
-                const max = parseInt(input.max, 10) || 20;
+                const getMin = () => parseInt(input.min, 10) || 0;
+                const getMax = () => parseInt(input.max, 10) || 20;
                 const sync = () => {
+                    const min = getMin();
+                    const max = getMax();
                     const v = parseInt(input.value, 10) || min;
                     stepper.querySelector('.step-dec').disabled = v <= min;
                     stepper.querySelector('.step-inc').disabled = v >= max;
                     updateProgressBar();
+                    updateSummary();
+                    updateGuestSummary();
+                    updateReviewStrip();
+                    // Update children max based on remaining capacity after adults
+                    const adultsInput = document.getElementById('adults');
+                    const childrenInput = document.getElementById('children');
+                    if (adultsInput && childrenInput) {
+                        const capacity = parseInt(roomSelect?.options[roomSelect.selectedIndex]?.dataset?.capacity || 20);
+                        childrenInput.max = Math.max(0, capacity - parseInt(adultsInput.value || 1));
+                        if (parseInt(childrenInput.value) > parseInt(childrenInput.max)) childrenInput.value = childrenInput.max;
+                        // Validate capacity
+                        const totalGuests = parseInt(adultsInput.value || 1) + parseInt(childrenInput.value || 0);
+                        const capacityError = document.getElementById('capacityError');
+                        if (totalGuests > capacity) {
+                            if (capacityError) {
+                                capacityError.textContent = `Total guests (${totalGuests}) exceed room capacity (${capacity})`;
+                                capacityError.classList.remove('d-none');
+                            }
+                            document.getElementById('submitBtn').disabled = true;
+                        } else {
+                            if (capacityError) capacityError.classList.add('d-none');
+                            document.getElementById('submitBtn').disabled = false;
+                        }
+                    }
+                    syncSteppers();
+                    // Persist guest counts to cart session (server-side)
+                    persistGuestCountsToCart();
                 };
                 stepper.querySelector('.step-dec').addEventListener('click', () => {
+                    const min = getMin();
                     input.value = Math.max(min, (parseInt(input.value, 10) || min) - 1);
                     sync();
                 });
                 stepper.querySelector('.step-inc').addEventListener('click', () => {
+                    const max = getMax();
+                    const min = getMin();
                     input.value = Math.min(max, (parseInt(input.value, 10) || min) + 1);
                     sync();
                 });
@@ -1934,6 +2235,7 @@
                 updateProgressBar();
                 updateStepIndicator();
                 updateReviewStrip();
+                updateSummary();
             }
             if (bookingForm) {
                 bookingForm.querySelectorAll('input, select, textarea').forEach(el => {
@@ -2070,15 +2372,14 @@
 
             // ── Room card selection ──
             const roomCards = document.querySelectorAll('.room-card');
-            const hiddenSelect = document.getElementById('room_type_id');
             roomCards.forEach(card => {
                 card.addEventListener('click', function() {
                     roomCards.forEach(c => c.classList.remove('selected'));
                     this.classList.add('selected');
                     const id = this.dataset.roomTypeId;
-                    if (hiddenSelect) {
-                        hiddenSelect.value = id;
-                        hiddenSelect.dispatchEvent(new Event('change'));
+                    if (roomSelect) {
+                        roomSelect.value = id;
+                        roomSelect.dispatchEvent(new Event('change'));
                     }
                 });
             });
@@ -2123,13 +2424,22 @@
                 const total = document.getElementById('reviewTotal');
                 if (!roomName) return;
 
-                const opt = hiddenSelect?.options[hiddenSelect.selectedIndex];
+                const opt = roomSelect?.options[roomSelect.selectedIndex];
                 if (opt && opt.value) {
                     roomName.textContent = opt.dataset.name || 'Room';
                     if (total) {
                         const price = parseFloat(opt.dataset.price || 0);
-                        const n = parseInt(nights?.textContent || 1);
-                        total.textContent = '₦' + (price * n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        const n = calculateNights();
+                        const baseOccupancy = parseInt(opt.dataset.baseOccupancy || 2);
+                        const extraAdultFee = parseFloat(opt.dataset.extraAdultFee || 0);
+                        const extraChildFee = parseFloat(opt.dataset.extraChildFee || 0);
+                        const adults = parseInt(document.getElementById('adults')?.value || 1);
+                        const children = parseInt(document.getElementById('children')?.value || 0);
+                        const extraAdults = Math.max(0, adults - baseOccupancy);
+                        const extraChildren = children;
+                        const guestFeePerNight = (extraAdults * extraAdultFee) + (extraChildren * extraChildFee);
+                        const totalVal = (price * n) + (guestFeePerNight * n);
+                        total.textContent = '₦' + totalVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     }
                 } else {
                     roomName.textContent = 'Select a room';

@@ -40,6 +40,23 @@ class BookingPaymentFlowTest extends TestCase
 
         // Isolate from any gateway rows committed by other suites in the shared test DB.
         PaymentGateway::query()->delete();
+
+        // Set reservations email so sendConfirmationEmail dispatches the staff copy.
+        config(['mail.reservations_email' => 'rsv@brickspoint.com']);
+
+        // Seed the ChartOfAccount records required by the webhook finance integration.
+        if (! ChartOfAccount::where('code', '1110')->exists()) {
+            ChartOfAccount::create([
+                'code' => '1110', 'name' => 'Paystack Clearing', 'type' => 'asset',
+                'normal_balance' => 'debit', 'active' => true,
+            ]);
+        }
+        if (! ChartOfAccount::where('code', '4000')->exists()) {
+            ChartOfAccount::create([
+                'code' => '4000', 'name' => 'Room Revenue', 'type' => 'income',
+                'normal_balance' => 'credit', 'active' => true,
+            ]);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────

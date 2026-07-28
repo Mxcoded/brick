@@ -17,9 +17,11 @@ class UpdateGuestTypeRequest extends FormRequest
         return [
             'name' => 'required|string|max:255|unique:guest_types,name,'.$this->guestType->id,
             'description' => 'nullable|string|max:500',
-            'color' => 'nullable|string|max:7', // Hex color
+            'color' => 'nullable|string|max:7',
             'discount_rate' => 'nullable|numeric|min:0|max:100',
             'is_active' => 'boolean',
+            'valid_from' => 'nullable|date',
+            'valid_to' => 'nullable|date|after_or_equal:valid_from',
         ];
     }
 }

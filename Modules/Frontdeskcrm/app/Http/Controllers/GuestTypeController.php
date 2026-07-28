@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Modules\Frontdeskcrm\Http\Requests\StoreGuestTypeRequest;
 use Modules\Frontdeskcrm\Http\Requests\UpdateGuestTypeRequest;
 use Modules\Frontdeskcrm\Models\GuestType;
+use Modules\Frontdeskcrm\Models\GuestTypeRate;
+use Modules\Website\Models\RoomType;
 
 class GuestTypeController extends Controller
 {
@@ -20,7 +22,9 @@ class GuestTypeController extends Controller
 
     public function create()
     {
-        return view('frontdeskcrm::guest-types.create');
+        $roomTypes = RoomType::all();
+
+        return view('frontdeskcrm::guest-types.create', compact('roomTypes'));
     }
 
     public function store(StoreGuestTypeRequest $request)
@@ -34,14 +38,18 @@ class GuestTypeController extends Controller
     {
         $guestType->load(['registrations' => function ($query) {
             $query->with('guest')->where('stay_status', 'checked_out');
-        }]);
+        }, 'rates.roomType']);
 
-        return view('frontdeskcrm::guest-types.show', compact('guestType'));
+        $roomTypes = RoomType::all();
+
+        return view('frontdeskcrm::guest-types.show', compact('guestType', 'roomTypes'));
     }
 
     public function edit(GuestType $guestType)
     {
-        return view('frontdeskcrm::guest-types.edit', compact('guestType'));
+        $roomTypes = RoomType::all();
+
+        return view('frontdeskcrm::guest-types.edit', compact('guestType', 'roomTypes'));
     }
 
     public function update(UpdateGuestTypeRequest $request, GuestType $guestType)
@@ -59,5 +67,39 @@ class GuestTypeController extends Controller
         $guestType->delete();
 
         return redirect()->route('frontdesk.guest-types.index')->with('success', 'Guest type deleted.');
+    }
+
+    public function negotiatedRate(GuestType $guestType, int $roomTypeId)
+    {
+        $result = $guestType->getNegotiatedRate($roomTypeId);
+
+        return response()->json($result);
+    }
+
+    public function storeRate(Request $request, GuestType $guestType)
+    {
+        $validated = $request->validate([
+            'room_type_id' => 'required|exists:room_types,id',
+            'rate' => 'required|numeric|min:0',
+            'valid_from' => 'nullable|date',
+            'valid_to' => 'nullable|date|after_or_equal:valid_from',
+        ]);
+
+        $validated['guest_type_id'] = $guestType->id;
+        $validated['is_active'] = true;
+
+        GuestTypeRate::create($validated);
+
+        return redirect()->route('frontdesk.guest-types.show', $guestType)->with('success', 'Negotiated rate added.');
+    }
+
+    public function destroyRate(GuestType $guestType, GuestTypeRate $rate)
+    {
+        if ($rate->guest_type_id !== $guestType->id) {
+            return back()->with('error', 'Invalid rate entry.');
+        }
+        $rate->delete();
+
+        return redirect()->route('frontdesk.guest-types.show', $guestType)->with('success', 'Negotiated rate removed.');
     }
 }

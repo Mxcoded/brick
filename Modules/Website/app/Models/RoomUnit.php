@@ -22,6 +22,13 @@ class RoomUnit extends Model implements AuditableContract
         'floor',
         'status',
         'notes',
+        'housekeeping_status',
+        'last_cleaned_at',
+        'last_cleaned_by',
+    ];
+
+    protected $casts = [
+        'last_cleaned_at' => 'datetime',
     ];
 
     // ==========================================
@@ -68,6 +75,18 @@ class RoomUnit extends Model implements AuditableContract
         }
 
         return $this->hasOne(Booking::class)->whereRaw('1 = 0');
+    }
+
+    /**
+     * Get housekeeping tasks for this room.
+     */
+    public function housekeepingTasks()
+    {
+        if (class_exists(\Modules\Frontdeskcrm\Models\HousekeepingTask::class)) {
+            return $this->hasMany(\Modules\Frontdeskcrm\Models\HousekeepingTask::class);
+        }
+
+        return $this->hasMany(Booking::class)->whereRaw('1 = 0');
     }
 
     // ==========================================

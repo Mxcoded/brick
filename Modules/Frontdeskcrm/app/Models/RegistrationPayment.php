@@ -5,13 +5,12 @@ namespace Modules\Frontdeskcrm\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class RegistrationPayment extends Model implements AuditableContract
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
         'registration_id',
@@ -36,5 +35,10 @@ class RegistrationPayment extends Model implements AuditableContract
     public function receiver()
     {
         return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function receipt()
+    {
+        return $this->hasOne(Receipt::class, 'payment_id');
     }
 }

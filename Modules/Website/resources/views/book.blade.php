@@ -67,17 +67,21 @@
                 {{-- Room Types Grid --}}
                 <div class="col-lg-8">
                     {{-- Sort & Results Count --}}
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <div class="text-muted">
                             <span id="resultsCount">{{ $roomTypes->count() }}</span> Room Types Available
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                            <label class="small text-muted mb-0">Sort by:</label>
+                            <div class="position-relative">
+                                <input type="text" id="roomSearchInput" class="form-control form-control-sm"
+                                    placeholder="Search rooms..." style="width: 180px; padding-left: 2rem;">
+                                <i class="fas fa-search position-absolute" style="left: 0.75rem; top: 50%; transform: translateY(-50%); color: #999; font-size: 0.8rem;"></i>
+                            </div>
                             <select id="sortBy" class="form-select form-select-sm" style="width: auto;">
-                                <option value="default">Default</option>
-                                <option value="price_asc">Price (Low to High)</option>
-                                <option value="price_desc">Price (High to Low)</option>
-                                <option value="name_asc">Name (A to Z)</option>
+                                <option value="default">Sort by</option>
+                                <option value="price_asc">Price ↑</option>
+                                <option value="price_desc">Price ↓</option>
+                                <option value="name_asc">Name A-Z</option>
                             </select>
                         </div>
                     </div>
@@ -86,7 +90,7 @@
                     <div id="roomCardsContainer">
                         @forelse ($roomTypes as $roomType)
                             <div class="room-card card border-0 shadow-sm mb-4" data-room-id="{{ $roomType->id }}"
-                                 data-price="{{ $roomType->price }}" data-name="{{ $roomType->name }}">
+                                 data-price="{{ $roomType->price }}" data-name="{{ $roomType->name }}" data-capacity="{{ $roomType->capacity }}">
                                 <div class="row g-0">
                                     {{-- Room Image --}}
                                     <div class="col-md-4 position-relative">
@@ -175,13 +179,16 @@
                                                     </select>
                                                 </div>
                                                 @if($canBook)
-                                                    <button type="button" 
-                                                            class="btn btn-primary select-room-btn"
-                                                            data-room-id="{{ $roomType->id }}"
-                                                            data-room-name="{{ $roomType->name }}"
-                                                            data-room-price="{{ $roomType->price }}"
-                                                            data-room-capacity="{{ $roomType->capacity }}"
-                                                            data-room-image="{{ $roomType->image_url }}">
+                                        <button type="button" 
+                                                class="btn btn-primary select-room-btn"
+                                                data-room-id="{{ $roomType->id }}"
+                                                data-room-name="{{ $roomType->name }}"
+                                                data-room-price="{{ $roomType->price }}"
+                                                data-room-capacity="{{ $roomType->capacity }}"
+                                                data-base-occupancy="{{ $roomType->base_occupancy ?? 2 }}"
+                                                data-extra-adult-fee="{{ $roomType->extra_adult_fee ?? 0 }}"
+                                                data-extra-child-fee="{{ $roomType->extra_child_fee ?? 0 }}"
+                                                data-room-image="{{ $roomType->image_url }}">
                                                         <i class="fas fa-plus me-1"></i> Select Room
                                                     </button>
                                                 @else
@@ -314,6 +321,19 @@
             <span class="visually-hidden">Loading...</span>
         </div>
     </div>
+
+    {{-- Mobile Sticky Checkout Bar --}}
+    <div id="mobileCheckoutBar" class="mobile-checkout-bar d-lg-none" style="display: none;">
+        <div class="mobile-checkout-bar-inner">
+            <div class="mobile-checkout-info">
+                <span class="mobile-checkout-total" id="mobileCartTotal">{{ $cart['formatted_total'] }}</span>
+                <span class="mobile-checkout-rooms"><span id="mobileCartRooms">{{ $cart['total_rooms'] }}</span> room(s)</span>
+            </div>
+            <a href="{{ route('website.booking') }}" id="mobileContinueBtn" class="btn btn-primary btn-lg">
+                <i class="fas fa-arrow-right me-2"></i> Continue
+            </a>
+        </div>
+    </div>
     </div>
     <style>
         .booking-section {
@@ -354,7 +374,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            z-index: 10000;
         }
         #loadingOverlay.d-none {
             display: none !important;
@@ -362,6 +382,40 @@
         .select-room-btn.added {
             background-color: #198754 !important;
             border-color: #198754 !important;
+        }
+        .mobile-checkout-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999;
+            background: rgba(26, 26, 26, 0.98);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(200, 161, 101, 0.3);
+            padding: 12px 16px;
+        }
+        .mobile-checkout-bar-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .mobile-checkout-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .mobile-checkout-total {
+            color: #c8a165;
+            font-weight: 700;
+            font-size: 1.15rem;
+        }
+        .mobile-checkout-rooms {
+            color: #999;
+            font-size: 0.8rem;
+        }
+        @media (min-width: 992px) {
+            .mobile-checkout-bar { display: none !important; }
         }
     </style>
 
@@ -403,6 +457,22 @@
 
                 // Update badge
                 cartBadge.textContent = cart.total_rooms;
+
+                // Update mobile checkout bar
+                const mobileBar = document.getElementById('mobileCheckoutBar');
+                const mobileTotal = document.getElementById('mobileCartTotal');
+                const mobileRooms = document.getElementById('mobileCartRooms');
+                const globalBar = document.querySelector('.mobile-sticky-bar');
+
+                if (cart.items.length > 0) {
+                    mobileBar.style.display = 'block';
+                    mobileTotal.textContent = cart.formatted_total;
+                    mobileRooms.textContent = cart.total_rooms;
+                    if (globalBar) globalBar.style.display = 'none';
+                } else {
+                    mobileBar.style.display = 'none';
+                    if (globalBar) globalBar.style.display = '';
+                }
 
                 // Update summary
                 totalRooms.textContent = cart.total_rooms;
@@ -475,6 +545,8 @@
             function addToCart(roomId, quantity) {
                 const checkIn = checkInInput.value;
                 const checkOut = checkOutInput.value;
+                const adults = parseInt(document.getElementById('adults')?.value || 1);
+                const children = parseInt(document.getElementById('children')?.value || 0);
 
                 if (!checkIn || !checkOut) {
                     alert('Please select check-in and check-out dates first.');
@@ -495,6 +567,8 @@
                         quantity: quantity,
                         check_in: checkIn,
                         check_out: checkOut,
+                        adults: adults,
+                        children: children,
                     })
                 })
                 .then(r => r.json())
@@ -585,6 +659,54 @@
             // Clear cart button
             document.getElementById('clearCartBtn').addEventListener('click', clearCart);
 
+            // ── Room Search & Sort ──
+            const roomSearchInput = document.getElementById('roomSearchInput');
+            const sortBySelect = document.getElementById('sortBy');
+            const roomCardsContainer = document.getElementById('roomCardsContainer');
+            const resultsCount = document.getElementById('resultsCount');
+            const originalOrder = Array.from(roomCardsContainer.querySelectorAll('.room-card'));
+
+            function filterAndSortRooms() {
+                const query = (roomSearchInput.value || '').toLowerCase().trim();
+                const sortBy = sortBySelect.value;
+                const cards = Array.from(roomCardsContainer.querySelectorAll('.room-card'));
+
+                // Filter
+                let visible = 0;
+                cards.forEach(card => {
+                    const name = (card.dataset.name || '').toLowerCase();
+                    const capacity = card.dataset.capacity || '';
+                    const matches = !query || name.includes(query) || capacity.includes(query);
+                    card.style.display = matches ? '' : 'none';
+                    if (matches) visible++;
+                });
+
+                // Sort (only visible)
+                const sorted = cards.sort((a, b) => {
+                    if (sortBy === 'price_asc') return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+                    if (sortBy === 'price_desc') return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+                    if (sortBy === 'name_asc') return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+                    // default: original order
+                    return originalOrder.indexOf(a) - originalOrder.indexOf(b);
+                });
+
+                // Re-append in sorted order
+                sorted.forEach(card => roomCardsContainer.appendChild(card));
+
+                resultsCount.textContent = visible;
+            }
+
+            let _searchTimer = null;
+            if (roomSearchInput) {
+                roomSearchInput.addEventListener('input', function() {
+                    clearTimeout(_searchTimer);
+                    _searchTimer = setTimeout(filterAndSortRooms, 250);
+                });
+            }
+            if (sortBySelect) {
+                sortBySelect.addEventListener('change', filterAndSortRooms);
+            }
+
             // Search form submit - reload page with new dates
             searchForm.addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -628,6 +750,12 @@
                     updateCartUI(data.cart);
                 }
             });
+
+            // Hide global mobile bar on this page if cart already has items
+            @if(!empty($cart['items']))
+                const globalBar = document.querySelector('.mobile-sticky-bar');
+                if (globalBar) globalBar.style.display = 'none';
+            @endif
         });
     </script>
 @endsection

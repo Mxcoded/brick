@@ -9,6 +9,8 @@ use Modules\Website\Console\Commands\CleanupOrphanedBookings;
 use Modules\Website\Console\Commands\FixConfirmedBookingBalances;
 use Modules\Website\Console\Commands\SendPostStayFollowUp;
 use Modules\Website\Console\MigrateRoomsToTypes;
+use Modules\Website\Services\RoomAssignmentService;
+use Modules\Website\Services\RoomAvailabilityService;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -41,6 +43,9 @@ class WebsiteServiceProvider extends ServiceProvider
     {
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
+
+        $this->app->singleton(RoomAvailabilityService::class);
+        $this->app->singleton(RoomAssignmentService::class);
     }
 
     /**

@@ -573,6 +573,7 @@
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
                                                 </div>
+                                                <small id="negotiated-rate-info" class="text-success d-none"></small>
                                             </div>
 
                                             <div class="col-12">
@@ -1022,5 +1023,45 @@
             roomTypeInput.value = roomTypeId;
         }
     }
+
+    // --- 4. NEGOTIATED RATE LOOKUP (GuestType + RoomType → Rate) ---
+    function lookupNegotiatedRate() {
+        const guestTypeId = document.getElementById('guest_type_id')?.value;
+        const roomTypeId = document.getElementById('lead_room_type_id')?.value;
+        const rateInput = document.getElementById('room_rate');
+        const rateInfo = document.getElementById('negotiated-rate-info');
+
+        if (!guestTypeId || !roomTypeId || !rateInput) return;
+
+        fetch(`{{ route('frontdesk.guest-types.negotiated-rate', ['guestType' => '__GT__', 'roomTypeId' => '__RT__']) }}`
+            .replace('__GT__', guestTypeId).replace('__RT__', roomTypeId))
+            .then(r => r.json())
+            .then(data => {
+                if (data.has_negotiated_rate) {
+                    rateInput.value = parseFloat(data.rate).toLocaleString();
+                    rateInput.classList.add('border-success');
+                    if (rateInfo) {
+                        rateInfo.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i> Negotiated rate applied';
+                        rateInfo.classList.remove('d-none');
+                    }
+                } else {
+                    rateInput.classList.remove('border-success');
+                    if (rateInfo) {
+                        rateInfo.classList.add('d-none');
+                    }
+                }
+            })
+            .catch(() => {});
+    }
+
+    document.getElementById('guest_type_id')?.addEventListener('change', lookupNegotiatedRate);
+    document.getElementById('room_unit_id')?.addEventListener('change', function() {
+        const option = this.options[this.selectedIndex];
+        const roomTypeId = option.getAttribute('data-room-type-id');
+        if (roomTypeId) {
+            document.getElementById('lead_room_type_id').value = roomTypeId;
+            lookupNegotiatedRate();
+        }
+    });
 </script>
 @endsection

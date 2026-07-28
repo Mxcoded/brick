@@ -53,6 +53,11 @@
                             <span class="badge bg-{{ $task->priority === 'high' ? 'danger' : ($task->priority === 'medium' ? 'warning text-dark' : 'secondary') }} rounded-pill">
                                 {{ ucfirst($task->priority) }}
                             </span>
+                            @if ($task->is_recurring)
+                                <span class="badge bg-primary rounded-pill" title="Repeats {{ ucfirst($task->recurrence_type) }}">
+                                    <i class="fas fa-redo me-1"></i>{{ ucfirst($task->recurrence_type) }}
+                                </span>
+                            @endif
                             <span class="small text-muted">
                                 <i class="far fa-calendar-alt me-1"></i>{{ $task->deadline->format('M d, Y') }}
                                 @if($task->deadline->isPast() && $task->status !== 'completed')

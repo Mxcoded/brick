@@ -96,6 +96,7 @@ Route::middleware(['web'])->group(function () {
         Route::get('/api/room-availability', 'getRoomAvailability')->name('website.api.room-availability');
         Route::post('/cart/add', 'cartAdd')->name('website.cart.add');
         Route::put('/cart/update', 'cartUpdate')->name('website.cart.update');
+        Route::put('/cart/update-guests', 'cartUpdateGuests')->name('website.cart.update-guests');
         Route::delete('/cart/remove/{roomTypeId}', 'cartRemove')->name('website.cart.remove');
         Route::delete('/cart/clear', 'cartClear')->name('website.cart.clear');
         Route::get('/cart', 'cartGet')->name('website.cart.get');
@@ -316,7 +317,9 @@ Route::middleware(['web'])->group(function () {
             Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'cancel'])->name('bookings.cancel')->middleware($p('bookings', 'update'));
             Route::post('/bookings/{id}/resend', [AdminBookingController::class, 'resendConfirmation'])->name('bookings.resend')->middleware($p('bookings', 'update'));
             Route::post('/bookings/{id}/assign-room', [AdminBookingController::class, 'assignRoom'])->name('bookings.assign-room')->middleware($p('bookings', 'update'));
+            Route::post('/bookings/{id}/auto-assign-room', [AdminBookingController::class, 'autoAssignRoom'])->name('bookings.auto-assign-room')->middleware($p('bookings', 'update'));
             Route::post('/bookings/{id}/change-room-type', [AdminBookingController::class, 'changeRoomType'])->name('bookings.change-room-type')->middleware($p('bookings', 'update'));
             Route::post('/bookings/{id}/move', [AdminBookingController::class, 'moveRoom'])->name('bookings.move')->middleware($p('bookings', 'update'));
+            Route::post('/bookings/{id}/mark-paid', [AdminBookingController::class, 'markPaid'])->name('bookings.mark-paid')->middleware($p('bookings', 'update'));
         });
 });

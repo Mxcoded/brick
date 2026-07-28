@@ -33,6 +33,9 @@
     .update-item .update-details { font-size: 0.85rem; color: #555; margin-top: 2px; }
 
     .comment-avatar { width: 36px; height: 36px; border-radius: 50%; background: #C8A165; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+
+    .recurrence-badge { background: linear-gradient(135deg, #f0f7ff 0%, #e8f4fd 100%); border: 1px solid #b6d4fe; border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; }
+    .recurrence-badge .recurrence-icon { color: #0d6efd; }
 </style>
 @endsection
 
@@ -86,6 +89,11 @@
                         <span class="badge bg-{{ $task->priority === 'high' ? 'danger' : ($task->priority === 'medium' ? 'warning text-dark' : 'secondary') }} rounded-pill">
                             {{ ucfirst($task->priority) }}
                         </span>
+                        @if ($task->is_recurring)
+                            <span class="badge bg-primary rounded-pill">
+                                <i class="fas fa-redo me-1"></i>{{ ucfirst($task->recurrence_type) }}
+                            </span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -115,6 +123,52 @@
                     <dd class="col-sm-9">{{ $task->completion_date ? $task->completion_date->format('M d, Y') : 'N/A' }}</dd>
                 @endif
             </dl>
+
+            {{-- Recurrence Info --}}
+            @if ($task->is_recurring)
+                <div class="recurrence-badge mt-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-redo recurrence-icon"></i>
+                        <div>
+                            <strong>Recurring {{ ucfirst($task->recurrence_type) }}</strong>
+                            @if ($task->recurrence_end_date)
+                                <span class="text-muted">— ends {{ $task->recurrence_end_date->format('M d, Y') }}</span>
+                            @else
+                                <span class="text-muted">— no end date</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Parent Task Link --}}
+            @if ($task->parentTask)
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="fas fa-link me-1"></i>Continuation of
+                        <a href="{{ route('tasks.show', $task->parentTask->id) }}" class="text-decoration-none">
+                            {{ $task->parentTask->task_number }}
+                        </a>
+                    </small>
+                </div>
+            @endif
+
+            {{-- Child Tasks --}}
+            @if ($task->childTasks->isNotEmpty())
+                <div class="mt-3">
+                    <small class="text-muted fw-semibold d-block mb-1">
+                        <i class="fas fa-list-ol me-1"></i>Recurrence Chain ({{ $task->childTasks->count() }} {{ Str::plural('occurrence', $task->childTasks->count()) }})
+                    </small>
+                    <div class="d-flex flex-wrap gap-1">
+                        @foreach ($task->childTasks->sortBy('created_at') as $child)
+                            <a href="{{ route('tasks.show', $child->id) }}" class="badge text-decoration-none
+                                {{ $child->status === 'completed' ? 'bg-success' : ($child->status === 'in_progress' ? 'bg-primary' : 'bg-warning text-dark') }}">
+                                {{ $child->task_number }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -180,6 +234,8 @@
                                             <span>&ldquo;{{ $update->changes['comment_preview'] }}&rdquo;</span>
                                         @elseif(isset($update->changes['assigned']))
                                             <span>Assigned to: {{ implode(', ', $update->changes['assigned']) }}</span>
+                                        @elseif(isset($update->changes['parent_task_number']))
+                                            <span>Created from {{ $update->changes['parent_task_number'] }} (recurring)</span>
                                         @endif
                                     </div>
                                 @endif

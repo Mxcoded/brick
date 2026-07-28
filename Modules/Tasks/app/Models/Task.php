@@ -3,16 +3,16 @@
 namespace Modules\Tasks\Models;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Staff\Models\Employee;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class Task extends Model implements AuditableContract
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
         'task_number',
@@ -25,13 +25,21 @@ class Task extends Model implements AuditableContract
         'completion_date',
         'notes',
         'non_completion_reason',
+        'is_recurring',
+        'recurrence_type',
+        'recurrence_end_date',
+        'parent_task_id',
     ];
 
     protected $casts = [
         'date' => 'date',
         'deadline' => 'date',
         'completion_date' => 'date',
+        'recurrence_end_date' => 'date',
+        'is_recurring' => 'boolean',
     ];
+
+    public const RECURRENCE_TYPES = ['daily', 'weekly', 'biweekly', 'monthly'];
 
     public function creator()
     {
@@ -58,22 +66,37 @@ class Task extends Model implements AuditableContract
         return $this->hasMany(TaskComment::class);
     }
 
-    public function scopePending($q)
+    public function parentTask()
+    {
+        return $this->belongsTo(Task::class, 'parent_task_id');
+    }
+
+    public function childTasks()
+    {
+        return $this->hasMany(Task::class, 'parent_task_id');
+    }
+
+    public function scopePending(Builder $q)
     {
         return $q->where('status', 'pending');
     }
 
-    public function scopeInProgress($q)
+    public function scopeInProgress(Builder $q)
     {
         return $q->where('status', 'in_progress');
     }
 
-    public function scopeCompleted($q)
+    public function scopeCompleted(Builder $q)
     {
         return $q->where('status', 'completed');
     }
 
-    public function scopeFilter($q, array $filters)
+    public function scopeRecurring(Builder $q)
+    {
+        return $q->where('is_recurring', true);
+    }
+
+    public function scopeFilter(Builder $q, array $filters)
     {
         $q->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['priority'] ?? null, fn ($q, $v) => $q->where('priority', $v))

@@ -73,6 +73,48 @@
                             </div>
 
                             <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">Rate Code</label>
+                                    <select name="rate_code_id" class="form-select">
+                                        <option value="">None (flat rate)</option>
+                                        @foreach($rateCodes as $rc)
+                                            <option value="{{ $rc->id }}" {{ old('rate_code_id') == $rc->id ? 'selected' : '' }}>
+                                                {{ $rc->name }} ({{ $rc->code }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">Assign a rate code for dynamic seasonal pricing. Leave empty for flat rate.</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">Base Occupancy</label>
+                                    <div class="input-group">
+                                        <input type="number" name="base_occupancy" class="form-control" value="{{ old('base_occupancy', 2) }}" min="1">
+                                        <span class="input-group-text">guests</span>
+                                    </div>
+                                    <small class="text-muted">Guests included in base price. Extra guests incur additional fees.</small>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Extra Adult Fee <small class="text-muted">/night</small></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₦</span>
+                                        <input type="number" name="extra_adult_fee" class="form-control" value="{{ old('extra_adult_fee', 0) }}" min="0" step="0.01">
+                                    </div>
+                                    <small class="text-muted">Per-night fee for each adult beyond base occupancy. 0 = no extra charge.</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Extra Child Fee <small class="text-muted">/night</small></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₦</span>
+                                        <input type="number" name="extra_child_fee" class="form-control" value="{{ old('extra_child_fee', 0) }}" min="0" step="0.01">
+                                    </div>
+                                    <small class="text-muted">Per-night fee for each child. 0 = no extra charge.</small>
+                                </div>
+                            </div>
+
+                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">Bed Type</label>
                                     <select name="bed_type" class="form-select">

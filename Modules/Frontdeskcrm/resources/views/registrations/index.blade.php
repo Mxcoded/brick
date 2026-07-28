@@ -345,8 +345,8 @@
                                                     {{ $reg->check_out->format('M d, Y') }}
                                                 </span>
                                                 {{-- Check if Room is assigned yet --}}
-                                                @if ($reg->room_allocation)
-                                                    <small class="text-success fw-bold">{{ $reg->room_allocation }}</small>
+                                                @if ($reg->room_allocation || $reg->roomUnit)
+                                                    <small class="text-success fw-bold">{{ $reg->room_allocation ?? $reg->roomUnit->room_number . ' (' . ($reg->roomType->name ?? '') . ')' }}</small>
                                                     @if ($reg->total_amount)
                                                         <small class="text-muted">| ₦{{ number_format($reg->total_amount) }}</small>
                                                     @endif

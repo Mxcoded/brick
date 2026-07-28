@@ -5,7 +5,6 @@ namespace Modules\Tasks\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 // use Modules\Tasks\Database\Factories\TaskUpdateFactory;
 
 use OwenIt\Auditing\Auditable;
@@ -13,7 +12,7 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class TaskUpdate extends Model implements AuditableContract
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     /**
      * The attributes that are mass assignable.

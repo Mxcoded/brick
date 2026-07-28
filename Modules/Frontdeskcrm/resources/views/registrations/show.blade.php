@@ -125,40 +125,19 @@ $checkoutConfirmMsg = $isGroupLead
                 </ul>
             </div>
         @endif
-        @if($registration->stay_status == 'pending_approval')
+        @if(in_array($registration->stay_status, ['draft_by_guest', 'reserved']))
     <div class="card border-primary shadow-lg mb-4">
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0 fw-bold"><i class="fas fa-user-clock me-2"></i>Finalize Guest Check-in</h5>
         </div>
         <div class="card-body">
-            <p class="mb-3">This guest has self-registered via mobile. Please verify ID and assign a room to complete check-in.</p>
-            
-            <form action="{{ route('frontdesk.registrations.update', $registration->id) }}" method="POST">
-                @csrf
-                @method('PUT')
-                <input type="hidden" name="stay_status" value="checked_in">
-                
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Assign Room</label>
-                        <select name="room_unit_id" class="form-select form-select-lg" required>
-                            <option value="">Select available room...</option>
-                            @foreach(\Modules\Website\Models\RoomUnit::whereIn('status', ['available', 'occupied'])->with('roomType')->orderBy('room_number')->get() as $unit)
-                                <option value="{{ $unit->id }}">{{ $unit->room_number }} ({{ $unit->roomType->name ?? 'N/A' }})</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Nights</label>
-                        <input type="number" name="no_of_nights" class="form-control form-control-lg" value="1">
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">
-                            <i class="fas fa-check"></i> Complete Check-in
-                        </button>
-                    </div>
-                </div>
-            </form>
+            <p class="mb-3">This guest's registration needs finalization. Please verify ID and assign a room to complete check-in.</p>
+
+            <div class="d-flex gap-2">
+                <a href="{{ route('frontdesk.registrations.finalize.form', $registration) }}" class="btn btn-primary btn-lg fw-bold">
+                    <i class="fas fa-check-double me-2"></i> Finalize Check-in
+                </a>
+            </div>
         </div>
     </div>
 @endif
@@ -188,7 +167,13 @@ $checkoutConfirmMsg = $isGroupLead
                                     <div>
                                         <p class="text-muted small mb-0">Room Allocation</p>
                                         <p class="mb-0 fw-bold text-dark">
-                                            {{ $registration->room ? $registration->room->name : $registration->room_allocation ?? 'Not Assigned' }}
+                                            @if ($registration->roomUnit)
+                                                {{ $registration->roomUnit->room_number }} ({{ $registration->roomType->name ?? $registration->roomUnit->roomType->name ?? 'N/A' }})
+                                            @elseif ($registration->room)
+                                                {{ $registration->room->name }}
+                                            @else
+                                                {{ $registration->room_allocation ?? 'Not Assigned' }}
+                                            @endif
                                         </p>
                                     </div>
                                 </div>
@@ -420,6 +405,14 @@ $checkoutConfirmMsg = $isGroupLead
                                     data-bs-target="#adjustStayModal-{{ $registration->id }}">
                                     <i class="fas fa-calendar-plus me-1"></i> Extend Stay
                                 </button>
+                                <button type="button" class="btn btn-warning text-white" data-bs-toggle="modal"
+                                    data-bs-target="#chargeModal">
+                                    <i class="fas fa-plus-circle me-1"></i> Post Charge
+                                </button>
+                                <a href="{{ route('frontdesk.folios.index', $registration) }}"
+                                   class="btn btn-outline-info">
+                                    <i class="fas fa-receipt me-1"></i> Folios
+                                </a>
                                 <button type="button" class="btn btn-success text-white" data-bs-toggle="modal"
                                     data-bs-target="#paymentModal">
                                     <i class="fas fa-money-bill-wave me-1"></i> Record a Payment
@@ -484,7 +477,13 @@ $checkoutConfirmMsg = $isGroupLead
                                                     </div>
                                                 </td>
                                                 <td class="align-middle">
-                                                    {{ $member->room ? $member->room->name : $member->room_allocation ?? 'N/A' }}
+                                                    @if ($member->roomUnit)
+                                                        {{ $member->roomUnit->room_number }} ({{ $member->roomType->name ?? $member->roomUnit->roomType->name ?? 'N/A' }})
+                                                    @elseif ($member->room)
+                                                        {{ $member->room->name }}
+                                                    @else
+                                                        {{ $member->room_allocation ?? 'N/A' }}
+                                                    @endif
                                                 </td>
                                                 <td class="align-middle">
                                                     {{ $member->room_rate ? '₦' . number_format($member->room_rate, 2) : 'N/A' }}
@@ -730,6 +729,7 @@ $checkoutConfirmMsg = $isGroupLead
         @include('frontdeskcrm::registrations.partials._adjust_stay_modal', ['guest' => $registration])
 
         {{-- Refund Modal --}}
+        @if ($registration->booking)
         <div class="modal fade" id="refundModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -764,6 +764,7 @@ $checkoutConfirmMsg = $isGroupLead
                 </div>
             </div>
         </div>
+        @endif
 
         {{-- 2. Adjust Stay Modal (Members) --}}
         @if ($isGroupLead && $groupMembers->count() > 0)
@@ -855,6 +856,49 @@ $checkoutConfirmMsg = $isGroupLead
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-success fw-bold">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="chargeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>Post Charge</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('frontdesk.registrations.post-charge', $registration) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Charge Type <span class="text-danger">*</span></label>
+                        <select name="charge_type" class="form-select" required>
+                            <option value="laundry">Laundry</option>
+                            <option value="mini_bar">Mini Bar</option>
+                            <option value="restaurant">Restaurant</option>
+                            <option value="service">Service Charge</option>
+                            <option value="damage">Damage / Lost Item</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                        <textarea name="description" class="form-control" rows="2" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Amount (₦) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" name="amount" class="form-control form-control-lg fw-bold" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="charge_date" class="form-control" value="{{ date('Y-m-d') }}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-white">Post Charge</button>
                 </div>
             </form>
         </div>

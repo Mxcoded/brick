@@ -213,7 +213,7 @@
                                     </tr>
                                 </table>
                             @elseif($booking->payment_status === 'paid')
-                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#D1FAE5; border:1px solid:#A7F3D0; margin-bottom:28px;">
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#D1FAE5; border:1px solid #A7F3D0; margin-bottom:28px;">
                                     <tr>
                                         <td style="padding:16px 20px; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">
                                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">

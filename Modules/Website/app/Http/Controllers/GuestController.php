@@ -87,6 +87,8 @@ class GuestController extends Controller
 
         $booking->update(['status' => 'cancelled']);
 
+        $booking->sendNotification('Booking Cancelled');
+
         return back()->with('success', 'Booking cancelled successfully.');
     }
 

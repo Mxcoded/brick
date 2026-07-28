@@ -7,17 +7,17 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
-
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
 class Registration extends Model implements AuditableContract
 {
-    use HasFactory, Auditable;
+    use Auditable, HasFactory;
 
     protected $fillable = [
         'guest_id',
@@ -69,6 +69,10 @@ class Registration extends Model implements AuditableContract
         'review_comment',
         'front_desk_agent',
         'checked_in_at',
+        'rate_code_id',
+        'nights_posted',
+        'last_audit_date',
+        'city_ledger_account_id',
     ];
 
     protected $casts = [
@@ -83,6 +87,8 @@ class Registration extends Model implements AuditableContract
         'birthday' => 'date',
         'bed_breakfast' => 'boolean',
         'is_group_lead' => 'boolean',
+        'nights_posted' => 'integer',
+        'last_audit_date' => 'date',
     ];
 
     protected static function boot()
@@ -158,6 +164,31 @@ class Registration extends Model implements AuditableContract
         return $this->belongsTo(Booking::class);
     }
 
+    public function rateCode(): BelongsTo
+    {
+        return $this->belongsTo(RateCode::class);
+    }
+
+    public function charges(): HasMany
+    {
+        return $this->hasMany(RegistrationCharge::class);
+    }
+
+    public function folios(): HasMany
+    {
+        return $this->hasMany(Folio::class);
+    }
+
+    public function folio(): HasOne
+    {
+        return $this->hasOne(Folio::class)->latest();
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
     /**
      * Get the payment history for this registration.
      */
@@ -212,6 +243,11 @@ class Registration extends Model implements AuditableContract
         }
 
         return null;
+    }
+
+    public function cityLedgerAccount(): BelongsTo
+    {
+        return $this->belongsTo(CityLedgerAccount::class);
     }
 
     /**

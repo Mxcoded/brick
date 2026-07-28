@@ -13,14 +13,25 @@ class BookingCancellation extends Mailable
 
     public $booking;
 
-    public function __construct(Booking $booking)
+    public $isStaffCopy;
+
+    public function __construct(Booking $booking, bool $isStaffCopy = false)
     {
         $this->booking = $booking;
+        $this->isStaffCopy = $isStaffCopy;
     }
 
     public function build()
     {
-        return $this->subject('Booking Cancelled - '.$this->booking->booking_reference)
-            ->view('website::emails.booking-cancellation');
+        $subject = $this->isStaffCopy
+            ? '[CANCELLED] '.$this->booking->booking_reference.' - '.$this->booking->guest_name
+            : 'Booking Cancelled - '.$this->booking->booking_reference;
+
+        $view = $this->isStaffCopy
+            ? 'website::emails.booking-cancellation-staff'
+            : 'website::emails.booking-cancellation';
+
+        return $this->subject($subject)
+            ->view($view);
     }
 }
