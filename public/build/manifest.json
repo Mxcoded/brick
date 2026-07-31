@@ -5,6 +5,12 @@
     "src": "resources/js/app.js",
     "isEntry": true
   },
+  "resources/js/booking-form.js": {
+    "file": "assets/booking-form-DRD_esBE.js",
+    "name": "booking-form",
+    "src": "resources/js/booking-form.js",
+    "isEntry": true
+  },
   "resources/sass/app.scss": {
     "file": "assets/app-D9oOp2nF.css",
     "src": "resources/sass/app.scss",

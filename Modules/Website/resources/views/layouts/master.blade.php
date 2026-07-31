@@ -81,6 +81,13 @@
             --color-soft-neutral: #F5F5F0;
 
             --font-primary: 'Proxima Nova', Arial, Helvetica, sans-serif;
+
+            /* Brand aliases (shared with booking flow) */
+            --brand-gold: var(--color-gold);
+            --brand-gold-light: #d4b07a;
+            --brand-gold-dark: #b08c54;
+            --brand-dark: #1a1a2e;
+            --brand-cream: #faf8f5;
         }
 
         /* Typography */
@@ -166,7 +173,30 @@
 
         /* ===== Dropdown Enhancements ===== */
         .navbar .dropdown-menu {
+            background: #1e1e1e;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            z-index: 9999;
             transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .navbar .dropdown-menu.show {
+            animation: dropdownIn 0.25s ease;
+        }
+
+        @keyframes dropdownIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @media (min-width: 992px) {
@@ -178,16 +208,12 @@
             }
 
             .navbar .dropdown:hover>.dropdown-menu,
+            .navbar .dropdown:focus-within>.dropdown-menu,
             .navbar .dropdown-menu.show {
                 opacity: 1;
                 transform: translateY(0);
                 pointer-events: auto;
             }
-        }
-
-        /* ===== Active Nav Link Glow ===== */
-        .nav-link.active {
-            text-shadow: 0 0 12px rgba(200, 161, 101, 0.3);
         }
 
         /* ===== Enhanced Navbar ===== */
@@ -230,8 +256,12 @@
         }
 
         .navbar-toggler {
-            z-index: 1060;
+            z-index: 2;
             position: relative;
+            border: none;
+            padding: 0;
+            width: 36px;
+            height: 36px;
         }
 
         /* Nav link base */
@@ -268,6 +298,7 @@
 
         .nav-link.active {
             color: var(--color-gold) !important;
+            text-shadow: 0 0 12px rgba(200, 161, 101, 0.3);
         }
 
         .nav-link.active::after {
@@ -332,15 +363,6 @@
         }
 
         /* ===== Animated Hamburger ===== */
-        .navbar-toggler {
-            border: none;
-            padding: 0;
-            width: 36px;
-            height: 36px;
-            position: relative;
-            z-index: 2;
-        }
-
         .navbar-toggler:focus {
             box-shadow: none;
         }
@@ -758,32 +780,6 @@
         }
 
         /* ===== Dropdown ===== */
-        .navbar .dropdown-menu {
-            background: #1e1e1e;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-            padding: 0.5rem;
-            margin-top: 0.5rem;
-            z-index: 9999;
-        }
-
-        .navbar .dropdown-menu.show {
-            animation: dropdownIn 0.25s ease;
-        }
-
-        @keyframes dropdownIn {
-            from {
-                opacity: 0;
-                transform: translateY(-6px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         .navbar .dropdown-item {
             padding: 0.6rem 0.9rem;
             border-radius: 6px;
@@ -1005,6 +1001,11 @@
 </head>
 
 <body class="d-flex flex-column min-vh-100">
+    <!-- Skip to content (WCAG 2.4.1) -->
+    <a class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-primary" href="#mainContent">
+        Skip to main content
+    </a>
+
     <!-- Scroll Progress Bar -->
     <div class="scroll-progress" id="scrollProgress"></div>
 
@@ -1212,7 +1213,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="flex-grow-1">
+    <main class="flex-grow-1" id="mainContent" tabindex="-1">
         @if (!empty(trim($__env->yieldContent('page-content'))))
             @yield('page-content')
         @else
@@ -1235,7 +1236,6 @@
                         <a href="https://x.com/bpaparthotel" class="text-white me-3"><i class="fab fa-x"></i></a>
                         <a href="https://instagram.com/brickspoint_asokoro" class="text-white me-3"><i
                                 class="fab fa-instagram"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-linkedin-in"></i></a>
                     </div>
                 </div>
 
@@ -1327,7 +1327,7 @@
 
             <div class="row align-items-center">
                 <div class="col-md-6 text-center text-md-start">
-                    <p class="mb-0 text-muted-footer">&copy; {{ date('Y') }} Brickspoint ApartHotel. All rights
+                    <p class="mb-0 text-muted-footer">&copy; {{ now()->year }} Brickspoint ApartHotel. All rights
                         reserved.</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
@@ -1404,7 +1404,7 @@
     <script>
         // === Run immediately (not dependent on DOM ready) ===
 
-        // Newsletter auto-show
+        // Newsletter show on intent (scroll depth 40%) instead of auto-popping
         (function() {
             var trigger = document.getElementById('newsletterPopupTrigger');
             if (!trigger) return;
@@ -1417,10 +1417,22 @@
                 var lastTime = parseInt(lastShown, 10);
                 if (!isNaN(lastTime) && (now - lastTime) < oneDay) return;
             }
-            setTimeout(function() {
+            var shown = false;
+
+            function maybeShowPopup() {
+                if (shown) return;
+                if ((Date.now() - now) < 10000) return;
+                var doc = document.documentElement;
+                var scrolled = window.scrollY || doc.scrollTop;
+                var total = doc.scrollHeight - window.innerHeight;
+                if (total > 0 && (scrolled / total) < 0.4) return;
+                shown = true;
                 trigger.click();
-                localStorage.setItem('newsletter_popup_last_shown', now.toString());
-            }, 15000);
+                localStorage.setItem('newsletter_popup_last_shown', Date.now().toString());
+            }
+
+            window.addEventListener('scroll', maybeShowPopup, { passive: true });
+            setTimeout(maybeShowPopup, 60000);
         })();
 
         // Sticky bar hide on scroll down
@@ -1636,6 +1648,7 @@
             "name": "Brickspoint Boutique Aparthotel",
             "url": "{{ url('/') }}"
         },
+        @if (($reviewCount ?? 0) > 0)
         "aggregateRating": {
             "@@type": "AggregateRating",
             "ratingValue": "{{ $averageRating ?? '4.5' }}",
@@ -1643,6 +1656,7 @@
             "ratingCount": "{{ $reviewCount ?? '0' }}",
             "worstRating": "1"
         },
+        @endif
         "amenityFeature": [
             {"@@type": "LocationFeatureSpecification", "name": "Free Wi-Fi", "value": true},
             {"@@type": "LocationFeatureSpecification", "name": "Restaurant", "value": true},
