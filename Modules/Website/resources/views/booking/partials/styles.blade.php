@@ -307,8 +307,9 @@
         }
 
         .btn-outline-brand:hover {
-            background: var(--brand-gold);
-            color: #fff;
+            background: rgb(94, 95, 84);
+            color: #000;
+            text-decoration: none;
         }
 
         .payment-option {
