@@ -167,6 +167,11 @@
             font-size: 1.5rem;
             font-weight: 800;
             color: #16a34a;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            display: inline-block;
+            min-width: 8ch;
+            text-align: right;
         }
 
         .booking-cta {

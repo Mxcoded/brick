@@ -1,11 +1,11 @@
 @push('scripts')
     <script>
         window.bookingFormConfig = {{ Js::from([
-            'checkAvailabilityUrl' => route('website.room.checkAvailability'),
-            'updateGuestsUrl' => route('website.cart.update-guests'),
-            'checkEmailUrl' => route('website.checkEmail'),
-            'roomRateUrl' => route('website.api.room-rate'),
-            'availableUnitsUrl' => route('website.api.available-units'),
+            'checkAvailabilityUrl' => route('website.room.checkAvailability', [], false),
+            'updateGuestsUrl' => route('website.cart.update-guests', [], false),
+            'checkEmailUrl' => route('website.checkEmail', [], false),
+            'roomRateUrl' => route('website.api.room-rate', [], false),
+            'availableUnitsUrl' => route('website.api.available-units', [], false),
             'csrfToken' => csrf_token(),
         ]) }};
     </script>

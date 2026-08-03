@@ -1,5 +1,6 @@
 <form action="{{ route('website.booking.store') }}" method="POST" id="bookingForm"
-    @if ($useCartFlow) data-cart-flow="1" @endif>
+    @if ($useCartFlow) data-cart-flow="1" @endif
+    data-cart-max-guests="{{ max(1, $cartMaxGuests) }}">
     @csrf
 
     <div style="position: absolute; left: -9999px;" aria-hidden="true">
@@ -293,7 +294,7 @@
                                             aria-label="Decrease adults">−</button>
                                         <input type="number" name="adults" id="adults"
                                             value="{{ old('adults', 1) }}" min="1"
-                                            max="{{ $selectedRoomType->capacity ?? 2 }}" required readonly>
+                                            max="{{ max(1, $cartMaxGuests) }}" required readonly>
                                         <button type="button" class="step-inc" data-target="adults"
                                             aria-label="Increase adults">+</button>
                                     </div>
@@ -305,7 +306,7 @@
                                             aria-label="Decrease children">−</button>
                                         <input type="number" name="children" id="children"
                                             value="{{ old('children', 0) }}" min="0"
-                                            max="{{ ($selectedRoomType->capacity ?? 2) - 1 }}" readonly>
+                                            max="{{ max(0, $cartMaxGuests - 1) }}" readonly>
                                         <button type="button" class="step-inc" data-target="children"
                                             aria-label="Increase children">+</button>
                                     </div>

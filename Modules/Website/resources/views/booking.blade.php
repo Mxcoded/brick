@@ -30,15 +30,27 @@
             $hasNationality = Auth::check() && $guest && !empty($guest->nationality);
             $hasDob = Auth::check() && $guest && !is_null($guest->birthday);
 
+            $initialPrice = $selectedRoomType->display_price ?? 0;
+            $initialCapacity = $selectedRoomType->capacity ?? 0;
+            $cartMaxGuests = $useCartFlow
+                ? collect($cart['items'] ?? [])->sum(
+                    fn ($item) => (int) ($item['capacity'] ?? 0) * (int) ($item['quantity'] ?? 1)
+                )
+                : $initialCapacity;
+            $initialBaseOccupancy = (int) ($selectedRoomType->base_occupancy ?? 2);
+            if ($initialCapacity > 0) {
+                $initialBaseOccupancy = min($initialBaseOccupancy, $initialCapacity);
+            }
             $initialNights = 1;
             if ($reqCheckIn && $reqCheckOut) {
                 $diff = \Carbon\Carbon::parse($reqCheckIn)->diffInDays(\Carbon\Carbon::parse($reqCheckOut));
                 $initialNights = max(1, $diff);
             }
 
-            $initialPrice = $selectedRoomType->display_price ?? 0;
-            $initialTotal = $initialPrice * $initialNights;
-            $initialCapacity = $selectedRoomType->capacity ?? 0;
+            $initialBaseTotal = $initialPrice * $initialNights;
+            $initialGuestFee = 0;
+            $initialGuestFeeBreakdown = '';
+            $initialTotal = $initialBaseTotal;
             $hasSelectedRoom = (!empty($reqRoomTypeId) && $initialCapacity > 0) || $useCartFlow;
 
             if ($selectedRoomType && $reqCheckIn && $reqCheckOut) {
@@ -51,6 +63,9 @@
                     (int) old('children', 0)
                 );
                 $initialPrice = $rateResult['price_per_night'];
+                $initialBaseTotal = $rateResult['base_total'];
+                $initialGuestFee = $rateResult['guest_fee_total'];
+                $initialGuestFeeBreakdown = $rateResult['guest_fee_breakdown'];
                 $initialTotal = $rateResult['total'];
             }
         @endphp

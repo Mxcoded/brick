@@ -84,15 +84,26 @@
             </div>
             <div class="d-flex justify-content-between small mb-2">
                 <span class="text-muted">Rate</span>
-                <span id="summary-rate">₦{{ number_format($selectedRoomType->display_price ?? 0, 2) }}</span>
+                <span id="summary-rate">₦{{ number_format($selectedRoomType->display_price ?? 0, 2) }}
+                    <span class="text-muted">/ night</span></span>
             </div>
             <div class="d-flex justify-content-between small mb-2">
                 <span class="text-muted">Guests</span>
                 <span class="fw-bold" id="summary-guests">1 Adult</span>
             </div>
-            <div class="d-flex justify-content-between small mb-2 d-none" id="guest-fee-row">
-                <span class="text-muted">Guest Fee</span>
-                <span id="summary-guest-fee">₦0.00</span>
+            <div class="d-flex justify-content-between small mb-2">
+                <span class="text-muted">Room Cost
+                    ({{ $initialNights }} {{ Str::plural('night', $initialNights) }})</span>
+                <span class="fw-bold" id="summary-base-total">₦{{ number_format($initialBaseTotal, 2) }}</span>
+            </div>
+            <div class="{{ $initialGuestFee > 0 ? '' : 'd-none' }}" id="guest-fee-row">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">Extra Guest Fee</span>
+                    <span class="fw-bold" id="summary-guest-fee">₦{{ number_format($initialGuestFee, 2) }}</span>
+                </div>
+                <div class="text-muted small mb-2"
+                    style="font-size: 0.72rem; padding-left: 0.5rem; border-left: 2px solid var(--brand-gold-light);"
+                    id="guest-fee-breakdown">{!! $initialGuestFeeBreakdown !!}</div>
             </div>
 
             <hr class="my-3">

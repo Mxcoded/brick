@@ -1735,6 +1735,9 @@ class WebsiteController extends Controller
             'base_total' => $result['base_total'],
             'guest_fee_per_night' => $result['guest_fee_per_night'],
             'guest_fee_total' => $result['guest_fee_total'],
+            'guest_fee_breakdown' => $result['guest_fee_breakdown'],
+            'extra_adults' => $result['extra_adults'],
+            'extra_children' => $result['extra_children'],
             'rate_code_id' => $result['rate_code_id'],
             'nights' => $nights,
         ]);

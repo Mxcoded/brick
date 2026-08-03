@@ -64,7 +64,7 @@ class GuestFeeTest extends TestCase
         $this->assertEquals(1, $result['extra_adults']);
     }
 
-    public function test_extra_child_fee(): void
+    public function test_child_fee(): void
     {
         $roomType = $this->makeRoomType([
             'extra_child_fee' => 2000,
@@ -74,6 +74,69 @@ class GuestFeeTest extends TestCase
 
         $this->assertEquals(2000, $result['extra_fee_per_night']);
         $this->assertEquals(1, $result['extra_children']);
+    }
+
+    public function test_child_within_base_occupancy_incurrs_no_fee(): void
+    {
+        // 1 adult + 1 child = 2 guests = base occupancy -> no extra fee.
+        $roomType = $this->makeRoomType([
+            'base_occupancy' => 2,
+            'extra_adult_fee' => 5000,
+            'extra_child_fee' => 2000,
+        ]);
+
+        $result = $roomType->calculateGuestFee(1, 1);
+
+        $this->assertEquals(0, $result['extra_fee_per_night']);
+        $this->assertEquals(0, $result['extra_adults']);
+        $this->assertEquals(0, $result['extra_children']);
+    }
+
+    public function test_child_counts_toward_base_occupancy_before_extra_adult(): void
+    {
+        // 2 adults + 1 child, base 2 -> the child is the single extra guest.
+        $roomType = $this->makeRoomType([
+            'base_occupancy' => 2,
+            'extra_adult_fee' => 5000,
+            'extra_child_fee' => 2000,
+        ]);
+
+        $result = $roomType->calculateGuestFee(2, 1);
+
+        $this->assertEquals(0, $result['extra_adults']);
+        $this->assertEquals(1, $result['extra_children']);
+        $this->assertEquals(2000, $result['extra_fee_per_night']);
+    }
+
+    public function test_base_occupancy_clamped_to_capacity(): void
+    {
+        // base_occupancy (3) can never exceed capacity (2).
+        $roomType = $this->makeRoomType([
+            'base_occupancy' => 3,
+            'capacity' => 2,
+            'extra_adult_fee' => 5000,
+            'extra_child_fee' => 2000,
+        ]);
+
+        $result = $roomType->calculateGuestFee(2, 0);
+
+        $this->assertEquals(0, $result['extra_fee_per_night']);
+        $this->assertEquals(0, $result['extra_adults']);
+    }
+
+    public function test_breakdown_uses_naira_currency(): void
+    {
+        $roomType = $this->makeRoomType([
+            'base_occupancy' => 2,
+            'extra_adult_fee' => 5000,
+            'extra_child_fee' => 2000,
+        ]);
+
+        $result = $roomType->calculateGuestFee(3, 1);
+
+        $this->assertStringContainsString('₦5,000.00', $result['breakdown']);
+        $this->assertStringContainsString('₦2,000.00', $result['breakdown']);
+        $this->assertStringNotContainsString('₱', $result['breakdown']);
     }
 
     public function test_combined_extra_fees(): void
@@ -139,6 +202,38 @@ class GuestFeeTest extends TestCase
 
         $this->assertEquals(0, $result['guest_fee_total']);
         $this->assertEquals($result['base_total'], $result['total']);
+    }
+
+    // ── GET /api/room-rate endpoint ──
+
+    public function test_room_rate_endpoint_returns_guest_fee_breakdown(): void
+    {
+        $roomType = $this->makeRoomType([
+            'price' => 20000,
+            'capacity' => 4,
+            'base_occupancy' => 2,
+            'extra_adult_fee' => 5000,
+            'extra_child_fee' => 2000,
+        ]);
+
+        $checkIn = now()->format('Y-m-d');
+        $checkOut = now()->addDays(2)->format('Y-m-d');
+
+        $response = $this->getJson('/api/room-rate?' . http_build_query([
+            'room_type_id' => $roomType->id,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'adults' => 3,
+            'children' => 1,
+        ]));
+
+        $response->assertOk()
+            ->assertJsonPath('base_total', 40000)        // 2 nights * 20000
+            ->assertJsonPath('guest_fee_total', 14000)   // 2 nights * (5000 + 2000)
+            ->assertJsonPath('total', 54000)
+            ->assertJsonPath('extra_adults', 1)
+            ->assertJsonPath('extra_children', 1)
+            ->assertJsonStructure(['guest_fee_breakdown', 'price_per_night', 'nights']);
     }
 
     // ── BookingCartService capacity validation ──

@@ -225,13 +225,22 @@ class RoomType extends Model implements AuditableContract
     /**
      * Calculate extra guest fee per night.
      *
+     * The base occupancy covers the first `base_occupancy` guests regardless of
+     * age (adults + children). Only guests beyond that incur extra fees. This is
+     * guarded so base occupancy can never exceed the room's physical capacity.
+     *
      * @return array{extra_fee_per_night: float, extra_adults: int, extra_children: int, breakdown: string}
      */
     public function calculateGuestFee(int $adults, int $children): array
     {
-        $baseOccupancy = $this->base_occupancy ?? 2;
-        $extraAdults = max(0, $adults - $baseOccupancy);
-        $extraChildren = max(0, $children);
+        $capacity = max(1, (int) $this->capacity);
+        $baseOccupancy = (int) ($this->base_occupancy ?? 2);
+        $baseOccupancy = min($baseOccupancy, $capacity);
+
+        $totalGuests = max(0, $adults) + max(0, $children);
+        $extraGuests = max(0, $totalGuests - $baseOccupancy);
+        $extraAdults = max(0, max(0, $adults) - $baseOccupancy);
+        $extraChildren = max(0, $extraGuests - $extraAdults);
 
         $adultFee = $extraAdults * (float) ($this->extra_adult_fee ?? 0);
         $childFee = $extraChildren * (float) ($this->extra_child_fee ?? 0);
@@ -239,10 +248,10 @@ class RoomType extends Model implements AuditableContract
 
         $parts = [];
         if ($extraAdults > 0) {
-            $parts[] = "{$extraAdults} extra adult(s) x ₱".number_format($this->extra_adult_fee ?? 0, 2);
+            $parts[] = "{$extraAdults} extra adult(s) x ₦".number_format((float) ($this->extra_adult_fee ?? 0), 2);
         }
         if ($extraChildren > 0) {
-            $parts[] = "{$extraChildren} child(ren) x ₱".number_format($this->extra_child_fee ?? 0, 2);
+            $parts[] = "{$extraChildren} child(ren) x ₦".number_format((float) ($this->extra_child_fee ?? 0), 2);
         }
 
         return [

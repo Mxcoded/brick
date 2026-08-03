@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const to = parseFloat(value);
         const from = parseFloat(el.dataset.value || '0');
         el.dataset.value = to;
-        if (from === to) {
+        if (from === to || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             el.textContent = formatMoney(to);
             return;
         }
@@ -71,6 +71,42 @@ document.addEventListener('DOMContentLoaded', () => {
     function announceTotal(value) {
         if (summaryTotalLive && !isNaN(parseFloat(value))) {
             summaryTotalLive.textContent = 'Total: ' + formatMoney(value);
+        }
+    }
+
+    // Transparent price breakdown: how the guest fee is computed.
+    function buildFeeBreakdown(extraAdults, extraChildren, extraAdultFee, extraChildFee, nights) {
+        const parts = [];
+        if (extraAdults > 0) {
+            parts.push(extraAdults + ' extra adult' + (extraAdults !== 1 ? 's' : '') + ' × ' +
+                formatMoney(extraAdultFee) + ' × ' + nights + ' night' + (nights !== 1 ? 's' : ''));
+        }
+        if (extraChildren > 0) {
+            parts.push(extraChildren + ' child' + (extraChildren !== 1 ? 'ren' : '') + ' × ' +
+                formatMoney(extraChildFee) + ' × ' + nights + ' night' + (nights !== 1 ? 's' : ''));
+        }
+        return parts.join('<br>');
+    }
+
+    function updateGuestFeeDisplay(guestFeeTotal, extraAdults, extraChildren, nights, extraAdultFee, extraChildFee) {
+        const guestFeeRow = document.getElementById('guest-fee-row');
+        const guestFeeEl = document.getElementById('summary-guest-fee');
+        const breakdownEl = document.getElementById('guest-fee-breakdown');
+        if (!guestFeeRow || !guestFeeEl || !breakdownEl) return;
+        if (guestFeeTotal > 0) {
+            guestFeeRow.classList.remove('d-none');
+            guestFeeEl.textContent = formatMoney(guestFeeTotal);
+            breakdownEl.innerHTML = buildFeeBreakdown(extraAdults, extraChildren, extraAdultFee, extraChildFee, nights);
+        } else {
+            guestFeeRow.classList.add('d-none');
+            breakdownEl.innerHTML = '';
+        }
+    }
+
+    function updateBaseTotal(baseTotal) {
+        const baseTotalEl = document.getElementById('summary-base-total');
+        if (baseTotalEl && !isNaN(parseFloat(baseTotal))) {
+            baseTotalEl.textContent = formatMoney(baseTotal);
         }
     }
 
@@ -170,23 +206,28 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(r => r.json())
             .then(data => {
                 if (summaryRate && data.price_per_night != null) summaryRate.textContent = formatMoney(data.price_per_night);
+                if (data.base_total != null) updateBaseTotal(data.base_total);
                 if (summaryTotal && data.total != null) {
                     setMoneyAnimated(summaryTotal, data.total);
                     announceTotal(data.total);
                 }
-
-                const guestFeeRow = document.getElementById('guest-fee-row');
-                const guestFeeEl = document.getElementById('summary-guest-fee');
-                if (guestFeeRow && guestFeeEl) {
-                    if (data.guest_fee_total > 0) {
-                        guestFeeRow.classList.remove('d-none');
-                        guestFeeEl.textContent = formatMoney(data.guest_fee_total);
-                    } else {
-                        guestFeeRow.classList.add('d-none');
-                    }
+                const reviewTotal = document.getElementById('reviewTotal');
+                if (reviewTotal && data.total != null) {
+                    reviewTotal.textContent = '₦' + parseFloat(data.total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
+
+                const opt = roomSelect?.options[roomSelect.selectedIndex];
+                const nights = calculateNights();
+                updateGuestFeeDisplay(
+                    data.guest_fee_total || 0,
+                    data.extra_adults != null ? parseInt(data.extra_adults) : 0,
+                    data.extra_children != null ? parseInt(data.extra_children) : 0,
+                    nights,
+                    parseFloat(opt?.dataset.extraAdultFee || 0),
+                    parseFloat(opt?.dataset.extraChildFee || 0)
+                );
             })
-            .catch(() => {});
+            .catch(err => console.error('Room rate fetch failed:', err));
         }, 250);
     }
 
@@ -209,6 +250,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nights === 0 && checkInInput?.value && checkOutInput?.value) {
             if (summaryTotal) summaryTotal.textContent = '—';
             if (summaryNights) summaryNights.textContent = '—';
+            const baseTotalEl = document.getElementById('summary-base-total');
+            if (baseTotalEl) baseTotalEl.textContent = '—';
+            const guestFeeRowEl = document.getElementById('guest-fee-row');
+            if (guestFeeRowEl) guestFeeRowEl.classList.add('d-none');
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.classList.remove('btn-brand');
@@ -223,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedOption.value) {
             const price = parseFloat(selectedOption.dataset.price);
             const capacity = parseInt(selectedOption.dataset.capacity || 2);
-            const baseOccupancy = parseInt(selectedOption.dataset.baseOccupancy || 2);
+            const baseOccupancy = Math.min(parseInt(selectedOption.dataset.baseOccupancy || 2), capacity);
             const extraAdultFee = parseFloat(selectedOption.dataset.extraAdultFee || 0);
             const extraChildFee = parseFloat(selectedOption.dataset.extraChildFee || 0);
 
@@ -243,15 +288,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 capacityPill.classList.add('has-room');
             }
 
+            // Set adults max to full room capacity
             if (adultsInput) {
                 adultsInput.max = capacity;
-                if (parseInt(adultsInput.value) > capacity) adultsInput.value = capacity;
+                // Clamp current value if it exceeds capacity
+                if (parseInt(adultsInput.value) > capacity) {
+                    adultsInput.value = capacity;
+                }
             }
+            // Set children max to remaining capacity after adults
             if (childrenInput) {
-                const maxChildren = Math.max(0, capacity - parseInt(adultsInput?.value || 1));
+                const currentAdults = parseInt(adultsInput?.value || 1);
+                const maxChildren = Math.max(0, capacity - currentAdults);
                 childrenInput.max = maxChildren;
-                if (parseInt(childrenInput.value) > maxChildren) childrenInput.value = maxChildren;
+                // Clamp current value if it exceeds max
+                if (parseInt(childrenInput.value) > maxChildren) {
+                    childrenInput.value = maxChildren;
+                }
             }
+            // Sync stepper button states after updating max values
             syncSteppers();
             updateGuestSummary();
 
@@ -299,9 +354,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Guest fee hint
+            // Guest fee hint — base occupancy covers adults + children; only
+            // guests beyond it incur fees (matches the server-side model).
+            const extraGuests = Math.max(0, totalGuests - baseOccupancy);
             const extraAdults = Math.max(0, adults - baseOccupancy);
-            const extraChildren = children;
+            const extraChildren = Math.max(0, extraGuests - extraAdults);
             const guestFeePerNight = (extraAdults * extraAdultFee) + (extraChildren * extraChildFee);
             if (feeHint) {
                 if (guestFeePerNight > 0) {
@@ -326,28 +383,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const baseTotal = price * nights;
             const total = baseTotal + guestFeeTotal;
 
-            // Update guest fee row
-            const guestFeeRow = document.getElementById('guest-fee-row');
-            const guestFeeEl = document.getElementById('summary-guest-fee');
-            if (guestFeeRow && guestFeeEl) {
-                if (guestFeeTotal > 0) {
-                    guestFeeRow.classList.remove('d-none');
-                    guestFeeEl.textContent = formatMoney(guestFeeTotal);
-                } else {
-                    guestFeeRow.classList.add('d-none');
-                }
-            }
+            // Update base total + guest fee row with transparent breakdown
+            updateBaseTotal(baseTotal);
+            updateGuestFeeDisplay(guestFeeTotal, extraAdults, extraChildren, nights, extraAdultFee, extraChildFee);
 
             const isCartFlow = bookingForm.hasAttribute('data-cart-flow');
-            const rateCodeId = selectedOption.dataset.rateCodeId;
 
-            if (!isCartFlow && rateCodeId && checkInInput?.value && checkOutInput?.value && nights > 0) {
-                fetchRatePrice(selectedOption.value, checkInInput.value, checkOutInput.value,
-                    parseInt(adultsInput?.value || 1), parseInt(childrenInput?.value || 0));
-            } else if (!isCartFlow) {
+            // Instant client-side pricing calculation - no AJAX needed for real-time updates
+            // The price is calculated directly from room type data attributes
+            if (!isCartFlow) {
                 if (summaryTotal) {
                     setMoneyAnimated(summaryTotal, total);
                     announceTotal(total);
+                }
+                // Update review strip total immediately
+                const reviewTotal = document.getElementById('reviewTotal');
+                if (reviewTotal) {
+                    reviewTotal.textContent = '₦' + parseFloat(total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
             }
 
@@ -377,6 +429,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (feeHint) feeHint.classList.add('d-none');
             const capacityHint = document.getElementById('capacityHint');
             if (capacityHint) capacityHint.innerHTML = '<i class="fas fa-info-circle me-1"></i>Choose a room to see occupancy';
+            const baseTotalEl = document.getElementById('summary-base-total');
+            if (baseTotalEl) baseTotalEl.textContent = '—';
+            const guestFeeRowEl = document.getElementById('guest-fee-row');
+            if (guestFeeRowEl) guestFeeRowEl.classList.add('d-none');
+            const guestFeeBreakdownEl = document.getElementById('guest-fee-breakdown');
+            if (guestFeeBreakdownEl) guestFeeBreakdownEl.innerHTML = '';
         }
     }
 
@@ -561,7 +619,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (roomSelect && roomSelect.value) updateSummary();
+    // Initialize summary and steppers - IMPORTANT: updateSummary must run first
+    // to set correct max values on inputs before steppers are initialized
+    if (roomSelect && roomSelect.value) {
+        updateSummary();
+    }
+    // Sync steppers after summary update to reflect correct max values
+    syncSteppers();
 
     // ── Fun UX wiring ──
     document.documentElement.classList.add('js');
@@ -607,15 +671,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Guest steppers
+    // Guest steppers - sync button disabled states based on current input values
     function syncSteppers() {
         document.querySelectorAll('.guest-stepper').forEach(stepper => {
             const input = stepper.querySelector('input[type="number"]');
+            // Always read fresh max value from the DOM (may have been updated by updateSummary)
             const min = parseInt(input.min, 10) || 0;
-            const max = parseInt(input.max, 10) || 20;
+            const max = parseInt(input.max, 10);
+            const effectiveMax = isNaN(max) || max <= 0 ? 20 : max;
             const v = parseInt(input.value, 10) || min;
-            stepper.querySelector('.step-dec').disabled = v <= min;
-            stepper.querySelector('.step-inc').disabled = v >= max;
+            
+            const decBtn = stepper.querySelector('.step-dec');
+            const incBtn = stepper.querySelector('.step-inc');
+            
+            if (decBtn) decBtn.disabled = v <= min;
+            if (incBtn) incBtn.disabled = v >= effectiveMax;
         });
     }
 
@@ -670,34 +740,60 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (item.children > 0) parts.push(item.children + (item.children === 1 ? ' Child' : ' Children'));
                         guestsSummaryEl.textContent = parts.join(', ') || '1 Adult';
                     }
+                    // Update total amount for the cart
+                    const totalAmountEl = document.querySelector('.total-amount');
+                    if (totalAmountEl && data.cart) {
+                        totalAmountEl.textContent = data.cart.formatted_total;
+                    }
                 }
             })
-            .catch(() => {});
+            .catch(err => console.error('Cart guest sync failed:', err));
         }, 200);
     }
 
     document.querySelectorAll('.guest-stepper').forEach(stepper => {
         const input = stepper.querySelector('input[type="number"]');
+        // Always read fresh min/max from DOM since they can change when room is selected
         const getMin = () => parseInt(input.min, 10) || 0;
-        const getMax = () => parseInt(input.max, 10) || 20;
+        const getMax = () => { 
+            const m = parseInt(input.max, 10); 
+            return isNaN(m) ? 20 : m; 
+        };
+        
         const sync = () => {
+            // First update summary which will set the correct max values based on room capacity
+            updateSummary();
+            
+            // Now read the potentially updated max values
             const min = getMin();
             const max = getMax();
             const v = parseInt(input.value, 10) || min;
-            stepper.querySelector('.step-dec').disabled = v <= min;
-            stepper.querySelector('.step-inc').disabled = v >= max;
+            
+            // Clamp value to valid range
+            if (v > max) input.value = max;
+            if (v < min) input.value = min;
+            
+            // Update button states
+            const decBtn = stepper.querySelector('.step-dec');
+            const incBtn = stepper.querySelector('.step-inc');
+            if (decBtn) decBtn.disabled = parseInt(input.value, 10) <= min;
+            if (incBtn) incBtn.disabled = parseInt(input.value, 10) >= max;
+            
             updateProgressBar();
-            updateSummary();
             updateGuestSummary();
             updateReviewStrip();
+            
             // Update children max based on remaining capacity after adults
             const adultsInput = document.getElementById('adults');
             const childrenInput = document.getElementById('children');
-            if (adultsInput && childrenInput) {
-                const capacity = parseInt(roomSelect?.options[roomSelect.selectedIndex]?.dataset?.capacity || 20);
-                childrenInput.max = Math.max(0, capacity - parseInt(adultsInput.value || 1));
-                if (parseInt(childrenInput.value) > parseInt(childrenInput.max)) childrenInput.value = childrenInput.max;
-                // Validate capacity
+            if (adultsInput && childrenInput && roomSelect?.options[roomSelect.selectedIndex]?.value) {
+                const capacity = parseInt(roomSelect.options[roomSelect.selectedIndex].dataset.capacity || 20);
+                const maxChildren = Math.max(0, capacity - parseInt(adultsInput.value || 1));
+                childrenInput.max = maxChildren;
+                if (parseInt(childrenInput.value) > maxChildren) {
+                    childrenInput.value = maxChildren;
+                }
+                // Validate total capacity
                 const totalGuests = parseInt(adultsInput.value || 1) + parseInt(childrenInput.value || 0);
                 const capacityError = document.getElementById('capacityError');
                 if (totalGuests > capacity) {
@@ -705,28 +801,40 @@ document.addEventListener('DOMContentLoaded', () => {
                         capacityError.textContent = `Total guests (${totalGuests}) exceed room capacity (${capacity})`;
                         capacityError.classList.remove('d-none');
                     }
-                    document.getElementById('submitBtn').disabled = true;
+                    if (submitBtn) submitBtn.disabled = true;
                 } else {
                     if (capacityError) capacityError.classList.add('d-none');
-                    document.getElementById('submitBtn').disabled = false;
                 }
             }
+            
+            // Sync all steppers to update button states
             syncSteppers();
-            // Persist guest counts to cart session (server-side)
+            
+            // Persist guest counts to cart session (server-side) - only for cart flow
             persistGuestCountsToCart();
         };
-        stepper.querySelector('.step-dec').addEventListener('click', () => {
+        
+        stepper.querySelector('.step-dec')?.addEventListener('click', () => {
             const min = getMin();
-            input.value = Math.max(min, (parseInt(input.value, 10) || min) - 1);
-            sync();
+            const currentVal = parseInt(input.value, 10) || min;
+            if (currentVal > min) {
+                input.value = currentVal - 1;
+                sync();
+            }
         });
-        stepper.querySelector('.step-inc').addEventListener('click', () => {
+        
+        stepper.querySelector('.step-inc')?.addEventListener('click', () => {
             const max = getMax();
             const min = getMin();
-            input.value = Math.min(max, (parseInt(input.value, 10) || min) + 1);
-            sync();
+            const currentVal = parseInt(input.value, 10) || min;
+            if (currentVal < max) {
+                input.value = currentVal + 1;
+                sync();
+            }
         });
-        sync();
+        
+        // Initial sync on page load
+        syncSteppers();
     });
 
     // Live progress as the guest types — only pricing-relevant fields
@@ -952,13 +1060,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (total) {
                 const price = parseFloat(opt.dataset.price || 0);
                 const n = calculateNights();
-                const baseOccupancy = parseInt(opt.dataset.baseOccupancy || 2);
+                const capacity = parseInt(opt.dataset.capacity || 2);
+                const baseOccupancy = Math.min(parseInt(opt.dataset.baseOccupancy || 2), capacity);
                 const extraAdultFee = parseFloat(opt.dataset.extraAdultFee || 0);
                 const extraChildFee = parseFloat(opt.dataset.extraChildFee || 0);
                 const adults = parseInt(document.getElementById('adults')?.value || 1);
                 const children = parseInt(document.getElementById('children')?.value || 0);
+                const extraGuests = Math.max(0, (adults + children) - baseOccupancy);
                 const extraAdults = Math.max(0, adults - baseOccupancy);
-                const extraChildren = children;
+                const extraChildren = Math.max(0, extraGuests - extraAdults);
                 const guestFeePerNight = (extraAdults * extraAdultFee) + (extraChildren * extraChildFee);
                 const totalVal = (price * n) + (guestFeePerNight * n);
                 total.textContent = '₦' + totalVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

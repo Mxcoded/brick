@@ -79,6 +79,8 @@ class WebsiteRateService
             'guest_fee_total' => $guestFeeTotal,
             'total' => $baseRate['total'] + $guestFeeTotal,
             'guest_fee_breakdown' => $guestFee['breakdown'],
+            'extra_adults' => $guestFee['extra_adults'],
+            'extra_children' => $guestFee['extra_children'],
         ]);
     }
 

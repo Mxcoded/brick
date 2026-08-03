@@ -284,7 +284,7 @@
                                         {{ empty($cart['items']) ? 'disabled' : '' }}>
                                     <i class="fas fa-trash me-1"></i> Clear All
                                 </button>
-                                <a href="{{ route('website.booking') }}" id="continueBtn" 
+                                <a href="{{ route('website.booking', [], false) }}" id="continueBtn" 
                                    class="btn btn-primary btn-lg w-100 {{ empty($cart['items']) ? 'disabled' : '' }}">
                                     <i class="fas fa-arrow-right me-2"></i> Continue
                                 </a>
@@ -329,7 +329,7 @@
                 <span class="mobile-checkout-total" id="mobileCartTotal">{{ $cart['formatted_total'] }}</span>
                 <span class="mobile-checkout-rooms"><span id="mobileCartRooms">{{ $cart['total_rooms'] }}</span> room(s)</span>
             </div>
-            <a href="{{ route('website.booking') }}" id="mobileContinueBtn" class="btn btn-primary btn-lg">
+            <a href="{{ route('website.booking', [], false) }}" id="mobileContinueBtn" class="btn btn-primary btn-lg">
                 <i class="fas fa-arrow-right me-2"></i> Continue
             </a>
         </div>
@@ -422,10 +422,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const csrfToken = '{{ csrf_token() }}';
-            const cartAddUrl = '{{ route("website.cart.add") }}';
-            const cartRemoveUrl = '{{ url("/website/cart/remove") }}';
-            const cartClearUrl = '{{ route("website.cart.clear") }}';
-            const cartGetUrl = '{{ route("website.cart.get") }}';
+            const cartAddUrl = '{{ route("website.cart.add", [], false) }}';
+            const cartRemoveUrl = '{{ route("website.cart.remove", ["roomTypeId" => ":roomId"], false) }}';
+            const cartClearUrl = '{{ route("website.cart.clear", [], false) }}';
+            const cartGetUrl = '{{ route("website.cart.get", [], false) }}';
 
             // Elements
             const checkInInput = document.getElementById('checkIn');
@@ -590,7 +590,7 @@
             function removeFromCart(roomId) {
                 showLoading();
 
-                fetch(`${cartRemoveUrl}/${roomId}`, {
+                fetch(cartRemoveUrl.replace(':roomId', roomId), {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,
@@ -715,7 +715,7 @@
                 const children = document.getElementById('children').value;
 
                 // Clear cart if dates change (cart service handles this, but also update URL)
-                window.location.href = `{{ route('website.book') }}?check_in=${checkIn}&check_out=${checkOut}&adults=${adults}&children=${children}`;
+                window.location.href = `{{ route('website.book', [], false) }}?check_in=${checkIn}&check_out=${checkOut}&adults=${adults}&children=${children}`;
             });
 
             // Update check-out min date when check-in changes
