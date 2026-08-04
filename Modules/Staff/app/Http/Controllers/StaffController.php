@@ -16,6 +16,7 @@ use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Staff\Exports\StaffExport;
 use Modules\Staff\Helpers\DepartmentHelper;
 use Modules\Staff\Mail\WelcomeMail;
+use Modules\Staff\Models\EducationalBackground;
 use Modules\Staff\Models\Employee;
 use Modules\Staff\Models\LeaveRequest;
 use Modules\Staff\Models\StaffSetting;
@@ -200,6 +201,20 @@ class StaffController extends Controller
     {
         // $staff is already fetched!
         return view('staff::show', ['employee' => $staff]);
+    }
+
+    /**
+     * Stream an education certificate straight from the public disk through
+     * PHP. This bypasses the public/storage junction, which cPanel/Apache
+     * returns 403 Forbidden for when symlink following is not allowed.
+     */
+    public function downloadCertificate(EducationalBackground $education)
+    {
+        if (! $education->certificate_path || ! Storage::disk('public')->exists($education->certificate_path)) {
+            abort(404, 'Certificate not found.');
+        }
+
+        return response()->file(Storage::disk('public')->path($education->certificate_path));
     }
 
     public function store(Request $request)

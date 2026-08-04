@@ -201,7 +201,7 @@
                                         <td>{{ $education->qualification ?? 'N/A' }}</td>
                                         <td>
                                             @if ($education->certificate_path)
-                                                <a href="{{ asset('storage/' . $education->certificate_path) }}"
+                                                <a href="{{ route('staff.education.certificate', $education) }}"
                                                     target="_blank" class="btn btn-sm btn-outline-primary">
                                                     <i class="fas fa-download me-1"></i> Download
                                                 </a>

@@ -159,6 +159,11 @@ Route::prefix('staff')
         Route::get('/', [StaffController::class, 'index'])->name('index')->middleware('permission:employees.read');
         Route::get('/create', [StaffController::class, 'create'])->name('create')->middleware('permission:employees.create');
         Route::post('/', [StaffController::class, 'store'])->name('store')->middleware('permission:employees.create');
+        // Streams the stored certificate through PHP instead of the public/storage
+        // symlink (cPanel returns 403 on junction-linked assets).
+        Route::get('/education/{education}/certificate', [StaffController::class, 'downloadCertificate'])
+            ->name('education.certificate')
+            ->middleware('permission:employees.read');
         Route::get('/{staff}', [StaffController::class, 'show'])->name('show')->middleware('permission:employees.read');
         Route::get('/{staff}/edit', [StaffController::class, 'edit'])->name('edit')->middleware('permission:employees.update');
         Route::put('/{staff}', [StaffController::class, 'update'])->name('update')->middleware('permission:employees.update');

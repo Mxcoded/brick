@@ -63,7 +63,7 @@
                 >
                 @if($education && $education->certificate_path)
                     <a 
-                        href="{{ asset('storage/' . $education->certificate_path) }}" 
+                        href="{{ route('staff.education.certificate', $education) }}" 
                         target="_blank" 
                         class="btn btn-sm btn-primary mt-2"
                     >
