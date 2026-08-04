@@ -11,6 +11,7 @@ use Modules\Website\Console\Commands\FixConfirmedBookingBalances;
 use Modules\Website\Console\Commands\SendPostStayFollowUp;
 use Modules\Website\Console\MigrateRoomsToTypes;
 use Modules\Website\Livewire\BookingSummary;
+use Modules\Website\Livewire\CartSummary;
 use Modules\Website\Services\RoomAssignmentService;
 use Modules\Website\Services\RoomAvailabilityService;
 use Nwidart\Modules\Traits\PathNamespace;
@@ -38,6 +39,7 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
 
         Livewire::component('website.booking-summary', BookingSummary::class);
+        Livewire::component('website.cart-summary', CartSummary::class);
     }
 
     /**

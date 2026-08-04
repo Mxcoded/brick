@@ -79,7 +79,7 @@
 
             <div class="col-lg-4">
                 @if ($useCartFlow)
-                    @include('website::booking.partials.summary')
+                    <livewire:website.cart-summary />
                 @else
                     <livewire:website.booking-summary
                         :room-type-id="$reqRoomTypeId ? (int) $reqRoomTypeId : null"
