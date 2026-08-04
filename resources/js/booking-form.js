@@ -5,6 +5,20 @@
  * into the Vite bundle. Server-supplied config (routes + CSRF token) is injected
  * via window.bookingFormConfig (see Modules/Website/resources/views/booking/partials/config.blade.php).
  */
+
+// Authoritative total bridge. The Livewire BookingSummary component prices
+// server-side (WebsiteRateService) and pushes the computed totals back through
+// the window-level `booking-summary-updated` event. Registered at module top
+// level so it is in place before Livewire applies the initial-render dispatch.
+window.addEventListener('booking-summary-updated', (event) => {
+    const detail = event.detail || {};
+    if (detail.total == null) return;
+    const reviewTotal = document.getElementById('reviewTotal');
+    if (reviewTotal) {
+        reviewTotal.textContent = '₦' + parseFloat(detail.total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const bookingForm = document.getElementById('bookingForm');
     if (!bookingForm) return;
@@ -209,50 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 200);
     }
 
-    let _rateFetchTimer = null;
-    function fetchRatePrice(roomTypeId, checkIn, checkOut, adults, children) {
-        clearTimeout(_rateFetchTimer);
-        if (!roomTypeId || !checkIn || !checkOut) return;
-        _rateFetchTimer = setTimeout(() => {
-            const params = new URLSearchParams({
-                room_type_id: roomTypeId,
-                check_in_date: checkIn,
-                check_out_date: checkOut,
-                adults: adults,
-                children: children,
-            });
-            fetch(cfg.roomRateUrl + '?' + params.toString(), {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (summaryRate && data.price_per_night != null) summaryRate.textContent = formatMoney(data.price_per_night);
-                if (data.base_total != null) updateBaseTotal(data.base_total);
-                if (summaryTotal && data.total != null) {
-                    setMoneyAnimated(summaryTotal, data.total);
-                    announceTotal(data.total);
-                }
-                const reviewTotal = document.getElementById('reviewTotal');
-                if (reviewTotal && data.total != null) {
-                    reviewTotal.textContent = '₦' + parseFloat(data.total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                }
-
-                const opt = roomSelect?.options[roomSelect.selectedIndex];
-                const nights = calculateNights();
-                updateGuestFeeDisplay(
-                    data.guest_fee_total || 0,
-                    data.extra_adults != null ? parseInt(data.extra_adults) : 0,
-                    data.extra_children != null ? parseInt(data.extra_children) : 0,
-                    nights,
-                    parseFloat(opt?.dataset.extraAdultFee || 0),
-                    parseFloat(opt?.dataset.extraChildFee || 0)
-                );
-                console.log('[summary] Server /api/room-rate applied -> total:', data.total != null ? formatMoney(data.total) : '(none)', '| base_total:', data.base_total, '| guest_fee_total:', data.guest_fee_total, '| UI #summary-total:', summaryTotal ? summaryTotal.textContent : '(missing)');
-            })
-            .catch(err => console.error('Room rate fetch failed:', err));
-        }, 250);
-    }
-
     function updateSummary() {
         if (!roomSelect) return;
         const selectedOption = roomSelect.options[roomSelect.selectedIndex];
@@ -414,9 +384,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const isCartFlow = bookingForm.hasAttribute('data-cart-flow');
 
-            // Optimistic instant pricing, then the /api/room-rate response
-            // overrides it so the summary always matches what gets booked
-            // (rate codes, calendar overrides).
+            // Optimistic instant pricing for the review strip; the Livewire
+            // summary re-renders server-side and pushes the authoritative
+            // total back via `booking-summary-updated` (rate codes, calendar
+            // overrides), which then corrects #reviewTotal.
             if (!isCartFlow) {
                 if (summaryTotal) {
                     setMoneyAnimated(summaryTotal, total);
@@ -427,7 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (reviewTotal) {
                     reviewTotal.textContent = '₦' + parseFloat(total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
-                fetchRatePrice(roomSelect.value, checkInInput?.value, checkOutInput?.value, adults, children);
                 console.log('[summary] Total price summary UI updated successfully ->', summaryTotal ? summaryTotal.textContent : '(no #summary-total element)', '| reviewTotal:', reviewTotal ? reviewTotal.textContent : '(no #reviewTotal element)');
             }
 
@@ -656,6 +626,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Sync steppers after summary update to reflect correct max values
     syncSteppers();
+
+    // Re-push the current form state to Livewire once it is ready so the
+    // authoritative total always reaches the review strip on first paint
+    // (belt-and-suspenders: the module-top-level listener above also catches
+    // Livewire's own initial-render dispatch).
+    document.addEventListener('livewire:init', () => {
+        if (roomSelect?.value) dispatchSummaryUpdate();
+    });
 
     // ── Fun UX wiring ──
     document.documentElement.classList.add('js');

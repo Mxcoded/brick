@@ -4,7 +4,6 @@
             'checkAvailabilityUrl' => route('website.room.checkAvailability', [], false),
             'updateGuestsUrl' => route('website.cart.update-guests', [], false),
             'checkEmailUrl' => route('website.checkEmail', [], false),
-            'roomRateUrl' => route('website.api.room-rate', [], false),
             'availableUnitsUrl' => route('website.api.available-units', [], false),
             'csrfToken' => csrf_token(),
         ]) }};

@@ -58,6 +58,18 @@ class BookingSummary extends Component
             );
         }
 
+        // Push the authoritative totals back to the browser so non-Livewire
+        // elements (the review strip's #reviewTotal) stay in sync. This fires
+        // on every render — initial mount included — replacing the old
+        // /api/room-rate AJAX in booking-form.js.
+        $this->dispatch('booking-summary-updated', [
+            'total' => $rate['total'] ?? 0,
+            'baseTotal' => $rate['base_total'] ?? 0,
+            'guestFeeTotal' => $rate['guest_fee_total'] ?? 0,
+            'pricePerNight' => $rate['price_per_night'] ?? 0,
+            'hasRate' => $rate !== null,
+        ]);
+
         return view('website::livewire.booking-summary', compact('roomType', 'rate'));
     }
 }
