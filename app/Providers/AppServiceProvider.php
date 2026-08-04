@@ -23,7 +23,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Use atomic writes for Blade compiled views to prevent "unexpected end of file"
+        // errors when concurrent requests trigger recompilation simultaneously.
+        // Registered in register() (not boot()) so package providers (e.g. Livewire's
+        // tag precompiler) register on this instance rather than a discarded one.
+        $this->app->extend('blade.compiler', function ($bladeCompiler, $app) {
+            return new AtomicBladeCompiler(
+                $app['files'],
+                $app['config']['view.compiled'],
+                $app['config']->get('view.relative_hash', false) ? $app->basePath() : '',
+                $app['config']->get('view.cache', true),
+                $app['config']->get('view.compiled_extension', 'php'),
+            );
+        });
     }
 
     /**
@@ -49,18 +61,6 @@ class AppServiceProvider extends ServiceProvider
         // Register login tracking listeners
         Event::listen(Login::class, LogSuccessfulLogin::class);
         Event::listen(Logout::class, LogSuccessfulLogout::class);
-
-        // Use atomic writes for Blade compiled views to prevent "unexpected end of file"
-        // errors when concurrent requests trigger recompilation simultaneously.
-        $this->app->extend('blade.compiler', function ($bladeCompiler, $app) {
-            return new AtomicBladeCompiler(
-                $app['files'],
-                $app['config']['view.compiled'],
-                $app['config']->get('view.relative_hash', false) ? $app->basePath() : '',
-                $app['config']->get('view.cache', true),
-                $app['config']->get('view.compiled_extension', 'php'),
-            );
-        });
 
         // Staff access is determined by the account `type` ('staff'), not a Spatie role.
         // Grant staff-account-type users the permissions the legacy `staff` role carried

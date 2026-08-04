@@ -188,6 +188,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return 1;
     }
 
+    // Livewire summary bridge: the summary column is a server-rendered
+    // Livewire component. Every price-relevant change is dispatched to it so
+    // WebsiteRateService (rate codes, calendar overrides, guest fees) is the
+    // single authoritative source. No-op when Livewire isn't mounted.
+    let _summaryDispatchTimer = null;
+    function dispatchSummaryUpdate() {
+        if (typeof window.Livewire === 'undefined' || !window.Livewire.dispatch) return;
+        clearTimeout(_summaryDispatchTimer);
+        _summaryDispatchTimer = setTimeout(() => {
+            const payload = {
+                roomTypeId: roomSelect ? roomSelect.value : null,
+                checkIn: checkInInput ? checkInInput.value : '',
+                checkOut: checkOutInput ? checkOutInput.value : '',
+                adults: parseInt(document.getElementById('adults')?.value || 1),
+                children: parseInt(document.getElementById('children')?.value || 0),
+            };
+            console.log('[livewire-summary] Dispatching summaryUpdated', payload);
+            window.Livewire.dispatch('summaryUpdated', payload);
+        }, 200);
+    }
+
     let _rateFetchTimer = null;
     function fetchRatePrice(roomTypeId, checkIn, checkOut, adults, children) {
         clearTimeout(_rateFetchTimer);
@@ -226,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     parseFloat(opt?.dataset.extraAdultFee || 0),
                     parseFloat(opt?.dataset.extraChildFee || 0)
                 );
+                console.log('[summary] Server /api/room-rate applied -> total:', data.total != null ? formatMoney(data.total) : '(none)', '| base_total:', data.base_total, '| guest_fee_total:', data.guest_fee_total, '| UI #summary-total:', summaryTotal ? summaryTotal.textContent : '(missing)');
             })
             .catch(err => console.error('Room rate fetch failed:', err));
         }, 250);
@@ -262,6 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btnText) btnText.textContent = 'Invalid Dates';
             const availabilityStatus = document.getElementById('availabilityStatus');
             if (availabilityStatus) availabilityStatus.classList.add('d-none');
+            dispatchSummaryUpdate();
             return;
         }
 
@@ -383,14 +406,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const baseTotal = price * nights;
             const total = baseTotal + guestFeeTotal;
 
+            console.log('[calc]', selectedOption.dataset.name, '| price/night:', price, '| nights:', nights, '| baseOccupancy:', baseOccupancy, '| extraAdults:', extraAdults, '| extraChildren:', extraChildren, '| extraAdultFee:', extraAdultFee, '| extraChildFee:', extraChildFee, '| guestFeeTotal:', guestFeeTotal, '| baseTotal:', baseTotal, '| total:', total);
+
             // Update base total + guest fee row with transparent breakdown
             updateBaseTotal(baseTotal);
             updateGuestFeeDisplay(guestFeeTotal, extraAdults, extraChildren, nights, extraAdultFee, extraChildFee);
 
             const isCartFlow = bookingForm.hasAttribute('data-cart-flow');
 
-            // Instant client-side pricing calculation - no AJAX needed for real-time updates
-            // The price is calculated directly from room type data attributes
+            // Optimistic instant pricing, then the /api/room-rate response
+            // overrides it so the summary always matches what gets booked
+            // (rate codes, calendar overrides).
             if (!isCartFlow) {
                 if (summaryTotal) {
                     setMoneyAnimated(summaryTotal, total);
@@ -401,6 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (reviewTotal) {
                     reviewTotal.textContent = '₦' + parseFloat(total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
+                fetchRatePrice(roomSelect.value, checkInInput?.value, checkOutInput?.value, adults, children);
+                console.log('[summary] Total price summary UI updated successfully ->', summaryTotal ? summaryTotal.textContent : '(no #summary-total element)', '| reviewTotal:', reviewTotal ? reviewTotal.textContent : '(no #reviewTotal element)');
             }
 
             if (summaryImage && selectedOption.dataset.image) {
@@ -436,6 +464,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const guestFeeBreakdownEl = document.getElementById('guest-fee-breakdown');
             if (guestFeeBreakdownEl) guestFeeBreakdownEl.innerHTML = '';
         }
+
+        dispatchSummaryUpdate();
     }
 
     // Debounced availability/unit fetches so typing or rapid stepper clicks
@@ -817,9 +847,11 @@ document.addEventListener('DOMContentLoaded', () => {
         stepper.querySelector('.step-dec')?.addEventListener('click', () => {
             const min = getMin();
             const currentVal = parseInt(input.value, 10) || min;
+            console.log('[step-dec]', input.name, 'current:', currentVal, 'min:', min, 'max:', getMax(), 'inc-disabled:', stepper.querySelector('.step-inc')?.disabled, 'dec-disabled:', stepper.querySelector('.step-dec')?.disabled);
             if (currentVal > min) {
                 input.value = currentVal - 1;
                 sync();
+                console.log('[step-dec]', input.name, '-> new value:', input.value);
             }
         });
         
@@ -827,9 +859,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const max = getMax();
             const min = getMin();
             const currentVal = parseInt(input.value, 10) || min;
+            console.log('[step-inc]', input.name, 'current:', currentVal, 'min:', min, 'max:', max, 'inc-disabled:', stepper.querySelector('.step-inc')?.disabled, 'dec-disabled:', stepper.querySelector('.step-dec')?.disabled);
             if (currentVal < max) {
                 input.value = currentVal + 1;
                 sync();
+                console.log('[step-inc]', input.name, '-> new value:', input.value);
             }
         });
         

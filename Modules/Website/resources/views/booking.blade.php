@@ -78,7 +78,16 @@
             </div>
 
             <div class="col-lg-4">
-                @include('website::booking.partials.summary')
+                @if ($useCartFlow)
+                    @include('website::booking.partials.summary')
+                @else
+                    <livewire:website.booking-summary
+                        :room-type-id="$reqRoomTypeId ? (int) $reqRoomTypeId : null"
+                        :check-in="$reqCheckIn"
+                        :check-out="$reqCheckOut"
+                        :adults="(int) old('adults', 1)"
+                        :children="(int) old('children', 0)" />
+                @endif
             </div>
         </div>
     </div>

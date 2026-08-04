@@ -5,10 +5,12 @@ namespace Modules\Website\Providers;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 use Modules\Website\Console\Commands\CleanupOrphanedBookings;
 use Modules\Website\Console\Commands\FixConfirmedBookingBalances;
 use Modules\Website\Console\Commands\SendPostStayFollowUp;
 use Modules\Website\Console\MigrateRoomsToTypes;
+use Modules\Website\Livewire\BookingSummary;
 use Modules\Website\Services\RoomAssignmentService;
 use Modules\Website\Services\RoomAvailabilityService;
 use Nwidart\Modules\Traits\PathNamespace;
@@ -34,6 +36,8 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->registerConfig();
         $this->registerViews();
         $this->loadMigrationsFrom(module_path($this->name, 'database/migrations'));
+
+        Livewire::component('website.booking-summary', BookingSummary::class);
     }
 
     /**
