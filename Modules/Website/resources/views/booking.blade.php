@@ -14,14 +14,14 @@
 
             $reqRoomTypeId = old(
                 'room_type_id',
-                request('room_type_id', request('room_id', $selectedRoomType->id ?? '')),
+                request('room_type_id', request('room_id', $draft['room_type_id'] ?? ($selectedRoomType->id ?? ''))),
             );
             $reqCheckIn = $useCartFlow
                 ? $cart['check_in'] ?? ''
-                : old('check_in_date', request('check_in_date', request('check_in')));
+                : old('check_in_date', request('check_in_date', request('check_in', $draft['check_in_date'] ?? '')));
             $reqCheckOut = $useCartFlow
                 ? $cart['check_out'] ?? ''
-                : old('check_out_date', request('check_out_date', request('check_out')));
+                : old('check_out_date', request('check_out_date', request('check_out', $draft['check_out_date'] ?? '')));
             $hasPhone = Auth::check() && $guest && !empty($guest->contact_number);
             $hasGender = Auth::check() && $guest && !empty($guest->gender);
             $hasAddress = Auth::check() && $guest && !empty($guest->home_address);

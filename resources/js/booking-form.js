@@ -24,6 +24,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!bookingForm) return;
 
     const cfg = window.bookingFormConfig || {};
+
+    // ── Stepper + draft auto-save state ──
+    let currentStep = 1;
+    let maxVisitedStep = 1;
+    let _draftTimer = null;
+    let _draftSaving = false;
+    let _draftSaved = '';
     const roomSelect = document.getElementById('room_type_id');
     const checkInInput = document.getElementById('check_in_date');
     const checkOutInput = document.getElementById('check_out_date');
@@ -436,6 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         dispatchSummaryUpdate();
+        scheduleDraftSave();
     }
 
     // Debounced availability/unit fetches so typing or rapid stepper clicks
@@ -616,6 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (accountToggle) {
         accountToggle.addEventListener('change', function() {
             document.getElementById('accountFields').classList.toggle('show', this.checked);
+            scheduleDraftSave();
         });
     }
 
@@ -792,6 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStepIndicator();
         updateReviewStrip();
         updateGuestSummary();
+        scheduleDraftSave();
         if (sourceEl && priceRelevantFields.includes(sourceEl.name)) {
             updateSummary();
         }
@@ -961,34 +971,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Step indicator update ──
+    // The indicator mirrors the stepper: `currentStep` is active, earlier
+    // steps are marked completed. `maxVisitedStep` keeps the furthest step
+    // reached so returning guests see their progress preserved.
     function updateStepIndicator() {
         const steps = document.querySelectorAll('.step-item');
         const connectors = document.querySelectorAll('.step-connector');
-        const isCartFlow = bookingForm.hasAttribute('data-cart-flow');
-        const sections = [
-            { name: 'dates', fields: ['check_in_date', 'check_out_date', 'room_type_id'] },
-            { name: 'guest', fields: ['guest_name', 'guest_email', 'guest_phone', 'guest_gender', 'guest_address', 'guest_nationality'] },
-            { name: 'id', fields: ['guest_id_type', 'guest_id_number'] },
-            { name: 'extras', fields: [] },
-            { name: 'payment', fields: [] },
-        ];
-        let activeIdx = 0;
-        for (let i = 0; i < sections.length; i++) {
-            if (i === 0 && isCartFlow) { activeIdx = 1; continue; }
-            const allFilled = sections[i].fields.every(name => {
-                const el = bookingForm.querySelector('[name="' + name + '"]');
-                return el && el.value && el.value.trim() !== '';
-            });
-            if (!allFilled) { activeIdx = i; break; }
-            activeIdx = i + 1;
-        }
-        if (activeIdx >= steps.length) activeIdx = steps.length - 1;
+        const activeIdx = currentStep - 1;
         steps.forEach((s, i) => {
             s.classList.toggle('active', i === activeIdx);
             s.classList.toggle('completed', i < activeIdx);
+            s.classList.toggle('visited', i < maxVisitedStep);
         });
         connectors.forEach((c, i) => {
-            c.classList.toggle('completed', i < activeIdx);
+            c.classList.toggle('completed', i < maxVisitedStep - 1);
         });
     }
 
@@ -1044,5 +1040,194 @@ document.addEventListener('DOMContentLoaded', () => {
             if (c > 0) parts.push(c + (c === 1 ? ' Child' : ' Children'));
             guests.textContent = parts.join(', ') || '1 Adult';
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Stepper navigation (progressive one-page wizard)
+    // ─────────────────────────────────────────────────────────────
+    const isCartFlow = bookingForm.hasAttribute('data-cart-flow');
+    const stepSections = Array.from(bookingForm.querySelectorAll('.form-section[data-step]'));
+    const stepperNav = document.getElementById('stepperNav');
+    const stepperBack = document.getElementById('stepperBack');
+    const stepperNext = document.getElementById('stepperNext');
+    const reviewStripEl = document.getElementById('reviewStrip');
+    const bookingCtaEl = document.getElementById('bookingCta');
+    const draftStatusEl = document.getElementById('draftStatus');
+
+    // Fields that make a step "complete" for resume positioning.
+    const stepFieldMap = isCartFlow ? [
+        { fields: ['guest_name', 'guest_email', 'guest_phone', 'guest_gender', 'guest_address', 'guest_nationality'] },
+        { fields: ['guest_id_type', 'guest_id_number'] },
+        { fields: [] },
+        { fields: [] },
+    ] : [
+        { fields: ['check_in_date', 'check_out_date', 'room_type_id'] },
+        { fields: ['guest_name', 'guest_email', 'guest_phone', 'guest_gender', 'guest_address', 'guest_nationality'] },
+        { fields: ['guest_id_type', 'guest_id_number'] },
+        { fields: [] },
+        { fields: [] },
+    ];
+
+    function getFurthestFilledStep() {
+        if (stepSections.length === 0) return 0;
+        let idx = 0;
+        for (let i = 0; i < stepFieldMap.length; i++) {
+            const allFilled = stepFieldMap[i].fields.every(name => {
+                const el = bookingForm.querySelector('[name="' + name + '"]');
+                return el && el.value && el.value.trim() !== '';
+            });
+            if (!allFilled) { idx = i; break; }
+            idx = i + 1;
+        }
+        return Math.min(idx, stepSections.length - 1);
+    }
+
+    function stepIsValid(n) {
+        const section = stepSections[n - 1];
+        if (!section) return true;
+
+        // Step 1 (non-cart): a room must be selected.
+        if (n === 1 && !isCartFlow) {
+            const selectedCard = document.querySelector('.room-card.selected');
+            if (!roomSelect?.value && !selectedCard) {
+                const alertEl = document.getElementById('availabilityAlert');
+                if (alertEl) {
+                    alertEl.classList.remove('d-none', 'alert-success');
+                    alertEl.classList.add('alert-danger');
+                    alertEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Please select a room type to continue.';
+                }
+                return false;
+            }
+        }
+
+        const invalidEl = Array.from(section.querySelectorAll('input, select, textarea'))
+            .find(el => !el.disabled && el.hasAttribute('required') && !el.checkValidity());
+        if (invalidEl) {
+            invalidEl.reportValidity();
+            invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+        return true;
+    }
+
+    function showStep(n) {
+        if (stepSections.length === 0) return;
+        const last = stepSections.length;
+        currentStep = Math.max(1, Math.min(n, last));
+        maxVisitedStep = Math.max(maxVisitedStep, currentStep);
+
+        stepSections.forEach((section, i) => {
+            const isCurrent = (i + 1) === currentStep;
+            section.style.display = isCurrent ? '' : 'none';
+            if (isCurrent) {
+                section.classList.add('visible');
+                section.querySelectorAll('.reveal').forEach(r => r.classList.add('visible'));
+            }
+        });
+
+        // Nav buttons.
+        if (stepperNav) {
+            stepperBack.style.visibility = currentStep > 1 ? 'visible' : 'hidden';
+            stepperBack.style.display = currentStep > 1 ? '' : 'none';
+            if (currentStep < last) {
+                stepperNext.style.display = '';
+                stepperNext.innerHTML = 'Next<i class="fas fa-arrow-right ms-2"></i>';
+            } else {
+                stepperNext.style.display = 'none';
+            }
+        }
+
+        // Review strip + CTA only on the final step.
+        const isLast = currentStep === last;
+        if (!isCartFlow && reviewStripEl) {
+            reviewStripEl.style.display = isLast ? '' : 'none';
+        }
+        if (bookingCtaEl) {
+            bookingCtaEl.style.display = isLast ? '' : 'none';
+        }
+
+        updateStepIndicator();
+        updateProgressBar();
+    }
+
+    if (stepperNav && stepSections.length > 1) {
+        stepperBack.addEventListener('click', () => showStep(currentStep - 1));
+        stepperNext.addEventListener('click', () => {
+            if (!stepIsValid(currentStep)) return;
+            showStep(currentStep + 1);
+        });
+        // Landing position: resume at the first incomplete step (draft-aware).
+        showStep(getFurthestFilledStep() + 1);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Auto-save draft to the session-backed store
+    // ─────────────────────────────────────────────────────────────
+    const DRAFT_FIELDS = [
+        'guest_name', 'guest_email', 'guest_phone', 'guest_gender', 'guest_address',
+        'guest_nationality', 'guest_dob', 'guest_id_type', 'guest_id_number',
+        'adults', 'children', 'special_requests', 'payment_method',
+        'room_type_id', 'room_unit_id', 'check_in_date', 'check_out_date',
+    ];
+
+    function collectDraft() {
+        const data = {};
+        DRAFT_FIELDS.forEach(name => {
+            const el = bookingForm.querySelector('[name="' + name + '"]');
+            if (!el) return;
+            data[name] = el.value ?? '';
+        });
+        const accountEl = document.getElementById('createAccountToggle');
+        if (accountEl) data.create_account = accountEl.checked ? 1 : 0;
+        return data;
+    }
+
+    function setDraftStatus(msg, isSaving) {
+        if (!draftStatusEl) return;
+        draftStatusEl.textContent = msg;
+        draftStatusEl.classList.toggle('is-saving', !!isSaving);
+        if (!isSaving) {
+            clearTimeout(draftStatusEl._hideTimer);
+            draftStatusEl._hideTimer = setTimeout(() => {
+                draftStatusEl.textContent = '';
+            }, 3000);
+        }
+    }
+
+    function saveDraft() {
+        if (_draftSaving) return;
+        const serialized = JSON.stringify(collectDraft());
+        if (serialized === _draftSaved) return;
+
+        _draftSaving = true;
+        setDraftStatus('Saving\u2026', true);
+
+        fetch(cfg.saveDraftUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': cfg.csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: serialized,
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.saved) {
+                    _draftSaved = serialized;
+                    setDraftStatus('\u2713 Progress saved', false);
+                }
+            })
+            .catch(() => {})
+            .finally(() => {
+                _draftSaving = false;
+                if (JSON.stringify(collectDraft()) !== _draftSaved) scheduleDraftSave();
+            });
+    }
+
+    function scheduleDraftSave() {
+        if (!cfg.saveDraftUrl) return;
+        clearTimeout(_draftTimer);
+        _draftTimer = setTimeout(saveDraft, 800);
     }
 });

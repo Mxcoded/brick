@@ -944,6 +944,51 @@
             flex-shrink: 0;
         }
 
+        /* ── Stepper navigation ── */
+        .stepper-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .stepper-nav .btn {
+            border-radius: 12px;
+            font-weight: 700;
+            padding: 0.7rem 1.75rem;
+        }
+
+        /* ── Auto-save indicator ── */
+        .draft-saved-indicator {
+            position: fixed;
+            bottom: 1.25rem;
+            right: 1.25rem;
+            z-index: 1050;
+            background: #fff;
+            border: 1px solid #bbf7d0;
+            color: #15803d;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.5rem 0.9rem;
+            border-radius: 30px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        }
+
+        .draft-saved-indicator:not(:empty) {
+            opacity: 1;
+            transform: none;
+        }
+
+        .draft-saved-indicator.is-saving {
+            color: #9a6a1f;
+            border-color: #fde68a;
+        }
+
         @media (max-width: 576px) {
             .room-cards {
                 grid-template-columns: 1fr;

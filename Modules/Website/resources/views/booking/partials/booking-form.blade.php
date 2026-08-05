@@ -8,6 +8,10 @@
     </div>
     <input type="hidden" name="register_time" value="{{ time() }}">
 
+    <div id="draftStatus" class="draft-saved-indicator" role="status" aria-live="polite"></div>
+
+    @php $sectionStep = 0; @endphp
+
     @if ($useCartFlow)
         <div class="alert alert-info availability-banner mb-4">
             <div class="d-flex align-items-center">
@@ -23,11 +27,12 @@
             </div>
         </div>
     @else
-        <div class="form-section reveal">
+        @php $sectionStep = 1; @endphp
+        <div class="form-section reveal" data-step="{{ $sectionStep }}">
             <div class="form-section-header">
                 <div class="section-icon"><i class="fas fa-calendar-alt"></i></div>
                 <h5>Stay Dates &amp; Room</h5>
-                <span class="step-badge">Step 1</span>
+                <span class="step-badge">Step {{ $sectionStep }}</span>
             </div>
             <div class="form-section-body">
                 <div class="date-chips" id="dateChips">
@@ -136,11 +141,12 @@
         </div>
     @endif
 
-    <div class="form-section reveal">
+    @php $sectionStep = $useCartFlow ? 1 : 2; @endphp
+    <div class="form-section reveal" data-step="{{ $sectionStep }}">
         <div class="form-section-header">
             <div class="section-icon"><i class="fas fa-user"></i></div>
             <h5>Guest Information</h5>
-            <span class="step-badge">Step 2</span>
+            <span class="step-badge">Step {{ $sectionStep }}</span>
         </div>
         <div class="form-section-body">
             @php
@@ -153,7 +159,7 @@
                             class="text-danger">*</span></label>
                     <input type="text" name="guest_name" id="guest_name"
                         class="form-control {{ $hasName ? 'bg-light text-muted' : '' }}"
-                        value="{{ old('guest_name', $guest->full_name ?? (Auth::user()->name ?? '')) }}"
+                        value="{{ old('guest_name', $draft['guest_name'] ?? ($guest->full_name ?? (Auth::user()->name ?? ''))) }}"
                         required {{ $hasName ? 'readonly' : '' }} placeholder="e.g. John Doe">
                 </div>
                 <div class="col-md-6">
@@ -161,7 +167,7 @@
                             class="text-danger">*</span></label>
                     <input type="email" name="guest_email" id="guest_email"
                         class="form-control {{ $hasEmail ? 'bg-light text-muted' : '' }}"
-                        value="{{ old('guest_email', $guest->email ?? (Auth::user()->email ?? '')) }}"
+                        value="{{ old('guest_email', $draft['guest_email'] ?? ($guest->email ?? (Auth::user()->email ?? ''))) }}"
                         required {{ $hasEmail ? 'readonly' : '' }} placeholder="your@email.com"
                         aria-describedby="emailFeedback">
                     <div id="emailFeedback" class="invalid-feedback" aria-live="polite"></div>
@@ -171,13 +177,13 @@
                             class="text-danger">*</span></label>
                     <input type="tel" name="guest_phone" id="guest_phone"
                         class="form-control phone-input {{ $hasPhone ? 'bg-light text-muted' : '' }}"
-                        value="{{ old('guest_phone', $guest->contact_number ?? '') }}" required
+                        value="{{ old('guest_phone', $draft['guest_phone'] ?? ($guest->contact_number ?? '')) }}" required
                         {{ $hasPhone ? 'readonly' : '' }} placeholder="+234 800 000 0000">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="guest_gender">Gender <span
                             class="text-danger">*</span></label>
-                    @php $selGender = old('guest_gender', $guest->gender ?? ''); @endphp
+                    @php $selGender = old('guest_gender', $draft['guest_gender'] ?? ($guest->gender ?? '')); @endphp
                     @if ($hasGender)
                         <input type="hidden" name="guest_gender" value="{{ $selGender }}">
                     @endif
@@ -199,7 +205,7 @@
                     <input type="text" name="guest_address" id="guest_address"
                         class="form-control {{ $hasAddress ? 'bg-light text-muted' : '' }}"
                         placeholder="Street Address, City, State"
-                        value="{{ old('guest_address', $guest->home_address ?? '') }}" required
+                        value="{{ old('guest_address', $draft['guest_address'] ?? ($guest->home_address ?? '')) }}" required
                         {{ $hasAddress ? 'readonly' : '' }}>
                 </div>
                 <div class="col-md-6">
@@ -207,14 +213,14 @@
                             class="text-danger">*</span></label>
                     <input type="text" name="guest_nationality" id="guest_nationality"
                         class="form-control {{ $hasNationality ? 'bg-light text-muted' : '' }}"
-                        value="{{ old('guest_nationality', $guest->nationality ?? 'Nigeria') }}" required
+                        value="{{ old('guest_nationality', $draft['guest_nationality'] ?? ($guest->nationality ?? 'Nigeria')) }}" required
                         {{ $hasNationality ? 'readonly' : '' }}>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="guest_dob">Date of Birth</label>
                     <input type="date" name="guest_dob" id="guest_dob"
                         class="form-control {{ $hasDob ? 'bg-light text-muted' : '' }}"
-                        value="{{ old('guest_dob', $guest && $guest->birthday ? $guest->birthday->format('Y-m-d') : '') }}"
+                        value="{{ old('guest_dob', $draft['guest_dob'] ?? ($guest && $guest->birthday ? $guest->birthday->format('Y-m-d') : '')) }}"
                         {{ $hasDob ? 'readonly' : '' }}>
                     <div class="form-text text-muted mt-1"><i class="fas fa-info-circle me-1"></i>
                         Required for age verification</div>
@@ -223,18 +229,19 @@
         </div>
     </div>
 
-    <div class="form-section reveal">
+    @php $sectionStep = $useCartFlow ? 2 : 3; @endphp
+    <div class="form-section reveal" data-step="{{ $sectionStep }}">
         <div class="form-section-header">
             <div class="section-icon"><i class="fas fa-id-card"></i></div>
             <h5>Identity Verification</h5>
-            <span class="step-badge">Step 3</span>
+            <span class="step-badge">Step {{ $sectionStep }}</span>
         </div>
         <div class="form-section-body">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="guest_id_type">ID Card Type <span
                             class="text-danger">*</span></label>
-                    @php $selIdType = old('guest_id_type', $guest->identification_type ?? ''); @endphp
+                    @php $selIdType = old('guest_id_type', $draft['guest_id_type'] ?? ($guest->identification_type ?? '')); @endphp
                     @if ($hasIdType)
                         <input type="hidden" name="guest_id_type" value="{{ $selIdType }}">
                     @endif
@@ -263,7 +270,7 @@
                     <input type="text" name="guest_id_number" id="guest_id_number"
                         class="form-control {{ $hasIdNumber ? 'bg-light text-muted' : '' }}"
                         placeholder="e.g. A01234567"
-                        value="{{ old('guest_id_number', $guest->identification_number ?? '') }}" required
+                        value="{{ old('guest_id_number', $draft['guest_id_number'] ?? ($guest->identification_number ?? '')) }}" required
                         {{ $hasIdNumber ? 'readonly' : '' }}>
                 </div>
             </div>
@@ -274,11 +281,12 @@
         </div>
     </div>
 
-    <div class="form-section reveal">
+    @php $sectionStep = $useCartFlow ? 3 : 4; @endphp
+    <div class="form-section reveal" data-step="{{ $sectionStep }}">
         <div class="form-section-header">
             <div class="section-icon"><i class="fas fa-users"></i></div>
             <h5>Guests &amp; Requests</h5>
-            <span class="step-badge">Step 4</span>
+            <span class="step-badge">Step {{ $sectionStep }}</span>
         </div>
         <div class="form-section-body">
             <div class="row g-3">
@@ -293,7 +301,7 @@
                                         <button type="button" class="step-dec" data-target="adults"
                                             aria-label="Decrease adults">−</button>
                                         <input type="number" name="adults" id="adults"
-                                            value="{{ old('adults', 1) }}" min="1"
+                                            value="{{ old('adults', $draft['adults'] ?? 1) }}" min="1"
                                             max="{{ max(1, $cartMaxGuests) }}" required readonly>
                                         <button type="button" class="step-inc" data-target="adults"
                                             aria-label="Increase adults">+</button>
@@ -305,7 +313,7 @@
                                         <button type="button" class="step-dec" data-target="children"
                                             aria-label="Decrease children">−</button>
                                         <input type="number" name="children" id="children"
-                                            value="{{ old('children', 0) }}" min="0"
+                                            value="{{ old('children', $draft['children'] ?? 0) }}" min="0"
                                             max="{{ max(0, $cartMaxGuests - 1) }}" readonly>
                                         <button type="button" class="step-inc" data-target="children"
                                             aria-label="Increase children">+</button>
@@ -361,7 +369,7 @@
                         </div>
                         <textarea name="special_requests" id="special_requests" class="form-control"
                             rows="3"
-                            placeholder="e.g. Late check-in, extra pillows, anniversary celebration...">{{ old('special_requests') }}</textarea>
+                            placeholder="e.g. Late check-in, extra pillows, anniversary celebration...">{{ old('special_requests', $draft['special_requests'] ?? '') }}</textarea>
                     </div>
                 </div>
             </div>
@@ -372,7 +380,7 @@
                         <div class="form-check form-switch d-flex align-items-center gap-2 mb-0">
                             <input class="form-check-input" type="checkbox" id="createAccountToggle"
                                 name="create_account" value="1"
-                                {{ old('create_account') ? 'checked' : '' }}
+                                {{ old('create_account', $draft['create_account'] ?? 0) ? 'checked' : '' }}
                                 style="width: 2.5rem; height: 1.25rem; cursor: pointer;">
                             <label class="form-check-label fw-bold" for="createAccountToggle"
                                 style="cursor: pointer;">
@@ -381,7 +389,7 @@
                                 booking next time
                             </label>
                         </div>
-                        <div class="collapse mt-3 {{ old('create_account') ? 'show' : '' }}"
+                        <div class="collapse mt-3 {{ old('create_account', $draft['create_account'] ?? 0) ? 'show' : '' }}"
                             id="accountFields">
                             <div class="p-3 bg-white rounded border">
                                 <label class="form-label" for="password">Choose Password</label>
@@ -395,17 +403,19 @@
         </div>
     </div>
 
-    <div class="form-section reveal">
+    @php $sectionStep = $useCartFlow ? 4 : 5; @endphp
+    <div class="form-section reveal" data-step="{{ $sectionStep }}">
         <div class="form-section-header">
             <div class="section-icon"><i class="fas fa-credit-card"></i></div>
             <h5>Payment Method</h5>
-            <span class="step-badge">Step 5</span>
+            <span class="step-badge">Step {{ $sectionStep }}</span>
         </div>
         <div class="form-section-body">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="payment-option">
-                        <input type="radio" name="payment_method" value="paystack" checked>
+                        <input type="radio" name="payment_method" value="paystack"
+                            {{ old('payment_method', $draft['payment_method'] ?? 'paystack') === 'paystack' ? 'checked' : '' }}>
                         <div class="payment-content d-flex align-items-start gap-3">
                             <div class="payment-icon pay-now"><i class="fas fa-credit-card"></i></div>
                             <div class="flex-grow-1">
@@ -419,7 +429,8 @@
                 </div>
                 <div class="col-md-6">
                     <label class="payment-option">
-                        <input type="radio" name="payment_method" value="pay_on_arrival">
+                        <input type="radio" name="payment_method" value="pay_on_arrival"
+                            {{ old('payment_method', $draft['payment_method'] ?? '') === 'pay_on_arrival' ? 'checked' : '' }}>
                         <div class="payment-content d-flex align-items-start gap-3">
                             <div class="payment-icon pay-later"><i class="fas fa-hotel"></i></div>
                             <div class="flex-grow-1">
@@ -437,6 +448,16 @@
                 processed by Paystack.
             </p>
         </div>
+    </div>
+
+    <div class="stepper-nav" id="stepperNav">
+        <button type="button" class="btn btn-outline-brand" id="stepperBack"
+            aria-label="Go back to the previous step">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </button>
+        <button type="button" class="btn btn-brand" id="stepperNext" aria-label="Continue to the next step">
+            Next<i class="fas fa-arrow-right ms-2"></i>
+        </button>
     </div>
 
     <div class="review-strip" id="reviewStrip" @if ($useCartFlow) style="display:none;" @endif>
@@ -466,7 +487,7 @@
         </div>
     </div>
 
-    <div class="booking-cta">
+    <div class="booking-cta" id="bookingCta">
         @if ($useCartFlow)
             <div class="total-row">
                 <span class="total-label">Total Amount</span>

@@ -39,6 +39,7 @@ use Modules\Website\Models\RoomType;
 use Modules\Website\Models\Settings;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Services\BookingCartService;
+use Modules\Website\Services\BookingDraftService;
 use Modules\Website\Services\GoogleReviewsService;
 use Modules\Website\Services\PaymentGatewayManager;
 use Modules\Website\Services\RoomAvailabilityService;
@@ -178,13 +179,18 @@ class WebsiteController extends Controller
         $cartService = new BookingCartService;
         $cart = $cartService->getCartSummary();
 
+        // Restore the auto-saved draft only for anonymous guests. Logged-in
+        // guests always get their stored profile as the source of truth.
+        $draftService = app(BookingDraftService::class);
+        $draft = Auth::check() ? [] : $draftService->get();
+
         // Fetch existing guest profile for logged-in users
         $guest = null;
         if (Auth::check()) {
             $guest = Guest::where('user_id', Auth::id())->first() ?? new Guest;
         }
 
-        $viewData = compact('guest');
+        $viewData = compact('guest', 'draft');
 
         $meta_description = 'Book your stay at Brickspoint Boutique Aparthotel in Asokoro, Abuja — the best boutique hotel in Nigeria\'s capital. Secure your room, suite, or apartment with our easy online reservation system.';
         $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking, Asokoro hotel booking';
@@ -210,8 +216,8 @@ class WebsiteController extends Controller
             ]);
         }
 
-        // Check if room_type_id is provided
-        $roomTypeId = old('room_type_id', $request->room_type_id);
+        // Check if room_type_id is provided (explicit URL params win over the draft)
+        $roomTypeId = old('room_type_id', $request->room_type_id ?? ($draft['room_type_id'] ?? null));
 
         // If no cart and no room selected, redirect to room selection page
         if (! $roomTypeId) {
@@ -233,6 +239,48 @@ class WebsiteController extends Controller
             'selectedRoomType' => $selectedRoomType,
             'useCart' => false,
         ]);
+    }
+
+    /**
+     * Auto-save endpoint for the stepper. Persists a whitelisted subset of the
+     * booking form into the session draft store so guests can refresh or return
+     * without losing progress. Passwords and the honeypot field are never saved.
+     */
+    public function saveBookingDraft(Request $request)
+    {
+        if (Auth::check()) {
+            // Logged-in guests always resolve their details from their profile.
+            return response()->json(['saved' => true]);
+        }
+
+        $data = $request->only(BookingDraftService::ALLOWED_FIELDS);
+        $draft = [];
+
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                continue;
+            }
+
+            $value = trim((string) $value);
+
+            if (in_array($key, ['room_type_id', 'room_unit_id'], true)) {
+                $draft[$key] = $value !== '' ? (int) $value : null;
+            } elseif (in_array($key, ['adults', 'children'], true)) {
+                $draft[$key] = max(0, (int) $value);
+            } elseif ($key === 'payment_method') {
+                $draft[$key] = in_array($value, ['paystack', 'pay_on_arrival'], true) ? $value : 'paystack';
+            } elseif ($key === 'create_account') {
+                $draft[$key] = in_array($value, ['1', 'true', 'on'], true) ? 1 : 0;
+            } elseif (in_array($key, ['guest_dob', 'check_in_date', 'check_out_date'], true)) {
+                $draft[$key] = Carbon::hasFormat($value, 'Y-m-d') ? $value : null;
+            } else {
+                $draft[$key] = mb_substr($value, 0, 1000);
+            }
+        }
+
+        app(BookingDraftService::class)->update($draft);
+
+        return response()->json(['saved' => true]);
     }
 
     public function checkEmail(Request $request)
@@ -665,6 +713,9 @@ class WebsiteController extends Controller
 
     public function confirmation($ref)
     {
+        // Booking completed — discard any in-progress auto-saved draft.
+        app(BookingDraftService::class)->clear();
+
         $booking = Booking::with('roomType')->where('booking_reference', $ref)->firstOrFail();
 
         // Security Check
