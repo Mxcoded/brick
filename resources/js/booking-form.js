@@ -697,68 +697,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Debounced AJAX call to persist guest counts to cart session
-    let _guestSyncTimer = null;
-    function persistGuestCountsToCart() {
-        if (!bookingForm.hasAttribute('data-cart-flow')) return;
-        const roomTypeId = document.getElementById('room_type_id')?.value;
-        if (!roomTypeId) return;
-        const adults = parseInt(document.getElementById('adults')?.value || 1);
-        const children = parseInt(document.getElementById('children')?.value || 0);
-        clearTimeout(_guestSyncTimer);
-        _guestSyncTimer = setTimeout(() => {
-            fetch(cfg.updateGuestsUrl, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': cfg.csrfToken,
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({ room_type_id: roomTypeId, adults, children }),
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success && data.item) {
-                    const item = data.item;
-                    const rateEl = document.getElementById('summary-rate');
-                    const totalEl = document.getElementById('summary-total');
-                    const guestFeeRow = document.getElementById('guest-fee-row');
-                    const guestFeeEl = document.getElementById('summary-guest-fee');
-                    const guestsSummaryEl = document.getElementById('summary-guests');
-
-                    if (rateEl && item.price_per_night != null) rateEl.textContent = formatMoney(item.price_per_night);
-                    if (totalEl && item.total_rate != null) {
-                        setMoneyAnimated(totalEl, item.total_rate);
-                        announceTotal(item.total_rate);
-                    }
-
-                    if (guestFeeRow && guestFeeEl) {
-                        if (item.guest_fee_total > 0) {
-                            guestFeeRow.classList.remove('d-none');
-                            guestFeeEl.textContent = formatMoney(item.guest_fee_total);
-                        } else {
-                            guestFeeRow.classList.add('d-none');
-                        }
-                    }
-
-                    // Update guest summary display
-                    if (guestsSummaryEl) {
-                        const parts = [];
-                        if (item.adults > 0) parts.push(item.adults + (item.adults === 1 ? ' Adult' : ' Adults'));
-                        if (item.children > 0) parts.push(item.children + (item.children === 1 ? ' Child' : ' Children'));
-                        guestsSummaryEl.textContent = parts.join(', ') || '1 Adult';
-                    }
-                    // Update total amount for the cart
-                    const totalAmountEl = document.querySelector('.total-amount');
-                    if (totalAmountEl && data.cart) {
-                        totalAmountEl.textContent = data.cart.formatted_total;
-                    }
-                }
-            })
-            .catch(err => console.error('Cart guest sync failed:', err));
-        }, 200);
-    }
-
     document.querySelectorAll('.guest-stepper').forEach(stepper => {
         const input = stepper.querySelector('input[type="number"]');
         // Always read fresh min/max from DOM since they can change when room is selected
@@ -817,9 +755,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Sync all steppers to update button states
             syncSteppers();
-            
-            // Persist guest counts to cart session (server-side) - only for cart flow
-            persistGuestCountsToCart();
         };
         
         stepper.querySelector('.step-dec')?.addEventListener('click', () => {
