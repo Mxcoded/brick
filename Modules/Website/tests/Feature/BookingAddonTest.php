@@ -479,6 +479,116 @@ class BookingAddonTest extends TestCase
         $response->assertSee('₦12,000.00');
     }
 
+    public function test_confirmation_page_breakdown_separates_room_subtotal_from_add_ons(): void
+    {
+        Mail::fake();
+        config(['mail.reservations_email' => 'rsv@brickspoint.com']);
+
+        $addon = $this->makeAddon(['name' => 'Spa Session', 'price' => 12000]);
+
+        $this->post(route('website.booking.store'), [
+            'guest_name' => 'Test Guest',
+            'guest_email' => 'guest@example.com',
+            'guest_phone' => '08012345678',
+            'guest_gender' => 'male',
+            'guest_address' => '123 Test Avenue',
+            'guest_nationality' => 'Nigerian',
+            'guest_id_type' => 'NIN',
+            'guest_id_number' => '12345678901',
+            'guest_dob' => '1990-01-01',
+            'adults' => 1,
+            'children' => 0,
+            'payment_method' => 'pay_on_arrival',
+            'room_type_id' => $this->roomType->id,
+            'check_in_date' => now()->addDays(5)->format('Y-m-d'),
+            'check_out_date' => now()->addDays(7)->format('Y-m-d'),
+            'addons' => [$addon->id],
+        ]);
+
+        $booking = Booking::where('guest_email', 'guest@example.com')->first();
+
+        $response = $this->get(route('website.booking.confirmation', $booking->booking_reference));
+
+        $response->assertOk();
+        // Room line shows accommodation only (2 nights × ₦20,000).
+        $response->assertSee('₦40,000.00');
+        // Add-ons are listed separately, not folded into the room line.
+        $response->assertSee('₦12,000.00');
+        // Total Due includes both.
+        $response->assertSee('₦52,000.00');
+        // Pay-on-arrival bookings get no pay button.
+        $response->assertDontSee('Complete Payment');
+    }
+
+    public function test_confirmation_page_breakdown_separates_room_subtotal_for_grouped_booking(): void
+    {
+        Mail::fake();
+        config(['mail.reservations_email' => 'rsv@brickspoint.com']);
+
+        $addon = $this->makeAddon(['name' => 'Airport Pickup', 'price' => 8000]);
+
+        session([BookingCartService::SESSION_KEY => [
+            'check_in' => now()->addDays(1)->format('Y-m-d'),
+            'check_out' => now()->addDays(3)->format('Y-m-d'),
+            'nights' => 2,
+            'addons' => [
+                $addon->id => [
+                    'addon_id' => $addon->id,
+                    'name' => $addon->name,
+                    'price' => 8000.0,
+                    'is_per_night' => false,
+                    'quantity' => 1,
+                ],
+            ],
+            'items' => [
+                $this->roomType->id => [
+                    'room_type_id' => $this->roomType->id,
+                    'room_type_name' => $this->roomType->name,
+                    'quantity' => 2,
+                    'price_per_night' => 20000,
+                    'base_total' => 40000,
+                    'guest_fee_per_night' => 0,
+                    'guest_fee_total' => 0,
+                    'total_rate' => 40000,
+                    'rate_code_id' => null,
+                    'capacity' => 2,
+                    'adults' => 1,
+                    'children' => 0,
+                    'image_url' => null,
+                    'nights' => 2,
+                    'subtotal' => 80000,
+                ],
+            ],
+        ]]);
+
+        $this->post(route('website.booking.store'), [
+            'guest_name' => 'Test Guest',
+            'guest_email' => 'guest@example.com',
+            'guest_phone' => '08012345678',
+            'guest_gender' => 'male',
+            'guest_address' => '123 Test Avenue',
+            'guest_nationality' => 'Nigerian',
+            'guest_id_type' => 'NIN',
+            'guest_id_number' => '12345678901',
+            'guest_dob' => '1990-01-01',
+            'adults' => 1,
+            'children' => 0,
+            'payment_method' => 'pay_on_arrival',
+        ]);
+
+        $primary = Booking::where('guest_email', 'guest@example.com')->orderBy('id')->first();
+
+        $response = $this->get(route('website.booking.confirmation', $primary->booking_reference));
+
+        $response->assertOk();
+        // Room line: 2 rooms × ₦40,000 accommodation only (add-on excluded).
+        $response->assertSee('₦80,000.00');
+        // Extras listed separately.
+        $response->assertSee('₦8,000.00');
+        // Total Due includes add-ons.
+        $response->assertSee('₦88,000.00');
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Draft persistence
     // ─────────────────────────────────────────────────────────────

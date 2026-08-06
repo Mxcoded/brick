@@ -705,7 +705,12 @@ class WebsiteController extends Controller
                 // For multi-room, we'll charge the total and update all bookings
                 if ($result['group_id']) {
                     session()->put('booking_group_id', $result['group_id']);
+                    session()->put('just_booked_group', $result['group_id']);
                 }
+
+                // Store reference so the guest can reach the confirmation page
+                // even if they abandon payment (email "Pay Now" re-enters here).
+                session()->put('just_booked_ref', $primaryBooking->booking_reference);
 
                 return $this->initializePaystackGrouped($result['bookings'], $result['total_amount']);
             }
@@ -1499,6 +1504,38 @@ class WebsiteController extends Controller
 
             return back()->with('error', 'Could not connect to payment gateway.');
         }
+    }
+
+    /**
+     * ✅ Pay Now (Re-initialize payment for a pending booking)
+     * Supports both single booking and grouped multi-room bookings.
+     */
+    public function payNow(Request $request, $ref)
+    {
+        $booking = Booking::with('addons')->where('booking_reference', $ref)->firstOrFail();
+
+        $canPay = session('just_booked_ref') === $ref
+            || (Auth::check() && $booking->user_id === Auth::id());
+
+        if (! $canPay) {
+            abort(403, 'Access denied.');
+        }
+
+        if ($booking->payment_status === 'paid') {
+            return redirect()->route('website.booking.confirmation', $ref)->with('info', 'This booking has already been paid.');
+        }
+
+        if ($booking->payment_method === 'pay_on_arrival') {
+            return redirect()->route('website.booking.confirmation', $ref)->with('info', 'This booking is set to pay on arrival.');
+        }
+
+        if ($booking->booking_group_id) {
+            $bookings = Booking::where('booking_group_id', $booking->booking_group_id)->get();
+
+            return $this->initializePaystackGrouped($bookings->all(), (float) $bookings->sum('total_amount'));
+        }
+
+        return $this->initializePaystack($booking);
     }
 
     /**

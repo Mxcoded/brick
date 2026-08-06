@@ -115,7 +115,7 @@
                                                         <small class="text-muted">{{ $bookingsOfType->count() }} room(s) × {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }} nights</small>
                                                     </td>
                                                     <td class="text-end fw-bold pe-0 align-middle">
-                                                        ₦{{ number_format($bookingsOfType->sum('total_amount'), 2) }}
+                                                        ₦{{ number_format($bookingsOfType->sum(fn ($b) => (float) $b->total_amount - (float) $b->addons->sum(fn ($a) => (float) $a->pivot->total)), 2) }}
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -139,7 +139,7 @@
                                                     <small class="text-muted">Accommodation Charge (Room assigned at check-in)</small>
                                                 </td>
                                                 <td class="text-end fw-bold pe-0 align-middle">
-                                                    ₦{{ number_format($booking->total_amount, 2) }}
+                                                    ₦{{ number_format((float) $booking->total_amount - (float) $booking->addons->sum(fn ($a) => (float) $a->pivot->total), 2) }}
                                                 </td>
                                             </tr>
                                         @endif
@@ -227,6 +227,17 @@
                     {{-- Bottom Actions --}}
                     <div class="d-print-none mt-4 text-center">
                         <div class="d-flex justify-content-center gap-3 flex-wrap">
+                            @php
+                                $confPendingPayment = $booking->payment_method !== 'pay_on_arrival' && $booking->payment_status !== 'paid';
+                            @endphp
+                            @if($confPendingPayment)
+                                <form action="{{ route('website.booking.pay', $booking->booking_reference) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success px-4 shadow-sm">
+                                        <i class="fas fa-credit-card me-2"></i>Complete Payment
+                                    </button>
+                                </form>
+                            @endif
                             @auth
                                 <a href="{{ route('guest.bookings') }}" class="btn btn-primary px-4 shadow-sm">
                                     <i class="fas fa-list me-2"></i>View My Bookings

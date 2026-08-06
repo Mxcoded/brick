@@ -624,4 +624,144 @@ class BookingPaymentFlowTest extends TestCase
         $response->assertRedirect('https://checkout.paystack.com/db123');
         Http::assertSent(fn ($r) => str_contains($r->url(), 'api.paystack.co/transaction/initialize'));
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // SCENARIO GROUP 5 — Pay Now (re-initialize payment from confirmation)
+    // ─────────────────────────────────────────────────────────────
+
+    private function makePendingBooking(string $reference, float $amount = 20000, ?string $group = null, ?RoomType $roomType = null): Booking
+    {
+        $roomType = $roomType ?? $this->makeAvailableRoomType($amount);
+
+        return Booking::create([
+            'booking_reference' => $reference,
+            'booking_group_id' => $group,
+            'room_type_id' => $roomType->id,
+            'source' => 'website',
+            'guest_name' => 'Web Guest',
+            'guest_email' => 'webguest@example.com',
+            'guest_phone' => '08012345678',
+            'check_in_date' => now()->addDays(1),
+            'check_out_date' => now()->addDays(2),
+            'adults' => 2,
+            'total_amount' => $amount,
+            'amount_paid' => 0,
+            'payment_status' => 'pending',
+            'status' => 'pending',
+            'payment_method' => 'paystack',
+        ]);
+    }
+
+    public function test_pay_now_reinitializes_paystack_for_pending_single_booking(): void
+    {
+        Mail::fake();
+        $roomType = $this->makeAvailableRoomType();
+
+        Http::fake([
+            'api.paystack.co/transaction/initialize' => Http::response([
+                'status' => true,
+                'data' => ['authorization_url' => 'https://checkout.paystack.com/repay123'],
+            ], 200),
+        ]);
+
+        // Booking created via storeBooking is pending and just_booked_ref is set
+        // even on the paystack path (abandoned-payment recovery).
+        $this->post(route('website.booking.store'), $this->bookingPayload($roomType->id, 'paystack'));
+        $booking = Booking::where('guest_email', 'guest@example.com')->first();
+
+        $this->assertSame('pending', $booking->payment_status);
+        $this->assertTrue(session()->has('just_booked_ref'));
+
+        $response = $this->post(route('website.booking.pay', $booking->booking_reference));
+
+        $response->assertRedirect('https://checkout.paystack.com/repay123');
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'api.paystack.co/transaction/initialize'));
+        // Two init calls: the original storeBooking + the re-init from payNow.
+        // (A NumVerify phone-validation call is also faked during storeBooking.)
+        $this->assertSame(
+            2,
+            Http::recorded()->filter(fn ($r) => str_contains($r[0]->url(), 'api.paystack.co/transaction/initialize'))->count()
+        );
+        Http::assertSent(function ($request) use ($booking) {
+            return str_contains($request->url(), 'api.paystack.co/transaction/initialize')
+                && $request->data()['reference'] === $booking->booking_reference
+                && (int) $request->data()['amount'] === 2000000;
+        });
+    }
+
+    public function test_pay_now_reinitializes_paystack_for_pending_grouped_booking(): void
+    {
+        Mail::fake();
+        $roomType = $this->makeAvailableRoomType();
+        $group = 'GRP-'.strtoupper(substr(uniqid(), -6));
+        $primary = $this->makePendingBooking('BK-REPAY-'.substr(uniqid(), -5), 40000, $group, $roomType);
+        $this->makePendingBooking('BK-REPAY-'.substr(uniqid(), -5), 30000, $group, $roomType);
+
+        session(['just_booked_ref' => $primary->booking_reference]);
+
+        Http::fake([
+            'api.paystack.co/transaction/initialize' => Http::response([
+                'status' => true,
+                'data' => ['authorization_url' => 'https://checkout.paystack.com/grouprepay123'],
+            ], 200),
+        ]);
+
+        $response = $this->post(route('website.booking.pay', $primary->booking_reference));
+
+        $response->assertRedirect('https://checkout.paystack.com/grouprepay123');
+        Http::assertSent(function ($request) use ($group) {
+            return str_contains($request->url(), 'api.paystack.co/transaction/initialize')
+                && $request->data()['reference'] === $group
+                && (int) $request->data()['amount'] === 7000000;
+        });
+    }
+
+    public function test_pay_now_denies_unauthed_guest(): void
+    {
+        Mail::fake();
+        $booking = $this->makePendingBooking('BK-DENY-'.substr(uniqid(), -5));
+
+        $this->post(route('website.booking.pay', $booking->booking_reference))
+            ->assertForbidden();
+
+        Http::assertNothingSent();
+    }
+
+    public function test_pay_now_redirects_when_booking_already_paid(): void
+    {
+        Mail::fake();
+        $booking = $this->makePaidBooking('BK-PAID-'.substr(uniqid(), -5));
+
+        session(['just_booked_ref' => $booking->booking_reference]);
+
+        $this->post(route('website.booking.pay', $booking->booking_reference))
+            ->assertRedirect(route('website.booking.confirmation', $booking->booking_reference))
+            ->assertSessionHas('info');
+
+        Http::assertNothingSent();
+    }
+
+    public function test_confirmation_page_shows_complete_payment_button_for_pending_paystack_booking(): void
+    {
+        Mail::fake();
+        $booking = $this->makePendingBooking('BK-PEND-'.substr(uniqid(), -5));
+
+        session(['just_booked_ref' => $booking->booking_reference]);
+
+        $this->get(route('website.booking.confirmation', $booking->booking_reference))
+            ->assertOk()
+            ->assertSee('Complete Payment');
+    }
+
+    public function test_confirmation_page_hides_complete_payment_button_when_paid(): void
+    {
+        Mail::fake();
+        $booking = $this->makePaidBooking('BK-DONE-'.substr(uniqid(), -5));
+
+        session(['just_booked_ref' => $booking->booking_reference]);
+
+        $this->get(route('website.booking.confirmation', $booking->booking_reference))
+            ->assertOk()
+            ->assertDontSee('Complete Payment');
+    }
 }

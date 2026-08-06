@@ -75,6 +75,7 @@ Route::middleware(['web'])->group(function () {
         Route::post('/booking/draft', 'saveBookingDraft')->name('website.booking.draft')->middleware('throttle:60,1');
         Route::get('/payment/callback', 'verifyPayment')->name('website.payment.callback');
         Route::get('/booking/confirmation/{ref?}', 'confirmation')->name('website.booking.confirmation');
+        Route::post('/booking/pay/{ref}', 'payNow')->name('website.booking.pay')->middleware('throttle:5,60');
 
         // Meetings Landing Page (Banquet)
         Route::get('/meetings', 'meetings')->name('website.meetings');
