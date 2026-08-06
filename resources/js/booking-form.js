@@ -10,6 +10,8 @@
 // server-side (WebsiteRateService) and pushes the computed totals back through
 // the window-level `booking-summary-updated` event. Registered at module top
 // level so it is in place before Livewire applies the initial-render dispatch.
+const formatMoney = (amount) => '₦' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+
 window.addEventListener('booking-summary-updated', (event) => {
     const detail = event.detail || {};
     if (detail.total == null) return;
@@ -17,6 +19,17 @@ window.addEventListener('booking-summary-updated', (event) => {
     if (reviewTotal) {
         reviewTotal.textContent = '₦' + parseFloat(detail.total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
+    const rvBase = document.getElementById('rvBaseTotal');
+    if (rvBase && detail.baseTotal != null) rvBase.textContent = formatMoney(detail.baseTotal);
+    const rvFee = document.getElementById('rvGuestFee');
+    const rvFeeRow = document.getElementById('rvGuestFeeRow');
+    if (rvFee) {
+        const fee = parseFloat(detail.guestFeeTotal || 0);
+        rvFee.textContent = fee > 0 ? formatMoney(fee) : 'Included';
+        if (rvFeeRow) rvFeeRow.style.display = fee > 0 ? '' : 'none';
+    }
+    const rvGrand = document.getElementById('rvGrandTotal');
+    if (rvGrand) rvGrand.textContent = formatMoney(detail.total);
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -53,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnText = document.getElementById('btnText');
     const btnSpinner = document.getElementById('btnSpinner');
 
-    const formatMoney = (amount) => '₦' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
     const formatDate = (dateString) => {
         if (!dateString) return '...';
         const date = new Date(dateString);
@@ -800,6 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateProgressBar();
         updateStepIndicator();
         updateReviewStrip();
+        updateReviewPanel();
         updateGuestSummary();
         scheduleDraftSave();
         if (sourceEl && priceRelevantFields.includes(sourceEl.name)) {
@@ -1042,6 +1055,95 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ── Review step panel ──
+    // Mirrors the live form state into the read-only "Review Your Booking"
+    // section. Server-rendered values (cart flow, where the date/room inputs
+    // are not present) are left untouched. The authoritative price breakdown
+    // is pushed by the `booking-summary-updated` Livewire bridge.
+    function updateReviewPanel() {
+        const get = (id) => document.getElementById(id);
+        const isCartFlow = bookingForm.hasAttribute('data-cart-flow');
+
+        if (!isCartFlow) {
+            const opt = roomSelect?.options[roomSelect.selectedIndex];
+            const roomNameEl = get('rvRoom');
+            if (roomNameEl) {
+                roomNameEl.textContent = opt && opt.value ? (opt.dataset.name || 'Room') : 'Select a room';
+            }
+        }
+
+        if (get('rvCheckIn') && checkInInput?.value) get('rvCheckIn').textContent = formatDate(checkInInput.value);
+        if (get('rvCheckOut') && checkOutInput?.value) get('rvCheckOut').textContent = formatDate(checkOutInput.value);
+
+        if (checkInInput?.value && checkOutInput?.value) {
+            const nightsEl = get('rvNights');
+            if (nightsEl) nightsEl.textContent = calculateNights();
+        }
+
+        const guestNameEl = get('rvGuestName');
+        const guestName = bookingForm.querySelector('[name="guest_name"]');
+        if (guestNameEl && guestName?.value) guestNameEl.textContent = guestName.value;
+
+        const guestsEl = get('rvGuests');
+        if (guestsEl) {
+            const a = parseInt(document.getElementById('adults')?.value || 1);
+            const c = parseInt(document.getElementById('children')?.value || 0);
+            const parts = [];
+            if (a > 0) parts.push(a + (a === 1 ? ' Adult' : ' Adults'));
+            if (c > 0) parts.push(c + (c === 1 ? ' Child' : ' Children'));
+            guestsEl.textContent = parts.join(', ') || '1 Adult';
+        }
+
+        const idType = bookingForm.querySelector('[name="guest_id_type"]');
+        const idNumber = bookingForm.querySelector('[name="guest_id_number"]');
+        const idEl = get('rvId');
+        if (idEl) {
+            if (idType?.value && idNumber?.value) idEl.textContent = idType.value + ' · ' + idNumber.value;
+            else if (idType?.value) idEl.textContent = idType.value;
+            else if (idNumber?.value) idEl.textContent = idNumber.value;
+            else idEl.textContent = '—';
+        }
+
+        const requestsEl = get('rvRequests');
+        const requests = bookingForm.querySelector('[name="special_requests"]');
+        if (requestsEl) requestsEl.textContent = requests?.value?.trim() || 'None';
+
+        const paymentEl = get('rvPayment');
+        const paymentMethod = bookingForm.querySelector('[name="payment_method"]:checked');
+        if (paymentEl) {
+            paymentEl.textContent = paymentMethod ? (paymentMethod.value === 'pay_on_arrival' ? 'Pay at Hotel' : 'Pay Now') : '—';
+        }
+
+        // Optimistic price breakdown for the review panel (non-cart only).
+        // Livewire's booking-summary-updated bridge corrects #rvGrandTotal
+        // server-side (rate codes, calendar overrides).
+        const opt = roomSelect?.options[roomSelect.selectedIndex];
+        if (!isCartFlow && opt && opt.value) {
+            const price = parseFloat(opt.dataset.price || 0);
+            const capacity = parseInt(opt.dataset.capacity || 2);
+            const baseOccupancy = Math.min(parseInt(opt.dataset.baseOccupancy || 2), capacity);
+            const extraAdultFee = parseFloat(opt.dataset.extraAdultFee || 0);
+            const extraChildFee = parseFloat(opt.dataset.extraChildFee || 0);
+            const a = parseInt(document.getElementById('adults')?.value || 1);
+            const c = parseInt(document.getElementById('children')?.value || 0);
+            const n = Math.max(1, calculateNights());
+            const extraGuests = Math.max(0, (a + c) - baseOccupancy);
+            const extraAdults = Math.max(0, a - baseOccupancy);
+            const extraChildren = Math.max(0, extraGuests - extraAdults);
+            const guestFeePerNight = (extraAdults * extraAdultFee) + (extraChildren * extraChildFee);
+            const baseTotal = price * n;
+            const guestFeeTotal = guestFeePerNight * n;
+            if (get('rvBaseTotal')) get('rvBaseTotal').textContent = formatMoney(baseTotal);
+            const feeEl = get('rvGuestFee');
+            const feeRow = get('rvGuestFeeRow');
+            if (feeEl) {
+                feeEl.textContent = guestFeeTotal > 0 ? formatMoney(guestFeeTotal) : 'Included';
+                if (feeRow) feeRow.style.display = guestFeeTotal > 0 ? '' : 'none';
+            }
+            if (get('rvGrandTotal')) get('rvGrandTotal').textContent = formatMoney(baseTotal + guestFeeTotal);
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────
     // Stepper navigation (progressive one-page wizard)
     // ─────────────────────────────────────────────────────────────
@@ -1054,16 +1156,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const bookingCtaEl = document.getElementById('bookingCta');
     const draftStatusEl = document.getElementById('draftStatus');
 
-    // Fields that make a step "complete" for resume positioning.
+    // Fields that make a step "complete" for resume positioning. The review
+    // step has no editable fields, so it is always complete and can never be
+    // the resume landing point ahead of a genuinely incomplete step.
     const stepFieldMap = isCartFlow ? [
         { fields: ['guest_name', 'guest_email', 'guest_phone', 'guest_gender', 'guest_address', 'guest_nationality'] },
         { fields: ['guest_id_type', 'guest_id_number'] },
+        { fields: [] },
         { fields: [] },
         { fields: [] },
     ] : [
         { fields: ['check_in_date', 'check_out_date', 'room_type_id'] },
         { fields: ['guest_name', 'guest_email', 'guest_phone', 'guest_gender', 'guest_address', 'guest_nationality'] },
         { fields: ['guest_id_type', 'guest_id_number'] },
+        { fields: [] },
         { fields: [] },
         { fields: [] },
     ];
@@ -1131,7 +1237,12 @@ document.addEventListener('DOMContentLoaded', () => {
             stepperBack.style.display = currentStep > 1 ? '' : 'none';
             if (currentStep < last) {
                 stepperNext.style.display = '';
-                stepperNext.innerHTML = 'Next<i class="fas fa-arrow-right ms-2"></i>';
+                if (currentStep === last - 1) {
+                    // The review step — prompt the final confirmation.
+                    stepperNext.innerHTML = 'Continue to Payment<i class="fas fa-arrow-right ms-2"></i>';
+                } else {
+                    stepperNext.innerHTML = 'Next<i class="fas fa-arrow-right ms-2"></i>';
+                }
             } else {
                 stepperNext.style.display = 'none';
             }
@@ -1159,6 +1270,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Landing position: resume at the first incomplete step (draft-aware).
         showStep(getFurthestFilledStep() + 1);
     }
+
+    // Review step "Edit" links jump straight back to the relevant step.
+    document.querySelectorAll('.review-edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const target = parseInt(this.dataset.jumpStep, 10);
+            if (!target || target < 1 || target > stepSections.length) return;
+            showStep(target);
+            const heading = stepSections[target - 1]?.querySelector('.form-section-header');
+            if (heading) heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
 
     // ─────────────────────────────────────────────────────────────
     // Auto-save draft to the session-backed store

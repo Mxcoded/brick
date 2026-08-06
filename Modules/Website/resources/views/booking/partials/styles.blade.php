@@ -944,6 +944,120 @@
             flex-shrink: 0;
         }
 
+        /* ── Review step panel ── */
+        .review-note {
+            font-size: 0.8rem;
+            color: #666;
+            background: var(--brand-cream);
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 0.6rem 0.9rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .review-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .review-group {
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 0.9rem 1.1rem;
+        }
+
+        .review-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.6rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+
+        .review-group-title {
+            font-weight: 700;
+            font-size: 0.82rem;
+            color: var(--brand-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .review-group-title i {
+            color: var(--brand-gold);
+        }
+
+        .review-edit-btn {
+            background: transparent;
+            border: 1.5px solid var(--brand-gold-light);
+            color: var(--brand-gold-dark);
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.25rem 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .review-edit-btn:hover {
+            background: var(--brand-gold);
+            color: #fff;
+            border-color: var(--brand-gold);
+        }
+
+        .review-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 1rem;
+            padding: 0.3rem 0;
+            font-size: 0.85rem;
+        }
+
+        .review-row > span {
+            color: #777;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .review-row > strong {
+            color: var(--brand-dark);
+            text-align: right;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .review-price {
+            background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 0.8rem 1.1rem;
+        }
+
+        .review-price .review-total {
+            border-top: 1px dashed #a7f3d0;
+            margin-top: 0.35rem;
+            padding-top: 0.7rem;
+            font-size: 1rem;
+        }
+
+        .review-price .review-total > span {
+            font-weight: 700;
+            color: var(--brand-dark);
+        }
+
+        .review-price .review-total > strong {
+            font-family: 'Playfair Display', serif;
+            font-weight: 800;
+            color: #16a34a;
+            font-size: 1.15rem;
+            white-space: nowrap;
+        }
+
         /* ── Stepper navigation ── */
         .stepper-nav {
             display: flex;

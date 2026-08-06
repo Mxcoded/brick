@@ -4,6 +4,7 @@
             ['label' => 'Guest', 'icon' => 'user'],
             ['label' => 'ID', 'icon' => 'id-card'],
             ['label' => 'Options', 'icon' => 'users'],
+            ['label' => 'Review', 'icon' => 'clipboard-check'],
             ['label' => 'Payment', 'icon' => 'credit-card'],
         ]
         : [
@@ -11,6 +12,7 @@
             ['label' => 'Guest', 'icon' => 'user'],
             ['label' => 'ID', 'icon' => 'id-card'],
             ['label' => 'Options', 'icon' => 'users'],
+            ['label' => 'Review', 'icon' => 'clipboard-check'],
             ['label' => 'Payment', 'icon' => 'credit-card'],
         ];
 @endphp

@@ -403,7 +403,153 @@
         </div>
     </div>
 
-    @php $sectionStep = $useCartFlow ? 4 : 5; @endphp
+    @php
+        $sectionStep = $useCartFlow ? 4 : 5;
+
+        $reviewRoom = $useCartFlow
+            ? collect($cart['items'] ?? [])
+                ->map(fn ($item) => $item['room_type_name'].' × '.$item['quantity'])
+                ->implode(', ')
+            : ($selectedRoomType->name ?? 'Select a room');
+        $reviewGuestName = old('guest_name', $draft['guest_name'] ?? ($guest->full_name ?? (Auth::user()->name ?? '')));
+        $reviewIdType = old('guest_id_type', $draft['guest_id_type'] ?? ($guest->identification_type ?? ''));
+        $reviewIdNumber = old('guest_id_number', $draft['guest_id_number'] ?? ($guest->identification_number ?? ''));
+        $reviewPayment = old('payment_method', $draft['payment_method'] ?? 'paystack') === 'pay_on_arrival' ? 'Pay at Hotel' : 'Pay Now';
+        $reviewAdults = (int) old('adults', $draft['adults'] ?? 1);
+        $reviewChildren = (int) old('children', $draft['children'] ?? 0);
+        $reviewRequests = trim((string) old('special_requests', $draft['special_requests'] ?? ''));
+        $reviewBaseTotal = $useCartFlow ? (float) ($cart['base_total'] ?? 0) : $initialBaseTotal;
+        $reviewGuestFee = $useCartFlow ? (float) ($cart['guest_fee_total'] ?? 0) : $initialGuestFee;
+        $reviewTotal = $useCartFlow ? (float) ($cart['total'] ?? 0) : $initialTotal;
+        $reviewJump = [
+            'room' => $useCartFlow ? 0 : 1,
+            'guest' => $useCartFlow ? 1 : 2,
+            'id' => $useCartFlow ? 2 : 3,
+            'requests' => $useCartFlow ? 3 : 4,
+            'payment' => $useCartFlow ? 4 : 5,
+        ];
+    @endphp
+    <div class="form-section reveal" data-step="{{ $sectionStep }}">
+        <div class="form-section-header">
+            <div class="section-icon"><i class="fas fa-clipboard-check"></i></div>
+            <h5>Review Your Booking</h5>
+            <span class="step-badge">Step {{ $sectionStep }}</span>
+        </div>
+        <div class="form-section-body">
+            <p class="review-note">
+                <i class="fas fa-info-circle me-1"></i>Review your booking below before continuing. Use the
+                Back button or the Edit links to make changes.
+            </p>
+
+            <div class="review-panel">
+                <div class="review-group">
+                    <div class="review-group-header">
+                        <span class="review-group-title"><i class="fas fa-calendar-alt me-2"></i>Stay &amp;
+                            Room</span>
+                        @if ($reviewJump['room'] > 0)
+                            <button type="button" class="review-edit-btn"
+                                data-jump-step="{{ $reviewJump['room'] }}"><i
+                                    class="fas fa-pen me-1"></i>Edit</button>
+                        @else
+                            <a href="{{ route('website.book') }}" class="review-edit-btn"><i
+                                    class="fas fa-pen me-1"></i>Modify</a>
+                        @endif
+                    </div>
+                    <div class="review-row">
+                        <span>Room</span>
+                        <strong id="rvRoom">{{ $reviewRoom }}</strong>
+                    </div>
+                    <div class="review-row">
+                        <span>Check-in</span>
+                        <strong id="rvCheckIn">{{ $useCartFlow ? \Carbon\Carbon::parse($cart['check_in'])->format('M d, Y') : ($reqCheckIn ? \Carbon\Carbon::parse($reqCheckIn)->format('M d, Y') : '—') }}</strong>
+                    </div>
+                    <div class="review-row">
+                        <span>Check-out</span>
+                        <strong id="rvCheckOut">{{ $useCartFlow ? \Carbon\Carbon::parse($cart['check_out'])->format('M d, Y') : ($reqCheckOut ? \Carbon\Carbon::parse($reqCheckOut)->format('M d, Y') : '—') }}</strong>
+                    </div>
+                    <div class="review-row">
+                        <span>Nights</span>
+                        <strong><span id="rvNights">{{ $useCartFlow ? $cart['nights'] : $initialNights }}</span></strong>
+                    </div>
+                </div>
+
+                <div class="review-group">
+                    <div class="review-group-header">
+                        <span class="review-group-title"><i class="fas fa-user me-2"></i>Guest</span>
+                        <button type="button" class="review-edit-btn"
+                            data-jump-step="{{ $reviewJump['guest'] }}"><i
+                                class="fas fa-pen me-1"></i>Edit</button>
+                    </div>
+                    <div class="review-row">
+                        <span>Name</span>
+                        <strong id="rvGuestName">{{ $reviewGuestName ?: '—' }}</strong>
+                    </div>
+                    <div class="review-row">
+                        <span>Guests</span>
+                        <strong
+                            id="rvGuests">{{ $reviewAdults.' '.Str::plural('Adult', $reviewAdults).($reviewChildren > 0 ? ', '.$reviewChildren.' '.Str::plural('Child', $reviewChildren) : '') }}</strong>
+                    </div>
+                </div>
+
+                <div class="review-group">
+                    <div class="review-group-header">
+                        <span class="review-group-title"><i class="fas fa-id-card me-2"></i>Identity</span>
+                        <button type="button" class="review-edit-btn"
+                            data-jump-step="{{ $reviewJump['id'] }}"><i
+                                class="fas fa-pen me-1"></i>Edit</button>
+                    </div>
+                    <div class="review-row">
+                        <span>ID</span>
+                        <strong
+                            id="rvId">{{ $reviewIdType ? ($reviewIdNumber ? $reviewIdType.' · '.$reviewIdNumber : $reviewIdType) : ($reviewIdNumber ?: '—') }}</strong>
+                    </div>
+                </div>
+
+                <div class="review-group">
+                    <div class="review-group-header">
+                        <span class="review-group-title"><i class="fas fa-comment-dots me-2"></i>Requests</span>
+                        <button type="button" class="review-edit-btn"
+                            data-jump-step="{{ $reviewJump['requests'] }}"><i
+                                class="fas fa-pen me-1"></i>Edit</button>
+                    </div>
+                    <div class="review-row">
+                        <span>Special Requests</span>
+                        <strong id="rvRequests">{{ $reviewRequests ?: 'None' }}</strong>
+                    </div>
+                </div>
+
+                <div class="review-group">
+                    <div class="review-group-header">
+                        <span class="review-group-title"><i class="fas fa-credit-card me-2"></i>Payment</span>
+                        <button type="button" class="review-edit-btn"
+                            data-jump-step="{{ $reviewJump['payment'] }}"><i
+                                class="fas fa-pen me-1"></i>Edit</button>
+                    </div>
+                    <div class="review-row">
+                        <span>Method</span>
+                        <strong id="rvPayment">{{ $reviewPayment }}</strong>
+                    </div>
+                </div>
+
+                <div class="review-price" aria-label="Price summary">
+                    <div class="review-row">
+                        <span>Room Cost</span>
+                        <strong id="rvBaseTotal">₦{{ number_format($reviewBaseTotal, 2) }}</strong>
+                    </div>
+                    <div class="review-row" id="rvGuestFeeRow">
+                        <span>Extra Guest Fee</span>
+                        <strong id="rvGuestFee">{{ $reviewGuestFee > 0 ? '₦'.number_format($reviewGuestFee, 2) : 'Included' }}</strong>
+                    </div>
+                    <div class="review-row review-total">
+                        <span>Total</span>
+                        <strong id="rvGrandTotal">₦{{ number_format($reviewTotal, 2) }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @php $sectionStep = $useCartFlow ? 5 : 6; @endphp
     <div class="form-section reveal" data-step="{{ $sectionStep }}">
         <div class="form-section-header">
             <div class="section-icon"><i class="fas fa-credit-card"></i></div>
