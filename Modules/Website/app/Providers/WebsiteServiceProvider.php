@@ -11,6 +11,7 @@ use Modules\Website\Console\Commands\FixConfirmedBookingBalances;
 use Modules\Website\Console\Commands\SendPostStayFollowUp;
 use Modules\Website\Console\MigrateRoomsToTypes;
 use Modules\Website\Livewire\BookingSummary;
+use Modules\Website\Livewire\CartSidebar;
 use Modules\Website\Livewire\CartSummary;
 use Modules\Website\Services\RoomAssignmentService;
 use Modules\Website\Services\RoomAvailabilityService;
@@ -40,6 +41,7 @@ class WebsiteServiceProvider extends ServiceProvider
 
         Livewire::component('website.booking-summary', BookingSummary::class);
         Livewire::component('website.cart-summary', CartSummary::class);
+        Livewire::component('website.cart-sidebar', CartSidebar::class);
     }
 
     /**

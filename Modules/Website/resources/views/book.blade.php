@@ -211,101 +211,24 @@
                     </div>
                 </div>
 
-                {{-- Floating Cart Sidebar --}}
+                {{-- Floating Cart Sidebar (Livewire) --}}
                 <div class="col-lg-4">
-                    <div class="cart-sidebar sticky-top" style="top: 100px;">
-                        <div class="card border-0 shadow">
-                            {{-- Cart Header --}}
-                            <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0 fw-bold">
-                                    <i class="fas fa-shopping-cart me-2"></i>
-                                    <span id="cartBadge" class="badge bg-primary rounded-pill ms-1">{{ $cart['total_rooms'] }}</span>
-                                </h5>
-                                <span class="small">Selected Rooms</span>
-                            </div>
+                    <livewire:website.cart-sidebar />
 
-                            {{-- Cart Body --}}
-                            <div class="card-body p-0" id="cartBody">
-                                {{-- Cart Items (Dynamic) --}}
-                                <div id="cartItems" class="p-3">
-                                    @if(empty($cart['items']))
-                                        <div id="emptyCartMessage" class="text-center py-4 text-muted">
-                                            <i class="fas fa-bed fa-2x mb-2 d-block opacity-50"></i>
-                                            <h6 class="fw-bold">No rooms selected yet</h6>
-                                            <p class="small mb-0">Start selecting rooms to build your reservation</p>
-                                        </div>
-                                    @else
-                                        @foreach($cart['items'] as $item)
-                                            <div class="cart-item d-flex justify-content-between align-items-start py-2 border-bottom" 
-                                                 data-room-id="{{ $item['room_type_id'] }}">
-                                                <div class="flex-grow-1">
-                                                    <div class="fw-bold small">{{ $item['room_type_name'] }}</div>
-                                                    <div class="text-muted small">
-                                                        {{ $item['quantity'] }} room × {{ $item['nights'] }} nights
-                                                    </div>
-                                                    <div class="text-success small fw-bold">
-                                                        ₦{{ number_format($item['subtotal'], 2) }}
-                                                    </div>
-                                                </div>
-                                                <button type="button" class="btn btn-sm btn-link text-danger p-0 remove-cart-item"
-                                                        data-room-id="{{ $item['room_type_id'] }}">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </div>
-                                        @endforeach
-                                    @endif
+                    {{-- Booking Dates Display --}}
+                    <div class="card border-0 shadow-sm mt-3">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between small">
+                                <div>
+                                    <div class="text-muted">Check-in</div>
+                                    <div class="fw-bold" id="displayCheckIn">{{ \Carbon\Carbon::parse($checkIn)->format('M d, Y') }}</div>
                                 </div>
-
-                                {{-- Cart Summary --}}
-                                <div class="cart-summary bg-light p-3 border-top">
-                                    <div class="d-flex justify-content-between small mb-1">
-                                        <span class="text-muted">Total Rooms</span>
-                                        <span class="fw-bold" id="totalRooms">{{ $cart['total_rooms'] }}</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between small mb-1">
-                                        <span class="text-muted">Total Guests Capacity</span>
-                                        <span class="fw-bold" id="totalGuests">{{ $cart['total_guests'] }}</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between small mb-2">
-                                        <span class="text-muted">Nights</span>
-                                        <span class="fw-bold" id="cartNights">{{ $cart['nights'] ?: '-' }}</span>
-                                    </div>
-                                    <hr class="my-2">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="h6 mb-0">Total</span>
-                                        <span class="h5 text-success fw-bold mb-0" id="cartTotal">{{ $cart['formatted_total'] }}</span>
-                                    </div>
+                                <div class="text-center">
+                                    <i class="fas fa-arrow-right text-muted"></i>
                                 </div>
-                            </div>
-
-                            {{-- Cart Actions --}}
-                            <div class="card-footer bg-white py-3">
-                                <button type="button" id="clearCartBtn" class="btn btn-outline-danger btn-sm w-100 mb-2"
-                                        {{ empty($cart['items']) ? 'disabled' : '' }}>
-                                    <i class="fas fa-trash me-1"></i> Clear All
-                                </button>
-                                <a href="{{ route('website.booking', [], false) }}" id="continueBtn" 
-                                   class="btn btn-primary btn-lg w-100 {{ empty($cart['items']) ? 'disabled' : '' }}">
-                                    <i class="fas fa-arrow-right me-2"></i> Continue
-                                </a>
-                            </div>
-                        </div>
-
-                        {{-- Booking Dates Display --}}
-                        <div class="card border-0 shadow-sm mt-3">
-                            <div class="card-body p-3">
-                                <div class="d-flex justify-content-between small">
-                                    <div>
-                                        <div class="text-muted">Check-in</div>
-                                        <div class="fw-bold" id="displayCheckIn">{{ \Carbon\Carbon::parse($checkIn)->format('M d, Y') }}</div>
-                                    </div>
-                                    <div class="text-center">
-                                        <i class="fas fa-arrow-right text-muted"></i>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="text-muted">Check-out</div>
-                                        <div class="fw-bold" id="displayCheckOut">{{ \Carbon\Carbon::parse($checkOut)->format('M d, Y') }}</div>
-                                    </div>
+                                <div class="text-end">
+                                    <div class="text-muted">Check-out</div>
+                                    <div class="fw-bold" id="displayCheckOut">{{ \Carbon\Carbon::parse($checkOut)->format('M d, Y') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -314,13 +237,6 @@
             </div>
         </div>
     </section>
-
-    {{-- Loading Overlay --}}
-    <div id="loadingOverlay" class="d-none">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-    </div>
 
     {{-- Mobile Sticky Checkout Bar --}}
     <div id="mobileCheckoutBar" class="mobile-checkout-bar d-lg-none" style="display: none;">
@@ -364,21 +280,6 @@
         .cart-item:hover {
             background-color: #f8f9fa;
         }
-        #loadingOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255,255,255,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-        }
-        #loadingOverlay.d-none {
-            display: none !important;
-        }
         .select-room-btn.added {
             background-color: #198754 !important;
             border-color: #198754 !important;
@@ -421,106 +322,33 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const csrfToken = '{{ csrf_token() }}';
-            const cartAddUrl = '{{ route("website.cart.add", [], false) }}';
-            const cartRemoveUrl = '{{ route("website.cart.remove", ["roomTypeId" => ":roomId"], false) }}';
-            const cartClearUrl = '{{ route("website.cart.clear", [], false) }}';
-            const cartGetUrl = '{{ route("website.cart.get", [], false) }}';
-
             // Elements
             const checkInInput = document.getElementById('checkIn');
             const checkOutInput = document.getElementById('checkOut');
             const searchForm = document.getElementById('searchForm');
-            const loadingOverlay = document.getElementById('loadingOverlay');
+            const mobileCheckoutBar = document.getElementById('mobileCheckoutBar');
+            const globalMobileBar = document.querySelector('.mobile-sticky-bar');
 
-            // Helpers
-            const formatMoney = (amount) => '₦' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
             const formatDate = (dateStr) => {
                 const date = new Date(dateStr);
                 return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             };
 
-            const showLoading = () => loadingOverlay.classList.remove('d-none');
-            const hideLoading = () => loadingOverlay.classList.add('d-none');
-
-            // Update Cart UI
+            // Sync mobile checkout bar + room-card states from server cart
             function updateCartUI(cart) {
-                const cartItems = document.getElementById('cartItems');
-                const cartBadge = document.getElementById('cartBadge');
-                const totalRooms = document.getElementById('totalRooms');
-                const totalGuests = document.getElementById('totalGuests');
-                const cartNights = document.getElementById('cartNights');
-                const cartTotal = document.getElementById('cartTotal');
-                const clearBtn = document.getElementById('clearCartBtn');
-                const continueBtn = document.getElementById('continueBtn');
-
-                // Update badge
-                cartBadge.textContent = cart.total_rooms;
-
-                // Update mobile checkout bar
-                const mobileBar = document.getElementById('mobileCheckoutBar');
                 const mobileTotal = document.getElementById('mobileCartTotal');
                 const mobileRooms = document.getElementById('mobileCartRooms');
-                const globalBar = document.querySelector('.mobile-sticky-bar');
 
                 if (cart.items.length > 0) {
-                    mobileBar.style.display = 'block';
+                    mobileCheckoutBar.style.display = 'block';
                     mobileTotal.textContent = cart.formatted_total;
                     mobileRooms.textContent = cart.total_rooms;
-                    if (globalBar) globalBar.style.display = 'none';
+                    if (globalMobileBar) globalMobileBar.style.display = 'none';
                 } else {
-                    mobileBar.style.display = 'none';
-                    if (globalBar) globalBar.style.display = '';
+                    mobileCheckoutBar.style.display = 'none';
+                    if (globalMobileBar) globalMobileBar.style.display = '';
                 }
 
-                // Update summary
-                totalRooms.textContent = cart.total_rooms;
-                totalGuests.textContent = cart.total_guests;
-                cartNights.textContent = cart.nights || '-';
-                cartTotal.textContent = cart.formatted_total;
-
-                // Update items
-                if (cart.items.length === 0) {
-                    cartItems.innerHTML = `
-                        <div id="emptyCartMessage" class="text-center py-4 text-muted">
-                            <i class="fas fa-bed fa-2x mb-2 d-block opacity-50"></i>
-                            <h6 class="fw-bold">No rooms selected yet</h6>
-                            <p class="small mb-0">Start selecting rooms to build your reservation</p>
-                        </div>
-                    `;
-                    clearBtn.disabled = true;
-                    continueBtn.classList.add('disabled');
-                } else {
-                    let html = '';
-                    cart.items.forEach(item => {
-                        html += `
-                            <div class="cart-item d-flex justify-content-between align-items-start py-2 border-bottom" 
-                                 data-room-id="${item.room_type_id}">
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold small">${item.room_type_name}</div>
-                                    <div class="text-muted small">
-                                        ${item.quantity} room × ${item.nights} nights
-                                    </div>
-                                    <div class="text-success small fw-bold">
-                                        ${formatMoney(item.subtotal)}
-                                    </div>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-link text-danger p-0 remove-cart-item"
-                                        data-room-id="${item.room_type_id}">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        `;
-                    });
-                    cartItems.innerHTML = html;
-                    clearBtn.disabled = false;
-                    continueBtn.classList.remove('disabled');
-
-                    // Re-attach remove listeners
-                    attachRemoveListeners();
-                }
-
-                // Update select buttons state
                 updateSelectButtonStates(cart);
             }
 
@@ -540,123 +368,42 @@
                 });
             }
 
-            // Add to cart
-            function addToCart(roomId, quantity) {
-                const checkIn = checkInInput.value;
-                const checkOut = checkOutInput.value;
-                const adults = parseInt(document.getElementById('adults')?.value || 1);
-                const children = parseInt(document.getElementById('children')?.value || 0);
+            // Livewire cart integration
+            document.addEventListener('livewire:init', () => {
+                Livewire.on('cart-updated', ({ cart }) => updateCartUI(cart));
+                Livewire.on('cart-error', ({ message }) => alert(message || 'An error occurred. Please try again.'));
 
-                if (!checkIn || !checkOut) {
-                    alert('Please select check-in and check-out dates first.');
-                    return;
-                }
+                // Initial sync when cart already has items
+                updateCartUI(@json($cart));
+            });
 
-                showLoading();
-
-                fetch(cartAddUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        room_type_id: roomId,
-                        quantity: quantity,
-                        check_in: checkIn,
-                        check_out: checkOut,
-                        adults: adults,
-                        children: children,
-                    })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    hideLoading();
-                    if (data.success) {
-                        updateCartUI(data.cart);
-                    } else {
-                        alert(data.message || 'Could not add room to cart.');
-                    }
-                })
-                .catch(err => {
-                    hideLoading();
-                    console.error('Cart add error:', err);
-                    alert('An error occurred. Please try again.');
-                });
-            }
-
-            // Remove from cart
-            function removeFromCart(roomId) {
-                showLoading();
-
-                fetch(cartRemoveUrl.replace(':roomId', roomId), {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                    }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    hideLoading();
-                    if (data.success) {
-                        updateCartUI(data.cart);
-                    }
-                })
-                .catch(err => {
-                    hideLoading();
-                    console.error('Cart remove error:', err);
-                });
-            }
-
-            // Clear cart
-            function clearCart() {
-                if (!confirm('Are you sure you want to clear your cart?')) return;
-
-                showLoading();
-
-                fetch(cartClearUrl, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                    }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    hideLoading();
-                    if (data.success) {
-                        updateCartUI(data.cart);
-                    }
-                })
-                .catch(err => {
-                    hideLoading();
-                    console.error('Cart clear error:', err);
-                });
-            }
-
-            // Attach remove listeners
-            function attachRemoveListeners() {
-                document.querySelectorAll('.remove-cart-item').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        removeFromCart(this.dataset.roomId);
-                    });
-                });
-            }
-
-            // Select room button click
+            // Select room button click → add to cart via Livewire
             document.querySelectorAll('.select-room-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const roomId = this.dataset.roomId;
                     const quantitySelect = document.querySelector(`.room-quantity-select[data-room-id="${roomId}"]`);
                     const quantity = parseInt(quantitySelect.value) || 1;
-                    addToCart(roomId, quantity);
+                    const checkIn = checkInInput.value;
+                    const checkOut = checkOutInput.value;
+
+                    if (!checkIn || !checkOut) {
+                        alert('Please select check-in and check-out dates first.');
+                        return;
+                    }
+
+                    const adults = parseInt(document.getElementById('adults')?.value || 1);
+                    const children = parseInt(document.getElementById('children')?.value || 0);
+
+                    Livewire.dispatchTo('cart-sidebar', 'add', {
+                        roomTypeId: roomId,
+                        quantity: quantity,
+                        checkIn: checkIn,
+                        checkOut: checkOut,
+                        adults: adults,
+                        children: children,
+                    });
                 });
             });
-
-            // Clear cart button
-            document.getElementById('clearCartBtn').addEventListener('click', clearCart);
 
             // ── Room Search & Sort ──
             const roomSearchInput = document.getElementById('roomSearchInput');
@@ -736,25 +483,6 @@
                 document.getElementById('displayCheckOut').textContent = formatDate(this.value);
             });
 
-            // Initial attach for remove buttons
-            attachRemoveListeners();
-
-            // Fetch current cart state on load
-            fetch(cartGetUrl, {
-                headers: { 'Accept': 'application/json' }
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    updateCartUI(data.cart);
-                }
-            });
-
-            // Hide global mobile bar on this page if cart already has items
-            @if(!empty($cart['items']))
-                const globalBar = document.querySelector('.mobile-sticky-bar');
-                if (globalBar) globalBar.style.display = 'none';
-            @endif
         });
     </script>
 @endsection
