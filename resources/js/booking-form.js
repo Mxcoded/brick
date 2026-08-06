@@ -30,6 +30,11 @@ window.addEventListener('booking-summary-updated', (event) => {
     }
     const rvGrand = document.getElementById('rvGrandTotal');
     if (rvGrand) rvGrand.textContent = formatMoney(detail.total);
+    const rvAddons = document.getElementById('rvAddons');
+    if (rvAddons) {
+        const addonTotal = parseFloat(detail.addonTotal || 0);
+        rvAddons.textContent = addonTotal > 0 ? formatMoney(addonTotal) : 'None';
+    }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -226,6 +231,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // WebsiteRateService (rate codes, calendar overrides, guest fees) is the
     // single authoritative source. No-op when Livewire isn't mounted.
     let _summaryDispatchTimer = null;
+
+    // ── Add-ons / upsells ──
+    function getAddonCheckboxes() {
+        return Array.from(document.querySelectorAll('.addon-checkbox'));
+    }
+
+    function getSelectedAddonIds() {
+        return getAddonCheckboxes()
+            .filter(cb => cb.checked)
+            .map(cb => parseInt(cb.value, 10))
+            .filter(id => !isNaN(id));
+    }
+
+    function computeAddonTotal() {
+        let total = 0;
+        const nights = Math.max(1, calculateNights());
+        getAddonCheckboxes().forEach(cb => {
+            if (!cb.checked) return;
+            const price = parseFloat(cb.dataset.price || 0);
+            const perNight = cb.dataset.perNight === '1';
+            total += perNight ? price * nights : price;
+        });
+        return total;
+    }
+
+    function syncAddonUI() {
+        const selected = getSelectedAddonIds();
+        getAddonCheckboxes().forEach(cb => {
+            const card = cb.closest('.addon-card');
+            if (card) card.classList.toggle('selected', cb.checked);
+        });
+        const countEl = document.getElementById('addonCount');
+        if (countEl) countEl.textContent = selected.length;
+    }
+
     function dispatchSummaryUpdate() {
         if (typeof window.Livewire === 'undefined' || !window.Livewire.dispatch) return;
         clearTimeout(_summaryDispatchTimer);
@@ -236,6 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkOut: checkOutInput ? checkOutInput.value : '',
                 adults: parseInt(document.getElementById('adults')?.value || 1),
                 children: parseInt(document.getElementById('children')?.value || 0),
+                addons: getSelectedAddonIds(),
             };
             console.log('[livewire-summary] Dispatching summaryUpdated', payload);
             window.Livewire.dispatch('summaryUpdated', payload);
@@ -827,6 +868,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     refreshUI();
 
+    // ── Add-on toggle ──
+    // Non-cart flow: re-price via the Livewire BookingSummary bridge (single
+    // authoritative source). Cart flow: persist to the session cart API, then
+    // nudge CartSummary to re-render (it re-pushes authoritative totals via
+    // the booking-summary-updated bridge).
+    getAddonCheckboxes().forEach(cb => {
+        cb.addEventListener('change', () => {
+            const card = cb.closest('.addon-card');
+            if (card) card.classList.toggle('selected', cb.checked);
+
+            if (!bookingForm.hasAttribute('data-cart-flow')) {
+                syncAddonUI();
+                dispatchSummaryUpdate();
+                return;
+            }
+
+            if (!cfg.cartAddonUrl) return;
+            const id = parseInt(cb.value, 10);
+            const url = cb.checked
+                ? cfg.cartAddonUrl
+                : cfg.cartAddonRemoveUrl.replace('__ID__', id);
+            const opts = {
+                method: cb.checked ? 'POST' : 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': cfg.csrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            };
+            if (cb.checked) opts.body = new URLSearchParams({ addon_id: id });
+
+            fetch(url, opts)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        cb.checked = !cb.checked;
+                        if (card) card.classList.toggle('selected', cb.checked);
+                        if (data.error) console.warn('[addon]', data.error);
+                        return;
+                    }
+                    syncAddonUI();
+                    if (data.cart) {
+                        const addonTotal = parseFloat(data.cart.addon_total || 0);
+                        const rvAddons = document.getElementById('rvAddons');
+                        if (rvAddons) rvAddons.textContent = addonTotal > 0 ? formatMoney(addonTotal) : 'None';
+                        const rvGrand = document.getElementById('rvGrandTotal');
+                        if (rvGrand) rvGrand.textContent = formatMoney(data.cart.total || 0);
+                        const ctaTotal = document.querySelector('#bookingCta .total-amount');
+                        if (ctaTotal && data.cart.formatted_total) ctaTotal.textContent = data.cart.formatted_total;
+                    }
+                    if (window.Livewire?.dispatch) window.Livewire.dispatch('cart-updated');
+                })
+                .catch(() => {
+                    cb.checked = !cb.checked;
+                    if (card) card.classList.toggle('selected', cb.checked);
+                });
+        });
+    });
+
     // Confetti burst on a valid submit
     function burstConfetti() {
         const canvas = document.getElementById('confettiCanvas');
@@ -1133,6 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const guestFeePerNight = (extraAdults * extraAdultFee) + (extraChildren * extraChildFee);
             const baseTotal = price * n;
             const guestFeeTotal = guestFeePerNight * n;
+            const addonTotal = computeAddonTotal();
             if (get('rvBaseTotal')) get('rvBaseTotal').textContent = formatMoney(baseTotal);
             const feeEl = get('rvGuestFee');
             const feeRow = get('rvGuestFeeRow');
@@ -1140,7 +1241,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 feeEl.textContent = guestFeeTotal > 0 ? formatMoney(guestFeeTotal) : 'Included';
                 if (feeRow) feeRow.style.display = guestFeeTotal > 0 ? '' : 'none';
             }
-            if (get('rvGrandTotal')) get('rvGrandTotal').textContent = formatMoney(baseTotal + guestFeeTotal);
+            const addonsEl = get('rvAddons');
+            if (addonsEl) addonsEl.textContent = addonTotal > 0 ? formatMoney(addonTotal) : 'None';
+            if (get('rvGrandTotal')) get('rvGrandTotal').textContent = formatMoney(baseTotal + guestFeeTotal + addonTotal);
         }
     }
 
@@ -1301,6 +1404,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const accountEl = document.getElementById('createAccountToggle');
         if (accountEl) data.create_account = accountEl.checked ? 1 : 0;
+        const selectedAddons = getSelectedAddonIds();
+        data.addons = selectedAddons;
         return data;
     }
 

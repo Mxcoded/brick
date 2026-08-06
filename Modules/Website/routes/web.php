@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 // Public Controllers
+use Modules\Website\Http\Controllers\Admin\AddonController;
 use Modules\Website\Http\Controllers\Admin\AmenityController;
 use Modules\Website\Http\Controllers\Admin\BookingController as AdminBookingController;
 // Admin Controllers (Aliased to prevent conflicts)
@@ -102,6 +103,8 @@ Route::middleware(['web'])->group(function () {
         Route::delete('/cart/remove/{roomTypeId}', 'cartRemove')->name('website.cart.remove');
         Route::delete('/cart/clear', 'cartClear')->name('website.cart.clear');
         Route::get('/cart', 'cartGet')->name('website.cart.get');
+        Route::post('/cart/addon', 'cartAddon')->name('website.cart.addon');
+        Route::delete('/cart/addon/{addonId}', 'cartRemoveAddon')->name('website.cart.addon-remove');
 
         // Guest Booking Management
         Route::get('/my-booking', 'bookingLogin')->name('website.booking.login');
@@ -181,6 +184,14 @@ Route::middleware(['web'])->group(function () {
             Route::get('amenities/{amenity}/edit', [AmenityController::class, 'edit'])->name('amenities.edit')->middleware($p('amenities', 'update'));
             Route::match(['put', 'patch'], 'amenities/{amenity}', [AmenityController::class, 'update'])->name('amenities.update')->middleware($p('amenities', 'update'));
             Route::delete('amenities/{amenity}', [AmenityController::class, 'destroy'])->name('amenities.destroy')->middleware($p('amenities', 'delete'));
+            // Add-ons / Upsells
+            Route::get('addons', [AddonController::class, 'index'])->name('addons.index')->middleware($p('addons', 'read'));
+            Route::get('addons/create', [AddonController::class, 'create'])->name('addons.create')->middleware($p('addons', 'create'));
+            Route::post('addons', [AddonController::class, 'store'])->name('addons.store')->middleware($p('addons', 'create'));
+            Route::get('addons/{addon}', [AddonController::class, 'show'])->name('addons.show')->middleware($p('addons', 'read'));
+            Route::get('addons/{addon}/edit', [AddonController::class, 'edit'])->name('addons.edit')->middleware($p('addons', 'update'));
+            Route::match(['put', 'patch'], 'addons/{addon}', [AddonController::class, 'update'])->name('addons.update')->middleware($p('addons', 'update'));
+            Route::delete('addons/{addon}', [AddonController::class, 'destroy'])->name('addons.destroy')->middleware($p('addons', 'delete'));
             // Settings
             Route::get('settings', [SettingController::class, 'index'])->name('settings.index')->middleware($p('settings', 'read'));
             Route::get('settings/create', [SettingController::class, 'create'])->name('settings.create')->middleware($p('settings', 'create'));

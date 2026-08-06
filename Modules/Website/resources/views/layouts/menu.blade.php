@@ -1,4 +1,4 @@
-@canany(['access_website_dashboard', 'website.dashboard', 'website.bookings', 'website.contact-messages', 'website.facilities', 'website.offers', 'website.meeting', 'website.dining', 'website.room-types', 'website.inventory', 'website.amenities', 'website.testimonials', 'website.newsletter', 'website.settings'])
+@canany(['access_website_dashboard', 'website.dashboard', 'website.bookings', 'website.contact-messages', 'website.facilities', 'website.offers', 'website.meeting', 'website.dining', 'website.room-types', 'website.inventory', 'website.amenities', 'website.addons', 'website.testimonials', 'website.newsletter', 'website.settings'])
 <a class="list-group-item list-group-item-action" data-bs-toggle="collapse" href="#websiteAdminSubmenu" role="button"
    aria-expanded="{{ request()->routeIs('website.admin.*') ? 'true' : 'false' }}" aria-controls="websiteAdminSubmenu">
     <i class="fas fa-globe fa-fw"></i>
@@ -98,6 +98,13 @@
     <a href="{{ route('website.admin.amenities.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.amenities.*') ? 'active' : '' }}">
         <i class="fas fa-wifi fa-fw me-2"></i> Amenities
+    </a>
+    @endcanany
+
+    @canany(['access_website_dashboard', 'website.addons'])
+    <a href="{{ route('website.admin.addons.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.addons.*') ? 'active' : '' }}">
+        <i class="fas fa-gift fa-fw me-2"></i> Add-ons & Upsells
     </a>
     @endcanany
 

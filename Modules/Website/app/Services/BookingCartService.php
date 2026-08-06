@@ -4,6 +4,7 @@ namespace Modules\Website\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Session;
+use Modules\Website\Models\Addon;
 use Modules\Website\Models\RoomType;
 
 class BookingCartService
@@ -305,7 +306,7 @@ class BookingCartService
     }
 
     /**
-     * Get total price of cart.
+     * Get total price of cart (rooms + add-ons).
      */
     public function getTotal(): float
     {
@@ -316,7 +317,107 @@ class BookingCartService
             $total += $item['subtotal'];
         }
 
-        return $total;
+        return $total + $this->getAddonTotal();
+    }
+
+    /**
+     * Add an add-on / upsell to the cart.
+     */
+    public function addAddon(int $addonId, int $quantity = 1): array
+    {
+        $addon = Addon::where('id', $addonId)->where('is_active', true)->first();
+
+        if (! $addon) {
+            return [
+                'success' => false,
+                'message' => 'That add-on is not available.',
+            ];
+        }
+
+        $cart = $this->getCart();
+
+        // Add-ons are stay-scoped — without dates there is nothing to attach them to.
+        if (empty($cart['items']) || empty($cart['check_in'])) {
+            return [
+                'success' => false,
+                'message' => 'Add rooms to your cart before adding extras.',
+            ];
+        }
+
+        $cart['addons'][$addon->id] = [
+            'addon_id' => $addon->id,
+            'name' => $addon->name,
+            'price' => (float) $addon->price,
+            'is_per_night' => (bool) $addon->is_per_night,
+            'quantity' => max(1, $quantity),
+        ];
+
+        $this->saveCart($cart);
+
+        return [
+            'success' => true,
+            'message' => $addon->name.' added to your stay.',
+            'cart' => $this->getCartSummary(),
+        ];
+    }
+
+    /**
+     * Remove an add-on from the cart.
+     */
+    public function removeAddon(int $addonId): array
+    {
+        $cart = $this->getCart();
+
+        if (isset($cart['addons'][$addonId])) {
+            $name = $cart['addons'][$addonId]['name'];
+            unset($cart['addons'][$addonId]);
+            $this->saveCart($cart);
+
+            return [
+                'success' => true,
+                'message' => $name.' removed from your stay.',
+                'cart' => $this->getCartSummary(),
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Add-on not in cart.',
+            'cart' => $this->getCartSummary(),
+        ];
+    }
+
+    /**
+     * Get all add-ons in the cart (with live totals for the current nights).
+     */
+    public function getAddons(): array
+    {
+        $cart = $this->getCart();
+        $nights = max(1, (int) ($cart['nights'] ?? 1));
+
+        return collect($cart['addons'] ?? [])->map(function ($addon) use ($nights) {
+            $qty = max(1, (int) ($addon['quantity'] ?? 1));
+            $price = (float) ($addon['price'] ?? 0);
+            $total = $addon['is_per_night'] ? $price * $qty * $nights : $price * $qty;
+
+            return $addon + ['nights' => $nights, 'total' => $total];
+        })->values()->all();
+    }
+
+    /**
+     * Get total price of add-ons in the cart.
+     */
+    public function getAddonTotal(): float
+    {
+        return array_sum(array_column($this->getAddons(), 'total'));
+    }
+
+    /**
+     * Get the raw add-on ids currently selected in the cart.
+     */
+    public function getAddonIds(): array
+    {
+        return array_map('intval', array_keys($this->getCart()['addons'] ?? []));
     }
 
     /**
@@ -371,6 +472,7 @@ class BookingCartService
 
         return [
             'items' => array_values($cart['items'] ?? []),
+            'addons' => $this->getAddons(),
             'check_in' => $cart['check_in'] ?? null,
             'check_out' => $cart['check_out'] ?? null,
             'nights' => $cart['nights'] ?? 0,
@@ -378,6 +480,7 @@ class BookingCartService
             'total_guests' => $this->getTotalGuests(),
             'base_total' => $baseTotal,
             'guest_fee_total' => $guestFeeTotal,
+            'addon_total' => $this->getAddonTotal(),
             'total' => $total,
             'formatted_total' => '₦'.number_format($total, 2),
         ];
@@ -444,6 +547,7 @@ class BookingCartService
     {
         return Session::get(self::SESSION_KEY, [
             'items' => [],
+            'addons' => [],
             'check_in' => null,
             'check_out' => null,
             'nights' => 0,

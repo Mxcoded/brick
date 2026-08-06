@@ -53,6 +53,11 @@
             $initialTotal = $initialBaseTotal;
             $hasSelectedRoom = (!empty($reqRoomTypeId) && $initialCapacity > 0) || $useCartFlow;
 
+            $selectedAddonIds = $useCartFlow
+                ? array_column($cart['addons'] ?? [], 'addon_id')
+                : (array) old('addons', $draft['addons'] ?? []);
+            $selectedAddonIds = array_values(array_unique(array_filter(array_map('intval', $selectedAddonIds))));
+
             if ($selectedRoomType && $reqCheckIn && $reqCheckOut) {
                 $rateService = app(\Modules\Website\Services\WebsiteRateService::class);
                 $rateResult = $rateService->calculateWithGuests(
@@ -86,7 +91,8 @@
                         :check-in="$reqCheckIn"
                         :check-out="$reqCheckOut"
                         :adults="(int) old('adults', 1)"
-                        :children="(int) old('children', 0)" />
+                        :children="(int) old('children', 0)"
+                        :addons="$selectedAddonIds" />
                 @endif
             </div>
         </div>

@@ -1155,5 +1155,103 @@
                 font-size: 0.75rem;
             }
         }
+
+        /* ── Add-on / upsell cards ── */
+        .addons-box {
+            background: var(--brand-cream);
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .addon-card {
+            position: relative;
+            display: block;
+            background: #fff;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 0.85rem 1rem 0.85rem 2.75rem;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .addon-card:hover,
+        .addon-card:focus-within {
+            border-color: var(--brand-gold-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        }
+
+        .addon-card.selected {
+            border-color: var(--brand-gold);
+            box-shadow: 0 0 0 3px rgba(200, 161, 101, 0.18);
+        }
+
+        .addon-card .addon-checkbox {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .addon-card .addon-check {
+            position: absolute;
+            top: 0.85rem;
+            left: 0.85rem;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.65rem;
+            transition: all 0.2s ease;
+        }
+
+        .addon-card.selected .addon-check {
+            border-color: var(--brand-gold);
+            background: var(--brand-gold);
+        }
+
+        .addon-card .addon-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            cursor: pointer;
+        }
+
+        .addon-card .addon-icon {
+            color: var(--brand-gold);
+            font-size: 1.1rem;
+        }
+
+        .addon-card .addon-name {
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--brand-dark);
+        }
+
+        .addon-card .addon-desc {
+            font-size: 0.72rem;
+            color: #888;
+            line-height: 1.35;
+        }
+
+        .addon-card .addon-price {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: #16a34a;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .addon-card .addon-price-note {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: #999;
+        }
     </style>
 @endpush

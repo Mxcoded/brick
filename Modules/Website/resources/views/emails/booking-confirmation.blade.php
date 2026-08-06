@@ -150,6 +150,23 @@
                                                     </table>
                                                 </td>
                                             </tr>
+                                            @if($booking->addons->isNotEmpty())
+                                            @foreach($booking->addons as $addon)
+                                            <tr>
+                                                <td style="padding:11px 0; border-bottom:1px solid #EDE8E1;">
+                                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                                        <tr>
+                                                            <td style="width:40%; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:13px; color:#888888;">{{ $addon->pivot->name }}</td>
+                                                            <td style="width:60%; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:13px; color:#2D2D2D; font-weight:600; text-align:right;">
+                                                                @if((int) $addon->pivot->quantity > 1){{ (int) $addon->pivot->quantity }} &times; @endif
+                                                                &#x20A6;{{ number_format((float) $addon->pivot->total, 2) }}
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                            @endif
                                             <tr>
                                                 <td style="padding:11px 0; border-bottom:1px solid #EDE8E1;">
                                                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">

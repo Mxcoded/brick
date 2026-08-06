@@ -12,6 +12,7 @@ class WebsiteDatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(AmenitySeeder::class);
+        $this->call(AddonSeeder::class);
         $this->call(DiningSeeder::class);
 
         // Legacy room seeder (for backward compatibility)

@@ -81,6 +81,21 @@
             </div>
         @endif
 
+        @if ($addonItems->isNotEmpty())
+            <div class="fw-bold small mb-1 mt-2" style="color: var(--brand-gold);">Add-ons</div>
+            @foreach ($addonItems as $addon)
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">
+                        {{ $addon->name }}
+                        @if ($addon->is_per_night)
+                            <span class="text-muted"> &times; {{ $nights }} nights</span>
+                        @endif
+                    </span>
+                    <span class="fw-bold">₦{{ number_format($addon->totalFor($nights), 2) }}</span>
+                </div>
+            @endforeach
+        @endif
+
         <hr class="my-3">
 
         <div class="summary-total-row">

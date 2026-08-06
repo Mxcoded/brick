@@ -142,6 +142,16 @@ class Booking extends Model implements AuditableContract
     }
 
     /**
+     * Add-ons / upsells attached to this booking (line-item snapshot).
+     */
+    public function addons()
+    {
+        return $this->belongsToMany(Addon::class, 'booking_addon')
+            ->withPivot(['name', 'price', 'is_per_night', 'quantity', 'total'])
+            ->withTimestamps();
+    }
+
+    /**
      * Relationship: The assigned room unit (assigned at check-in).
      */
     public function roomUnit()

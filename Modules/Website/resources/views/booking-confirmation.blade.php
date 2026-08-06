@@ -165,6 +165,35 @@
                                 </table>
                             </div>
 
+                            @php
+                                $confAddons = $groupedBookings
+                                    ->flatMap(fn ($b) => $b->addons)
+                                    ->unique(fn ($a) => $a->pivot->addon_id);
+                            @endphp
+                            @if ($confAddons->isNotEmpty())
+                                <div class="mb-4">
+                                    <h6 class="fw-bold text-dark mb-3"><i class="fas fa-gift me-2"></i>Extras
+                                        &amp; Add-ons</h6>
+                                    <table class="table table-borderless">
+                                        <tbody>
+                                            @foreach ($confAddons as $addon)
+                                                <tr>
+                                                    <td class="ps-0">
+                                                        <span class="fw-bold text-dark d-block">{{ $addon->pivot->name }}</span>
+                                                        <small class="text-muted">
+                                                            @if ((int) $addon->pivot->quantity > 1){{ (int) $addon->pivot->quantity }} &times; @endif
+                                                            ₦{{ number_format((float) $addon->pivot->price, 2) }}
+                                                            @if ($addon->pivot->is_per_night) &times; {{ $booking->check_in_date->diffInDays($booking->check_out_date) ?: 1 }} nights @endif
+                                                        </small>
+                                                    </td>
+                                                    <td class="text-end fw-bold pe-0 align-middle">₦{{ number_format((float) $addon->pivot->total, 2) }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+
                             {{-- Email Controls (Hidden when Printing) --}}
                             <div class="d-print-none mt-5 pt-4 border-top">
                                 <p class="text-muted small mb-2"><i class="fas fa-info-circle me-1"></i> Need a copy?</p>

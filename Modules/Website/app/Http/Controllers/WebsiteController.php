@@ -26,7 +26,8 @@ use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Website\Emails\BookingConfirmation; // ✅ Import Contact Mail
 use Modules\Website\Emails\ContactMessageReceived;
 use Modules\Website\Emails\ReviewSubmitted;
-use Modules\Website\Models\Amenity; // ✅ Import Booking Mail
+use Modules\Website\Models\Addon; // ✅ Import Booking Mail
+use Modules\Website\Models\Amenity;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\Dining; // ✅ Import Contact Mail
@@ -191,6 +192,7 @@ class WebsiteController extends Controller
         }
 
         $viewData = compact('guest', 'draft');
+        $viewData['addons'] = Addon::active()->ordered()->get();
 
         $meta_description = 'Book your stay at Brickspoint Boutique Aparthotel in Asokoro, Abuja — the best boutique hotel in Nigeria\'s capital. Secure your room, suite, or apartment with our easy online reservation system.';
         $meta_keywords = 'book hotel Abuja, apart-hotel reservation, online booking Abuja, Brickspoint booking, Asokoro hotel booking';
@@ -255,6 +257,18 @@ class WebsiteController extends Controller
 
         $data = $request->only(BookingDraftService::ALLOWED_FIELDS);
         $draft = [];
+
+        // Add-ons arrive as an array of ids; whitelist them against active add-ons.
+        // An empty array clears the saved selection.
+        if (array_key_exists('addons', $data) && is_array($data['addons'])) {
+            $draft['addons'] = app(Addon::class)
+                ->whereIn('id', array_map('intval', array_values($data['addons'])))
+                ->where('is_active', true)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all();
+        }
 
         foreach ($data as $key => $value) {
             if (is_array($value)) {
@@ -582,8 +596,6 @@ class WebsiteController extends Controller
                         }
                     }
 
-                    // Clear cart after successful booking
-                    $cartService->clear();
                 } else {
                     // SINGLE-ROOM: Legacy booking flow
                     $roomType = RoomType::findOrFail($validated['room_type_id']);
@@ -630,6 +642,49 @@ class WebsiteController extends Controller
                     $bookings[] = $booking;
                 }
 
+                // ====================================================
+                // ADD-ONS / UPSELLS (attached to the primary booking)
+                // ====================================================
+                $selectedAddonIds = $useCart
+                    ? $cartService->getAddonIds()
+                    : array_values((array) $request->input('addons', []));
+
+                $selectedAddonIds = array_values(array_unique(array_map('intval', $selectedAddonIds)));
+
+                if ($selectedAddonIds && ! empty($bookings)) {
+                    $addons = Addon::whereIn('id', $selectedAddonIds)
+                        ->where('is_active', true)
+                        ->get();
+
+                    if ($addons->isNotEmpty()) {
+                        $primary = $bookings[0];
+                        $nights = Carbon::parse($primary->check_in_date)->diffInDays($primary->check_out_date) ?: 1;
+                        $addonTotal = 0;
+                        $pivot = [];
+
+                        foreach ($addons as $addon) {
+                            $cartAddon = $useCart
+                                ? collect($cart['addons'] ?? [])->firstWhere('addon_id', $addon->id)
+                                : null;
+                            $quantity = (int) ($cartAddon['quantity'] ?? 1);
+                            $lineTotal = $addon->totalFor($nights, $quantity);
+                            $addonTotal += $lineTotal;
+                            $pivot[$addon->id] = [
+                                'name' => $addon->name,
+                                'price' => (float) $addon->price,
+                                'is_per_night' => $addon->is_per_night,
+                                'quantity' => $quantity,
+                                'total' => $lineTotal,
+                            ];
+                        }
+
+                        $primary->addons()->attach($pivot);
+                        $primary->total_amount = (float) $primary->total_amount + $addonTotal;
+                        $primary->save();
+                        $totalAmount += $addonTotal;
+                    }
+                }
+
                 return [
                     'bookings' => $bookings,
                     'group_id' => $bookingGroupId,
@@ -637,6 +692,11 @@ class WebsiteController extends Controller
                     'primary_booking' => $bookings[0], // First booking for payment/email
                 ];
             });
+
+            // Clear the cart only after the add-ons have been read from it.
+            if ($useCart) {
+                $cartService->clear();
+            }
 
             $primaryBooking = $result['primary_booking'];
 
@@ -716,7 +776,7 @@ class WebsiteController extends Controller
         // Booking completed — discard any in-progress auto-saved draft.
         app(BookingDraftService::class)->clear();
 
-        $booking = Booking::with('roomType')->where('booking_reference', $ref)->firstOrFail();
+        $booking = Booking::with(['roomType', 'addons'])->where('booking_reference', $ref)->firstOrFail();
 
         // Security Check
         $canView = false;
@@ -740,7 +800,7 @@ class WebsiteController extends Controller
         // Get all bookings in the group (if this is a multi-room booking)
         $groupedBookings = collect([$booking]);
         if ($booking->booking_group_id) {
-            $groupedBookings = Booking::with('roomType')
+            $groupedBookings = Booking::with(['roomType', 'addons'])
                 ->where('booking_group_id', $booking->booking_group_id)
                 ->get();
         }
@@ -1891,6 +1951,33 @@ class WebsiteController extends Controller
             'success' => true,
             'cart' => $cartService->getCartSummary(),
         ]);
+    }
+
+    /**
+     * Cart: Add an add-on / upsell to the stay.
+     */
+    public function cartAddon(Request $request)
+    {
+        $validated = $request->validate([
+            'addon_id' => 'required|integer|exists:addons,id',
+            'quantity' => 'nullable|integer|min:1|max:10',
+        ]);
+
+        $cartService = new BookingCartService;
+        $result = $cartService->addAddon((int) $validated['addon_id'], (int) ($validated['quantity'] ?? 1));
+
+        return response()->json($result);
+    }
+
+    /**
+     * Cart: Remove an add-on from the stay.
+     */
+    public function cartRemoveAddon($addonId)
+    {
+        $cartService = new BookingCartService;
+        $result = $cartService->removeAddon((int) $addonId);
+
+        return response()->json($result);
     }
 
     /**

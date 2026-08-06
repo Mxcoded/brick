@@ -38,6 +38,7 @@ class BookingDraftService
         'check_in_date',
         'check_out_date',
         'create_account',
+        'addons',
     ];
 
     public function get(): array

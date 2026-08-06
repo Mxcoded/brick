@@ -33,6 +33,29 @@
             </div>
         @endforeach
 
+        @if (!empty($cart['addons']))
+            <div class="fw-bold small mb-3 mt-4" style="color: var(--brand-gold);">EXTRAS</div>
+            @foreach ($cart['addons'] as $addon)
+                <div class="summary-room-item">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="room-icon"><i class="fas fa-plus"></i></div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold small">{{ $addon['name'] }}</div>
+                            <div class="text-muted small">
+                                @if ($addon['is_per_night'])
+                                    {{ $addon['quantity'] }} &times; {{ $cart['nights'] }} nights
+                                @else
+                                    One-time charge
+                                @endif
+                            </div>
+                        </div>
+                        <div class="fw-bold" style="color: #16a34a; font-size: 0.9rem;">
+                            ₦{{ number_format($addon['total'], 2) }}</div>
+                    </div>
+                </div>
+            @endforeach
+        @endif
+
         <div class="summary-total-row mt-3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>

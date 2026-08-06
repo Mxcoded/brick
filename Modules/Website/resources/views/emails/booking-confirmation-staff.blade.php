@@ -227,6 +227,40 @@
                                 <tr><td style="padding:0 0 20px 0;"></td></tr>
                             </table>
 
+                            @if($booking->addons->isNotEmpty())
+                            <!-- Add-ons -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FAF8F5; margin-bottom:20px;">
+                                <tr>
+                                    <td style="padding:28px 28px 0 28px;">
+                                        <p style="font-size:12px; font-weight:600; color:#1A1A1A; text-transform:uppercase; letter-spacing:1px; margin:0 0 16px 0; padding-bottom:10px; border-bottom:2px solid #C9A962; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;">Add-ons</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:0 28px 0 28px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            @foreach($booking->addons as $addon)
+                                            <tr>
+                                                <td style="padding:11px 0; border-bottom:1px solid #EDE8E1;">
+                                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                                        <tr>
+                                                            <td style="width:40%; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:13px; color:#888888;">{{ $addon->pivot->name }}</td>
+                                                            <td style="width:60%; font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:13px; color:#2D2D2D; font-weight:600; text-align:right;">
+                                                                @if((int) $addon->pivot->quantity > 1){{ (int) $addon->pivot->quantity }} &times; @endif
+                                                                &#x20A6;{{ number_format((float) $addon->pivot->total, 2) }}
+                                                                <br><small style="color:#888888; font-weight:400;">@if($addon->pivot->is_per_night)Per night &times; {{ \Carbon\Carbon::parse($booking->check_in_date)->diffInDays(\Carbon\Carbon::parse($booking->check_out_date)) }} nights @else One-time @endif</small>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr><td style="padding:0 0 20px 0;"></td></tr>
+                            </table>
+                            @endif
+
                             <!-- Payment Summary -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FAF8F5; margin-bottom:20px;">
                                 <tr>

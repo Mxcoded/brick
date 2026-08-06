@@ -374,6 +374,57 @@
                 </div>
             </div>
 
+            @php
+                $selectedAddonIds = $selectedAddonIds ?? ($useCartFlow
+                    ? array_column($cart['addons'] ?? [], 'addon_id')
+                    : (array) old('addons', $draft['addons'] ?? []));
+                $selectedAddonIds = array_values(array_unique(array_filter(array_map('intval', $selectedAddonIds))));
+            @endphp
+
+            @if (isset($addons) && $addons->isNotEmpty())
+                <div class="mt-4">
+                    <div class="addons-box">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                            <label class="form-label mb-0 fw-bold" for="addonsGrid">
+                                <i class="fas fa-gift me-2" style="color: var(--brand-gold);"></i>Enhance
+                                Your Stay
+                                <span class="text-muted small fw-normal">(optional)</span>
+                            </label>
+                            <span class="small text-muted">Selected: <strong id="addonCount">{{ count($selectedAddonIds) }}</strong></span>
+                        </div>
+                        <p class="text-muted small mb-3">Make your stay extra special — breakfast, airport
+                            pickup, late checkout and more.</p>
+                        <div class="row g-3" id="addonsGrid">
+                            @foreach ($addons as $addon)
+                                <div class="col-sm-6 col-lg-4">
+                                    <label class="addon-card{{ in_array($addon->id, $selectedAddonIds) ? ' selected' : '' }}"
+                                        for="addon_{{ $addon->id }}">
+                                        <input type="checkbox" class="addon-checkbox"
+                                            id="addon_{{ $addon->id }}" name="addons[]" value="{{ $addon->id }}"
+                                            data-addon-id="{{ $addon->id }}"
+                                            data-price="{{ $addon->price }}"
+                                            data-per-night="{{ $addon->is_per_night ? '1' : '0' }}"
+                                            @if ($useCartFlow) data-cart-addon="1" @endif
+                                            {{ in_array($addon->id, $selectedAddonIds) ? 'checked' : '' }}>
+                                        <span class="addon-check"><i class="fas fa-check"></i></span>
+                                        <span class="addon-body">
+                                            <span class="addon-icon"><i class="{{ $addon->icon ?: 'fas fa-star' }}"></i></span>
+                                            <span class="addon-name">{{ $addon->name }}</span>
+                                            @if ($addon->description)
+                                                <span class="addon-desc">{{ $addon->description }}</span>
+                                            @endif
+                                            <span class="addon-price">₦{{ number_format($addon->price, 2) }}
+                                                <span class="addon-price-note">{{ $addon->is_per_night ? '/ night' : 'one-time' }}</span>
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             @if (!Auth::check())
                 <div class="mt-4">
                     <div class="create-account-box">
@@ -420,7 +471,20 @@
         $reviewRequests = trim((string) old('special_requests', $draft['special_requests'] ?? ''));
         $reviewBaseTotal = $useCartFlow ? (float) ($cart['base_total'] ?? 0) : $initialBaseTotal;
         $reviewGuestFee = $useCartFlow ? (float) ($cart['guest_fee_total'] ?? 0) : $initialGuestFee;
-        $reviewTotal = $useCartFlow ? (float) ($cart['total'] ?? 0) : $initialTotal;
+        $reviewAddonTotal = 0;
+        if ($useCartFlow) {
+            foreach ($cart['addons'] ?? [] as $addon) {
+                $reviewAddonTotal += (float) $addon['total'];
+            }
+        } else {
+            foreach ($selectedAddonIds as $addonId) {
+                $addon = $addons->firstWhere('id', $addonId);
+                if ($addon) {
+                    $reviewAddonTotal += $addon->totalFor($initialNights);
+                }
+            }
+        }
+        $reviewTotal = $useCartFlow ? (float) ($cart['total'] ?? 0) : $initialTotal + $reviewAddonTotal;
         $reviewJump = [
             'room' => $useCartFlow ? 0 : 1,
             'guest' => $useCartFlow ? 1 : 2,
@@ -539,6 +603,10 @@
                     <div class="review-row" id="rvGuestFeeRow">
                         <span>Extra Guest Fee</span>
                         <strong id="rvGuestFee">{{ $reviewGuestFee > 0 ? '₦'.number_format($reviewGuestFee, 2) : 'Included' }}</strong>
+                    </div>
+                    <div class="review-row" id="rvAddonsRow">
+                        <span>Add-ons</span>
+                        <strong id="rvAddons">{{ $reviewAddonTotal > 0 ? '₦'.number_format($reviewAddonTotal, 2) : 'None' }}</strong>
                     </div>
                     <div class="review-row review-total">
                         <span>Total</span>
