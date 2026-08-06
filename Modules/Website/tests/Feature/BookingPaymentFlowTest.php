@@ -8,11 +8,13 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Modules\Finance\Models\ChartOfAccount;
 use Modules\Website\Emails\BookingConfirmation;
+use Modules\Website\Models\Addon;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\PaymentGateway;
 use Modules\Website\Models\Refund;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
+use Modules\Website\Services\BookingCartService;
 use Tests\TestCase;
 
 /**
@@ -170,6 +172,109 @@ class BookingPaymentFlowTest extends TestCase
         $response->assertRedirect('https://checkout.paystack.com/abc123');
         $this->assertDatabaseHas('bookings', ['payment_status' => 'pending', 'payment_method' => 'paystack']);
         Http::assertSent(fn ($r) => str_contains($r->url(), 'api.paystack.co/transaction/initialize'));
+    }
+
+    public function test_paystack_booking_charges_add_on_inclusive_amount(): void
+    {
+        Mail::fake();
+        $roomType = $this->makeAvailableRoomType(20000);
+        $addon = Addon::create([
+            'name' => 'Airport Pickup',
+            'slug' => 'airport-pickup-'.uniqid(),
+            'price' => 8000,
+            'is_per_night' => false,
+            'is_active' => true,
+        ]);
+
+        Http::fake([
+            'api.paystack.co/transaction/initialize' => Http::response([
+                'status' => true,
+                'data' => ['authorization_url' => 'https://checkout.paystack.com/abc123'],
+            ], 200),
+        ]);
+
+        $payload = $this->bookingPayload($roomType->id, 'paystack');
+        $payload['addons'] = [$addon->id];
+
+        $this->post(route('website.booking.store'), $payload);
+
+        // 1 night at ₦20,000 + ₦8,000 one-time add-on => ₦28,000 => 2,800,000 kobo
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'api.paystack.co/transaction/initialize')
+                && (int) ($request->data()['amount'] ?? 0) === 2800000;
+        });
+
+        $booking = Booking::where('guest_email', 'guest@example.com')->orderByDesc('id')->first();
+        $this->assertNotNull($booking);
+        $this->assertSame(1, $booking->addons()->count());
+        $this->assertSame(28000.0, (float) $booking->total_amount);
+    }
+
+    public function test_paystack_grouped_booking_charges_add_on_inclusive_amount(): void
+    {
+        Mail::fake();
+        $roomType = $this->makeAvailableRoomType(20000);
+        $addon = Addon::create([
+            'name' => 'Spa Session',
+            'slug' => 'spa-session-'.uniqid(),
+            'price' => 8000,
+            'is_per_night' => false,
+            'is_active' => true,
+        ]);
+
+        $this->withSession([
+            BookingCartService::SESSION_KEY => [
+                'check_in' => now()->addDays(1)->format('Y-m-d'),
+                'check_out' => now()->addDays(3)->format('Y-m-d'),
+                'nights' => 2,
+                'addons' => [
+                    $addon->id => [
+                        'addon_id' => $addon->id,
+                        'name' => $addon->name,
+                        'price' => 8000.0,
+                        'is_per_night' => false,
+                        'quantity' => 1,
+                    ],
+                ],
+                'items' => [
+                    $roomType->id => [
+                        'room_type_id' => $roomType->id,
+                        'room_type_name' => $roomType->name,
+                        'quantity' => 2,
+                        'price_per_night' => 20000,
+                        'base_total' => 40000,
+                        'guest_fee_per_night' => 0,
+                        'guest_fee_total' => 0,
+                        'total_rate' => 40000,
+                        'rate_code_id' => null,
+                        'capacity' => 2,
+                        'adults' => 1,
+                        'children' => 0,
+                        'image_url' => null,
+                        'nights' => 2,
+                        'subtotal' => 80000,
+                    ],
+                ],
+            ],
+        ]);
+
+        Http::fake([
+            'api.paystack.co/transaction/initialize' => Http::response([
+                'status' => true,
+                'data' => ['authorization_url' => 'https://checkout.paystack.com/group123'],
+            ], 200),
+        ]);
+
+        $payload = $this->bookingPayload($roomType->id, 'paystack');
+        unset($payload['room_type_id'], $payload['check_in_date'], $payload['check_out_date']);
+
+        $this->post(route('website.booking.store'), $payload);
+
+        // 2 rooms × ₦40,000 (2 nights) + ₦8,000 add-on => ₦88,000 => 8,800,000 kobo
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'api.paystack.co/transaction/initialize')
+                && (int) ($request->data()['amount'] ?? 0) === 8800000;
+        });
     }
 
     public function test_paystack_initialization_failure_returns_error_and_keeps_booking_pending(): void
