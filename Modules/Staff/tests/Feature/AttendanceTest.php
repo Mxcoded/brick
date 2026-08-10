@@ -236,6 +236,26 @@ class AttendanceTest extends TestCase
     }
 
     #[Test]
+    public function attendance_report_accepts_query_string_month_and_year()
+    {
+        $this->actingAs($this->user);
+
+        $response = $this->get('/staff/attendance/report?department=Front+Office&month=8&year=2026');
+        $response->assertStatus(200);
+        $response->assertSee('Attendance Report');
+    }
+
+    #[Test]
+    public function attendance_report_clamps_invalid_month_and_year()
+    {
+        $this->actingAs($this->user);
+
+        $response = $this->get('/staff/attendance/report?month=99&year=1990');
+        $response->assertStatus(200);
+        $response->assertSee('Attendance Report');
+    }
+
+    #[Test]
     public function attendance_filtered_by_department()
     {
         $this->actingAs($this->user);

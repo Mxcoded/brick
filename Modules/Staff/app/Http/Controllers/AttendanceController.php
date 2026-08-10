@@ -157,8 +157,18 @@ class AttendanceController extends Controller
 
     public function report(Request $request)
     {
-        $month = $request->month ?? now()->month;
-        $year = $request->year ?? now()->year;
+        $month = (int) ($request->month ?? now()->month);
+        $year = (int) ($request->year ?? now()->year);
+
+        // Query params arrive as strings; clamp to valid ranges before
+        // handing them to Carbon (setYear/setMonth reject strings).
+        if ($month < 1 || $month > 12) {
+            $month = now()->month;
+        }
+        if ($year < 2000 || $year > 2100) {
+            $year = now()->year;
+        }
+
         $department = $request->department;
 
         $employees = Employee::where('status', 'approved')
