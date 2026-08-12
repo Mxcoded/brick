@@ -7,7 +7,16 @@
             <h1 class="h3 mb-0 fw-bold"><i class="fas fa-file-import me-2 text-primary"></i>Import Guests</h1>
             <p class="text-muted mb-0">Bulk import guest profiles from an Excel or CSV file</p>
         </div>
-        <a href="{{ route('frontdesk.guests.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Directory</a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('frontdesk.guests.import.template') }}" class="btn btn-success"><i class="fas fa-file-excel me-1"></i> Download Excel Guide</a>
+            <a href="{{ route('frontdesk.guests.index') }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i> Back to Directory</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        New to bulk import? Download the <strong>Excel Guide</strong>, fill in the template, then upload it below.
+        Duplicate guests (matched on <code>full_name</code> or <code>email</code>) are skipped automatically.
     </div>
 
     <div class="row g-4">
@@ -20,6 +29,11 @@
                             <label class="form-label fw-semibold">Select File <span class="text-danger">*</span></label>
                             <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
                             <small class="text-muted">Accepted formats: .xlsx, .xls, .csv (max 5MB)</small>
+                            <div class="mt-2">
+                                <a href="{{ route('frontdesk.guests.import.template') }}" class="small">
+                                    <i class="fas fa-download me-1"></i>Download the Excel guide &amp; template
+                                </a>
+                            </div>
                         </div>
                         @error('file')
                         <div class="alert alert-danger py-2 small">{{ $message }}</div>

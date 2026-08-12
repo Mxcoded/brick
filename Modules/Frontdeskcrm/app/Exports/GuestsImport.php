@@ -4,14 +4,25 @@ namespace Modules\Frontdeskcrm\Exports;
 
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Modules\Frontdeskcrm\Models\Guest;
 
-class GuestsImport implements ToModel, WithHeadingRow, WithValidation
+class GuestsImport implements ToModel, WithHeadingRow, WithMultipleSheets, WithValidation
 {
     protected $imported = 0;
 
     protected $skipped = 0;
+
+    /**
+     * Only the first sheet is imported. This keeps the downloadable
+     * two-sheet guide (template + instructions) re-importable — the
+     * Instructions sheet must not be treated as guest rows.
+     */
+    public function sheets(): array
+    {
+        return [0 => $this];
+    }
 
     public function model(array $row)
     {

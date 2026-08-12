@@ -140,6 +140,7 @@ Route::prefix('frontdesk')
             Route::get('/create', [GuestController::class, 'create'])->name('create')->middleware('can:guests.create');
             Route::post('/', [GuestController::class, 'store'])->name('store')->middleware('can:guests.create');
             Route::get('/import', [GuestController::class, 'showImportForm'])->name('import')->middleware('can:guests.create');
+            Route::get('/import/template', [GuestController::class, 'downloadTemplate'])->name('import.template')->middleware('can:guests.create');
             Route::post('/import', [GuestController::class, 'import'])->name('import.process')->middleware('can:guests.create');
             Route::get('/{guest}', [GuestController::class, 'show'])->name('show')->middleware('can:guests.read');
             Route::get('/{guest}/edit', [GuestController::class, 'edit'])->name('edit')->middleware('can:guests.update');

@@ -31,9 +31,14 @@
             </h1>
             <p class="text-muted mb-0">Manage hotel guest profiles</p>
         </div>
-        <a href="{{ route('frontdesk.guests.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Add Guest
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('frontdesk.guests.import') }}" class="btn btn-outline-primary">
+                <i class="fas fa-file-import me-2"></i>Import Guests
+            </a>
+            <a href="{{ route('frontdesk.guests.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add Guest
+            </a>
+        </div>
     </div>
 
     {{-- Statistics Cards --}}

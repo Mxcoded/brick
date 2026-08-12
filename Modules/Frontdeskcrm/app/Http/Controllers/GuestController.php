@@ -5,6 +5,7 @@ namespace Modules\Frontdeskcrm\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Maatwebsite\Excel\Facades\Excel;
+use Modules\Frontdeskcrm\Exports\GuestImportGuide;
 use Modules\Frontdeskcrm\Exports\GuestsImport;
 use Modules\Frontdeskcrm\Models\Guest;
 use Yajra\DataTables\DataTables;
@@ -202,6 +203,11 @@ class GuestController extends Controller
     public function showImportForm()
     {
         return view('frontdeskcrm::guests.import');
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(new GuestImportGuide, 'guest-import-guide.xlsx');
     }
 
     public function import(Request $request)
