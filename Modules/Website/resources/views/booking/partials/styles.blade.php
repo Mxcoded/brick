@@ -1154,7 +1154,208 @@
             .review-strip .rv-item {
                 font-size: 0.75rem;
             }
-        }
+
+            /* ── Mobile: Sticky Complete Booking CTA ── */
+            .booking-cta-sticky {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 1000;
+                background: linear-gradient(180deg, transparent, rgba(26, 26, 26, 0.98) 20%);
+                backdrop-filter: blur(12px);
+                padding: 12px 16px 16px;
+                transform: translateY(100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                pointer-events: none;
+            }
+            .booking-cta-sticky.visible {
+                transform: translateY(0);
+            }
+            .booking-cta-sticky .btn-brand {
+                width: 100%;
+                min-height: 52px;
+                font-size: 1.05rem;
+                border-radius: 14px;
+                box-shadow: 0 -4px 24px rgba(200, 161, 101, 0.35);
+            }
+            .booking-cta-sticky .secure-badge {
+                margin-top: 0.5rem;
+                color: #999;
+            }
+            .booking-cta-sticky .total-row {
+                color: #fff;
+                margin-bottom: 0.75rem;
+                padding-bottom: 0.75rem;
+            }
+            .booking-cta-sticky .total-label { color: #aaa; }
+            .booking-cta-sticky .total-amount { color: #fff; }
+            .booking-cta-sticky .total-amount .currency { color: var(--brand-gold); }
+
+            /* Mobile stepper nav - larger touch targets */
+            @media (max-width: 576px) {
+                .stepper-nav {
+                    position: relative;
+                    padding-bottom: 90px;
+                }
+                .stepper-nav .btn {
+                    min-height: 52px;
+                    font-size: 1rem;
+                    padding: 0.85rem 2rem;
+                    border-radius: 14px;
+                }
+                #stepperBack { width: 100%; margin-bottom: 0.5rem; }
+                #stepperNext { width: 100%; }
+
+                /* Guest stepper - larger touch targets */
+                .guest-stepper {
+                    gap: 0.75rem;
+                    padding: 0.5rem 0.75rem;
+                }
+                .guest-stepper button {
+                    width: 48px;
+                    height: 48px;
+                    font-size: 1.3rem;
+                    border-radius: 12px;
+                }
+                .guest-stepper input {
+                    width: 60px;
+                    font-size: 1.1rem;
+                }
+
+                /* Date chips - larger touch targets */
+                .date-chip {
+                    padding: 0.6rem 1.1rem;
+                    font-size: 0.85rem;
+                    border-radius: 34px;
+                    min-height: 44px;
+                }
+
+                /* Room cards - full width tap targets */
+                .room-card {
+                    border-radius: 14px;
+                }
+                .room-card .card-body {
+                    padding: 1rem;
+                }
+                .room-card .card-img-top {
+                    height: 140px;
+                }
+
+                /* Payment options - larger touch targets */
+                .payment-option {
+                    padding: 1.25rem;
+                    min-height: 88px;
+                }
+                .payment-option .payment-icon {
+                    width: 52px;
+                    height: 52px;
+                    font-size: 1.3rem;
+                }
+
+                /* Addon cards - larger touch targets */
+                .addon-card {
+                    padding: 1rem 1rem 1rem 3.25rem;
+                    min-height: 88px;
+                }
+                .addon-card .addon-check {
+                    width: 26px;
+                    height: 26px;
+                    top: 1rem;
+                    left: 1rem;
+                }
+
+                /* Step indicator - better horizontal scroll */
+                .step-indicator {
+                    scroll-snap-type: x mandatory;
+                    -webkit-overflow-scrolling: touch;
+                    padding: 0 1rem 0.5rem;
+                    margin-bottom: 1rem;
+                }
+                .step-indicator .step-item {
+                    scroll-snap-align: center;
+                    min-width: 64px;
+                    max-width: 72px;
+                }
+                .step-indicator .step-dot {
+                    width: 32px;
+                    height: 32px;
+                    font-size: 0.75rem;
+                }
+
+                /* Progress bar - sticky on mobile */
+                .booking-progress-bar {
+                    position: sticky;
+                    top: 0;
+                    z-index: 50;
+                    background: #fff;
+                    border-bottom: 1px solid #eee;
+                    margin-bottom: 1rem;
+                    padding-top: 0.5rem;
+                    margin-left: -1rem;
+                    margin-right: -1rem;
+                    padding-left: 1rem;
+                    padding-right: 1rem;
+                }
+
+                /* Form sections - better spacing */
+                .form-section-body {
+                    padding: 1.25rem 1rem;
+                }
+                .form-section-header {
+                    padding: 1rem 1rem;
+                }
+
+                /* Review strip - better mobile layout */
+                .review-strip {
+                    padding: 1rem;
+                }
+                .review-strip .rv-item {
+                    padding: 0.5rem 0;
+                    border-bottom: 1px solid #eee;
+                }
+                .review-strip .rv-item:last-child {
+                    border-bottom: none;
+                }
+                .review-strip .rv-divider { display: none; }
+            }
+
+            /* Touch feedback for interactive elements */
+            @media (hover: none) and (pointer: coarse) {
+                .select-room-btn,
+                .date-chip,
+                .guest-stepper button,
+                .payment-option,
+                .addon-card,
+                .room-card,
+                .request-chip,
+                .btn-brand,
+                .stepper-nav .btn {
+                    -webkit-tap-highlight-color: transparent;
+                }
+                .select-room-btn:active,
+                .date-chip:active,
+                .guest-stepper button:active,
+                .payment-option:active,
+                .addon-card:active,
+                .room-card:active,
+                .request-chip:active,
+                .btn-brand:active,
+                .stepper-nav .btn:active {
+                    transform: scale(0.98);
+                    transition: transform 0.05s ease;
+                }
+            }
+
+            /* Reduced motion */
+            @media (prefers-reduced-motion: reduce) {
+                .booking-cta-sticky,
+                .mobile-checkout-bar,
+                .step-indicator .step-dot,
+                .booking-progress-bar .fill {
+                    transition: none !important;
+                }
+            }
 
         /* ── Add-on / upsell cards ── */
         .addons-box {

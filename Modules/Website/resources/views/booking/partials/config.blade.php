@@ -10,5 +10,4 @@
             'csrfToken' => csrf_token(),
         ]) }};
     </script>
-    @vite(['resources/js/booking-form.js'])
 @endpush

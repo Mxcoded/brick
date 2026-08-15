@@ -2,9 +2,10 @@
 
 namespace Modules\Frontdeskcrm\Exports;
 
+use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
-class GuestImportGuide implements WithMultipleSheets
+class GuestImportGuide implements Export, WithMultipleSheets
 {
     /**
      * Downloadable Excel guide for bulk-importing guest profiles.

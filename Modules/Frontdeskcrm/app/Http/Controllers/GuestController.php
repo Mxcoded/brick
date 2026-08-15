@@ -210,14 +210,21 @@ class GuestController extends Controller
         return Excel::download(new GuestImportGuide, 'guest-import-guide.xlsx');
     }
 
-    public function import(Request $request)
+public function import(Request $request)
     {
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
         ]);
 
-        $import = new GuestsImport;
-        Excel::import($import, $request->file('file'));
+        $file = $request->file('file');
+        $extension = strtolower($file->getClientOriginalExtension());
+        
+        // Use multi-sheet aware import for Excel files to skip Instructions sheet
+        $import = in_array($extension, ['xlsx', 'xls'])
+            ? new GuestsExcelImport
+            : new GuestsImport;
+            
+        Excel::import($import, $file);
 
         return redirect()->route('frontdesk.guests.index')
             ->with('success', $import->getImportedCount().' guests imported. '.$import->getSkippedCount().' skipped (duplicates).');

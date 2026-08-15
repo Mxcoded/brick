@@ -27,19 +27,19 @@
             </div>
 
             {{-- Date & Guest Selection Bar --}}
-            <div class="search-bar bg-white p-4 rounded-3 shadow-sm mb-4">
+            <div class="search-bar bg-white p-4 rounded-3 shadow-sm mb-4" id="searchBar">
                 <form id="searchForm" class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <label class="form-label fw-bold small text-muted">CHECK-IN</label>
                         <input type="date" id="checkIn" name="check_in" class="form-control form-control-lg" 
                                value="{{ $checkIn }}" min="{{ date('Y-m-d') }}" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <label class="form-label fw-bold small text-muted">CHECK-OUT</label>
                         <input type="date" id="checkOut" name="check_out" class="form-control form-control-lg" 
                                value="{{ $checkOut }}" min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted">ADULTS</label>
                         <select id="adults" name="adults" class="form-select form-select-lg">
                             @for ($i = 1; $i <= 10; $i++)
@@ -47,7 +47,7 @@
                             @endfor
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-6 col-md-2">
                         <label class="form-label fw-bold small text-muted">CHILDREN</label>
                         <select id="children" name="children" class="form-select form-select-lg">
                             @for ($i = 0; $i <= 10; $i++)
@@ -55,7 +55,12 @@
                             @endfor
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-12 col-md-2 d-md-none">
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-search me-1"></i> Search
+                        </button>
+                    </div>
+                    <div class="col-md-2 d-none d-md-block">
                         <button type="submit" class="btn btn-primary btn-lg w-100">
                             <i class="fas fa-search me-1"></i> Search
                         </button>
@@ -93,15 +98,21 @@
                                   data-price="{{ $roomType->display_price }}" data-name="{{ $roomType->name }}" data-capacity="{{ $roomType->capacity }}">
                                 <div class="row g-0">
                                     {{-- Room Image --}}
-                                    <div class="col-md-4 position-relative">
+                                    <div class="col-md-4 position-relative d-none d-md-block">
                                         <img src="{{ $roomType->image_url ?? asset('images/default-room.jpg') }}" 
                                              class="img-fluid h-100 w-100 object-fit-cover" 
                                              alt="{{ $roomType->name }}" style="min-height: 250px;">
                                     </div>
+                                    {{-- Mobile Image (full width) --}}
+                                    <div class="col-12 d-md-none position-relative">
+                                        <img src="{{ $roomType->image_url ?? asset('images/default-room.jpg') }}" 
+                                             class="img-fluid w-100 object-fit-cover" 
+                                             alt="{{ $roomType->name }}" style="height: 180px;">
+                                    </div>
                                     
                                     {{-- Room Details --}}
-                                    <div class="col-md-8">
-                                        <div class="card-body p-4">
+                                    <div class="col-md-8 col-12">
+                                        <div class="card-body p-4 p-md-4">
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <div>
                                                     <h4 class="card-title fw-bold mb-1">{{ $roomType->name }}</h4>
@@ -163,9 +174,9 @@
 
                                             {{-- Room Selection Controls --}}
                                             @php $canBook = $roomType->is_available ?? ($roomType->available_count > 0); @endphp
-                                            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-3">
                                                 <div class="d-flex align-items-center gap-2">
-                                                    <label class="small fw-bold text-muted mb-0">Number of Rooms:</label>
+                                                    <label class="small fw-bold text-muted mb-0">Rooms:</label>
                                                     <select class="form-select form-select-sm room-quantity-select" 
                                                             data-room-id="{{ $roomType->id }}"
                                                             style="width: 80px;"
@@ -180,7 +191,8 @@
                                                 </div>
                                                 @if($canBook)
                                         <button type="button" 
-                                                class="btn btn-primary select-room-btn"
+                                                class="btn btn-primary select-room-btn w-100 w-md-auto"
+                                                style="min-height: 48px;"
                                                 data-room-id="{{ $roomType->id }}"
                                                 data-room-name="{{ $roomType->name }}"
                                                 data-room-price="{{ $roomType->display_price }}"
@@ -189,14 +201,13 @@
                                                 data-extra-adult-fee="{{ $roomType->extra_adult_fee ?? 0 }}"
                                                 data-extra-child-fee="{{ $roomType->extra_child_fee ?? 0 }}"
                                                 data-room-image="{{ $roomType->image_url }}">
-                                                        <i class="fas fa-plus me-1"></i> Select Room
-                                                    </button>
-                                                @else
-                                                    <button type="button" class="btn btn-secondary" disabled>
-                                                        <i class="fas fa-ban me-1"></i> Unavailable
-                                                    </button>
-                                                @endif
-                                            </div>
+                                                <i class="fas fa-plus me-1"></i> Select Room
+                                            </button>
+                                            @else
+                                                <button type="button" class="btn btn-secondary w-100 w-md-auto" style="min-height: 48px;" disabled>
+                                                    <i class="fas fa-ban me-1"></i> Unavailable
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -243,11 +254,11 @@
         <div class="mobile-checkout-bar-inner">
             <div class="mobile-checkout-info">
                 <span class="mobile-checkout-total" id="mobileCartTotal">{{ $cart['formatted_total'] }}</span>
-                <span class="mobile-checkout-rooms"><span id="mobileCartRooms">{{ $cart['total_rooms'] }}</span> room(s)</span>
+                <span class="mobile-checkout-rooms"><span id="mobileCartRooms">{{ $cart['total_rooms'] }}</span> room(s) · <span id="mobileCartNights">{{ $cart['nights'] }}</span> night(s)</span>
             </div>
-            <a href="{{ route('website.booking', [], false) }}" id="mobileContinueBtn" class="btn btn-primary btn-lg">
-                <i class="fas fa-arrow-right me-2"></i> Continue
-            </a>
+            <button type="button" id="mobileContinueBtn" class="btn btn-primary btn-lg w-100 w-md-auto" style="min-height: 48px;" data-booking-url="{{ route('website.booking', [], false) }}">
+                <i class="fas fa-arrow-right me-2"></i> Continue to Checkout
+            </button>
         </div>
     </div>
     </div>
@@ -261,11 +272,14 @@
         .room-card {
             border-radius: 15px;
             overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.2s ease;
         }
         .room-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 15px 35px rgba(0,0,0,0.1) !important;
+        }
+        .room-card:active {
+            transform: scale(0.99);
         }
         .object-fit-cover {
             object-fit: cover;
@@ -284,6 +298,9 @@
             background-color: #198754 !important;
             border-color: #198754 !important;
         }
+        .select-room-btn:active {
+            transform: scale(0.98);
+        }
         .mobile-checkout-bar {
             position: fixed;
             bottom: 0;
@@ -294,6 +311,12 @@
             backdrop-filter: blur(12px);
             border-top: 1px solid rgba(200, 161, 101, 0.3);
             padding: 12px 16px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mobile-checkout-bar.visible {
+            transform: translateY(0);
         }
         .mobile-checkout-bar-inner {
             display: flex;
@@ -301,10 +324,14 @@
             justify-content: space-between;
             max-width: 600px;
             margin: 0 auto;
+            gap: 12px;
+            flex-wrap: wrap;
         }
         .mobile-checkout-info {
             display: flex;
             flex-direction: column;
+            flex: 1;
+            min-width: 0;
         }
         .mobile-checkout-total {
             color: #c8a165;
@@ -315,8 +342,24 @@
             color: #999;
             font-size: 0.8rem;
         }
+        .mobile-continue-btn {
+            min-height: 48px;
+            white-space: nowrap;
+        }
         @media (min-width: 992px) {
             .mobile-checkout-bar { display: none !important; }
+        }
+        @media (max-width: 575.98px) {
+            .mobile-checkout-bar-inner {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .mobile-checkout-info {
+                text-align: center;
+            }
+            .mobile-continue-btn {
+                width: 100%;
+            }
         }
     </style>
 
@@ -327,7 +370,9 @@
             const checkOutInput = document.getElementById('checkOut');
             const searchForm = document.getElementById('searchForm');
             const mobileCheckoutBar = document.getElementById('mobileCheckoutBar');
+            const mobileContinueBtn = document.getElementById('mobileContinueBtn');
             const globalMobileBar = document.querySelector('.mobile-sticky-bar');
+            const mobileCartNights = document.getElementById('mobileCartNights');
 
             const formatDate = (dateStr) => {
                 const date = new Date(dateStr);
@@ -340,12 +385,13 @@
                 const mobileRooms = document.getElementById('mobileCartRooms');
 
                 if (cart.items.length > 0) {
-                    mobileCheckoutBar.style.display = 'block';
+                    mobileCheckoutBar.classList.add('visible');
                     mobileTotal.textContent = cart.formatted_total;
                     mobileRooms.textContent = cart.total_rooms;
+                    if (mobileCartNights) mobileCartNights.textContent = cart.nights;
                     if (globalMobileBar) globalMobileBar.style.display = 'none';
                 } else {
-                    mobileCheckoutBar.style.display = 'none';
+                    mobileCheckoutBar.classList.remove('visible');
                     if (globalMobileBar) globalMobileBar.style.display = '';
                 }
 
@@ -394,7 +440,11 @@
                     const adults = parseInt(document.getElementById('adults')?.value || 1);
                     const children = parseInt(document.getElementById('children')?.value || 0);
 
-                    Livewire.dispatchTo('cart-sidebar', 'add', {
+                    // Visual feedback on tap
+                    this.classList.add('tapped');
+                    setTimeout(() => this.classList.remove('tapped'), 150);
+
+                    Livewire.dispatchTo('website.cart-sidebar', 'add', {
                         roomTypeId: roomId,
                         quantity: quantity,
                         checkIn: checkIn,
@@ -404,6 +454,18 @@
                     });
                 });
             });
+
+            // Mobile Continue button - navigate to booking page
+            if (mobileContinueBtn) {
+                mobileContinueBtn.addEventListener('click', function() {
+                    const url = this.dataset.bookingUrl;
+                    if (url) {
+                        this.disabled = true;
+                        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Redirecting...';
+                        window.location.href = url;
+                    }
+                });
+            }
 
             // ── Room Search & Sort ──
             const roomSearchInput = document.getElementById('roomSearchInput');

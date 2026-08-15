@@ -37,11 +37,11 @@ class GuestImportRoundTripTest extends TestCase
 
     public function test_downloaded_guide_can_be_reimported(): void
     {
-        Storage::fake('local');
-
+        // Use real storage (local disk root is storage/app/private)
         Excel::store(new GuestImportGuide, 'guest-import-guide.xlsx', 'local');
-        $bytes = Storage::disk('local')->get('guest-import-guide.xlsx');
-        $this->assertNotNull($bytes);
+        $path = storage_path('app/private/guest-import-guide.xlsx');
+        $this->assertFileExists($path);
+        $bytes = file_get_contents($path);
 
         $file = UploadedFile::fake()->createWithContent('guest-import-guide.xlsx', $bytes);
 
@@ -52,5 +52,8 @@ class GuestImportRoundTripTest extends TestCase
         $response->assertSessionHasNoErrors();
         $response->assertSessionHas('success');
         $this->assertNotNull(Guest::where('full_name', 'John Doe')->first());
+        
+        // Cleanup
+        @unlink($path);
     }
 }
