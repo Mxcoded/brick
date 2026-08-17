@@ -4,11 +4,13 @@ namespace Modules\Website\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Validator;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Modules\Website\Services\BookingCartService;
 
 class CartSidebar extends Component
 {
+    #[On('add')]
     public function add(
         int $roomTypeId,
         int $quantity = 1,
@@ -55,6 +57,7 @@ class CartSidebar extends Component
         }
     }
 
+    #[On('remove')]
     public function remove(int $roomTypeId): void
     {
         $result = app(BookingCartService::class)->remove($roomTypeId);
@@ -64,6 +67,7 @@ class CartSidebar extends Component
         }
     }
 
+    #[On('clear')]
     public function clear(): void
     {
         $result = app(BookingCartService::class)->clear();

@@ -1599,7 +1599,7 @@
 
     {{-- Mobile Sticky Booking Bar --}}
     <div class="mobile-sticky-bar d-lg-none">
-        <a href="{{ route('website.book') }}" class="btn btn-book-sticky">
+        <a href="{{ route('website.book', [], false) }}?check_in={{ date('Y-m-d') }}&check_out={{ date('Y-m-d', strtotime('+1 day')) }}&adults=1&children=0" class="btn btn-book-sticky">
             <i class="fas fa-calendar-check me-2"></i> Book Now
         </a>
         <a href="tel:+2348099999627" class="btn btn-call-sticky">
