@@ -35,6 +35,8 @@ window.addEventListener('booking-summary-updated', (event) => {
         const addonTotal = parseFloat(detail.addonTotal || 0);
         rvAddons.textContent = addonTotal > 0 ? formatMoney(addonTotal) : 'None';
     }
+    const stickyTotal = document.getElementById('stickyTotal');
+    if (stickyTotal) stickyTotal.textContent = formatMoney(detail.total);
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -278,7 +280,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 children: parseInt(document.getElementById('children')?.value || 0),
                 addons: getSelectedAddonIds(),
             };
-            console.log('[livewire-summary] Dispatching summaryUpdated', payload);
             window.Livewire.dispatch('summaryUpdated', payload);
         }, 200);
     }
@@ -436,8 +437,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const baseTotal = price * nights;
             const total = baseTotal + guestFeeTotal;
 
-            console.log('[calc]', selectedOption.dataset.name, '| price/night:', price, '| nights:', nights, '| baseOccupancy:', baseOccupancy, '| extraAdults:', extraAdults, '| extraChildren:', extraChildren, '| extraAdultFee:', extraAdultFee, '| extraChildFee:', extraChildFee, '| guestFeeTotal:', guestFeeTotal, '| baseTotal:', baseTotal, '| total:', total);
-
             // Update base total + guest fee row with transparent breakdown
             updateBaseTotal(baseTotal);
             updateGuestFeeDisplay(guestFeeTotal, extraAdults, extraChildren, nights, extraAdultFee, extraChildFee);
@@ -458,7 +457,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (reviewTotal) {
                     reviewTotal.textContent = '₦' + parseFloat(total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 }
-                console.log('[summary] Total price summary UI updated successfully ->', summaryTotal ? summaryTotal.textContent : '(no #summary-total element)', '| reviewTotal:', reviewTotal ? reviewTotal.textContent : '(no #reviewTotal element)');
             }
 
             if (summaryImage && selectedOption.dataset.image) {
@@ -650,18 +648,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (bookingForm) {
         bookingForm.addEventListener('submit', function(e) {
-            // Validate room selection in non-cart flow (cards are present)
-            const cards = document.querySelectorAll('.room-card');
-            const selectedCard = document.querySelector('.room-card.selected');
-            if (cards.length > 0 && !selectedCard) {
-                e.preventDefault();
-                const alertEl = document.getElementById('availabilityAlert');
-                if (alertEl) {
-                    alertEl.classList.remove('d-none', 'alert-success');
-                    alertEl.classList.add('alert-danger');
-                    alertEl.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Please select a room type to continue.';
-                    alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Validate every step; jump to the first one that is incomplete.
+            const stepSectionsArr = Array.from(bookingForm.querySelectorAll('.form-section[data-step]'));
+            let firstInvalidStep = 0;
+            for (let s = 1; s <= stepSectionsArr.length; s++) {
+                if (!stepIsValid(s)) {
+                    firstInvalidStep = s;
+                    break;
                 }
+            }
+            if (firstInvalidStep > 0) {
+                e.preventDefault();
+                if (typeof showStep === 'function') showStep(firstInvalidStep);
                 return;
             }
             if (!submitBtn.disabled) {
@@ -822,11 +820,9 @@ document.addEventListener('DOMContentLoaded', () => {
         stepper.querySelector('.step-dec')?.addEventListener('click', () => {
             const min = getMin();
             const currentVal = parseInt(input.value, 10) || min;
-            console.log('[step-dec]', input.name, 'current:', currentVal, 'min:', min, 'max:', getMax(), 'inc-disabled:', stepper.querySelector('.step-inc')?.disabled, 'dec-disabled:', stepper.querySelector('.step-dec')?.disabled);
             if (currentVal > min) {
                 input.value = currentVal - 1;
                 sync();
-                console.log('[step-dec]', input.name, '-> new value:', input.value);
             }
         });
         
@@ -834,11 +830,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const max = getMax();
             const min = getMin();
             const currentVal = parseInt(input.value, 10) || min;
-            console.log('[step-inc]', input.name, 'current:', currentVal, 'min:', min, 'max:', max, 'inc-disabled:', stepper.querySelector('.step-inc')?.disabled, 'dec-disabled:', stepper.querySelector('.step-dec')?.disabled);
             if (currentVal < max) {
                 input.value = currentVal + 1;
                 sync();
-                console.log('[step-inc]', input.name, '-> new value:', input.value);
             }
         });
         
@@ -917,6 +911,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (rvGrand) rvGrand.textContent = formatMoney(data.cart.total || 0);
                         const ctaTotal = document.querySelector('#bookingCta .total-amount');
                         if (ctaTotal && data.cart.formatted_total) ctaTotal.textContent = data.cart.formatted_total;
+                        const stickyTotal = document.getElementById('stickyTotal');
+                        if (stickyTotal && data.cart.formatted_total) stickyTotal.textContent = data.cart.formatted_total;
                     }
                     if (window.Livewire?.dispatch) window.Livewire.dispatch('cart-updated');
                 })
@@ -990,12 +986,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSubmitBtnText() {
         const selected = document.querySelector('input[name="payment_method"]:checked');
         const btnTextEl = document.getElementById('btnText');
-        if (!btnTextEl) return;
-        if (selected && selected.value === 'pay_on_arrival') {
-            btnTextEl.innerHTML = '<i class="fas fa-hotel me-2"></i>Reserve — Pay at Hotel';
-        } else {
-            btnTextEl.innerHTML = '<i class="fas fa-lock me-2 lock-icon"></i>Complete Booking';
-        }
+        const stickyBtnTextEl = document.getElementById('stickyBtnText');
+        const label = selected && selected.value === 'pay_on_arrival'
+            ? '<i class="fas fa-hotel me-2"></i>Reserve — Pay at Hotel'
+            : '<i class="fas fa-lock me-2 lock-icon"></i>Complete Booking';
+        if (btnTextEl) btnTextEl.innerHTML = label;
+        if (stickyBtnTextEl) stickyBtnTextEl.innerHTML = label;
     }
     document.querySelectorAll('input[name="payment_method"]').forEach(r => {
         r.addEventListener('change', updateSubmitBtnText);
@@ -1328,6 +1324,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stepSections.forEach((section, i) => {
             const isCurrent = (i + 1) === currentStep;
             section.style.display = isCurrent ? '' : 'none';
+            section.setAttribute('aria-hidden', isCurrent ? 'false' : 'true');
             if (isCurrent) {
                 section.classList.add('visible');
                 section.querySelectorAll('.reveal').forEach(r => r.classList.add('visible'));
@@ -1359,9 +1356,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bookingCtaEl) {
             bookingCtaEl.style.display = isLast ? '' : 'none';
         }
+        // Mobile sticky Complete Booking CTA — reveal only on the final step.
+        const stickyCta = document.getElementById('bookingCtaSticky');
+        if (stickyCta) {
+            stickyCta.classList.toggle('visible', isLast);
+            stickyCta.setAttribute('aria-hidden', isLast ? 'false' : 'true');
+        }
 
         updateStepIndicator();
         updateProgressBar();
+
+        // Scroll back to the top of the form on step change (mobile).
+        if (window.innerWidth < 768) {
+            const formTop = document.querySelector('.booking-progress-bar') || bookingForm;
+            if (formTop) {
+                formTop.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
     }
 
     if (stepperNav && stepSections.length > 1) {
@@ -1373,6 +1384,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // Landing position: resume at the first incomplete step (draft-aware).
         showStep(getFurthestFilledStep() + 1);
     }
+
+    // Step indicator: completed/visited steps can be revisited by tapping them.
+    const stepIndicatorEl = document.getElementById('stepIndicator');
+    if (stepIndicatorEl) {
+        stepIndicatorEl.addEventListener('click', function(e) {
+            const item = e.target.closest('.step-item');
+            if (!item) return;
+            const step = parseInt(item.dataset.step, 10);
+            if (!step || step >= currentStep) return; // Only allow going back
+            if (step < maxVisitedStep) showStep(step);
+        });
+    }
+
+    // Keyboard navigation: Enter in an input advances the step instead of
+    // submitting the whole form (unless in a textarea/select).
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter' || e.target.tagName === 'TEXTAREA' || e.target.closest('.form-select')) return;
+        const active = document.activeElement;
+        if (active && active.tagName === 'INPUT' && active.type !== 'submit' && stepperNext && stepperNext.style.display !== 'none') {
+            e.preventDefault();
+            stepperNext.click();
+        }
+    });
 
     // Review step "Edit" links jump straight back to the relevant step.
     document.querySelectorAll('.review-edit-btn').forEach(btn => {

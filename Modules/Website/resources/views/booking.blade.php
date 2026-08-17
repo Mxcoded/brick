@@ -114,3 +114,7 @@
 @endsection
 
 @include('website::booking.partials.config')
+
+@push('scripts')
+    @vite(['resources/js/booking-form.js'])
+@endpush
