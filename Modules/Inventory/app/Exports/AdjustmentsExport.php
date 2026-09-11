@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Exports;
 
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -26,7 +27,7 @@ class AdjustmentsExport implements FromCollection, ShouldAutoSize, WithHeadings,
         $this->storeId = $storeId;
     }
 
-    public function collection()
+    public function collection(): Enumerable
     {
         $query = InventoryAdjustment::with('item', 'store', 'adjustedBy');
 
@@ -79,7 +80,7 @@ class AdjustmentsExport implements FromCollection, ShouldAutoSize, WithHeadings,
         return $title;
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

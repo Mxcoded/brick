@@ -2,6 +2,7 @@
 
 namespace Modules\Maintenance\Exports;
 
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -22,7 +23,7 @@ class ReadingsExport implements FromCollection, WithHeadings, WithMapping
         $this->readingType = $readingType;
     }
 
-    public function collection()
+    public function collection(): Enumerable
     {
         $query = MaintenanceReading::with('recorder');
 

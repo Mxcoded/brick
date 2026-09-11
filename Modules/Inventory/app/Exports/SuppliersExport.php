@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Exports;
 
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -16,7 +17,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SuppliersExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles, WithTitle
 {
-    public function collection()
+    public function collection(): Enumerable
     {
         return Supplier::orderBy('name')->get();
     }
@@ -42,7 +43,7 @@ class SuppliersExport implements FromCollection, ShouldAutoSize, WithHeadings, W
         return 'Suppliers';
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

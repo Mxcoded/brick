@@ -3,6 +3,7 @@
 namespace Modules\Inventory\Exports;
 
 use Carbon\Carbon;
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -27,7 +28,7 @@ class PurchaseOrdersExport implements FromCollection, ShouldAutoSize, WithHeadin
         $this->supplierId = $supplierId;
     }
 
-    public function collection()
+    public function collection(): Enumerable
     {
         $query = PurchaseOrder::with('supplier', 'store', 'createdBy', 'items');
 
@@ -82,7 +83,7 @@ class PurchaseOrdersExport implements FromCollection, ShouldAutoSize, WithHeadin
         return $title;
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

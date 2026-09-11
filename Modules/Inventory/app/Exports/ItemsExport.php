@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Exports;
 
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -26,7 +27,7 @@ class ItemsExport implements FromCollection, ShouldAutoSize, WithHeadings, WithM
         $this->supplierId = $supplierId;
     }
 
-    public function collection()
+    public function collection(): Enumerable
     {
         $query = Item::with('supplier', 'storeItems.store');
 
@@ -91,7 +92,7 @@ class ItemsExport implements FromCollection, ShouldAutoSize, WithHeadings, WithM
         return $title;
     }
 
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         $highestRow = $sheet->getHighestRow();
         $highestColumn = $sheet->getHighestColumn();

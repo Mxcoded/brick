@@ -3,7 +3,7 @@
 namespace Modules\Staff\Exports;
 
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -28,10 +28,7 @@ class StaffExport implements FromCollection, ShouldAutoSize, WithHeadings, WithM
         $this->statusFilter = $statusFilter;
     }
 
-    /**
-     * @return Collection
-     */
-    public function collection()
+    public function collection(): Enumerable
     {
         $query = Employee::query();
 
@@ -131,10 +128,7 @@ class StaffExport implements FromCollection, ShouldAutoSize, WithHeadings, WithM
         return $title;
     }
 
-    /**
-     * @return array
-     */
-    public function styles(Worksheet $sheet)
+    public function styles(Worksheet $sheet): ?array
     {
         // Get the highest row and column
         $highestRow = $sheet->getHighestRow();
