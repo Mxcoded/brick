@@ -71,7 +71,95 @@ class BanquetController extends Controller
 
         $statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
 
-        return view('banquet::index', compact('statuses', 'stats', 'thisMonthOrders', 'statusBreakdown', 'weeklyUpcoming'));
+        $calendar = $this->buildCalendarData();
+
+        return view('banquet::index', compact(
+            'statuses',
+            'stats',
+            'statusBreakdown',
+            'weeklyUpcoming',
+            'thisMonthOrders',
+            'calendar'
+        ));
+    }
+
+    /**
+     * Build the monthly event calendar + venue density data for the dashboard.
+     */
+    private function buildCalendarData(): array
+    {
+        $month = now();
+        if (request()->filled('month')) {
+            $parsed = Carbon::createFromFormat('Y-m', request('month'));
+            if ($parsed) {
+                $month = $parsed;
+            }
+        }
+        $month = $month->copy()->startOfMonth();
+
+        $monthStart = $month->copy()->startOfMonth()->toDateString();
+        $monthEnd = $month->copy()->endOfMonth()->toDateString();
+
+        // Calendar grid rows (weeks), Monday-first.
+        $calendarWeeks = [];
+        $cursor = $month->copy()->startOfWeek(Carbon::MONDAY);
+        while ($cursor->lte($month->copy()->endOfMonth())) {
+            $week = [];
+            for ($i = 0; $i < 7; $i++) {
+                $week[] = $cursor->copy();
+                $cursor->addDay();
+            }
+            $calendarWeeks[] = $week;
+        }
+
+        $monthEventDays = BanquetOrderDay::with(['banquetOrder.customer', 'venue'])
+            ->whereBetween('event_date', [$monthStart, $monthEnd])
+            ->where('event_status', '!=', 'Cancelled')
+            ->orderBy('event_date')
+            ->get();
+
+        $eventsByDate = $monthEventDays->groupBy(fn ($day) => $day->event_date->toDateString());
+
+        $busiest = $eventsByDate
+            ->map(fn ($events, $date) => ['date' => $date, 'count' => $events->count()])
+            ->sortByDesc('count')
+            ->first();
+
+        $venueCounts = BanquetOrderDay::whereBetween('event_date', [$monthStart, $monthEnd])
+            ->where('event_status', '!=', 'Cancelled')
+            ->whereNotNull('banquet_venue_id')
+            ->selectRaw('banquet_venue_id, COUNT(*) as total')
+            ->groupBy('banquet_venue_id')
+            ->pluck('total', 'banquet_venue_id');
+
+        $venueDensity = BanquetVenue::orderBy('name')
+            ->get()
+            ->map(fn (BanquetVenue $venue) => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+                'capacity' => $venue->capacity,
+                'count' => (int) ($venueCounts[$venue->id] ?? 0),
+            ])
+            ->sortByDesc('count')
+            ->values();
+
+        $topVenue = $venueDensity
+            ->where('count', '>', 0)
+            ->sortByDesc('count')
+            ->first();
+
+        return [
+            'month' => $month,
+            'prevMonth' => $month->copy()->subMonth(),
+            'nextMonth' => $month->copy()->addMonth(),
+            'weeks' => $calendarWeeks,
+            'eventsByDate' => $eventsByDate,
+            'venueDensity' => $venueDensity,
+            'densityMax' => $venueDensity->max('count') ?: 1,
+            'monthEventTotal' => $monthEventDays->count(),
+            'busiest' => $busiest,
+            'topVenue' => $topVenue,
+        ];
     }
 
     /**

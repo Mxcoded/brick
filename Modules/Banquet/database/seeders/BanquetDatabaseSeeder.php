@@ -15,6 +15,7 @@ class BanquetDatabaseSeeder extends Seeder
             BanquetVenueSeeder::class,
             BanquetSetupStyleSeeder::class,
             EventLeadPageSeeder::class,
+            BanquetEventSeeder::class,
         ]);
     }
 }

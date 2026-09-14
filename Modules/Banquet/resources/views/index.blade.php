@@ -268,7 +268,139 @@
     </div>
     @endif
 
-    {{-- 4. MAIN CONTENT AREA --}}
+    {{-- 4. EVENT CALENDAR + VENUE DENSITY --}}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0 fw-bold text-gold"><i class="fas fa-calendar-alt me-2"></i>Event Calendar
+                <span class="fs-6 text-muted fw-normal ms-1">{{ $calendar['month']->format('F Y') }}</span>
+            </h5>
+            <div class="btn-group" role="group" aria-label="Calendar navigation">
+                <a href="{{ route('banquet.index', ['month' => $calendar['prevMonth']->format('Y-m')]) }}" class="btn btn-sm btn-outline-charcoal" title="Previous month">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                <a href="{{ route('banquet.index') }}" class="btn btn-sm btn-outline-charcoal">Today</a>
+                <a href="{{ route('banquet.index', ['month' => $calendar['nextMonth']->format('Y-m')]) }}" class="btn btn-sm btn-outline-charcoal" title="Next month">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="cal-grid">
+                        @foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $weekday)
+                            <div class="cal-weekday">{{ $weekday }}</div>
+                        @endforeach
+                        @foreach ($calendar['weeks'] as $week)
+                            @foreach ($week as $day)
+                                @php
+                                    $dayKey = $day->toDateString();
+                                    $dayEvents = $calendar['eventsByDate'][$dayKey] ?? collect();
+                                    $count = $dayEvents->count();
+                                    $inMonth = $day->isSameMonth($calendar['month']);
+                                    $isToday = $day->isToday();
+                                    $densityClass = match (true) {
+                                        $count >= 4 => 'cal-density-4',
+                                        $count === 3 => 'cal-density-3',
+                                        $count === 2 => 'cal-density-2',
+                                        $count === 1 => 'cal-density-1',
+                                        default => '',
+                                    };
+                                    $tooltip = $dayEvents
+                                        ->map(fn ($ev) => ($ev->venue?->name ?? '—').' · '.($ev->event_type ?? 'Event'))
+                                        ->implode('<br>');
+                                @endphp
+                                <div class="cal-cell {{ $inMonth ? '' : 'out-month' }} {{ $isToday ? 'today' : '' }} {{ $densityClass }}"
+                                    @if ($count > 0) data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="{{ $tooltip }}" @endif>
+                                    <span class="cal-day-num">{{ $day->day }}</span>
+                                    @if ($count > 0)
+                                        <span class="cal-count-badge">{{ $count }}</span>
+                                    @endif
+                                    <div class="cal-event-list">
+                                        @foreach ($dayEvents->take(2) as $ev)
+                                            <a href="{{ route('banquet.orders.show', $ev->banquetOrder->order_id) }}"
+                                               class="cal-chip" title="{{ $ev->event_description }}">
+                                                {{ $ev->venue?->name ?? '—' }}
+                                            </a>
+                                        @endforeach
+                                        @if ($count > 2)
+                                            <span class="cal-chip cal-chip-more">+{{ $count - 2 }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        @endforeach
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between small mt-3 flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2 text-muted">
+                            <i class="fas fa-chart-line text-gold"></i>
+                            <span>{{ $calendar['monthEventTotal'] }} event day{{ $calendar['monthEventTotal'] === 1 ? '' : 's' }} scheduled this month.</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">Busy:</span>
+                            <span class="cal-legend cal-lg-1"></span>
+                            <span class="cal-legend cal-lg-2"></span>
+                            <span class="cal-legend cal-lg-3"></span>
+                            <span class="cal-legend cal-lg-4"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card border-0 h-100 bg-light">
+                        <div class="card-body">
+                            <h6 class="fw-bold text-charcoal mb-3"><i class="fas fa-chart-area text-gold me-2"></i>Venue Density — {{ $calendar['month']->format('M Y') }}</h6>
+
+                            @if ($calendar['monthEventTotal'] === 0)
+                                <div class="text-center py-5">
+                                    <i class="fas fa-chart-bar text-muted fa-2x mb-2"></i>
+                                    <p class="text-muted small mb-0">No bookings this month. Bookings per venue will appear here.</p>
+                                </div>
+                            @else
+                                @foreach ($calendar['venueDensity'] as $venue)
+                                    @php
+                                        $ratio = $venue['count'] / $calendar['densityMax'];
+                                        $barColor = match (true) {
+                                            $ratio >= 0.75 => '#b08c54',
+                                            $ratio >= 0.5 => '#C8A165',
+                                            $ratio >= 0.25 => '#dcc491',
+                                            default => '#eadfc9',
+                                        };
+                                    @endphp
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between small align-items-center mb-1">
+                                            <span class="fw-semibold text-charcoal text-truncate me-2" title="{{ $venue['name'] }}">{{ $venue['name'] }}</span>
+                                            <span class="fw-bold text-gold">{{ $venue['count'] }}</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;" role="progressbar" aria-label="{{ $venue['name'] }} bookings" aria-valuenow="{{ $venue['count'] }}" aria-valuemin="0" aria-valuemax="{{ $calendar['densityMax'] }}">
+                                            <div class="progress-bar" style="width: {{ $ratio * 100 }}%; background-color: {{ $barColor }};"></div>
+                                        </div>
+                                    </div>
+                                @endforeach
+
+                                <hr class="my-3">
+
+                                @if ($calendar['topVenue'])
+                                    <div class="d-flex justify-content-between small mb-2">
+                                        <span class="text-muted">Most booked venue</span>
+                                        <span class="fw-bold text-charcoal">{{ $calendar['topVenue']['name'] }} ({{ $calendar['topVenue']['count'] }})</span>
+                                    </div>
+                                @endif
+                                @if ($calendar['busiest'])
+                                    <div class="d-flex justify-content-between small">
+                                        <span class="text-muted">Busiest day</span>
+                                        <span class="fw-bold text-charcoal">{{ \Carbon\Carbon::parse($calendar['busiest']['date'])->format('d M') }} ({{ $calendar['busiest']['count'] }} {{ Str::plural('event', $calendar['busiest']['count']) }})</span>
+                                    </div>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- 5. MAIN CONTENT AREA --}}
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h5 class="mb-0 fw-bold text-gold"><i class="fas fa-list me-2"></i>Order Management</h5>
@@ -386,6 +518,99 @@
     }
     
     .badge-gold { background-color: #C8A165; color: white; }
+
+    /* ─── EVENT CALENDAR ─── */
+    .cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+    }
+    .cal-weekday {
+        text-align: center;
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #8a8a8a;
+        font-weight: 600;
+        padding: 4px 0;
+    }
+    .cal-cell {
+        min-height: 92px;
+        border: 1px solid #eeeeee;
+        border-radius: 10px;
+        background: #ffffff;
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .cal-cell:hover {
+        border-color: #C8A165;
+        box-shadow: 0 4px 14px rgba(200, 161, 101, .20);
+        z-index: 2;
+    }
+    .cal-cell.out-month { background: #fafafa; opacity: .55; }
+    .cal-cell.today {
+        border-color: #C8A165;
+        box-shadow: inset 0 0 0 2px rgba(200, 161, 101, .45);
+    }
+    .cal-day-num {
+        align-self: flex-start;
+        font-size: .8rem;
+        font-weight: 700;
+        color: #333333;
+        background: #f5f3ef;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .cal-cell.today .cal-day-num { background: #C8A165; color: #ffffff; }
+    .cal-count-badge {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        font-size: .62rem;
+        font-weight: 700;
+        background: #333333;
+        color: #ffffff;
+        border-radius: 999px;
+        padding: 1px 6px;
+    }
+    .cal-density-1 { background: rgba(200, 161, 101, .10); }
+    .cal-density-2 { background: rgba(200, 161, 101, .22); }
+    .cal-density-3 { background: rgba(200, 161, 101, .40); }
+    .cal-density-4 { background: rgba(200, 161, 101, .58); }
+    .cal-event-list {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .cal-chip {
+        font-size: .68rem;
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #ffffff;
+        border: 1px solid #e3dccf;
+        color: #6b5b3e;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        text-decoration: none;
+        display: block;
+    }
+    .cal-chip:hover { background: #C8A165; color: #ffffff; border-color: #C8A165; }
+    .cal-chip-more { background: #f5f3ef; border-style: dashed; cursor: default; }
+    .cal-legend { width: 16px; height: 12px; border-radius: 3px; border: 1px solid #dcdcdc; display: inline-block; }
+    .cal-lg-1 { background: rgba(200, 161, 101, .10); }
+    .cal-lg-2 { background: rgba(200, 161, 101, .22); }
+    .cal-lg-3 { background: rgba(200, 161, 101, .40); }
+    .cal-lg-4 { background: rgba(200, 161, 101, .58); }
 </style>
 @endsection
 
@@ -394,6 +619,9 @@
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
     $(document).ready(function() {
+        if (typeof bootstrap !== 'undefined') {
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+        }
         const table = $('#ordersTable').DataTable({
             processing: true,
             serverSide: true,
