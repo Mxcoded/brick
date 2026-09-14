@@ -202,10 +202,9 @@ class BanquetEventSeeder extends Seeder
                 $setupStyleName = $dayData['setup_style'] ?? null;
                 unset($dayData['venue'], $dayData['setup_style'], $dayData['menu']);
 
-                $day = BanquetOrderDay::firstOrCreate(
+                $day = BanquetOrderDay::updateOrCreate(
                     [
                         'banquet_order_id' => $order->id,
-                        'event_date' => $dayData['event_date'],
                         'event_description' => $dayData['event_description'],
                     ],
                     $dayData + [

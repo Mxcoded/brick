@@ -4,6 +4,7 @@ namespace Modules\Banquet\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Modules\Banquet\Casts\AsStringArray;
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -22,8 +23,8 @@ class BanquetOrderMenuItem extends Model implements AuditableContract
     ];
 
     protected $casts = [
-        'menu_items' => 'array',
-        'dietary_restrictions' => 'array',
+        'menu_items' => AsStringArray::class,
+        'dietary_restrictions' => AsStringArray::class,
     ];
 
     public function banquetOrderDay()

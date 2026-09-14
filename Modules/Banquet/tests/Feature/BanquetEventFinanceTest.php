@@ -5,8 +5,11 @@ namespace Modules\Banquet\Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Modules\Banquet\Database\Seeders\BanquetEventSeeder;
 use Modules\Banquet\Models\BanquetOrder;
+use Modules\Banquet\Models\BanquetOrderDay;
+use Modules\Banquet\Models\BanquetOrderMenuItem;
 use Modules\Banquet\Models\BanquetPayment;
 use Modules\Finance\Database\Seeders\ChartOfAccountsSeeder;
 use Modules\Finance\Models\ChartOfAccount;
@@ -222,5 +225,49 @@ class BanquetEventFinanceTest extends TestCase
         $this->assertNull(
             $posting->recordSale('banquet', $paymentAmount, 'cash', 'banquet_payment', $payment->id)
         );
+    }
+
+    public function test_legacy_json_string_menu_items_are_normalized_to_array(): void
+    {
+        $day = BanquetOrderDay::first();
+
+        $id = DB::table('banquet_order_menu_items')->insertGetId([
+            'banquet_order_day_id' => $day->id,
+            'meal_type' => 'Lunch',
+            'menu_items' => '"Jollof Rice"',
+            'quantity' => 1,
+            'unit_price' => 100.00,
+            'total_price' => 100.00,
+            'dietary_restrictions' => '"no onions"',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $item = BanquetOrderMenuItem::find($id);
+
+        $this->assertIsArray($item->menu_items);
+        $this->assertSame(['Jollof Rice'], $item->menu_items);
+        $this->assertIsArray($item->dietary_restrictions);
+        $this->assertSame(['no onions'], $item->dietary_restrictions);
+        $this->assertSame('Jollof Rice, (none)', implode('", "', $item->menu_items).', (none)');
+    }
+
+    public function test_lone_legacy_items_do_not_break_view_implode(): void
+    {
+        $day = BanquetOrderDay::first();
+        $day->refresh();
+
+        $item = BanquetOrderMenuItem::create([
+            'banquet_order_day_id' => $day->id,
+            'meal_type' => 'Dinner',
+            'menu_items' => ['Grilled Fish', 'Suya'],
+            'quantity' => 1,
+            'unit_price' => 50.00,
+            'total_price' => 50.00,
+            'dietary_restrictions' => [],
+        ]);
+
+        $this->assertSame(['Grilled Fish', 'Suya'], $item->menu_items);
+        $this->assertSame('Grilled Fish, Suya', implode(', ', $item->menu_items));
     }
 }
