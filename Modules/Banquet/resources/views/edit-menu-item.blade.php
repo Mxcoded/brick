@@ -45,7 +45,7 @@
                     <label class="form-label fw-bold text-charcoal">Menu Items</label>
                     <div id="menu-items-container" class="mb-3">
                         @php
-                            $menuItems = old('menu_items', $menuItem ? json_decode($menuItem->menu_items, true) : ['']);
+                            $menuItems = old('menu_items', $menuItem ? ($menuItem->menu_items ?? ['']) : ['']);
                         @endphp
                         @foreach($menuItems as $index => $item)
                         <div class="input-group mb-2">
@@ -119,7 +119,7 @@
                             <h6 class="mb-3 text-charcoal"><i class="fas fa-allergies me-2 text-gold"></i>Dietary Restrictions (Optional)</h6>
                             <div class="row g-3">
                                 @php
-                                    $dietaryRestrictions = old('dietary_restrictions', $menuItem ? json_decode($menuItem->dietary_restrictions, true) : []);
+                                    $dietaryRestrictions = old('dietary_restrictions', $menuItem ? ($menuItem->dietary_restrictions ?? []) : []);
                                 @endphp
                                 <div class="col-md-4">
                                     <div class="form-check form-check-inline">

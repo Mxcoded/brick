@@ -342,7 +342,7 @@
                                                                     <td><span class="badge bg-secondary">{{ ucfirst($item->meal_type) }}</span></td>
                                                                     <td class="text-charcoal">
                                                                         <small class="d-block text-truncate" style="max-width: 250px;">
-                                                                            {{ implode(', ', json_decode($item->menu_items, true) ?? []) }}
+                                                                            {{ implode(', ', $item->menu_items ?? []) }}
                                                                         </small>
                                                                     </td>
                                                                     <td class="text-end text-charcoal">{{ $item->quantity }}</td>

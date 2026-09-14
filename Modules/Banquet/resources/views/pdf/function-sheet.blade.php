@@ -463,7 +463,7 @@
                                 <td>{{ $item->meal_type }}</td>
                                 <td>
                                     <ul>
-                                        @foreach (json_decode($item->menu_items, true) as $menu)
+                                        @foreach ($item->menu_items ?? [] as $menu)
                                             <li>{{ $menu }}</li>
                                         @endforeach
                                     </ul>

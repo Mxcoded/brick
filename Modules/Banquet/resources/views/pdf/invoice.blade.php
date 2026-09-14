@@ -73,7 +73,7 @@
                     <td>
                         <strong>{{ ucfirst($item->meal_type) }}</strong> ({{ $day->event_date->format('M d') }})<br>
                         <small>
-                            {{ implode(', ', json_decode($item->menu_items, true)) }} 
+                            {{ implode(', ', $item->menu_items ?? []) }} 
                             x {{ $item->quantity }} guests @ N{{ number_format($item->unit_price) }}
                         </small>
                     </td>
