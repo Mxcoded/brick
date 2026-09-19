@@ -95,6 +95,8 @@
                                     <dd class="col-sm-7">{{ $testimonial->ap_name ?: 'N/A' }} <small class="text-muted">{{ $testimonial->ap_mac }}</small></dd>
                                     <dt class="col-sm-5">SSID</dt>
                                     <dd class="col-sm-7">{{ $testimonial->ssid ?: 'N/A' }}</dd>
+                                    <dt class="col-sm-5">Band</dt>
+                                    <dd class="col-sm-7">{{ ($testimonial->wifi_meta['radio_id'] ?? '') == '1' ? '5 GHz' : (($testimonial->wifi_meta['radio_id'] ?? '') !== '' ? '2.4 GHz' : 'N/A') }}</dd>
                                     <dt class="col-sm-5">Client MAC</dt>
                                     <dd class="col-sm-7">{{ $testimonial->client_mac ?: 'N/A' }}</dd>
                                     <dt class="col-sm-5">Client IP</dt>

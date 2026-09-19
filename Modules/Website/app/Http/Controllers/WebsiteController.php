@@ -1227,6 +1227,7 @@ class WebsiteController extends Controller
             'clientMac' => $pick(['clientMac', 'client_mac', 'cid']),
             'clientIp' => $pick(['clientIp', 'client_ip', 'ip']),
             'portalSession' => $pick(['t', 'portal_session', 'session', 'rid']),
+            'radioId' => $pick(['radioId', 'radio_id']),
         ];
     }
 
@@ -1258,9 +1259,10 @@ class WebsiteController extends Controller
             'client_mac' => 'nullable|string|max:255',
             'client_ip' => 'nullable|string|max:255',
             'portal_session' => 'nullable|string|max:255',
+            'radio_id' => 'nullable|string|max:10',
         ]);
 
-        $metaKeys = ['location', 'ap_name', 'ap_mac', 'ssid', 'client_mac', 'client_ip', 'portal_session'];
+        $metaKeys = ['location', 'ap_name', 'ap_mac', 'ssid', 'client_mac', 'client_ip', 'portal_session', 'radio_id'];
         $wifiMeta = collect($metaKeys)
             ->filter(fn ($key) => $request->filled($key))
             ->mapWithKeys(fn ($key) => [$key => (string) $request->input($key)])

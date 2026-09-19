@@ -233,6 +233,7 @@ class ReviewSubmissionTest extends TestCase
             'client_mac' => '11:22:33:44:55:66',
             'client_ip' => '192.168.1.42',
             'portal_session' => '17634012',
+            'radio_id' => '1',
             'location' => 'Brickspoint Asokoro',
         ]);
 
@@ -251,6 +252,7 @@ class ReviewSubmissionTest extends TestCase
         $this->assertIsArray($testimonial->wifi_meta);
         $this->assertArrayHasKey('ssid', $testimonial->wifi_meta);
         $this->assertArrayHasKey('client_mac', $testimonial->wifi_meta);
+        $this->assertSame('1', $testimonial->wifi_meta['radio_id']);
     }
 
     public function test_guest_feedback_alias_renders_portal_context_on_form()
@@ -259,6 +261,7 @@ class ReviewSubmissionTest extends TestCase
             'ssidName' => 'Brickspoint-Guest',
             'apName' => 'Lobby-AP',
             'clientMac' => 'AA:BB:CC:DD:EE:FF',
+            'radioId' => '1',
             'site' => 'Asokoro',
         ]));
 
@@ -266,6 +269,7 @@ class ReviewSubmissionTest extends TestCase
         $response->assertSee('Brickspoint-Guest');
         $response->assertSee('Lobby-AP');
         $response->assertSee('AA:BB:CC:DD:EE:FF');
+        $response->assertSee('5 GHz');
         $response->assertSee('Asokoro');
     }
 
