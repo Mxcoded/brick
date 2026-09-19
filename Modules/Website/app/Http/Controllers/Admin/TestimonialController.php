@@ -11,15 +11,27 @@ class TestimonialController extends Controller
     public function index(Request $request)
     {
         $type = $request->get('type', 'all');
+        $location = $request->get('location');
+
         $query = Testimonial::latest();
 
         if (in_array($type, Testimonial::TYPES)) {
             $query->where('type', $type);
         }
 
+        if ($location) {
+            $query->where('location', $location);
+        }
+
         $testimonials = $query->get();
 
-        return view('website::admin.testimonials.index', compact('testimonials', 'type'));
+        $locations = Testimonial::whereNotNull('location')
+            ->where('location', '!=', '')
+            ->distinct()
+            ->orderBy('location')
+            ->pluck('location');
+
+        return view('website::admin.testimonials.index', compact('testimonials', 'type', 'location', 'locations'));
     }
 
     public function create()
@@ -39,6 +51,12 @@ class TestimonialController extends Controller
             'type' => 'required|in:'.implode(',', Testimonial::TYPES),
             'dining_venue' => 'nullable|string|max:255',
             'event_name' => 'nullable|string|max:255',
+            'cleanliness' => 'nullable|integer|min:1|max:5',
+            'wifi_rating' => 'nullable|integer|min:1|max:5',
+            'staff_rating' => 'nullable|integer|min:1|max:5',
+            'food_rating' => 'nullable|integer|min:1|max:5',
+            'maintenance_rating' => 'nullable|integer|min:1|max:5',
+            'location' => 'nullable|string|max:255',
             'approved' => 'nullable|boolean',
         ]);
 
@@ -72,6 +90,12 @@ class TestimonialController extends Controller
             'type' => 'required|in:'.implode(',', Testimonial::TYPES),
             'dining_venue' => 'nullable|string|max:255',
             'event_name' => 'nullable|string|max:255',
+            'cleanliness' => 'nullable|integer|min:1|max:5',
+            'wifi_rating' => 'nullable|integer|min:1|max:5',
+            'staff_rating' => 'nullable|integer|min:1|max:5',
+            'food_rating' => 'nullable|integer|min:1|max:5',
+            'maintenance_rating' => 'nullable|integer|min:1|max:5',
+            'location' => 'nullable|string|max:255',
             'approved' => 'nullable|boolean',
         ]);
 

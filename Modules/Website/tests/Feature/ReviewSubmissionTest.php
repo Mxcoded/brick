@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Mail;
 use Modules\Website\Emails\ReviewSubmitted;
+use Modules\Website\Models\Testimonial;
 use Tests\TestCase;
 
 class ReviewSubmissionTest extends TestCase
@@ -186,5 +187,101 @@ class ReviewSubmissionTest extends TestCase
                 && $mail->testimonial->text === 'Awesome place!'
                 && $mail->testimonial->type === 'stay';
         });
+    }
+
+    public function test_submission_stores_category_ratings_and_location()
+    {
+        Mail::fake();
+
+        $this->post(route('website.testimonials.store'), [
+            'guest_name' => 'Category Rater',
+            'text' => 'Overall great, Wi-Fi was a bit slow.',
+            'rating' => 4,
+            'type' => 'stay',
+            'cleanliness' => 5,
+            'wifi_rating' => 3,
+            'staff_rating' => 5,
+            'food_rating' => 4,
+            'maintenance_rating' => 4,
+            'location' => 'Asokoro, Abuja',
+        ]);
+
+        $this->assertDatabaseHas('testimonials', [
+            'guest_name' => 'Category Rater',
+            'rating' => 4,
+            'cleanliness' => 5,
+            'wifi_rating' => 3,
+            'staff_rating' => 5,
+            'food_rating' => 4,
+            'maintenance_rating' => 4,
+            'location' => 'Asokoro, Abuja',
+        ]);
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_submission_stores_omada_captive_portal_context()
+    {
+        $this->post(route('website.testimonials.store'), [
+            'guest_name' => 'Portal Guest',
+            'text' => 'Connected via Omada portal, great internet.',
+            'rating' => 5,
+            'type' => 'stay',
+            'ap_name' => 'Lobby-AP',
+            'ap_mac' => 'AA:BB:CC:DD:EE:FF',
+            'ssid' => 'Brickspoint-Guest',
+            'client_mac' => '11:22:33:44:55:66',
+            'client_ip' => '192.168.1.42',
+            'portal_session' => '17634012',
+            'location' => 'Brickspoint Asokoro',
+        ]);
+
+        $this->assertDatabaseHas('testimonials', [
+            'guest_name' => 'Portal Guest',
+            'ap_name' => 'Lobby-AP',
+            'ap_mac' => 'AA:BB:CC:DD:EE:FF',
+            'ssid' => 'Brickspoint-Guest',
+            'client_mac' => '11:22:33:44:55:66',
+            'client_ip' => '192.168.1.42',
+            'portal_session' => '17634012',
+            'location' => 'Brickspoint Asokoro',
+        ]);
+
+        $testimonial = Testimonial::where('guest_name', 'Portal Guest')->first();
+        $this->assertIsArray($testimonial->wifi_meta);
+        $this->assertArrayHasKey('ssid', $testimonial->wifi_meta);
+        $this->assertArrayHasKey('client_mac', $testimonial->wifi_meta);
+    }
+
+    public function test_guest_feedback_alias_renders_portal_context_on_form()
+    {
+        $response = $this->get(route('website.guest-feedback', [
+            'ssidName' => 'Brickspoint-Guest',
+            'apName' => 'Lobby-AP',
+            'clientMac' => 'AA:BB:CC:DD:EE:FF',
+            'site' => 'Asokoro',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Brickspoint-Guest');
+        $response->assertSee('Lobby-AP');
+        $response->assertSee('AA:BB:CC:DD:EE:FF');
+        $response->assertSee('Asokoro');
+    }
+
+    public function test_guest_feedback_alias_accepts_submissions()
+    {
+        $this->post(route('website.guest-feedback.store'), [
+            'guest_name' => 'Alias Guest',
+            'text' => 'Sent from the captive portal alias.',
+            'rating' => 4,
+            'type' => 'stay',
+            'ssid' => 'Brickspoint-Guest',
+        ]);
+
+        $this->assertDatabaseHas('testimonials', [
+            'guest_name' => 'Alias Guest',
+            'ssid' => 'Brickspoint-Guest',
+        ]);
     }
 }

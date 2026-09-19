@@ -1190,11 +1190,44 @@ class WebsiteController extends Controller
         $eventCount = Testimonial::approved()->event()->count();
         $totalCount = $stayCount + $restaurantCount + $eventCount;
 
+        $portal = $this->readPortalContext($request);
+
         $meta_description = "Read genuine $typeLabel reviews from guests at Brickspoint Boutique Aparthotel in Asokoro, Abuja. See why we are rated as the best boutique hotel in Nigeria's capital.";
         $meta_keywords = "Brickspoint reviews, Asokoro hotel reviews, $typeLabel reviews Abuja, boutique hotel Abuja reviews, guest testimonials Abuja";
         $og_title = "$typeLabel Reviews — Brickspoint Boutique Aparthotel Asokoro, Abuja";
 
-        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount', 'meta_description', 'meta_keywords', 'og_title'));
+        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount', 'portal', 'meta_description', 'meta_keywords', 'og_title'));
+    }
+
+    /**
+     * Extract client and access-point context from the Omada captive-portal
+     * redirect query string. Omada variants use different key names depending
+     * on controller version (e.g. clientMac/cid, apMac/ap, ssidName/ssid).
+     */
+    protected function readPortalContext(Request $request): array
+    {
+        $query = $request->query();
+
+        $pick = function (array $keys) use ($query) {
+            foreach ($keys as $key) {
+                $value = $query[$key] ?? $query[strtolower($key)] ?? null;
+                if ($value !== null && $value !== '') {
+                    return $value;
+                }
+            }
+
+            return null;
+        };
+
+        return [
+            'location' => $pick(['location', 'site', 'branch']),
+            'apName' => $pick(['apName', 'ap_name', 'apname']),
+            'apMac' => $pick(['apMac', 'ap_mac', 'apmac', 'ap']),
+            'ssid' => $pick(['ssidName', 'ssid_name', 'ssid']),
+            'clientMac' => $pick(['clientMac', 'client_mac', 'cid']),
+            'clientIp' => $pick(['clientIp', 'client_ip', 'ip']),
+            'portalSession' => $pick(['t', 'portal_session', 'session', 'rid']),
+        ];
     }
 
     public function storeTestimonial(Request $request)
@@ -1213,7 +1246,25 @@ class WebsiteController extends Controller
             'stay_type' => 'nullable|string|max:255',
             'dining_venue' => 'nullable|string|max:255',
             'event_name' => 'nullable|string|max:255',
+            'cleanliness' => 'nullable|integer|min:1|max:5',
+            'wifi_rating' => 'nullable|integer|min:1|max:5',
+            'staff_rating' => 'nullable|integer|min:1|max:5',
+            'food_rating' => 'nullable|integer|min:1|max:5',
+            'maintenance_rating' => 'nullable|integer|min:1|max:5',
+            'location' => 'nullable|string|max:255',
+            'ap_name' => 'nullable|string|max:255',
+            'ap_mac' => 'nullable|string|max:255',
+            'ssid' => 'nullable|string|max:255',
+            'client_mac' => 'nullable|string|max:255',
+            'client_ip' => 'nullable|string|max:255',
+            'portal_session' => 'nullable|string|max:255',
         ]);
+
+        $metaKeys = ['location', 'ap_name', 'ap_mac', 'ssid', 'client_mac', 'client_ip', 'portal_session'];
+        $wifiMeta = collect($metaKeys)
+            ->filter(fn ($key) => $request->filled($key))
+            ->mapWithKeys(fn ($key) => [$key => (string) $request->input($key)])
+            ->all();
 
         $testimonial = Testimonial::create([
             'guest_name' => $validated['guest_name'],
@@ -1224,6 +1275,19 @@ class WebsiteController extends Controller
             'stay_type' => $validated['stay_type'] ?? null,
             'dining_venue' => $validated['dining_venue'] ?? null,
             'event_name' => $validated['event_name'] ?? null,
+            'cleanliness' => $validated['cleanliness'] ?? null,
+            'wifi_rating' => $validated['wifi_rating'] ?? null,
+            'staff_rating' => $validated['staff_rating'] ?? null,
+            'food_rating' => $validated['food_rating'] ?? null,
+            'maintenance_rating' => $validated['maintenance_rating'] ?? null,
+            'location' => $validated['location'] ?? null,
+            'ap_name' => $validated['ap_name'] ?? null,
+            'ap_mac' => $validated['ap_mac'] ?? null,
+            'ssid' => $validated['ssid'] ?? null,
+            'client_mac' => $validated['client_mac'] ?? null,
+            'client_ip' => $validated['client_ip'] ?? null,
+            'portal_session' => $validated['portal_session'] ?? null,
+            'wifi_meta' => $wifiMeta ?: null,
             'approved' => false,
         ]);
 

@@ -65,6 +65,48 @@
                             @endif
                         </dd>
                     </dl>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-semibold mb-2"><i class="fas fa-clipboard-list me-2 text-muted"></i>Ratings Breakdown</h6>
+                            <div class="p-3 bg-light rounded mb-3">
+                                @foreach ($testimonial->categoryRatings() as $label => $value)
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <small class="fw-semibold">{{ $label }}</small>
+                                        @if ($value)
+                                            <span>
+                                                @for ($i = 0; $i < 5; $i++)
+                                                    <i class="fa{{ $i < $value ? 's' : 'r' }} fa-star text-warning" style="font-size:0.8rem"></i>
+                                                @endfor
+                                            </span>
+                                        @else
+                                            <span class="text-muted small">—</span>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-semibold mb-2"><i class="fas fa-wifi me-2 text-muted"></i>Wi-Fi / Client Session</h6>
+                            <div class="p-3 bg-light rounded mb-3">
+                                <dl class="row mb-0 small">
+                                    <dt class="col-sm-5">Location / Branch</dt>
+                                    <dd class="col-sm-7">{{ $testimonial->location ?? 'N/A' }}</dd>
+                                    <dt class="col-sm-5">Access Point</dt>
+                                    <dd class="col-sm-7">{{ $testimonial->ap_name ?: 'N/A' }} <small class="text-muted">{{ $testimonial->ap_mac }}</small></dd>
+                                    <dt class="col-sm-5">SSID</dt>
+                                    <dd class="col-sm-7">{{ $testimonial->ssid ?: 'N/A' }}</dd>
+                                    <dt class="col-sm-5">Client MAC</dt>
+                                    <dd class="col-sm-7">{{ $testimonial->client_mac ?: 'N/A' }}</dd>
+                                    <dt class="col-sm-5">Client IP</dt>
+                                    <dd class="col-sm-7">{{ $testimonial->client_ip ?: 'N/A' }}</dd>
+                                    <dt class="col-sm-5">Connected At</dt>
+                                    <dd class="col-sm-7">{{ optional($testimonial->created_at)->format('d M Y, H:i') }}</dd>
+                                    <dt class="col-sm-5">Portal Session</dt>
+                                    <dd class="col-sm-7 text-break">{{ $testimonial->portal_session ?: 'N/A' }}</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-12 mt-3">
                     <h5 class="fw-semibold mb-2">Review</h5>

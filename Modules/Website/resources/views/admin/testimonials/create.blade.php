@@ -43,6 +43,15 @@
                         @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
+                    @php $categories = ['cleanliness' => 'Room Cleanliness', 'wifi_rating' => 'Wi-Fi Experience', 'staff_rating' => 'Staff Service', 'food_rating' => 'Food & Restaurant', 'maintenance_rating' => 'Maintenance']; @endphp
+                    @foreach ($categories as $field => $label)
+                        <div class="col-md-4 col-lg">
+                            <label class="form-label fw-semibold">{{ $label }}</label>
+                            <input type="number" name="{{ $field }}" class="form-control" min="1" max="5" value="{{ old($field) }}" placeholder="1-5">
+                            @error($field)<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                    @endforeach
+
                     <div class="col-12" id="stay_fields">
                         <label class="form-label fw-semibold">Stay Type</label>
                         <input type="text" name="stay_type" class="form-control @error('stay_type') is-invalid @enderror" value="{{ old('stay_type') }}" placeholder="e.g. Deluxe Room, Presidential Suite">
@@ -59,6 +68,12 @@
                         <label class="form-label fw-semibold">Event Name</label>
                         <input type="text" name="event_name" class="form-control @error('event_name') is-invalid @enderror" value="{{ old('event_name') }}" placeholder="e.g. New Year Gala, Wedding Reception">
                         @error('event_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Location / Branch</label>
+                        <input type="text" name="location" class="form-control @error('location') is-invalid @enderror" value="{{ old('location') }}" placeholder="e.g. Asokoro, Abuja">
+                        @error('location')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="col-md-6">

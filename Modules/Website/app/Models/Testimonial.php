@@ -23,12 +23,29 @@ class Testimonial extends Model implements AuditableContract
         'email',
         'text',
         'rating',
+        'cleanliness',
+        'wifi_rating',
+        'staff_rating',
+        'food_rating',
+        'maintenance_rating',
         'guest_image',
         'stay_type',
         'approved',
         'type',
         'dining_venue',
         'event_name',
+        'location',
+        'ap_name',
+        'ap_mac',
+        'ssid',
+        'client_mac',
+        'client_ip',
+        'portal_session',
+        'wifi_meta',
+    ];
+
+    protected $casts = [
+        'wifi_meta' => 'array',
     ];
 
     public function scopeStay($q)
@@ -67,5 +84,21 @@ class Testimonial extends Model implements AuditableContract
             'event' => $this->event_name ? "Attended {$this->event_name}" : 'Event Attendee',
             default => $this->stay_type ?? 'Verified Guest',
         };
+    }
+
+    public function categoryRatings(): array
+    {
+        return [
+            'Room Cleanliness' => $this->cleanliness,
+            'Wi-Fi Experience' => $this->wifi_rating,
+            'Staff Service' => $this->staff_rating,
+            'Food & Restaurant' => $this->food_rating,
+            'Maintenance' => $this->maintenance_rating,
+        ];
+    }
+
+    public function hasWifiContext(): bool
+    {
+        return $this->ssid || $this->ap_name || $this->ap_mac || $this->client_mac;
     }
 }

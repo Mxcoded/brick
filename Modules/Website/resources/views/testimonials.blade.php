@@ -228,6 +228,19 @@
 
                     <div class="card border-0 shadow-sm rounded-4">
                         <div class="card-body p-4 p-lg-5">
+                            @if ($portal['ssid'] || $portal['apName'] || $portal['apMac'])
+                                <div class="d-flex align-items-center gap-2 px-3 py-2 mb-4 rounded-3"
+                                     style="background: rgba(200,161,101,0.10); border: 1px solid rgba(200,161,101,0.25);">
+                                    <i class="fas fa-wifi" style="color:#C8A165;"></i>
+                                    <span class="small">
+                                        You're connected via <strong>{{ $portal['ssid'] ?? 'Complimentary Wi-Fi' }}</strong>
+                                        @if ($portal['apName'])
+                                            <span class="text-muted">· Access point: {{ $portal['apName'] }}</span>
+                                        @endif
+                                    </span>
+                                </div>
+                            @endif
+
                             <form method="POST" action="{{ route('website.testimonials.store') }}">
                                 @csrf
 
@@ -245,7 +258,7 @@
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold">Email <span class="text-muted fw-normal">(Optional)</span></label>
                                         <input type="email" name="email" class="form-control form-control-lg @error('email') is-invalid @enderror"
-                                            value="{{ old('email') }}" placeholder="For a confirmation of your review">
+                                            value="{{ old('email') }}" placeholder="For a confirmation of your feedback">
                                         @error('email') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
@@ -285,17 +298,17 @@
                                 </div>
 
                                 <div class="mb-4">
-                                    <label class="form-label fw-semibold">Rating <span class="text-danger">*</span></label>
-                                    <div class="star-rating d-flex gap-1 fs-3" id="starRating">
+                                    <label class="form-label fw-semibold"><span id="overall_rating_label">How was your stay?</span> <span class="text-danger">*</span></label>
+                                    <div class="star-rating d-flex gap-1 fs-3" id="starRating" data-star-group="rating" data-value="{{ old('rating', 0) }}">
                                         @for ($i = 1; $i <= 5; $i++)
                                             <input type="radio" name="rating" value="{{ $i }}" id="star{{ $i }}"
-                                                {{ old('rating') == $i ? 'checked' : '' }} class="d-none star-input">
+                                                {{ old('rating') == $i ? 'checked' : '' }} class="d-none star-input star-rating-input">
                                             <label for="star{{ $i }}" class="star-label" data-value="{{ $i }}">
                                                 <i class="fas fa-star"></i>
                                             </label>
                                         @endfor
                                     </div>
-                                    <div class="mt-2" id="ratingText" style="font-size: 0.95rem; color: #6c757d;">
+                                    <div class="mt-2 rating-text" id="ratingText" style="font-size: 0.95rem; color: #6c757d;">
                                         @if (old('rating'))
                                             <i class="fas fa-star text-warning me-1"></i>Your rating: {{ old('rating') }} / 5
                                         @else
@@ -306,14 +319,108 @@
                                 </div>
 
                                 <div class="mb-4">
-                                    <label class="form-label fw-semibold">Your Review <span class="text-danger">*</span></label>
+                                    <label class="form-label fw-semibold">Rate Each Experience <span class="text-muted fw-normal">(Optional)</span></label>
+                                    <div class="row g-4">
+                                        <div class="col-md-6">
+                                            <div data-star-group="cleanliness" data-value="{{ old('cleanliness', 0) }}">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="fw-semibold small star-caption">Room Cleanliness</span>
+                                                    <span class="rating-text small text-muted">Optional</span>
+                                                </div>
+                                                <div class="star-rating d-flex gap-1 fs-5">
+                                                    @for ($i = 1; $i <= 5; $i++)
+                                                        <input type="radio" name="cleanliness" value="{{ $i }}" id="star-cleanliness-{{ $i }}"
+                                                            {{ old('cleanliness') == $i ? 'checked' : '' }} class="d-none star-input">
+                                                        <label for="star-cleanliness-{{ $i }}" class="star-label" data-value="{{ $i }}"><i class="fas fa-star"></i></label>
+                                                    @endfor
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div data-star-group="wifi_rating" data-value="{{ old('wifi_rating', 0) }}">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="fw-semibold small star-caption">Wi-Fi Experience</span>
+                                                    <span class="rating-text small text-muted">Optional</span>
+                                                </div>
+                                                <div class="star-rating d-flex gap-1 fs-5">
+                                                    @for ($i = 1; $i <= 5; $i++)
+                                                        <input type="radio" name="wifi_rating" value="{{ $i }}" id="star-wifi-{{ $i }}"
+                                                            {{ old('wifi_rating') == $i ? 'checked' : '' }} class="d-none star-input">
+                                                        <label for="star-wifi-{{ $i }}" class="star-label" data-value="{{ $i }}"><i class="fas fa-star"></i></label>
+                                                    @endfor
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div data-star-group="staff_rating" data-value="{{ old('staff_rating', 0) }}">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="fw-semibold small star-caption">Staff Service</span>
+                                                    <span class="rating-text small text-muted">Optional</span>
+                                                </div>
+                                                <div class="star-rating d-flex gap-1 fs-5">
+                                                    @for ($i = 1; $i <= 5; $i++)
+                                                        <input type="radio" name="staff_rating" value="{{ $i }}" id="star-staff-{{ $i }}"
+                                                            {{ old('staff_rating') == $i ? 'checked' : '' }} class="d-none star-input">
+                                                        <label for="star-staff-{{ $i }}" class="star-label" data-value="{{ $i }}"><i class="fas fa-star"></i></label>
+                                                    @endfor
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div data-star-group="food_rating" data-value="{{ old('food_rating', 0) }}">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="fw-semibold small star-caption">Food & Restaurant</span>
+                                                    <span class="rating-text small text-muted">Optional</span>
+                                                </div>
+                                                <div class="star-rating d-flex gap-1 fs-5">
+                                                    @for ($i = 1; $i <= 5; $i++)
+                                                        <input type="radio" name="food_rating" value="{{ $i }}" id="star-food-{{ $i }}"
+                                                            {{ old('food_rating') == $i ? 'checked' : '' }} class="d-none star-input">
+                                                        <label for="star-food-{{ $i }}" class="star-label" data-value="{{ $i }}"><i class="fas fa-star"></i></label>
+                                                    @endfor
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div data-star-group="maintenance_rating" data-value="{{ old('maintenance_rating', 0) }}">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="fw-semibold small star-caption">Maintenance</span>
+                                                    <span class="rating-text small text-muted">Optional</span>
+                                                </div>
+                                                <div class="star-rating d-flex gap-1 fs-5">
+                                                    @for ($i = 1; $i <= 5; $i++)
+                                                        <input type="radio" name="maintenance_rating" value="{{ $i }}" id="star-maintenance-{{ $i }}"
+                                                            {{ old('maintenance_rating') == $i ? 'checked' : '' }} class="d-none star-input">
+                                                        <label for="star-maintenance-{{ $i }}" class="star-label" data-value="{{ $i }}"><i class="fas fa-star"></i></label>
+                                                    @endfor
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-semibold">Location / Branch <span class="text-muted fw-normal">(Optional)</span></label>
+                                            <input type="text" name="location" class="form-control"
+                                                value="{{ old('location', $portal['location']) }}" placeholder="e.g. Asokoro, Abuja">
+                                            @error('location') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold">What can we improve? <span class="text-danger">*</span></label>
                                     <textarea name="text" rows="5" class="form-control form-control-lg @error('text') is-invalid @enderror" required
-                                        placeholder="Share your experience...">{{ old('text') }}</textarea>
+                                        placeholder="Share your feedback, suggestions, or what made your stay special...">{{ old('text') }}</textarea>
                                     @error('text') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                 </div>
 
+                                <input type="hidden" name="ap_name" value="{{ old('ap_name', $portal['apName']) }}">
+                                <input type="hidden" name="ap_mac" value="{{ old('ap_mac', $portal['apMac']) }}">
+                                <input type="hidden" name="ssid" value="{{ old('ssid', $portal['ssid']) }}">
+                                <input type="hidden" name="client_mac" value="{{ old('client_mac', $portal['clientMac']) }}">
+                                <input type="hidden" name="client_ip" value="{{ old('client_ip', $portal['clientIp']) }}">
+                                <input type="hidden" name="portal_session" value="{{ old('portal_session', $portal['portalSession']) }}">
+
                                 <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill">
-                                    <i class="fas fa-paper-plane me-2"></i>Submit Review
+                                    <i class="fas fa-paper-plane me-2"></i>Submit Feedback
                                 </button>
                             </form>
                         </div>
@@ -334,74 +441,98 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        let currentRating = {{ old('rating', 0) }};
-        const labels = document.querySelectorAll('.star-label');
-        const ratingText = document.getElementById('ratingText');
+        document.querySelectorAll('[data-star-group]').forEach(function (container) {
+            const labels = container.querySelectorAll('.star-label');
+            const textEl = container.querySelector('.rating-text');
+            let current = parseInt(container.dataset.value || '0', 10);
 
-        function setVisual(rating) {
-            labels.forEach(label => {
-                const val = parseInt(label.dataset.value);
-                label.classList.toggle('active', val <= rating);
-                label.classList.toggle('selected', val === rating && rating > 0);
-            });
-        }
-
-        function updateText(rating, isHover) {
-            if (rating > 0) {
-                const prefix = isHover ? 'Rate' : 'Your rating';
-                const stars = '&#9733;'.repeat(rating) + '&#9734;'.repeat(5 - rating);
-                ratingText.innerHTML = `<span class="text-warning fw-semibold">${stars}</span> ${prefix}: ${rating} / 5`;
-            } else {
-                ratingText.innerHTML = '<span class="text-muted"><i class="far fa-star me-1"></i>Tap a star to rate</span>';
-            }
-        }
-
-        function applyRating(rating) {
-            currentRating = rating;
-            document.querySelectorAll('.star-input').forEach(input => {
-                input.checked = parseInt(input.value) === rating;
-            });
-            setVisual(rating);
-            updateText(rating, false);
-        }
-
-        labels.forEach(label => {
-            label.addEventListener('mouseenter', function () {
-                const val = parseInt(this.dataset.value);
-                labels.forEach(l => {
-                    const v = parseInt(l.dataset.value);
-                    l.classList.toggle('hover', v <= val);
-                    l.classList.toggle('active', v <= val);
+            function setVisual(rating) {
+                labels.forEach(label => {
+                    const val = parseInt(label.dataset.value, 10);
+                    label.classList.toggle('active', val <= rating);
+                    label.classList.toggle('selected', val === rating && rating > 0);
                 });
-                updateText(val, true);
+            }
+
+            function updateText(rating, isHover) {
+                if (rating > 0) {
+                    const stars = '<span class="text-warning">' + '&#9733;'.repeat(rating) + '&#9734;'.repeat(5 - rating) + '</span>';
+                    textEl.innerHTML = stars + ' <span class="small text-muted">' + (isHover ? 'Rate' : 'Your rating') + ': ' + rating + ' / 5</span>';
+                } else {
+                    textEl.innerHTML = '<span class="small text-muted">Optional</span>';
+                }
+            }
+
+            function applyRating(rating) {
+                current = rating;
+                container.querySelectorAll('.star-input').forEach(input => {
+                    input.checked = parseInt(input.value, 10) === rating;
+                });
+                setVisual(rating);
+                updateText(rating, false);
+            }
+
+            labels.forEach(label => {
+                label.addEventListener('mouseenter', function () {
+                    const val = parseInt(this.dataset.value, 10);
+                    labels.forEach(l => {
+                        const v = parseInt(l.dataset.value, 10);
+                        l.classList.toggle('hover', v <= val);
+                        l.classList.toggle('active', v <= val);
+                    });
+                    updateText(val, true);
+                });
+
+                label.addEventListener('mouseleave', function () {
+                    labels.forEach(l => l.classList.remove('hover'));
+                    setVisual(current);
+                    updateText(current, false);
+                });
+
+                label.addEventListener('click', function () {
+                    applyRating(parseInt(this.dataset.value, 10));
+                });
             });
 
-            label.addEventListener('mouseleave', function () {
-                labels.forEach(l => l.classList.remove('hover'));
-                setVisual(currentRating);
-                updateText(currentRating, false);
-            });
-
-            label.addEventListener('click', function () {
-                applyRating(parseInt(this.dataset.value));
-            });
+            if (current > 0) {
+                setVisual(current);
+                updateText(current, false);
+            }
         });
-
-        if (currentRating > 0) {
-            setVisual(currentRating);
-            updateText(currentRating, false);
-        }
 
         const typeSelect = document.getElementById('review_type');
         const stayField = document.getElementById('stay_context_field');
         const restaurantField = document.getElementById('restaurant_context_field');
         const eventField = document.getElementById('event_context_field');
+        const overallLabel = document.getElementById('overall_rating_label');
+
+        const overallQuestions = {
+            stay: 'How was your stay?',
+            restaurant: 'How was your dining experience?',
+            event: 'How was the event?'
+        };
+
+        const categoryHeadings = {
+            cleanliness: { stay: 'Room Cleanliness', restaurant: 'Venue Cleanliness', event: 'Venue Cleanliness' },
+            wifi_rating: { stay: 'Wi-Fi Experience', restaurant: 'Wi-Fi Experience', event: 'Wi-Fi Experience' },
+            staff_rating: { stay: 'Staff Service', restaurant: 'Staff Service', event: 'Staff Service' },
+            food_rating: { stay: 'Food & Restaurant', restaurant: 'Food & Restaurant', event: 'Food & Restaurant' },
+            maintenance_rating: { stay: 'Maintenance', restaurant: 'Maintenance', event: 'Maintenance' }
+        };
 
         function toggleContextFields() {
             const val = typeSelect.value;
             stayField.classList.toggle('d-none', val !== 'stay');
             restaurantField.classList.toggle('d-none', val !== 'restaurant');
             eventField.classList.toggle('d-none', val !== 'event');
+            if (overallLabel) {
+                overallLabel.textContent = overallQuestions[val] || overallQuestions.stay;
+            }
+            Object.keys(categoryHeadings).forEach(name => {
+                document.querySelectorAll(`[data-star-group="${name}"] .star-caption`).forEach(el => {
+                    el.textContent = categoryHeadings[name][val] || categoryHeadings[name].stay;
+                });
+            });
         }
 
         typeSelect.addEventListener('change', toggleContextFields);

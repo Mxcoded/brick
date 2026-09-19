@@ -54,6 +54,8 @@ Route::middleware(['web'])->group(function () {
         Route::get('/contact-us', 'contact')->name('website.contact');
         Route::get('/testimonials', 'testimonials')->name('website.testimonials');
         Route::post('/testimonials', 'storeTestimonial')->name('website.testimonials.store');
+        Route::get('/guest-feedback', 'testimonials')->name('website.guest-feedback');
+        Route::post('/guest-feedback', 'storeTestimonial')->name('website.guest-feedback.store');
         Route::get('/location', 'location')->name('website.location');
         Route::get('/dining', 'dining')->name('website.dining');
         Route::get('/dining/{dining}/menu', 'diningMenu')->name('website.dining.menu');

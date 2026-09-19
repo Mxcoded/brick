@@ -29,7 +29,7 @@
             @endif
 
             {{-- Type Tabs --}}
-            <div class="d-flex flex-wrap gap-2 mb-4">
+            <div class="d-flex flex-wrap gap-2 mb-3">
                 <a href="{{ route('website.admin.testimonials.index') }}" class="type-tab {{ $type === 'all' ? 'active' : '' }}">All</a>
                 @foreach (\Modules\Website\Models\Testimonial::TYPES as $t)
                     <a href="{{ route('website.admin.testimonials.index', ['type' => $t]) }}"
@@ -38,6 +38,20 @@
                     </a>
                 @endforeach
             </div>
+
+            @if ($locations->isNotEmpty())
+                <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+                    <i class="fas fa-map-marker-alt me-1" style="color: var(--theme-text-muted);"></i>
+                    <a href="{{ route('website.admin.testimonials.index', ['type' => $type]) }}"
+                       class="type-tab {{ ! $location ? 'active' : '' }}">All branches</a>
+                    @foreach ($locations as $loc)
+                        <a href="{{ route('website.admin.testimonials.index', ['type' => $type, 'location' => $loc]) }}"
+                           class="type-tab {{ $location === $loc ? 'active' : '' }}">
+                            {{ $loc }}
+                        </a>
+                    @endforeach
+                </div>
+            @endif
 
             @if ($testimonials->isEmpty())
                 <div class="text-center py-5">
@@ -52,9 +66,11 @@
                                 <th>Guest</th>
                                 <th>Review</th>
                                 <th>Rating</th>
+                                <th>Wi-Fi</th>
+                                <th>Location</th>
                                 <th>Type</th>
-                                <th>Context</th>
                                 <th>Status</th>
+                                <th>Submitted</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -78,13 +94,36 @@
                                         @endfor
                                     </td>
                                     <td>
+                                        @if ($testimonial->hasWifiContext())
+                                            <span class="badge rounded-pill px-3" style="background: rgba(0,123,255,0.10); color:#0d6efd;"
+                                                  title="AP: {{ $testimonial->ap_name ?? 'N/A' }} ({{ $testimonial->ap_mac ?? 'N/A' }}) · Client: {{ $testimonial->client_mac ?? 'N/A' }} · IP: {{ $testimonial->client_ip ?? 'N/A' }}">
+                                                <i class="fas fa-wifi me-1"></i>{{ $testimonial->ssid ?: 'Captive Portal' }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted small">—</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if ($testimonial->location)
+                                            <span class="badge rounded-pill px-3" style="background: rgba(40,167,69,0.10); color:#28a745;">
+                                                <i class="fas fa-map-marker-alt me-1"></i>{{ $testimonial->location }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted small">—</span>
+                                        @endif
+                                    </td>
+                                    <td>
                                         <span class="badge rounded-pill px-3"
                                               style="background: {{ $testimonial->type === 'restaurant' ? 'rgba(40,167,69,0.12)' : ($testimonial->type === 'event' ? 'rgba(0,123,255,0.12)' : 'rgba(200,161,101,0.12)') }};
                                                      color: {{ $testimonial->type === 'restaurant' ? '#28a745' : ($testimonial->type === 'event' ? '#007bff' : 'var(--theme-primary-dark)') }};">
                                             {{ $testimonial->typeLabel() }}
                                         </span>
                                     </td>
-                                    <td><small class="text-muted">{{ $testimonial->contextLabel() }}</small></td>
+                                    <td>
+                                        <small class="text-muted" title="Session: {{ $testimonial->portal_session ?? 'N/A' }}">
+                                            <i class="far fa-clock me-1"></i>{{ optional($testimonial->created_at)->format('d M Y, H:i') }}
+                                        </small>
+                                    </td>
                                     <td>
                                         @if ($testimonial->approved)
                                             <span class="badge bg-success rounded-pill px-3 py-2 fw-normal"><i class="fas fa-check-circle me-1"></i> Approved</span>
