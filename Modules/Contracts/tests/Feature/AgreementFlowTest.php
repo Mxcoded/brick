@@ -10,6 +10,7 @@ use Modules\Contracts\Models\Agreement;
 use Modules\Contracts\Models\AgreementTemplate;
 use Modules\Contracts\Services\AgreementNumberGenerator;
 use Modules\Contracts\Services\AgreementStatusService;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -38,8 +39,12 @@ class AgreementFlowTest extends TestCase
 
         $this->withoutMiddleware([ValidateCsrfToken::class]);
 
+        $permissions = collect($this->contractPermissions)
+            ->map(fn (string $name) => Permission::findOrCreate($name, 'web'))
+            ->all();
+
         $role = Role::firstOrCreate(['name' => 'contracts_manager', 'guard_name' => 'web']);
-        $role->syncPermissions($this->contractPermissions);
+        $role->syncPermissions($permissions);
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $this->manager = User::factory()->create(['type' => 'staff', 'status' => 'active']);
@@ -390,6 +395,75 @@ class AgreementFlowTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonStructure(['data' => [['agreement_number', 'title', 'client', 'status_badge', 'actions']]]);
+    }
+
+    public function test_agreement_pdf_is_downloadable_and_valid()
+    {
+        $this->actingAsManager();
+
+        $this->post(route('contracts.agreements.store'), $this->agreementPayload());
+        $agreement = Agreement::where('title', 'Corporate Room Agreement - Amara Ltd')->firstOrFail();
+
+        $response = $this->get(route('contracts.agreements.pdf', $agreement));
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/pdf');
+        $response->assertHeader('Content-Disposition', 'attachment; filename="agreement-'.$agreement->agreement_number.'.pdf"');
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_agreement_pdf_requires_read_permission()
+    {
+        $this->actingAsManager();
+
+        $this->post(route('contracts.agreements.store'), $this->agreementPayload());
+        $agreement = Agreement::where('title', 'Corporate Room Agreement - Amara Ltd')->firstOrFail();
+
+        $reader = User::factory()->create(['type' => 'staff', 'status' => 'active']);
+        $reader->givePermissionTo('access_contracts_dashboard');
+
+        $this->actingAs($reader)->get(route('contracts.agreements.pdf', $agreement))->assertForbidden();
+
+        auth()->logout();
+        $this->get(route('contracts.agreements.pdf', $agreement))->assertRedirect(route('login'));
+    }
+
+    public function test_pdf_download_records_audit_entry()
+    {
+        $this->actingAsManager();
+
+        $this->post(route('contracts.agreements.store'), $this->agreementPayload());
+        $agreement = Agreement::where('title', 'Corporate Room Agreement - Amara Ltd')->firstOrFail();
+
+        $this->get(route('contracts.agreements.pdf', $agreement))->assertOk();
+
+        $this->assertTrue(
+            $agreement->audits()->where('event', 'pdf_generated')->where('user_id', $this->manager->id)->exists()
+        );
+    }
+
+    public function test_agreement_pdf_renders_with_embedded_signature_image()
+    {
+        $this->actingAsManager();
+
+        $this->post(route('contracts.agreements.store'), $this->agreementPayload());
+        $agreement = Agreement::where('title', 'Corporate Room Agreement - Amara Ltd')->firstOrFail();
+
+        $png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC';
+
+        $this->post(route('contracts.agreements.signatures.store', $agreement), [
+            'party_role' => 'client',
+            'party_name' => 'Ms Amara',
+            'position' => 'Head of Administration',
+            'signature_type' => 'draw',
+            'signature_data' => $png,
+        ])->assertSessionHas('success');
+
+        $response = $this->get(route('contracts.agreements.pdf', $agreement));
+
+        $response->assertOk();
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+        $this->assertTrue($agreement->signatures()->where('party_name', 'Ms Amara')->exists());
     }
 
     public function test_dashboard_requires_contracts_permission()

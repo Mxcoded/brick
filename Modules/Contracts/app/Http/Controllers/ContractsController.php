@@ -13,6 +13,7 @@ use Modules\Contracts\Models\AgreementDocument;
 use Modules\Contracts\Models\AgreementObligation;
 use Modules\Contracts\Models\AgreementTemplate;
 use Modules\Contracts\Services\AgreementNumberGenerator;
+use Modules\Contracts\Services\AgreementPdfService;
 use Modules\Contracts\Services\AgreementStatusService;
 use Yajra\DataTables\DataTables;
 
@@ -379,6 +380,28 @@ class ContractsController extends Controller
         }
 
         return response()->download(storage_path('app/public/'.$document->path), $document->name);
+    }
+
+    public function downloadPdf(Agreement $agreement, AgreementPdfService $pdfService)
+    {
+        Gate::authorize('contracts.read');
+
+        $agreement->audits()->create([
+            'user_id' => auth()->id(),
+            'event' => 'pdf_generated',
+            'old_values' => [],
+            'new_values' => ['document' => $pdfService->filename($agreement)],
+            'url' => request()->fullUrl(),
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+
+        $filename = $pdfService->filename($agreement);
+
+        return response($pdfService->render($agreement), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
     }
 
     protected function validated(Request $request): array

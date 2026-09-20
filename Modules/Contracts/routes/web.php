@@ -31,6 +31,7 @@ Route::prefix('contracts')
             Route::post('/', [ContractsController::class, 'store'])->name('store')->middleware('can:contracts.create');
 
             Route::get('/{agreement}', [ContractsController::class, 'show'])->name('show');
+            Route::get('/{agreement}/pdf', [ContractsController::class, 'downloadPdf'])->name('pdf')->middleware('can:contracts.read');
             Route::get('/{agreement}/edit', [ContractsController::class, 'edit'])->name('edit')->middleware('can:contracts.update');
             Route::put('/{agreement}', [ContractsController::class, 'update'])->name('update')->middleware('can:contracts.update');
             Route::delete('/{agreement}', [ContractsController::class, 'destroy'])->name('destroy')->middleware('can:contracts.delete');

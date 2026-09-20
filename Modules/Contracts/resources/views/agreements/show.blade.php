@@ -46,6 +46,9 @@
             <span class="text-muted small">{{ $type->label() }} · v{{ $agreement->current_version }}</span>
         </div>
         <div class="d-flex gap-2">
+            @can('contracts.read')
+                <a href="{{ route('contracts.agreements.pdf', $agreement) }}" class="btn btn-sm btn-outline-danger"><i class="fas fa-file-pdf me-1"></i>Download PDF</a>
+            @endcan
             @if (! $lockReason && $canUpdate)
                 <a href="{{ route('contracts.agreements.edit', $agreement) }}" class="btn btn-outline-primary btn-sm"><i class="fas fa-edit me-1"></i>Edit</a>
             @endif

@@ -2,6 +2,11 @@
     <a href="{{ route('contracts.agreements.show', $agreement) }}" class="btn btn-sm btn-outline-secondary" title="View">
         <i class="fas fa-eye"></i>
     </a>
+    @can('contracts.read')
+        <a href="{{ route('contracts.agreements.pdf', $agreement) }}" class="btn btn-sm btn-outline-danger" title="Download PDF">
+            <i class="fas fa-file-pdf"></i>
+        </a>
+    @endcan
     @if (! in_array($agreement->status, ['executed', 'active', 'expired', 'cancelled']))
         @can('contracts.update')
             <a href="{{ route('contracts.agreements.edit', $agreement) }}" class="btn btn-sm btn-outline-primary" title="Edit">
