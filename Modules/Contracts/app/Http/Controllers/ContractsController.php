@@ -407,6 +407,7 @@ class ContractsController extends Controller
     protected function validated(Request $request): array
     {
         return $this->assemblePayload($request->validate([
+            'template_select' => 'nullable|integer|exists:agreement_templates,id',
             'title' => 'required|string|max:255',
             'type' => 'required|in:'.implode(',', array_column(AgreementType::cases(), 'value')),
             'currency' => 'required|string|max:10',
@@ -471,6 +472,7 @@ class ContractsController extends Controller
     protected function assemblePayload(array $validated): array
     {
         $agreement = [
+            'template_id' => $validated['template_select'] ?? null,
             'title' => $validated['title'],
             'type' => $validated['type'],
             'currency' => $validated['currency'],

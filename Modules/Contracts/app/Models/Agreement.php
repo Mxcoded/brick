@@ -48,7 +48,7 @@ class Agreement extends Model implements AuditableContract
 
     public function template()
     {
-        return $this->belongsTo(AgreementTemplate::class);
+        return $this->belongsTo(AgreementTemplate::class, 'template_id');
     }
 
     public function creator()

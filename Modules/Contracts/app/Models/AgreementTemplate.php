@@ -26,6 +26,6 @@ class AgreementTemplate extends Model
 
     public function agreements()
     {
-        return $this->hasMany(Agreement::class);
+        return $this->hasMany(Agreement::class, 'template_id');
     }
 }

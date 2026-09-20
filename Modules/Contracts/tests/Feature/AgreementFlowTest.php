@@ -466,6 +466,28 @@ class AgreementFlowTest extends TestCase
         $this->assertTrue($agreement->signatures()->where('party_name', 'Ms Amara')->exists());
     }
 
+    public function test_agreement_links_to_template_via_template_id_column()
+    {
+        $this->actingAsManager();
+
+        $template = AgreementTemplate::create([
+            'name' => 'Linked Template',
+            'type' => 'corporate_accommodation',
+            'created_by' => $this->manager->id,
+        ]);
+
+        $this->post(route('contracts.agreements.store'), $this->agreementPayload(['template_select' => $template->id]));
+        $agreement = Agreement::where('title', 'Corporate Room Agreement - Amara Ltd')->firstOrFail();
+
+        $this->assertSame($template->id, $agreement->template_id);
+        $this->assertSame($template->id, $agreement->template->id);
+        $this->assertSame(1, $template->agreements()->count());
+
+        $this->get(route('contracts.templates.show', $template))
+            ->assertOk()
+            ->assertSee('1 agreement(s)');
+    }
+
     public function test_dashboard_requires_contracts_permission()
     {
         $plainUser = User::factory()->create(['type' => 'staff', 'status' => 'active']);
