@@ -70,6 +70,10 @@
             @includeIf('banquet::layouts.menu')
         @endcan
 
+        @can('access_contracts_dashboard')
+            @includeIf('contracts::layouts.menu')
+        @endcan
+
         <a href="{{ route('logout') }}"
             onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
             class="list-group-item list-group-item-action text-danger">

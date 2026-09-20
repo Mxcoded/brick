@@ -287,6 +287,19 @@ class RoleSeeder extends Seeder
             'finance.post_journal',
             'finance.view_ledger',
             'finance.view_reports',
+
+            // ──────────────────────────────────────────
+            // CONTRACTS & AGREEMENTS
+            // ──────────────────────────────────────────
+            'access_contracts_dashboard',
+            'contracts.read',
+            'contracts.create',
+            'contracts.update',
+            'contracts.delete',
+            'contracts.approve',
+            'contracts.sign',
+            'contracts.manage_templates',
+            'contracts.view_audit',
         ];
 
         foreach ($permissions as $permission) {
@@ -469,6 +482,22 @@ class RoleSeeder extends Seeder
                 'access_tasks_dashboard',
                 'tasks.create',
                 'tasks.read',
+            ]);
+
+        // ──────────────────────────────────────────
+        // CONTRACTS MANAGER
+        // ──────────────────────────────────────────
+        Role::firstOrCreate(['name' => 'contracts_manager', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'access_contracts_dashboard',
+                'contracts.read',
+                'contracts.create',
+                'contracts.update',
+                'contracts.delete',
+                'contracts.approve',
+                'contracts.sign',
+                'contracts.manage_templates',
+                'contracts.view_audit',
             ]);
 
         // ──────────────────────────────────────────

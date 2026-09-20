@@ -11,5 +11,6 @@
     "Frontdeskcrm": true,
     "Inventory": true,
     "Restaurant": true,
-    "Finance": true
+    "Finance": true,
+    "Contracts": true
 }
