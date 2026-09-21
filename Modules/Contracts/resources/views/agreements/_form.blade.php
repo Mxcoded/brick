@@ -20,8 +20,10 @@
         : []);
 @endphp
 
-@php($action = $editing ? route('contracts.agreements.update', $agreement) : route('contracts.agreements.store'))
-@php($method = $editing ? 'PUT' : 'POST')
+@php
+    $action = $editing ? route('contracts.agreements.update', $agreement) : route('contracts.agreements.store');
+    $method = $editing ? 'PUT' : 'POST';
+@endphp
 
 <form method="POST" action="{{ $action }}" autocomplete="off">
     @csrf

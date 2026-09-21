@@ -198,7 +198,9 @@
             <td>
                 <div class="sig-block">
                     <div class="s-head">For the Hotel — {{ $hotel?->legal_name ?? 'Party A' }}</div>
-                    @php($hotelSig = $signedBy('hotel'))
+                    @php
+                        $hotelSig = $signedBy('hotel');
+                    @endphp
                     @if ($hotelSig?->signature_image_src)
                         <img class="sig-img" src="{{ $hotelSig->signature_image_src }}">
                     @else
@@ -215,7 +217,9 @@
             <td>
                 <div class="sig-block">
                     <div class="s-head">For the Client — {{ $client?->legal_name ?? 'Party B' }}</div>
-                    @php($clientSig = $signedBy('client'))
+                    @php
+                        $clientSig = $signedBy('client');
+                    @endphp
                     @if ($clientSig?->signature_image_src)
                         <img class="sig-img" src="{{ $clientSig->signature_image_src }}">
                     @else

@@ -466,6 +466,19 @@ class AgreementFlowTest extends TestCase
         $this->assertTrue($agreement->signatures()->where('party_name', 'Ms Amara')->exists());
     }
 
+    public function test_agreement_show_page_renders()
+    {
+        $this->actingAsManager();
+
+        $this->post(route('contracts.agreements.store'), $this->agreementPayload());
+        $agreement = Agreement::where('title', 'Corporate Room Agreement - Amara Ltd')->firstOrFail();
+
+        $this->get(route('contracts.agreements.show', $agreement))
+            ->assertOk()
+            ->assertSee($agreement->agreement_number)
+            ->assertSee('Download PDF');
+    }
+
     public function test_agreement_links_to_template_via_template_id_column()
     {
         $this->actingAsManager();

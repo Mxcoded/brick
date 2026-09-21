@@ -61,7 +61,9 @@
         <div class="card-body">
             <div class="d-flex align-items-stretch justify-content-between workflow-steps">
                 @foreach ($workflow as $index => $step)
-                    @php($stepStatus = \Modules\Contracts\Enums\AgreementStatus::from($step))
+                    @php
+                        $stepStatus = \Modules\Contracts\Enums\AgreementStatus::from($step);
+                    @endphp
                     <div class="workflow-step flex-fill {{ $index < $currentIndex ? 'done' : ($index === $currentIndex ? 'current' : '') }}">
                         <div class="workflow-dot"><i class="fas {{ $index < $currentIndex ? 'fa-check' : 'fa-circle' }}"></i></div>
                         <div class="workflow-label small text-nowrap">{{ $stepStatus->label() }}</div>
@@ -467,8 +469,12 @@
                                         @foreach ($audit->getModified() as $field => $values)
                                             <span class="badge bg-light text-muted border me-1 mb-1">
                                                 {{ $field }}
-                                                @if (isset($values['old'])) {{ $values['old'] }} → @endif
-                                                {{ $values['new'] ?? '' }}
+                                                @php
+                                                    $old = is_array($values['old'] ?? null) ? json_encode($values['old']) : ($values['old'] ?? '');
+                                                    $new = is_array($values['new'] ?? null) ? json_encode($values['new']) : ($values['new'] ?? '');
+                                                @endphp
+                                                @if ($old !== '') {{ $old }} → @endif
+                                                {{ $new }}
                                             </span>
                                         @endforeach
                                     </div>

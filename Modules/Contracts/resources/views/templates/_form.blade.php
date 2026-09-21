@@ -4,8 +4,10 @@
     $clauses = old('clauses', $editing ? $template->clauses->map(fn ($c) => ['title' => $c->title, 'content' => $c->content])->values()->all() : []);
 @endphp
 
-@php($action = $editing ? route('contracts.templates.update', $template) : route('contracts.templates.store'))
-@php($method = $editing ? 'PUT' : 'POST')
+@php
+    $action = $editing ? route('contracts.templates.update', $template) : route('contracts.templates.store');
+    $method = $editing ? 'PUT' : 'POST';
+@endphp
 
 <form method="POST" action="{{ $action }}" autocomplete="off">
     @csrf
