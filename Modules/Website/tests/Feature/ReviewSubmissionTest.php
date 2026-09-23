@@ -331,4 +331,18 @@ class ReviewSubmissionTest extends TestCase
         $this->assertIsArray($testimonial->wifi_meta);
         $this->assertSame('qrcode', $testimonial->wifi_meta['capture_source']);
     }
+
+    public function test_qr_link_preselects_review_type()
+    {
+        $response = $this->get(route('website.guest-feedback', [
+            'type' => 'restaurant',
+            'source' => 'qrcode',
+            'site' => 'Asokoro',
+            'ssid' => 'Brickspoint-Guest',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('<option value="restaurant" selected>Restaurant / Dining</option>', false);
+        $response->assertSee('Brickspoint-Guest');
+    }
 }

@@ -172,6 +172,8 @@ Route::middleware(['web'])->group(function () {
             // Testimonials
             Route::post('testimonials/{testimonial}/toggle-approve', [TestimonialController::class, 'toggleApprove'])
                 ->name('testimonials.toggle-approve')->middleware($p('testimonials', 'update'));
+            Route::get('testimonials/wifi-qr', [TestimonialController::class, 'wifiQr'])
+                ->name('testimonials.wifi-qr')->middleware($p('testimonials', 'read'));
             Route::get('testimonials', [TestimonialController::class, 'index'])->name('testimonials.index')->middleware($p('testimonials', 'read'));
             Route::get('testimonials/create', [TestimonialController::class, 'create'])->name('testimonials.create')->middleware($p('testimonials', 'create'));
             Route::post('testimonials', [TestimonialController::class, 'store'])->name('testimonials.store')->middleware($p('testimonials', 'create'));
