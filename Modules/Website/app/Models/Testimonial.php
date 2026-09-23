@@ -96,9 +96,4 @@ class Testimonial extends Model implements AuditableContract
             'Maintenance' => $this->maintenance_rating,
         ];
     }
-
-    public function hasWifiContext(): bool
-    {
-        return $this->ssid || $this->ap_name || $this->ap_mac || $this->client_mac;
-    }
 }

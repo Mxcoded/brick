@@ -86,33 +86,14 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <h6 class="fw-semibold mb-2"><i class="fas fa-wifi me-2 text-muted"></i>Wi-Fi / Client Session</h6>
+                            <h6 class="fw-semibold mb-2"><i class="fas fa-map-marker-alt me-2 text-muted"></i>Review Details</h6>
                             <div class="p-3 bg-light rounded mb-3">
                                 <dl class="row mb-0 small">
                                     <dt class="col-sm-5">Location / Branch</dt>
                                     <dd class="col-sm-7">{{ $testimonial->location ?? 'N/A' }}</dd>
-                                    <dt class="col-sm-5">Access Point</dt>
-                                    <dd class="col-sm-7">{{ $testimonial->ap_name ?: 'N/A' }} <small class="text-muted">{{ $testimonial->ap_mac }}</small></dd>
-                                    <dt class="col-sm-5">SSID</dt>
-                                    <dd class="col-sm-7">{{ $testimonial->ssid ?: 'N/A' }}</dd>
-                                    <dt class="col-sm-5">Band</dt>
-                                    <dd class="col-sm-7">{{ ($testimonial->wifi_meta['radio_id'] ?? '') == '1' ? '5 GHz' : (($testimonial->wifi_meta['radio_id'] ?? '') !== '' ? '2.4 GHz' : 'N/A') }}</dd>
-                                    <dt class="col-sm-5">Client MAC</dt>
-                                    <dd class="col-sm-7">{{ $testimonial->client_mac ?: 'N/A' }}</dd>
-                                    <dt class="col-sm-5">Client IP</dt>
-                                    <dd class="col-sm-7">{{ $testimonial->client_ip ?: 'N/A' }}</dd>
-                                    <dt class="col-sm-5">Connected At</dt>
+                                    <dt class="col-sm-5">Submitted At</dt>
                                     <dd class="col-sm-7">{{ optional($testimonial->created_at)->format('d M Y, H:i') }}</dd>
-                                    <dt class="col-sm-5">Portal Session</dt>
-                                    <dd class="col-sm-7 text-break">{{ $testimonial->portal_session ?: 'N/A' }}</dd>
-                                    <dt class="col-sm-5">Capture Source</dt>
-                                    <dd class="col-sm-7 text-capitalize">{{ ($testimonial->wifi_meta['capture_source'] ?? '') ?: 'N/A' }}</dd>
                                 </dl>
-                                <a href="{{ route('website.admin.testimonials.wifi-qr', ['site' => $testimonial->location, 'ssid' => $testimonial->ssid, 'ap' => $testimonial->ap_name, 'band' => (($testimonial->wifi_meta['radio_id'] ?? null) === '1' ? '5 GHz' : '2.4 GHz')]) }}"
-                                   class="btn btn-sm btn-themed rounded-pill mt-1">
-                                    <i class="fas fa-qrcode me-1"></i> Generate Review QR Cards
-                                </a>
-                                <div class="small text-muted mt-1">Client MAC, Client IP and Portal Session are only ever captured by the Omada captive portal — they show N/A for QR submissions. Print the Stay / Dining / Event cards and place them where guests will see them.</div>
                             </div>
                         </div>
                     </div>

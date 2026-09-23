@@ -17,7 +17,7 @@
                 <i class="fas fa-star me-2" style="color: var(--theme-primary);"></i>Testimonials
             </h1>
             <div class="d-flex gap-2">
-                <a href="{{ route('website.admin.testimonials.wifi-qr') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                <a href="{{ route('website.admin.testimonials.wifi-qr') }}" class="btn btn-outline-primary rounded-pill px-4">
                     <i class="fas fa-qrcode me-1" style="color: var(--theme-primary);"></i> Review QR Cards
                 </a>
                 <a href="{{ route('website.admin.testimonials.create') }}" class="btn btn-themed rounded-pill px-4">
@@ -71,7 +71,6 @@
                                 <th>Guest</th>
                                 <th>Review</th>
                                 <th>Rating</th>
-                                <th>Wi-Fi</th>
                                 <th>Location</th>
                                 <th>Type</th>
                                 <th>Status</th>
@@ -99,16 +98,6 @@
                                         @endfor
                                     </td>
                                     <td>
-                                        @if ($testimonial->hasWifiContext())
-                                            <span class="badge rounded-pill px-3" style="background: rgba(0,123,255,0.10); color:#0d6efd;"
-                                                  title="AP: {{ $testimonial->ap_name ?? 'N/A' }} ({{ $testimonial->ap_mac ?? 'N/A' }}) · Client: {{ $testimonial->client_mac ?? 'N/A' }} · IP: {{ $testimonial->client_ip ?? 'N/A' }}">
-                                                <i class="fas fa-wifi me-1"></i>{{ $testimonial->ssid ?: 'Captive Portal' }}
-                                            </span>
-                                        @else
-                                            <span class="text-muted small">—</span>
-                                        @endif
-                                    </td>
-                                    <td>
                                         @if ($testimonial->location)
                                             <span class="badge rounded-pill px-3" style="background: rgba(40,167,69,0.10); color:#28a745;">
                                                 <i class="fas fa-map-marker-alt me-1"></i>{{ $testimonial->location }}
@@ -125,7 +114,7 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <small class="text-muted" title="Session: {{ $testimonial->portal_session ?? 'N/A' }}">
+                                        <small class="text-muted">
                                             <i class="far fa-clock me-1"></i>{{ optional($testimonial->created_at)->format('d M Y, H:i') }}
                                         </small>
                                     </td>

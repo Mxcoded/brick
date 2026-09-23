@@ -75,50 +75,12 @@ class TestimonialController extends Controller
 
     public function wifiQr(Request $request)
     {
-        $lastWithWifi = Testimonial::whereNotNull('ssid')->latest('id')->first();
-
-        $defaults = [
-            'site' => 'Brickspoint Asokoro',
-            'ssid' => 'Brickspoint-Guest',
-            'ap' => 'Lobby Guest Wi-Fi',
-            'band' => '5 GHz',
-            'apMac' => '',
-        ];
-
-        if ($lastWithWifi) {
-            $defaults['site'] = $lastWithWifi->location ?: $defaults['site'];
-            $defaults['ssid'] = $lastWithWifi->ssid ?: $defaults['ssid'];
-            $defaults['ap'] = $lastWithWifi->ap_name ?: $defaults['ap'];
-            $defaults['apMac'] = $lastWithWifi->ap_mac ?: $defaults['apMac'];
-
-            $radioId = $lastWithWifi->wifi_meta['radio_id'] ?? null;
-            if ($radioId !== null && $radioId !== '') {
-                $defaults['band'] = $radioId == '1' ? '5 GHz' : '2.4 GHz';
-            }
-        }
-
-        $values = [
-            'site' => $request->input('site', $defaults['site']),
-            'ssid' => $request->input('ssid', $defaults['ssid']),
-            'ap' => $request->input('ap', $defaults['ap']),
-            'band' => $request->input('band', $defaults['band']),
-            'apMac' => $request->input('apmac', $defaults['apMac']),
-        ];
-
         $urls = [];
         foreach (Testimonial::TYPES as $type) {
-            $urls[$type] = route('website.guest-feedback', array_filter([
-                'type' => $type,
-                'source' => 'qrcode',
-                'site' => $values['site'],
-                'ssid' => $values['ssid'],
-                'ap' => $values['ap'],
-                'band' => $values['band'],
-                'apmac' => $values['apMac'],
-            ]));
+            $urls[$type] = route('website.guest-feedback', ['type' => $type]);
         }
 
-        return view('website::admin.testimonials.wifi-qr', compact('urls', 'values'));
+        return view('website::admin.testimonials.wifi-qr', compact('urls'));
     }
 
     public function edit(Testimonial $testimonial)

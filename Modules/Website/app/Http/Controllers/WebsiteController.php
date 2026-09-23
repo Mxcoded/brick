@@ -1190,72 +1190,11 @@ class WebsiteController extends Controller
         $eventCount = Testimonial::approved()->event()->count();
         $totalCount = $stayCount + $restaurantCount + $eventCount;
 
-        $portal = $this->readPortalContext($request);
-
         $meta_description = "Read genuine $typeLabel reviews from guests at Brickspoint Boutique Aparthotel in Asokoro, Abuja. See why we are rated as the best boutique hotel in Nigeria's capital.";
         $meta_keywords = "Brickspoint reviews, Asokoro hotel reviews, $typeLabel reviews Abuja, boutique hotel Abuja reviews, guest testimonials Abuja";
         $og_title = "$typeLabel Reviews — Brickspoint Boutique Aparthotel Asokoro, Abuja";
 
-        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount', 'portal', 'meta_description', 'meta_keywords', 'og_title'));
-    }
-
-    /**
-     * Extract client and access-point context from the inbound query string.
-     *
-     * Accepts both Omada captive-portal redirect keys (clientMac/cid, apName/ap,
-     * ssidName/ssid, radioId ...) and generic QR-code keys (site/loc, ap,
-     * network, mac, ip, band ...) so context is captured regardless of traffic
-     * source. The capture source (omada / qrcode / generic) is tagged so
-     * admins can tell where a review originated.
-     */
-    protected function readPortalContext(Request $request): array
-    {
-        $query = $request->query();
-
-        $pick = function (array $keys) use ($query) {
-            foreach ($keys as $key) {
-                $value = $query[$key] ?? $query[strtolower($key)] ?? null;
-                if ($value !== null && $value !== '') {
-                    return $value;
-                }
-            }
-
-            return null;
-        };
-
-        $radioId = $pick(['radioId', 'radio_id', 'band', 'bandwidth', 'channel', 'rf', 'radio']);
-        if ($radioId !== null && ! in_array((string) $radioId, ['0', '1', '2'], true)) {
-            $band = strtolower((string) $radioId);
-            $radioId = (str_contains($band, '5') || str_contains($band, 'a') || str_contains($band, 'ga'))
-                ? '1'
-                : '2';
-        }
-
-        $captureSource = null;
-        $isQr = isset($query['qr']) && in_array((string) $query['qr'], ['1', 'true', 'yes'], true)
-            || ($sourceHint = $pick(['source', 'src', 'utm_source', 'campaign'])) !== null
-            && preg_match('/qr|qrcode|code/i', (string) $sourceHint);
-
-        if ($isQr) {
-            $captureSource = 'qrcode';
-        } elseif ($pick(['clientMac', 'cid', 'apName', 'ap_name', 'apname', 'ssidName', 'radioId', 'radio_id', 'portal_session', 'rid']) !== null) {
-            $captureSource = 'omada';
-        }
-
-        $context = [
-            'location' => $pick(['location', 'site', 'loc', 'branch', 'property', 'bldg', 'building', 'area']),
-            'apName' => $pick(['apName', 'ap_name', 'apname', 'ap', 'access_point', 'accesspoint', 'wap']),
-            'apMac' => $pick(['apMac', 'ap_mac', 'apmac', 'bssid', 'bssid_addr', 'ap_bssid']),
-            'ssid' => $pick(['ssidName', 'ssid_name', 'ssid', 'network', 'service_set']),
-            'clientMac' => $pick(['clientMac', 'client_mac', 'cid', 'mac', 'mac_addr', 'station_mac']),
-            'clientIp' => $pick(['clientIp', 'client_ip', 'ip', 'client_addr', 'src_ip']),
-            'portalSession' => $pick(['t', 'portal_session', 'session', 'rid', 'session_id', 'token']),
-            'radioId' => $radioId,
-        ];
-
-        $captureSource = $captureSource ?? (collect($context)->filter()->isNotEmpty() ? 'generic' : null);
-
-        return [...$context, 'captureSource' => $captureSource, 'raw' => collect($context)->filter()->all()];
+        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function storeTestimonial(Request $request)
@@ -1280,21 +1219,7 @@ class WebsiteController extends Controller
             'food_rating' => 'nullable|integer|min:1|max:5',
             'maintenance_rating' => 'nullable|integer|min:1|max:5',
             'location' => 'nullable|string|max:255',
-            'ap_name' => 'nullable|string|max:255',
-            'ap_mac' => 'nullable|string|max:255',
-            'ssid' => 'nullable|string|max:255',
-            'client_mac' => 'nullable|string|max:255',
-            'client_ip' => 'nullable|string|max:255',
-            'portal_session' => 'nullable|string|max:255',
-            'radio_id' => 'nullable|string|max:10',
-            'capture_source' => 'nullable|string|max:20',
         ]);
-
-        $metaKeys = ['location', 'ap_name', 'ap_mac', 'ssid', 'client_mac', 'client_ip', 'portal_session', 'radio_id', 'capture_source'];
-        $wifiMeta = collect($metaKeys)
-            ->filter(fn ($key) => $request->filled($key))
-            ->mapWithKeys(fn ($key) => [$key => (string) $request->input($key)])
-            ->all();
 
         $testimonial = Testimonial::create([
             'guest_name' => $validated['guest_name'],
@@ -1311,13 +1236,6 @@ class WebsiteController extends Controller
             'food_rating' => $validated['food_rating'] ?? null,
             'maintenance_rating' => $validated['maintenance_rating'] ?? null,
             'location' => $validated['location'] ?? null,
-            'ap_name' => $validated['ap_name'] ?? null,
-            'ap_mac' => $validated['ap_mac'] ?? null,
-            'ssid' => $validated['ssid'] ?? null,
-            'client_mac' => $validated['client_mac'] ?? null,
-            'client_ip' => $validated['client_ip'] ?? null,
-            'portal_session' => $validated['portal_session'] ?? null,
-            'wifi_meta' => $wifiMeta ?: null,
             'approved' => false,
         ]);
 

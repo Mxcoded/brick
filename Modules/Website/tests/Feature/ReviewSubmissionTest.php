@@ -6,7 +6,6 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Mail;
 use Modules\Website\Emails\ReviewSubmitted;
-use Modules\Website\Models\Testimonial;
 use Tests\TestCase;
 
 class ReviewSubmissionTest extends TestCase
@@ -220,129 +219,28 @@ class ReviewSubmissionTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    public function test_submission_stores_omada_captive_portal_context()
-    {
-        $this->post(route('website.testimonials.store'), [
-            'guest_name' => 'Portal Guest',
-            'text' => 'Connected via Omada portal, great internet.',
-            'rating' => 5,
-            'type' => 'stay',
-            'ap_name' => 'Lobby-AP',
-            'ap_mac' => 'AA:BB:CC:DD:EE:FF',
-            'ssid' => 'Brickspoint-Guest',
-            'client_mac' => '11:22:33:44:55:66',
-            'client_ip' => '192.168.1.42',
-            'portal_session' => '17634012',
-            'radio_id' => '1',
-            'location' => 'Brickspoint Asokoro',
-        ]);
-
-        $this->assertDatabaseHas('testimonials', [
-            'guest_name' => 'Portal Guest',
-            'ap_name' => 'Lobby-AP',
-            'ap_mac' => 'AA:BB:CC:DD:EE:FF',
-            'ssid' => 'Brickspoint-Guest',
-            'client_mac' => '11:22:33:44:55:66',
-            'client_ip' => '192.168.1.42',
-            'portal_session' => '17634012',
-            'location' => 'Brickspoint Asokoro',
-        ]);
-
-        $testimonial = Testimonial::where('guest_name', 'Portal Guest')->first();
-        $this->assertIsArray($testimonial->wifi_meta);
-        $this->assertArrayHasKey('ssid', $testimonial->wifi_meta);
-        $this->assertArrayHasKey('client_mac', $testimonial->wifi_meta);
-        $this->assertSame('1', $testimonial->wifi_meta['radio_id']);
-    }
-
-    public function test_guest_feedback_alias_renders_portal_context_on_form()
-    {
-        $response = $this->get(route('website.guest-feedback', [
-            'ssidName' => 'Brickspoint-Guest',
-            'apName' => 'Lobby-AP',
-            'clientMac' => 'AA:BB:CC:DD:EE:FF',
-            'radioId' => '1',
-            'site' => 'Asokoro',
-        ]));
-
-        $response->assertOk();
-        $response->assertSee('Brickspoint-Guest');
-        $response->assertSee('Lobby-AP');
-        $response->assertSee('AA:BB:CC:DD:EE:FF');
-        $response->assertSee('5 GHz');
-        $response->assertSee('Asokoro');
-    }
-
     public function test_guest_feedback_alias_accepts_submissions()
     {
         $this->post(route('website.guest-feedback.store'), [
             'guest_name' => 'Alias Guest',
-            'text' => 'Sent from the captive portal alias.',
+            'text' => 'Sent from the customer card QR code.',
             'rating' => 4,
             'type' => 'stay',
-            'ssid' => 'Brickspoint-Guest',
+            'location' => 'Asokoro, Abuja',
         ]);
 
         $this->assertDatabaseHas('testimonials', [
             'guest_name' => 'Alias Guest',
-            'ssid' => 'Brickspoint-Guest',
+            'location' => 'Asokoro, Abuja',
         ]);
-    }
-
-    public function test_guest_feedback_accepts_generic_qr_context()
-    {
-        $response = $this->get(route('website.guest-feedback', [
-            'source' => 'qrcode',
-            'site' => 'Brickspoint Asokoro',
-            'ssid' => 'Brickspoint-Guest',
-            'ap' => 'Lobby Guest Wi-Fi',
-            'band' => '5G',
-        ]));
-
-        $response->assertOk();
-        $response->assertSee('Brickspoint-Guest');
-        $response->assertSee('Lobby Guest Wi-Fi');
-        $response->assertSee('5 GHz');
-        $response->assertSee('Brickspoint Asokoro');
-        $response->assertSee('qrcode');
-    }
-
-    public function test_submission_persists_generic_qr_capture_source()
-    {
-        $this->post(route('website.guest-feedback.store'), [
-            'guest_name' => 'QR Guest',
-            'text' => 'Great WiFi via the QR card.',
-            'rating' => 5,
-            'type' => 'stay',
-            'location' => 'Brickspoint Asokoro',
-            'ssid' => 'Brickspoint-Guest',
-            'ap_name' => 'Lobby Guest Wi-Fi',
-            'capture_source' => 'qrcode',
-        ]);
-
-        $this->assertDatabaseHas('testimonials', [
-            'guest_name' => 'QR Guest',
-            'location' => 'Brickspoint Asokoro',
-            'ssid' => 'Brickspoint-Guest',
-            'ap_name' => 'Lobby Guest Wi-Fi',
-        ]);
-
-        $testimonial = Testimonial::where('guest_name', 'QR Guest')->first();
-        $this->assertIsArray($testimonial->wifi_meta);
-        $this->assertSame('qrcode', $testimonial->wifi_meta['capture_source']);
     }
 
     public function test_qr_link_preselects_review_type()
     {
-        $response = $this->get(route('website.guest-feedback', [
-            'type' => 'restaurant',
-            'source' => 'qrcode',
-            'site' => 'Asokoro',
-            'ssid' => 'Brickspoint-Guest',
-        ]));
+        $response = $this->get(route('website.guest-feedback', ['type' => 'restaurant']));
 
         $response->assertOk();
         $response->assertSee('<option value="restaurant" selected>Restaurant / Dining</option>', false);
-        $response->assertSee('Brickspoint-Guest');
+        $response->assertDontSee('Complimentary Wi-Fi');
     }
 }

@@ -228,25 +228,6 @@
 
                     <div class="card border-0 shadow-sm rounded-4">
                         <div class="card-body p-4 p-lg-5">
-                            @if ($portal['raw'] || $portal['captureSource'])
-                                <div class="d-flex align-items-center gap-2 px-3 py-2 mb-4 rounded-3"
-                                     style="background: rgba(200,161,101,0.10); border: 1px solid rgba(200,161,101,0.25);">
-                                    <i class="fas fa-wifi" style="color:#C8A165;"></i>
-                                    <span class="small">
-                                        @if ($portal['captureSource'] === 'qrcode')
-                                            Thanks for using our QR card at <strong>{{ $portal['location'] ?? 'Brickspoint' }}</strong>
-                                        @else
-                                            You're connected via <strong>{{ $portal['ssid'] ?? 'Complimentary Wi-Fi' }}</strong>
-                                        @endif
-                                        @if ($portal['apName'])
-                                            <span class="text-muted">· Access point: {{ $portal['apName'] }}</span>
-                                        @endif
-                                        @if ($portal['radioId'] !== null && $portal['radioId'] !== '')
-                                            <span class="text-muted">· {{ $portal['radioId'] == '1' ? '5 GHz' : '2.4 GHz' }}</span>
-                                        @endif
-                                    </span>
-                                </div>
-                            @endif
 
                             <form method="POST" action="{{ route('website.testimonials.store') }}">
                                 @csrf
@@ -406,7 +387,7 @@
                                         <div class="col-md-6">
                                             <label class="form-label fw-semibold">Location / Branch <span class="text-muted fw-normal">(Optional)</span></label>
                                             <input type="text" name="location" class="form-control"
-                                                value="{{ old('location', $portal['location']) }}" placeholder="e.g. Asokoro, Abuja">
+                                                value="{{ old('location') }}" placeholder="e.g. Asokoro, Abuja">
                                             @error('location') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
@@ -418,15 +399,6 @@
                                         placeholder="Share your feedback, suggestions, or what made your stay special...">{{ old('text') }}</textarea>
                                     @error('text') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                 </div>
-
-                                <input type="hidden" name="ap_name" value="{{ old('ap_name', $portal['apName']) }}">
-                                <input type="hidden" name="ap_mac" value="{{ old('ap_mac', $portal['apMac']) }}">
-                                <input type="hidden" name="ssid" value="{{ old('ssid', $portal['ssid']) }}">
-                                <input type="hidden" name="client_mac" value="{{ old('client_mac', $portal['clientMac']) }}">
-                                <input type="hidden" name="client_ip" value="{{ old('client_ip', $portal['clientIp']) }}">
-                                <input type="hidden" name="portal_session" value="{{ old('portal_session', $portal['portalSession']) }}">
-                                <input type="hidden" name="radio_id" value="{{ old('radio_id', $portal['radioId']) }}">
-                                <input type="hidden" name="capture_source" value="{{ old('capture_source', $portal['captureSource']) }}">
 
                                 <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill">
                                     <i class="fas fa-paper-plane me-2"></i>Submit Feedback
