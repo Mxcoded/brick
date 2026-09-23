@@ -288,4 +288,47 @@ class ReviewSubmissionTest extends TestCase
             'ssid' => 'Brickspoint-Guest',
         ]);
     }
+
+    public function test_guest_feedback_accepts_generic_qr_context()
+    {
+        $response = $this->get(route('website.guest-feedback', [
+            'source' => 'qrcode',
+            'site' => 'Brickspoint Asokoro',
+            'ssid' => 'Brickspoint-Guest',
+            'ap' => 'Lobby Guest Wi-Fi',
+            'band' => '5G',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Brickspoint-Guest');
+        $response->assertSee('Lobby Guest Wi-Fi');
+        $response->assertSee('5 GHz');
+        $response->assertSee('Brickspoint Asokoro');
+        $response->assertSee('qrcode');
+    }
+
+    public function test_submission_persists_generic_qr_capture_source()
+    {
+        $this->post(route('website.guest-feedback.store'), [
+            'guest_name' => 'QR Guest',
+            'text' => 'Great WiFi via the QR card.',
+            'rating' => 5,
+            'type' => 'stay',
+            'location' => 'Brickspoint Asokoro',
+            'ssid' => 'Brickspoint-Guest',
+            'ap_name' => 'Lobby Guest Wi-Fi',
+            'capture_source' => 'qrcode',
+        ]);
+
+        $this->assertDatabaseHas('testimonials', [
+            'guest_name' => 'QR Guest',
+            'location' => 'Brickspoint Asokoro',
+            'ssid' => 'Brickspoint-Guest',
+            'ap_name' => 'Lobby Guest Wi-Fi',
+        ]);
+
+        $testimonial = Testimonial::where('guest_name', 'QR Guest')->first();
+        $this->assertIsArray($testimonial->wifi_meta);
+        $this->assertSame('qrcode', $testimonial->wifi_meta['capture_source']);
+    }
 }

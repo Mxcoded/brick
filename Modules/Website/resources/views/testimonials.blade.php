@@ -228,12 +228,16 @@
 
                     <div class="card border-0 shadow-sm rounded-4">
                         <div class="card-body p-4 p-lg-5">
-                            @if ($portal['ssid'] || $portal['apName'] || $portal['apMac'] || $portal['radioId'] !== null)
+                            @if ($portal['raw'] || $portal['captureSource'])
                                 <div class="d-flex align-items-center gap-2 px-3 py-2 mb-4 rounded-3"
                                      style="background: rgba(200,161,101,0.10); border: 1px solid rgba(200,161,101,0.25);">
                                     <i class="fas fa-wifi" style="color:#C8A165;"></i>
                                     <span class="small">
-                                        You're connected via <strong>{{ $portal['ssid'] ?? 'Complimentary Wi-Fi' }}</strong>
+                                        @if ($portal['captureSource'] === 'qrcode')
+                                            Thanks for using our QR card at <strong>{{ $portal['location'] ?? 'Brickspoint' }}</strong>
+                                        @else
+                                            You're connected via <strong>{{ $portal['ssid'] ?? 'Complimentary Wi-Fi' }}</strong>
+                                        @endif
                                         @if ($portal['apName'])
                                             <span class="text-muted">· Access point: {{ $portal['apName'] }}</span>
                                         @endif
@@ -422,6 +426,7 @@
                                 <input type="hidden" name="client_ip" value="{{ old('client_ip', $portal['clientIp']) }}">
                                 <input type="hidden" name="portal_session" value="{{ old('portal_session', $portal['portalSession']) }}">
                                 <input type="hidden" name="radio_id" value="{{ old('radio_id', $portal['radioId']) }}">
+                                <input type="hidden" name="capture_source" value="{{ old('capture_source', $portal['captureSource']) }}">
 
                                 <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill">
                                     <i class="fas fa-paper-plane me-2"></i>Submit Feedback

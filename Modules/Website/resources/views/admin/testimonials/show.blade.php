@@ -105,7 +105,23 @@
                                     <dd class="col-sm-7">{{ optional($testimonial->created_at)->format('d M Y, H:i') }}</dd>
                                     <dt class="col-sm-5">Portal Session</dt>
                                     <dd class="col-sm-7 text-break">{{ $testimonial->portal_session ?: 'N/A' }}</dd>
+                                    <dt class="col-sm-5">Capture Source</dt>
+                                    <dd class="col-sm-7 text-capitalize">{{ ($testimonial->wifi_meta['capture_source'] ?? '') ?: 'N/A' }}</dd>
                                 </dl>
+                                @php
+                                    $qrLink = route('website.guest-feedback', array_filter([
+                                        'source' => 'qrcode',
+                                        'site' => $testimonial->location,
+                                        'ssid' => $testimonial->ssid,
+                                        'ap' => $testimonial->ap_name,
+                                        'apmac' => $testimonial->ap_mac,
+                                    ]));
+                                @endphp
+                                <div class="input-group input-group-sm mt-2">
+                                    <span class="input-group-text border-end-0 bg-white"><i class="fas fa-qrcode text-muted"></i></span>
+                                    <input type="text" class="form-control form-control-sm" readonly value="{{ $qrLink }}" onclick="this.select()">
+                                </div>
+                                <div class="small text-muted mt-1">Print this link as a QR code on Wi-Fi cards. Context is captured generically (opens the review form without the Omada portal).</div>
                             </div>
                         </div>
                     </div>

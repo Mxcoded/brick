@@ -1200,9 +1200,13 @@ class WebsiteController extends Controller
     }
 
     /**
-     * Extract client and access-point context from the Omada captive-portal
-     * redirect query string. Omada variants use different key names depending
-     * on controller version (e.g. clientMac/cid, apMac/ap, ssidName/ssid).
+     * Extract client and access-point context from the inbound query string.
+     *
+     * Accepts both Omada captive-portal redirect keys (clientMac/cid, apName/ap,
+     * ssidName/ssid, radioId ...) and generic QR-code keys (site/loc, ap,
+     * network, mac, ip, band ...) so context is captured regardless of traffic
+     * source. The capture source (omada / qrcode / generic) is tagged so
+     * admins can tell where a review originated.
      */
     protected function readPortalContext(Request $request): array
     {
@@ -1219,16 +1223,39 @@ class WebsiteController extends Controller
             return null;
         };
 
-        return [
-            'location' => $pick(['location', 'site', 'branch']),
-            'apName' => $pick(['apName', 'ap_name', 'apname']),
-            'apMac' => $pick(['apMac', 'ap_mac', 'apmac', 'ap']),
-            'ssid' => $pick(['ssidName', 'ssid_name', 'ssid']),
-            'clientMac' => $pick(['clientMac', 'client_mac', 'cid']),
-            'clientIp' => $pick(['clientIp', 'client_ip', 'ip']),
-            'portalSession' => $pick(['t', 'portal_session', 'session', 'rid']),
-            'radioId' => $pick(['radioId', 'radio_id']),
+        $radioId = $pick(['radioId', 'radio_id', 'band', 'bandwidth', 'channel', 'rf', 'radio']);
+        if ($radioId !== null && ! in_array((string) $radioId, ['0', '1', '2'], true)) {
+            $band = strtolower((string) $radioId);
+            $radioId = (str_contains($band, '5') || str_contains($band, 'a') || str_contains($band, 'ga'))
+                ? '1'
+                : '2';
+        }
+
+        $captureSource = null;
+        $isQr = isset($query['qr']) && in_array((string) $query['qr'], ['1', 'true', 'yes'], true)
+            || ($sourceHint = $pick(['source', 'src', 'utm_source', 'campaign'])) !== null
+            && preg_match('/qr|qrcode|code/i', (string) $sourceHint);
+
+        if ($isQr) {
+            $captureSource = 'qrcode';
+        } elseif ($pick(['clientMac', 'cid', 'apName', 'ap_name', 'apname', 'ssidName', 'radioId', 'radio_id', 'portal_session', 'rid']) !== null) {
+            $captureSource = 'omada';
+        }
+
+        $context = [
+            'location' => $pick(['location', 'site', 'loc', 'branch', 'property', 'bldg', 'building', 'area']),
+            'apName' => $pick(['apName', 'ap_name', 'apname', 'ap', 'access_point', 'accesspoint', 'wap']),
+            'apMac' => $pick(['apMac', 'ap_mac', 'apmac', 'bssid', 'bssid_addr', 'ap_bssid']),
+            'ssid' => $pick(['ssidName', 'ssid_name', 'ssid', 'network', 'service_set']),
+            'clientMac' => $pick(['clientMac', 'client_mac', 'cid', 'mac', 'mac_addr', 'station_mac']),
+            'clientIp' => $pick(['clientIp', 'client_ip', 'ip', 'client_addr', 'src_ip']),
+            'portalSession' => $pick(['t', 'portal_session', 'session', 'rid', 'session_id', 'token']),
+            'radioId' => $radioId,
         ];
+
+        $captureSource = $captureSource ?? (collect($context)->filter()->isNotEmpty() ? 'generic' : null);
+
+        return [...$context, 'captureSource' => $captureSource, 'raw' => collect($context)->filter()->all()];
     }
 
     public function storeTestimonial(Request $request)
@@ -1260,9 +1287,10 @@ class WebsiteController extends Controller
             'client_ip' => 'nullable|string|max:255',
             'portal_session' => 'nullable|string|max:255',
             'radio_id' => 'nullable|string|max:10',
+            'capture_source' => 'nullable|string|max:20',
         ]);
 
-        $metaKeys = ['location', 'ap_name', 'ap_mac', 'ssid', 'client_mac', 'client_ip', 'portal_session', 'radio_id'];
+        $metaKeys = ['location', 'ap_name', 'ap_mac', 'ssid', 'client_mac', 'client_ip', 'portal_session', 'radio_id', 'capture_source'];
         $wifiMeta = collect($metaKeys)
             ->filter(fn ($key) => $request->filled($key))
             ->mapWithKeys(fn ($key) => [$key => (string) $request->input($key)])
