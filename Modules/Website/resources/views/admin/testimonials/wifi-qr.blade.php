@@ -21,6 +21,29 @@
         </div>
     </div>
 
+    <div class="card border-0 shadow-sm mb-4 no-print">
+        <div class="card-body p-4">
+            <form method="GET" action="{{ route('website.admin.testimonials.wifi-qr') }}" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold mb-1">Location / Branch</label>
+                    <input type="text" name="branch" class="form-control" value="{{ $branch }}" list="known-branches"
+                           placeholder="e.g. Asokoro" required>
+                    <datalist id="known-branches">
+                        @foreach ($branches as $known)
+                            <option value="{{ $known }}"></option>
+                        @endforeach
+                    </datalist>
+                    <div class="form-text">The branch is baked into the code and pre-fills the location on the review form.</div>
+                </div>
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-themed rounded-pill px-4">
+                        <i class="fas fa-sync-alt me-1"></i> Generate
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="row g-4 print-row">
         @php
             $labels = ['stay' => ['Stay', 'fa-bed'], 'restaurant' => ['Dining', 'fa-utensils'], 'event' => ['Event', 'fa-calendar-check']];
@@ -32,7 +55,7 @@
                         <h5 class="fw-bold text-uppercase mb-1" style="color: var(--theme-heading);">
                             <i class="fas {{ $labels[$type][1] }} me-2" style="color: #C8A165;"></i>{{ $labels[$type][0] }} Review
                         </h5>
-                        <div class="small text-muted mb-3">Scan to share your feedback</div>
+                        <div class="small text-muted mb-3">{{ $branch ? 'Scan to share your feedback · ' . $branch : 'Scan to share your feedback' }}</div>
 
                         <div class="mb-3 d-inline-block p-2 bg-white rounded shadow-sm">
                             <img src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data={{ urlencode($url) }}"
@@ -66,7 +89,8 @@
     <div class="alert alert-secondary mt-4 rounded-4 no-print d-flex gap-2 align-items-start mb-0">
         <i class="fas fa-info-circle mt-1"></i>
         <div class="small">
-            Scanning a card opens the review form pre-selected for that type (Stay, Dining or Event). No device or network data is collected.</div>
+            Scanning a card opens the review form pre-selected for that type (Stay, Dining or Event) with the
+            <strong>{{ $branch ?: 'branch' }}</strong> location pre-filled, so guests don't have to type it. Make a set of cards for each of your branches by changing the branch above.</div>
     </div>
 </div>
 

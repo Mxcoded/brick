@@ -243,4 +243,13 @@ class ReviewSubmissionTest extends TestCase
         $response->assertSee('<option value="restaurant" selected>Restaurant / Dining</option>', false);
         $response->assertDontSee('Complimentary Wi-Fi');
     }
+
+    public function test_qr_link_prefills_location_from_branch()
+    {
+        $response = $this->get(route('website.guest-feedback', ['type' => 'stay', 'branch' => 'Asokoro']));
+
+        $response->assertOk();
+        $response->assertSee('<option value="stay" selected>Stay</option>', false);
+        $response->assertSee('value="Asokoro"', false);
+    }
 }

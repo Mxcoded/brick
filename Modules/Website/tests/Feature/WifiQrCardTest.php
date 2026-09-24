@@ -61,6 +61,20 @@ class WifiQrCardTest extends TestCase
         }
     }
 
+    public function test_admin_can_generate_cards_for_a_specific_branch(): void
+    {
+        $response = $this->actingAs($this->adminUser())
+            ->get(route('website.admin.testimonials.wifi-qr', ['branch' => 'Asokoro']));
+
+        $response->assertOk();
+        foreach (Testimonial::TYPES as $type) {
+            $url = route('website.guest-feedback', ['type' => $type, 'branch' => 'Asokoro']);
+            $this->assertStringContainsString('type='.$type, $url);
+            $this->assertStringContainsString('branch=Asokoro', $url);
+            $response->assertSee($url);
+        }
+    }
+
     public function test_review_qr_links_carry_no_network_data(): void
     {
         $response = $this->actingAs($this->adminUser())

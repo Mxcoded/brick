@@ -387,7 +387,7 @@
                                         <div class="col-md-6">
                                             <label class="form-label fw-semibold">Location / Branch <span class="text-muted fw-normal">(Optional)</span></label>
                                             <input type="text" name="location" class="form-control"
-                                                value="{{ old('location') }}" placeholder="e.g. Asokoro, Abuja">
+                                                value="{{ old('location', $presetLocation) }}" placeholder="e.g. Asokoro, Abuja">
                                             @error('location') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
