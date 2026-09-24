@@ -75,7 +75,7 @@
                                class="btn btn-gold btn-sm px-3">
                                 <i class="fas fa-download me-1"></i> Download
                             </a>
-                            <button class="btn btn-outline-secondary btn-sm px-3"
+                            <button class="btn btn-outline-warning btn-sm px-3"
                                     onclick="navigator.clipboard.writeText('{{ $url }}').then(() => this.innerHTML='<i class=\'fas fa-check me-1\'></i> Copied!')">
                                 <i class="fas fa-copy me-1"></i> Copy Link
                             </button>
