@@ -13,6 +13,9 @@
                     'platinum-noir': 'Platinum Noir',
                     'sapphire-regal': 'Sapphire Regal',
                 })[slug];
+
+                window.brickspointSavedTheme = @js($this->savedTheme());
+                window.brickspointSavedThemeIsDark = @js($this->savedThemeIsDark());
             </script>
         @endpush
     @endonce
@@ -30,9 +33,9 @@
                             class="font-medium text-primary-600 underline decoration-primary-300 underline-offset-2 hover:text-primary-700 dark:text-primary-400"
                             x-data
                             x-on:click="
-                                $wire.set('data.theme', @js($this->savedTheme()), false);
-                                document.documentElement.dataset.theme = @js($this->savedTheme());
-                                document.documentElement.classList.toggle('dark', @js($this->savedThemeIsDark()));
+                                $wire.set('data.theme', window.brickspointSavedTheme, false);
+                                document.documentElement.dataset.theme = window.brickspointSavedTheme;
+                                document.documentElement.classList.toggle('dark', window.brickspointSavedThemeIsDark);
                             "
                         >
                             discard the changes
@@ -54,9 +57,9 @@
                     outlined
                     x-data
                     x-on:click="
-                        $wire.set('data.theme', @js($this->savedTheme()), false);
-                        document.documentElement.dataset.theme = @js($this->savedTheme());
-                        document.documentElement.classList.toggle('dark', @js($this->savedThemeIsDark()));
+                        $wire.set('data.theme', window.brickspointSavedTheme, false);
+                        document.documentElement.dataset.theme = window.brickspointSavedTheme;
+                        document.documentElement.classList.toggle('dark', window.brickspointSavedThemeIsDark);
                     "
                 >
                     Discard Preview
