@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Listeners\LogSuccessfulLogin;
 use App\Listeners\LogSuccessfulLogout;
 use App\Models\User;
+use App\Support\ThemeSettings;
 use App\View\Compilers\AtomicBladeCompiler;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -14,7 +15,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Modules\Website\Models\Settings;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -49,13 +49,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Share active theme and logo with base layout
         View::composer('layouts.base', function ($view) {
-            $theme = cache()->remember('app.theme', 3600, function () {
-                return Settings::where('key', 'theme')->value('value') ?? 'gold-legacy';
-            });
-            $logo = cache()->remember('app.logo', 3600, function () {
-                return Settings::where('key', 'logo')->value('value');
-            });
-            $view->with('theme', $theme)->with('logoSetting', $logo);
+            $view->with('theme', ThemeSettings::theme())
+                ->with('logoSetting', ThemeSettings::logo());
         });
 
         // Register login tracking listeners
