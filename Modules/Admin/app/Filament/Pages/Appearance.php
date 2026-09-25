@@ -2,9 +2,10 @@
 
 namespace Modules\Admin\Filament\Pages;
 
+use App\Support\ThemeSettings;
 use BackedEnum;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\ViewField;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
@@ -34,8 +35,8 @@ class Appearance extends Page implements HasForms
     public function mount(): void
     {
         $this->form->fill([
-            'theme' => Settings::where('key', 'theme')->value('value') ?? 'gold-legacy',
-            'logo' => Settings::where('key', 'logo')->value('value'),
+            'theme' => ThemeSettings::theme(),
+            'logo' => ThemeSettings::logo(),
         ]);
     }
 
@@ -43,26 +44,14 @@ class Appearance extends Page implements HasForms
     {
         return $form
             ->schema([
-                Section::make('Theme')
-                    ->description('Pick the colour palette used across the ERP.')
+                Section::make('Colour theme')
+                    ->description('Pick the colour palette used across the ERP. Selecting a card previews it live.')
                     ->schema([
-                        Radio::make('theme')
-                            ->label('Colour theme')
-                            ->options([
-                                'gold-legacy' => 'Gold Legacy',
-                                'platinum-noir' => 'Platinum Noir',
-                                'sapphire-regal' => 'Sapphire Regal',
-                            ])
-                            ->descriptions([
-                                'gold-legacy' => 'Warm gold accents on deep navy — the signature Brickspoint look.',
-                                'platinum-noir' => 'Monochromatic silver-on-black for a sleek, ultra-modern aesthetic.',
-                                'sapphire-regal' => 'Deep sapphire blue with refined gold trim — timeless corporate luxury.',
-                            ])
-                            ->default('gold-legacy')
-                            ->rules(['in:gold-legacy,platinum-noir,sapphire-regal'])
-                            ->required(),
+                        ViewField::make('theme')
+                            ->view('admin::filament.components.theme-selector')
+                            ->rules(['required', 'in:gold-legacy,platinum-noir,sapphire-regal']),
                     ]),
-                Section::make('Brand Logo')
+                Section::make('Brand logo')
                     ->description('Logo shown in the sidebar and login screen.')
                     ->schema([
                         FileUpload::make('logo')
@@ -72,7 +61,7 @@ class Appearance extends Page implements HasForms
                             ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/svg+xml'])
                             ->maxSize(2048)
                             ->imagePreviewHeight(60)
-                            ->helperText('PNG, JPG or SVG — max 2MB'),
+                            ->helperText('PNG, JPG or SVG — max 2MB. The preview on the right updates after you save.'),
                     ]),
             ])
             ->statePath('data');
@@ -99,6 +88,7 @@ class Appearance extends Page implements HasForms
         Notification::make()
             ->success()
             ->title('Appearance updated successfully.')
+            ->body('The new theme is now live across the portal.')
             ->send();
     }
 
@@ -122,6 +112,29 @@ class Appearance extends Page implements HasForms
     public function logoExists(): bool
     {
         return (bool) Settings::where('key', 'logo')->value('value');
+    }
+
+    public function logoUrl(): string
+    {
+        $logo = ThemeSettings::logo();
+
+        return filled($logo) ? Storage::disk('public')->url($logo) : '';
+    }
+
+    public function hasUnsavedThemeChanges(): bool
+    {
+        return (($this->data['theme'] ?? null) !== null)
+            && ($this->data['theme'] !== ThemeSettings::theme());
+    }
+
+    public function savedTheme(): string
+    {
+        return ThemeSettings::theme();
+    }
+
+    public function savedThemeIsDark(): bool
+    {
+        return ThemeSettings::isDark();
     }
 
     public static function canAccess(): bool

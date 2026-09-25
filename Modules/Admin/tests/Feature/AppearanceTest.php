@@ -4,6 +4,7 @@ namespace Modules\Admin\Tests\Feature;
 
 use App\Enums\RoleEnum;
 use App\Models\User;
+use App\Support\ThemeSettings;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Storage;
@@ -60,7 +61,7 @@ class AppearanceTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertSame('sapphire-regal', Settings::where('key', 'theme')->value('value'));
-        $this->assertFalse(cache()->has('app.theme'));
+        $this->assertSame('sapphire-regal', cache()->get('app.theme'));
     }
 
     public function test_remove_logo_deletes_setting_and_file()
@@ -99,5 +100,57 @@ class AppearanceTest extends TestCase
         $this->actingAs($user);
 
         $this->get('/admin/appearance')->assertForbidden();
+    }
+
+    public function test_theme_selector_renders_all_theme_cards_with_live_preview()
+    {
+        Livewire::test(Appearance::class)
+            ->assertSee('Gold Legacy')
+            ->assertSee('Platinum Noir')
+            ->assertSee('Sapphire Regal')
+            ->assertSee('Live preview')
+            ->assertSee('theme-option-gold-legacy')
+            ->assertSee('theme-option-platinum-noir')
+            ->assertSee('theme-option-sapphire-regal');
+    }
+
+    public function test_unsaved_theme_change_banner_shown_when_theme_changed()
+    {
+        $saved = ThemeSettings::theme();
+        $other = $saved === 'sapphire-regal' ? 'platinum-noir' : 'sapphire-regal';
+
+        Livewire::test(Appearance::class)
+            ->fillForm(['theme' => $other])
+            ->assertSee('Unsaved theme change');
+    }
+
+    public function test_save_rejects_invalid_theme()
+    {
+        $before = Settings::where('key', 'theme')->value('value');
+
+        Livewire::test(Appearance::class)
+            ->fillForm(['theme' => 'not-a-theme'])
+            ->call('save')
+            ->assertHasErrors();
+
+        $this->assertSame($before, Settings::where('key', 'theme')->value('value'));
+    }
+
+    public function test_discard_preview_button_restores_saved_theme()
+    {
+        Settings::updateOrCreate(
+            ['key' => 'theme'],
+            ['value' => 'sapphire-regal', 'type' => 'string']
+        );
+        cache()->forget('app.theme');
+
+        $saved = ThemeSettings::theme();
+        $other = $saved === 'platinum-noir' ? 'gold-legacy' : 'platinum-noir';
+
+        Livewire::test(Appearance::class)
+            ->fillForm(['theme' => $other])
+            ->assertSee('Unsaved theme change')
+            ->fillForm(['theme' => $saved])
+            ->assertDontSee('Unsaved theme change');
     }
 }
