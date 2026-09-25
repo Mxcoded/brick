@@ -55,6 +55,27 @@ class TestimonialController extends Controller
         return view('website::admin.testimonials.show', compact('testimonial'));
     }
 
+    public function wifiQr(Request $request)
+    {
+        $branch = trim((string) $request->input('branch'));
+
+        $urls = [];
+        foreach (Testimonial::TYPES as $type) {
+            $urls[$type] = route('website.guest-feedback', array_filter([
+                'type' => $type,
+                'branch' => $branch,
+            ]));
+        }
+
+        $branches = Testimonial::whereNotNull('location')
+            ->where('location', '!=', '')
+            ->distinct()
+            ->orderBy('location')
+            ->pluck('location');
+
+        return view('website::admin.testimonials.wifi-qr', compact('urls', 'branch', 'branches'));
+    }
+
     public function edit(Testimonial $testimonial)
     {
         return view('website::admin.testimonials.edit', compact('testimonial'));

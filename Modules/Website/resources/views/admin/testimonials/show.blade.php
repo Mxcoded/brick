@@ -64,6 +64,10 @@
                                 </span>
                             @endif
                         </dd>
+                        <dt class="col-sm-3">Location</dt>
+                        <dd class="col-sm-9">{{ $testimonial->location ?: 'N/A' }}</dd>
+                        <dt class="col-sm-3">Submitted At</dt>
+                        <dd class="col-sm-9">{{ $testimonial->created_at?->format('M d, Y g:i A') }}</dd>
                     </dl>
                 </div>
                 <div class="col-md-12 mt-3">

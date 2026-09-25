@@ -27,6 +27,7 @@ class Testimonial extends Model
         'type',
         'dining_venue',
         'event_name',
+        'location',
     ];
 
     public function scopeStay($q)

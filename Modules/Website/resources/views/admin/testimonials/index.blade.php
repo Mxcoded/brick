@@ -16,9 +16,14 @@
             <h1 class="h4 mb-0 fw-bold" style="color: var(--theme-heading);">
                 <i class="fas fa-star me-2" style="color: var(--theme-primary);"></i>Testimonials
             </h1>
-            <a href="{{ route('website.admin.testimonials.create') }}" class="btn btn-themed rounded-pill px-4">
-                <i class="fas fa-plus me-1"></i> New Testimonial
-            </a>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('website.admin.testimonials.wifi-qr') }}" class="btn btn-gold rounded-pill px-4">
+                    <i class="fas fa-qrcode me-1"></i> Review QR Cards
+                </a>
+                <a href="{{ route('website.admin.testimonials.create') }}" class="btn btn-themed rounded-pill px-4">
+                    <i class="fas fa-plus me-1"></i> New Testimonial
+                </a>
+            </div>
         </div>
         <div class="card-body p-4">
             @if (session('success'))

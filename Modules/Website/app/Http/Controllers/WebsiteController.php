@@ -985,6 +985,8 @@ class WebsiteController extends Controller
             $type = 'stay';
         }
 
+        $presetLocation = trim((string) $request->input('branch', $request->input('location', '')));
+
         $reviews = Testimonial::approved()->where('type', $type)->latest()->get();
         $typeLabel = ucfirst($type);
 
@@ -997,7 +999,7 @@ class WebsiteController extends Controller
         $meta_keywords = "Brickspoint reviews, Asokoro hotel reviews, $typeLabel reviews Abuja, boutique hotel Abuja reviews, guest testimonials Abuja";
         $og_title = "$typeLabel Reviews — Brickspoint Boutique Aparthotel Asokoro, Abuja";
 
-        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount', 'meta_description', 'meta_keywords', 'og_title'));
+        return view('website::testimonials', compact('settings', 'reviews', 'type', 'typeLabel', 'stayCount', 'restaurantCount', 'eventCount', 'totalCount', 'presetLocation', 'meta_description', 'meta_keywords', 'og_title'));
     }
 
     public function storeTestimonial(Request $request)
@@ -1016,6 +1018,7 @@ class WebsiteController extends Controller
             'stay_type' => 'nullable|string|max:255',
             'dining_venue' => 'nullable|string|max:255',
             'event_name' => 'nullable|string|max:255',
+            'location' => 'nullable|string|max:255',
         ]);
 
         $testimonial = Testimonial::create([
@@ -1027,6 +1030,7 @@ class WebsiteController extends Controller
             'stay_type' => $validated['stay_type'] ?? null,
             'dining_venue' => $validated['dining_venue'] ?? null,
             'event_name' => $validated['event_name'] ?? null,
+            'location' => $validated['location'] ?? null,
             'approved' => false,
         ]);
 

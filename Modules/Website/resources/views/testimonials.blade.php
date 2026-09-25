@@ -281,6 +281,15 @@
                                             <input type="text" name="event_name" class="form-control form-control-lg"
                                                 value="{{ old('event_name') }}" placeholder="e.g. New Year Gala, Wedding">
                                         </div>
+</div>
+                            </div>
+
+                                <div class="row g-4 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Location <span class="text-muted fw-normal">(Optional)</span></label>
+                                        <input type="text" name="location" class="form-control form-control-lg @error('location') is-invalid @enderror"
+                                            value="{{ old('location', $presetLocation ?? '') }}" placeholder="e.g. Asokoro">
+                                        @error('location') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
 

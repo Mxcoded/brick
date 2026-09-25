@@ -65,7 +65,7 @@ class ReviewSubmissionTest extends TestCase
             'type' => 'stay',
         ]);
 
-        Mail::assertSent(ReviewSubmitted::class, function ($mail) {
+        Mail::assertQueued(ReviewSubmitted::class, function ($mail) {
             return $mail->hasTo('jane@example.com')
                 && $mail->testimonial->guest_name === 'Jane Doe';
         });
@@ -92,7 +92,7 @@ class ReviewSubmissionTest extends TestCase
             'dining_venue' => 'Sky Restaurant',
         ]);
 
-        Mail::assertSent(ReviewSubmitted::class, function ($mail) {
+        Mail::assertQueued(ReviewSubmitted::class, function ($mail) {
             return $mail->hasTo('diner@example.com');
         });
     }
@@ -118,7 +118,7 @@ class ReviewSubmissionTest extends TestCase
             'event_name' => 'New Year Gala',
         ]);
 
-        Mail::assertSent(ReviewSubmitted::class, function ($mail) {
+        Mail::assertQueued(ReviewSubmitted::class, function ($mail) {
             return $mail->hasTo('attendee@example.com');
         });
     }
@@ -166,6 +166,39 @@ class ReviewSubmissionTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_guest_feedback_page_prefills_location_from_branch_param()
+    {
+        $response = $this->get(route('website.guest-feedback', ['type' => 'stay', 'branch' => 'Asokoro']));
+
+        $response->assertOk();
+        $response->assertSee('value="Asokoro"', false);
+    }
+
+    public function test_guest_review_branch_param_stores_location()
+    {
+        Mail::fake();
+
+        $response = $this->post(route('website.guest-feedback.store'), [
+            'guest_name' => 'Branch Guest',
+            'text' => 'Great stay!',
+            'rating' => 5,
+            'type' => 'stay',
+            'stay_type' => 'Business',
+            'location' => 'Asokoro',
+        ]);
+
+        $response->assertRedirect(route('website.testimonials'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('testimonials', [
+            'guest_name' => 'Branch Guest',
+            'location' => 'Asokoro',
+            'approved' => false,
+        ]);
+
+        Mail::assertNothingSent();
+    }
+
     public function test_confirmation_email_contains_review_details()
     {
         Mail::fake();
@@ -179,7 +212,7 @@ class ReviewSubmissionTest extends TestCase
             'stay_type' => 'Leisure',
         ]);
 
-        Mail::assertSent(ReviewSubmitted::class, function ($mail) {
+        Mail::assertQueued(ReviewSubmitted::class, function ($mail) {
             return $mail->hasTo('test@example.com')
                 && $mail->testimonial->guest_name === 'Test User'
                 && $mail->testimonial->rating === 4
