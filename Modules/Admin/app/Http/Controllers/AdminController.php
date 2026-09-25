@@ -548,7 +548,7 @@ class AdminController extends Controller
         $user = User::findOrFail($id);
         $user->update(['password' => $request->password]);
 
-        return redirect()->route('admin.users.index')
+        return redirect()->route('filament.admin.resources.users.index')
             ->with('success', "Password updated successfully for {$user->name}.");
     }
 
@@ -581,7 +581,7 @@ class AdminController extends Controller
 
         $this->recordRoleAudit($user, $oldRoles, $user->roles->pluck('name')->all());
 
-        return redirect()->route('admin.users.index')->with('success', 'Roles assigned successfully.');
+        return redirect()->route('filament.admin.resources.users.index')->with('success', 'Roles assigned successfully.');
     }
 
     public function createGuest()
@@ -606,7 +606,7 @@ class AdminController extends Controller
 
         $user->assignRole('guest');
 
-        return redirect()->route('admin.users.index', ['type' => 'guest'])
+        return redirect()->route('filament.admin.resources.users.index', ['type' => 'guest'])
             ->with('success', "Guest account created for {$user->name}.");
     }
 
@@ -620,7 +620,7 @@ class AdminController extends Controller
         $newType = $request->type;
 
         if ($user->type === $newType) {
-            return redirect()->route('admin.users.index')->with('info', "User is already a {$newType} account.");
+            return redirect()->route('filament.admin.resources.users.index')->with('info', "User is already a {$newType} account.");
         }
 
         $oldRoles = $user->roles->pluck('name')->all();
@@ -639,7 +639,7 @@ class AdminController extends Controller
 
         $this->recordRoleAudit($user, $oldRoles, $user->roles->pluck('name')->all(), $event);
 
-        return redirect()->route('admin.users.index')->with('success', $msg);
+        return redirect()->route('filament.admin.resources.users.index')->with('success', $msg);
     }
 
     public function createUserFromEmployee()
@@ -685,12 +685,12 @@ class AdminController extends Controller
             try {
                 Mail::to($user->email)->send(new AccountCreated($user, $request->password));
 
-                return redirect()->route('admin.users.index')
+                return redirect()->route('filament.admin.resources.users.index')
                     ->with('success', 'User account created successfully. Login credentials have been sent to '.$user->email.'.');
             } catch (\Exception $e) {
                 \Log::error('Failed to send account creation email for user '.$user->id.': '.$e->getMessage());
 
-                return redirect()->route('admin.users.index')
+                return redirect()->route('filament.admin.resources.users.index')
                     ->with('warning', 'User account created successfully, but the credentials email could not be delivered to '.$user->email.'. The user may need to use the "Forgot Password" option or you can resend credentials later.')
                     ->with('email_failed', true);
             }
@@ -725,7 +725,7 @@ class AdminController extends Controller
         $labels = ['active' => 'activated', 'suspended' => 'suspended', 'deactivated' => 'deactivated'];
         $msg = "{$user->name} has been {$labels[$request->status]}.";
 
-        return redirect()->route('admin.users.index')->with('success', $msg);
+        return redirect()->route('filament.admin.resources.users.index')->with('success', $msg);
     }
 
     public function resendCredentials(Request $request, User $user)
@@ -740,7 +740,7 @@ class AdminController extends Controller
         try {
             Mail::to($user->email)->send(new AccountCreated($user, $tempPassword));
 
-            return redirect()->route('admin.users.index')
+            return redirect()->route('filament.admin.resources.users.index')
                 ->with('success', "New login credentials have been sent to {$user->email}.");
         } catch (\Exception $e) {
             \Log::error('Failed to resend credentials for user '.$user->id.': '.$e->getMessage());

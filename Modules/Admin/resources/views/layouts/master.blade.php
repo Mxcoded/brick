@@ -49,8 +49,8 @@
 
                     @can('users.manage')
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.users.index') ? 'active' : '' }}"
-                                href="{{ route('admin.users.index') }}">
+                            <a class="nav-link {{ request()->routeIs('filament.admin.resources.users.*') ? 'active' : '' }}"
+                                href="{{ route('filament.admin.resources.users.index') }}">
                                 <i class="fas fa-users me-1"></i> Manage Users
                             </a>
                         </li>
@@ -58,14 +58,14 @@
 
                     @can('roles.manage')
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.permissions.index') ? 'active' : '' }}"
-                                href="{{ route('admin.permissions.index') }}">
+                            <a class="nav-link {{ request()->routeIs('filament.admin.resources.permissions.*') ? 'active' : '' }}"
+                                href="{{ route('filament.admin.resources.permissions.index') }}">
                                 <i class="fas fa-key me-1"></i> Manage Permissions
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('admin.roles.index') ? 'active' : '' }}"
-                                href="{{ route('admin.roles.index') }}">
+                            <a class="nav-link {{ request()->routeIs('filament.admin.resources.roles.*') ? 'active' : '' }}"
+                                href="{{ route('filament.admin.resources.roles.index') }}">
                                 <i class="fas fa-user-tag me-1"></i> Manage Roles
                             </a>
                         </li>

@@ -7,8 +7,8 @@
 </a>
 <div class="collapse {{ request()->routeIs('admin.*') ? 'show' : '' }}" id="adminSubmenu">
 
-    <a href="{{ route('admin.dashboard') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.pages.dashboard') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.pages.dashboard') ? 'active' : '' }}">
         <i class="fas fa-tachometer-alt fa-fw me-2"></i> Overview
     </a>
 
@@ -16,22 +16,22 @@
     <div class="sidebar-subheading">Access Control</div>
 
     @can('manage_users')
-    <a href="{{ route('admin.users.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.resources.users.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.users.*') ? 'active' : '' }}">
         <i class="fas fa-users fa-fw me-2"></i> Users
     </a>
     @endcan
 
     @can('manage_roles')
-    <a href="{{ route('admin.roles.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.resources.roles.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.roles.*') ? 'active' : '' }}">
         <i class="fas fa-user-tag fa-fw me-2"></i> Roles
     </a>
     @endcan
 
     @can('permissions.read')
-    <a href="{{ route('admin.permissions.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('admin.permissions.*') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.resources.permissions.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.permissions.*') ? 'active' : '' }}">
         <i class="fas fa-key fa-fw me-2"></i> Permissions
     </a>
     @endcan

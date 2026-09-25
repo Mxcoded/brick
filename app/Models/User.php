@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\RoleEnum;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -12,7 +15,7 @@ use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements AuditableContract
+class User extends Authenticatable implements AuditableContract, FilamentUser
 {
     use Auditable, HasApiTokens, HasFactory, HasRoles, Notifiable;
 
@@ -44,6 +47,11 @@ class User extends Authenticatable implements AuditableContract
             'suspended_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->hasRole(RoleEnum::ADMIN) || $this->can('access_admin_dashboard');
     }
 
     public function employee()

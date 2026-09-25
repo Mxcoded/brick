@@ -11,7 +11,7 @@
                 <h2 class="fw-bold mb-1"><i class="fas fa-user-plus me-2 text-gold"></i>Create User Account</h2>
                 <p class="text-muted mb-0">Link an employee to a staff portal account with role-based access</p>
             </div>
-            <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route('filament.admin.resources.users.index') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-1"></i> Back to Users
             </a>
         </div>
@@ -172,7 +172,7 @@
                                     <span id="submitText">Create Account</span>
                                     <span class="spinner-border spinner-border-sm d-none" id="submitSpinner" role="status"></span>
                                 </button>
-                                <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary btn-lg px-4">Cancel</a>
+                                <a href="{{ route('filament.admin.resources.users.index') }}" class="btn btn-outline-secondary btn-lg px-4">Cancel</a>
                             </div>
                         </div>
                     </div>

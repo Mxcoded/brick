@@ -2,6 +2,7 @@
 /node_modules
 # /public/build   # uncommented to track build output for cPanel deployment
 /public/hot
+/public/js/filament
 /public/storage
 /storage/*.key
 /storage/pail
@@ -27,3 +28,6 @@ yarn-error.log
 *.zip
 /pubstor.zip
 pubstor.zip
+
+/public/css/filament
+/public/fonts/filament

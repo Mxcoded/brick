@@ -1,7 +1,7 @@
 @extends('layouts.master')
 
 @section('current-breadcrumb')
-    <li class="breadcrumb-item"><a href="{{ route('admin.users.index') }}">Manage Users</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('filament.admin.resources.users.index') }}">Manage Users</a></li>
     <li class="breadcrumb-item active" aria-current="page">Create Guest</li>
 @endsection
 
@@ -11,7 +11,7 @@
             <h1 class="h3 mb-1 fw-bold"><i class="fas fa-user-plus me-2 text-gold"></i>Create Guest Account</h1>
             <p class="text-muted mb-0">Create a new guest user for the website portal</p>
         </div>
-        <a href="{{ route('admin.users.index', ['type' => 'guest']) }}" class="btn btn-outline-secondary">
+        <a href="{{ route('filament.admin.resources.users.index') }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i> Back to Users
         </a>
     </div>
@@ -64,7 +64,7 @@
                     <button type="submit" class="btn" style="background-color: #C8A165; border-color: #C8A165; color: #fff;">
                         <i class="fas fa-save me-1"></i> Create Guest
                     </button>
-                    <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                    <a href="{{ route('filament.admin.resources.users.index') }}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
             </form>
         </div>

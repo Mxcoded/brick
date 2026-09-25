@@ -2,7 +2,7 @@
 
 @section('title', 'Reset Password')
 @section('current-breadcrumb')
-    <li class="breadcrumb-item"><a href="{{ route('admin.users.index') }}">Manage Users</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('filament.admin.resources.users.index') }}">Manage Users</a></li>
     <li class="breadcrumb-item active" aria-current="page">Reset Password</li>
 @endsection
 
@@ -19,7 +19,7 @@
             <h1 class="h3 mb-0 text-gray-800">
                 <i class="fas fa-key me-2"></i>Reset Password: {{ $user->name }}
             </h1>
-            <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary btn-sm">
+            <a href="{{ route('filament.admin.resources.users.index') }}" class="btn btn-outline-secondary btn-sm">
                 <i class="fas fa-arrow-left me-1"></i>Back to Users
             </a>
         </div>
@@ -63,7 +63,7 @@
                         <button type="submit" class="btn btn-gold">
                             <i class="fas fa-save me-1"></i>Update Password
                         </button>
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <a href="{{ route('filament.admin.resources.users.index') }}" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
             </div>
