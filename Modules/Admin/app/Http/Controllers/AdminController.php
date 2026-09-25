@@ -746,31 +746,6 @@ class AdminController extends Controller
         }
     }
 
-    public function modules()
-    {
-        $allModules = Module::all();
-
-        return view('admin::modules.index', compact('allModules'));
-    }
-
-    public function toggleModule($name)
-    {
-        $module = Module::find($name);
-        if (! $module) {
-            return back()->with('error', "Module '{$name}' not found.");
-        }
-
-        if ($module->isEnabled()) {
-            $module->disable();
-
-            return back()->with('success', "Module '{$name}' disabled.");
-        } else {
-            $module->enable();
-
-            return back()->with('success', "Module '{$name}' enabled.");
-        }
-    }
-
     /**
      * Record a role assignment/removal as a custom audit entry on the user.
      *

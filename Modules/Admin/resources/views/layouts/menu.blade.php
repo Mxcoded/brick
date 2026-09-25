@@ -40,8 +40,8 @@
     <div class="sidebar-subheading">System</div>
 
     @can('manage_settings')
-    <a href="{{ route('admin.modules.index') }}"
-        class="list-group-item list-group-item-action {{ request()->routeIs('admin.modules.*') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.pages.modules') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.pages.modules') ? 'active' : '' }}">
         <i class="fas fa-cubes fa-fw me-2"></i> Modules
     </a>
 
