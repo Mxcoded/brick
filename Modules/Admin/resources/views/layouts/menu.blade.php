@@ -45,8 +45,8 @@
         <i class="fas fa-cubes fa-fw me-2"></i> Modules
     </a>
 
-    <a href="{{ route('admin.appearance') }}"
-        class="list-group-item list-group-item-action {{ request()->routeIs('admin.appearance') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.pages.appearance') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.pages.appearance') ? 'active' : '' }}">
         <i class="fas fa-palette fa-fw me-2"></i> Appearance
     </a>
     @endcan

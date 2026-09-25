@@ -31,9 +31,4 @@ Route::prefix('admin')
 
         Route::get('/employees/create-user', [AdminController::class, 'createUserFromEmployee'])->name('employees.create-user');
         Route::post('/employees/store-user', [AdminController::class, 'storeUserFromEmployee'])->name('employees.store-user');
-
-        Route::get('/appearance', [AdminController::class, 'appearance'])->name('appearance');
-        Route::put('/appearance', [AdminController::class, 'updateAppearance'])->name('appearance.update');
-        Route::put('/appearance/logo', [AdminController::class, 'updateLogo'])->name('appearance.logo');
-        Route::delete('/appearance/logo', [AdminController::class, 'removeLogo'])->name('appearance.logo.remove');
     });
