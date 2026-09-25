@@ -3,14 +3,17 @@
 namespace Modules\Admin\Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Livewire;
+use Modules\Admin\Filament\Resources\PaymentGateways\Pages\CreatePaymentGateway;
+use Modules\Admin\Filament\Resources\PaymentGateways\Pages\EditPaymentGateway;
+use Modules\Admin\Filament\Resources\PaymentGateways\Pages\ListPaymentGateways;
 use Modules\Website\Models\PaymentGateway;
 use Tests\TestCase;
 
 /**
- * Confirms the payment-gateway configuration UI/UX renders correctly and is
+ * Confirms the Filament payment-gateway resource renders correctly and is
  * guarded by the manage_payment_gateways permission.
  */
 class PaymentGatewayAdminUiTest extends TestCase
@@ -20,8 +23,6 @@ class PaymentGatewayAdminUiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->withoutMiddleware([ValidateCsrfToken::class]);
 
         // Isolate from any gateway rows committed by other suites in the shared test DB.
         PaymentGateway::query()->delete();
@@ -69,58 +70,72 @@ class PaymentGatewayAdminUiTest extends TestCase
             'credentials' => ['secret' => 'sk_live_x', 'public' => 'pk_live_x'],
         ]);
 
-        $response = $this->get(route('admin.payment-gateways.index'));
+        $component = Livewire::test(ListPaymentGateways::class);
 
-        $response->assertOk();
-        $response->assertSee('Payment Gateways');
-        $response->assertSee('Paystack');
-        $response->assertSee('Stripe');
-        $response->assertSee('Default');   // default badge on Paystack
-        $response->assertSee('Deactivate'); // toggle action on active gateway
-        $response->assertSee('Set Default'); // action on inactive Stripe
+        $component->assertOk();
+        $component->assertTableColumnExists('name');
+        $component->assertCanSeeTableRecords(PaymentGateway::all());
+        $component->assertTableActionVisible('set-default'); // Stripe (not default)
+        $component->assertTableActionVisible('toggle-active'); // both gateways
     }
 
     public function test_create_page_exposes_gateway_options_and_credential_fields(): void
     {
         $this->actingAs($this->adminUser());
 
-        $response = $this->get(route('admin.payment-gateways.create'));
+        $component = Livewire::test(CreatePaymentGateway::class);
 
-        $response->assertOk();
-        $response->assertSee('Add Payment Gateway');
-        // Gateway selector options
-        $response->assertSee('paystack');
-        $response->assertSee('stripe');
-        // Credential field toggling script
-        $response->assertSee('credential-fields');
-        $response->assertSee('toggleFields');
+        // Gateway selector options + base fields render.
+        $component->assertFormFieldExists('code');
+        $component->assertFormFieldExists('name');
+        $component->assertFormFieldExists('is_active');
+        $component->assertFormFieldExists('is_default');
+
+        // Credential fields are only shown for the currently selected driver.
+        $component->assertFormFieldHidden('credentials.secret');
+        $component->set('data.code', 'stripe')->assertOk();
+        $component->assertFormFieldVisible('credentials.secret');
+        $component->set('data.code', 'paystack')->assertOk();
+        $component->assertFormFieldVisible('credentials.secret');
+
+        // Stripe's webhook_secret must not appear for Paystack.
+        $component->assertFormFieldHidden('credentials.webhook_secret');
     }
 
-    public function test_store_persists_encrypted_credentials_and_redirects(): void
+    public function test_store_persists_encrypted_credentials_and_syncs_default(): void
     {
         $this->actingAs($this->adminUser());
 
-        $response = $this->post(route('admin.payment-gateways.store'), [
-            'code' => 'stripe',
-            'name' => 'Stripe',
-            'is_active' => '1',
-            'is_default' => '1',
-            'credentials' => ['secret' => 'sk_live_abc', 'public' => 'pk_live_abc', 'webhook_secret' => 'whsec_abc'],
-        ]);
-
-        $response->assertRedirect(route('admin.payment-gateways.index'));
-        $response->assertSessionHas('success');
+        Livewire::test(CreatePaymentGateway::class)
+            ->fillForm([
+                'code' => 'stripe',
+                'name' => 'Stripe',
+                'is_active' => true,
+                'is_default' => true,
+                'credentials' => [
+                    'secret' => 'sk_live_abc',
+                    'public' => 'pk_live_abc',
+                    'webhook_secret' => 'whsec_abc',
+                    'irrelevant' => 'nope',
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
 
         $gateway = PaymentGateway::where('code', 'stripe')->firstOrFail();
+        $this->assertEquals('stripe', $gateway->driver);
         // Credentials are encrypted at rest but decryptable.
         $this->assertEquals('sk_live_abc', $gateway->credential('secret'));
         $this->assertTrue($gateway->is_active);
         $this->assertTrue($gateway->is_default);
+
         // Only Stripe's fields are stored (driver whitelist enforced).
         $this->assertArrayNotHasKey('irrelevant', $gateway->credentials);
+        $this->assertArrayHasKey('webhook_secret', $gateway->credentials);
+        $this->assertSame(['secret', 'public', 'webhook_secret'], array_keys($gateway->credentials));
     }
 
-    public function test_edit_page_prefills_credentials_without_exposing_plain_secret_issue(): void
+    public function test_edit_page_does_not_expose_existing_secret_and_preserves_blank_fields(): void
     {
         $this->actingAs($this->adminUser());
 
@@ -130,12 +145,23 @@ class PaymentGatewayAdminUiTest extends TestCase
             'credentials' => ['secret' => 'sk_test_existing', 'public' => 'pk_test_existing'],
         ]);
 
-        $response = $this->get(route('admin.payment-gateways.edit', $gateway));
+        $component = Livewire::test(EditPaymentGateway::class, ['record' => $gateway->getKey()]);
 
-        $response->assertOk();
-        $response->assertSee('Edit Payment Gateway');
-        $response->assertSee('sk_test_existing'); // value prefilled
-        $response->assertSee('Leave a field blank to keep its current value');
+        // Legacy edit pre-filled secrets; the Filament edit deliberately starts
+        // credential fields blank so stored secrets are never re-exposed.
+        $component->assertSchemaComponentStateSet('credentials.secret', '');
+        $component->assertSchemaComponentStateSet('credentials.public', '');
+
+        // Saving with blank credential fields must preserve existing values.
+        Livewire::test(EditPaymentGateway::class, ['record' => $gateway->getKey()])
+            ->fillForm(['name' => 'Paystack Updated'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $gateway->refresh();
+        $this->assertEquals('sk_test_existing', $gateway->credential('secret'));
+        $this->assertEquals('pk_test_existing', $gateway->credential('public'));
+        $this->assertEquals('Paystack Updated', $gateway->name);
     }
 
     public function test_update_keeps_existing_secret_when_field_left_blank(): void
@@ -148,24 +174,60 @@ class PaymentGatewayAdminUiTest extends TestCase
             'credentials' => ['secret' => 'sk_test_keepme', 'public' => 'pk_test_keepme'],
         ]);
 
-        // Submit with blank secret/public → must preserve existing values.
-        $response = $this->put(route('admin.payment-gateways.update', $gateway), [
-            'name' => 'Paystack Updated',
-            'credentials' => ['secret' => '', 'public' => ''],
+        // Partial fill: only the secret is replaced, the blank public key stays.
+        Livewire::test(EditPaymentGateway::class, ['record' => $gateway->getKey()])
+            ->fillForm(['credentials' => ['secret' => 'sk_test_new', 'public' => '']])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $gateway->refresh();
+        $this->assertEquals('sk_test_new', $gateway->credential('secret'));
+        $this->assertEquals('pk_test_keepme', $gateway->credential('public'));
+    }
+
+    public function test_set_default_action_promotes_gateway_and_deactivates_others(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $paystack = PaymentGateway::create([
+            'code' => 'paystack', 'name' => 'Paystack', 'driver' => 'paystack',
+            'is_active' => true, 'is_default' => true,
+        ]);
+        $stripe = PaymentGateway::create([
+            'code' => 'stripe', 'name' => 'Stripe', 'driver' => 'stripe',
+            'is_active' => false, 'is_default' => false,
         ]);
 
-        $response->assertRedirect(route('admin.payment-gateways.index'));
-        $gateway->refresh();
-        $this->assertEquals('sk_test_keepme', $gateway->credential('secret'));
-        $this->assertEquals('pk_test_keepme', $gateway->credential('public'));
-        $this->assertEquals('Paystack Updated', $gateway->name);
+        Livewire::test(ListPaymentGateways::class)
+            ->callTableAction('set-default', $stripe->getKey())
+            ->assertHasNoTableActionErrors();
+
+        $this->assertSame(1, PaymentGateway::where('is_default', true)->count());
+        $this->assertTrue($stripe->refresh()->is_default);
+        $this->assertTrue($stripe->refresh()->is_active);
+    }
+
+    public function test_toggle_active_action_flips_status(): void
+    {
+        $this->actingAs($this->adminUser());
+
+        $gateway = PaymentGateway::create([
+            'code' => 'stripe', 'name' => 'Stripe', 'driver' => 'stripe',
+            'is_active' => false, 'is_default' => false,
+        ]);
+
+        Livewire::test(ListPaymentGateways::class)
+            ->callTableAction('toggle-active', $gateway->getKey())
+            ->assertHasNoTableActionErrors();
+
+        $this->assertTrue($gateway->refresh()->is_active);
     }
 
     public function test_unauthorized_user_is_forbidden_from_gateway_routes(): void
     {
         $this->actingAs($this->dashboardOnlyUser());
 
-        $this->get(route('admin.payment-gateways.index'))->assertForbidden();
-        $this->get(route('admin.payment-gateways.create'))->assertForbidden();
+        $this->get('/admin/payment-gateways')->assertForbidden();
+        $this->get('/admin/payment-gateways/create')->assertForbidden();
     }
 }

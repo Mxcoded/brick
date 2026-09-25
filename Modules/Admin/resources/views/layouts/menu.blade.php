@@ -52,8 +52,8 @@
     @endcan
 
     @can('manage_payment_gateways')
-    <a href="{{ route('admin.payment-gateways.index') }}"
-        class="list-group-item list-group-item-action {{ request()->routeIs('admin.payment-gateways.*') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.resources.payment-gateways.index') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.payment-gateways.*') ? 'active' : '' }}">
         <i class="fas fa-credit-card fa-fw me-2"></i> Payment Gateways
     </a>
     @endcan
