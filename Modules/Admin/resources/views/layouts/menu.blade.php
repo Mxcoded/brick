@@ -66,8 +66,8 @@
         <i class="fas fa-history fa-fw me-2"></i> Activity Logs
     </a>
 
-    <a href="{{ route('admin.login-logs.index') }}"
-        class="list-group-item list-group-item-action {{ request()->routeIs('admin.login-logs.*') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.resources.login-logs.index') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.login-logs.*') ? 'active' : '' }}">
         <i class="fas fa-sign-in-alt fa-fw me-2"></i> Login History
     </a>
 

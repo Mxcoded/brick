@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\LoginLogController;
 use Illuminate\Support\Facades\Route;
 use Modules\Admin\Http\Controllers\AdminController;
 
@@ -40,13 +39,4 @@ Route::prefix('admin')
         Route::put('/appearance', [AdminController::class, 'updateAppearance'])->name('appearance.update');
         Route::put('/appearance/logo', [AdminController::class, 'updateLogo'])->name('appearance.logo');
         Route::delete('/appearance/logo', [AdminController::class, 'removeLogo'])->name('appearance.logo.remove');
-
-        // Login Logs / User Activity Tracking
-        Route::prefix('login-logs')->name('login-logs.')->group(function () {
-            Route::get('/', [LoginLogController::class, 'index'])->name('index');
-            Route::get('/datatable', [LoginLogController::class, 'datatable'])->name('datatable');
-            Route::get('/active-sessions', [LoginLogController::class, 'activeSessions'])->name('active-sessions');
-            Route::get('/user/{userId}', [LoginLogController::class, 'userHistory'])->name('user-history');
-            Route::get('/export', [LoginLogController::class, 'export'])->name('export');
-        });
     });
