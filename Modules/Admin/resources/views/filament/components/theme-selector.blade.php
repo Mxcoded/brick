@@ -18,7 +18,7 @@
                 document.documentElement.classList.toggle('dark', {{ $meta['dark'] ? 'true' : 'false' }});
             "
             x-bind:class="{
-                'fi-ring-2 fi-ring-primary-500 fi-ring-offset-2 border-transparent': theme === '{{ $slug }}',
+                'ring-2 ring-primary-500 ring-offset-2 border-transparent': theme === '{{ $slug }}',
                 'border-gray-200 dark:border-gray-700 hover:border-primary-500/60': theme !== '{{ $slug }}',
             }"
             x-bind:aria-pressed="theme === '{{ $slug }}'"

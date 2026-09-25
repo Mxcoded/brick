@@ -21,7 +21,7 @@
     @endonce
 
     @if ($this->hasUnsavedThemeChanges())
-        <x-filament::section color="warning" compact class="!fi-ring-0">
+        <x-filament::section color="warning" compact>
             <div class="flex items-start gap-3">
                 <x-filament::icon icon="heroicon-o-exclamation-triangle" class="mt-0.5 h-5 w-5 text-warning-500" />
                 <div>

@@ -31,6 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->authGuard('web')
+            ->viteTheme('resources/css/app.css')
             ->colors([
                 'primary' => ThemeSettings::accent(),
             ])
