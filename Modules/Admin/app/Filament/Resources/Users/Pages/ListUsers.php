@@ -2,8 +2,11 @@
 
 namespace Modules\Admin\Filament\Resources\Users\Pages;
 
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Support\Icons\Heroicon;
+use Modules\Admin\Filament\Pages\CreateUserFromEmployee;
 use Modules\Admin\Filament\Resources\Users\UserResource;
 
 class ListUsers extends ListRecords
@@ -14,6 +17,11 @@ class ListUsers extends ListRecords
     {
         return [
             CreateAction::make(),
+
+            Action::make('createUserFromEmployee')
+                ->label('Create from Employee')
+                ->icon(Heroicon::OutlinedUserPlus)
+                ->url(fn (): string => CreateUserFromEmployee::getUrl()),
         ];
     }
 }

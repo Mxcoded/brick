@@ -8,6 +8,7 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Modules\Admin\Filament\Resources\AuditTrails\Pages\ListAuditTrails;
+use Modules\Admin\Filament\Resources\Users\Pages\EditUser;
 use OwenIt\Auditing\Models\Audit;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -229,13 +230,12 @@ class AuditTrailTest extends TestCase
     {
         $target = User::factory()->create(['type' => 'staff', 'status' => 'active']);
 
-        $response = $this->post(route('admin.users.assign-role'), [
-            'user_id' => $target->id,
-            'roles' => ['admin'],
-        ]);
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
+        Livewire::test(EditUser::class, ['record' => $target->getKey()])
+            ->fillForm(['roles' => [$adminRole->getKey()]])
+            ->call('save')
+            ->assertHasNoFormErrors();
 
         $audit = Audit::where('auditable_type', User::class)
             ->where('auditable_id', $target->id)
@@ -251,10 +251,12 @@ class AuditTrailTest extends TestCase
     {
         $target = User::factory()->create(['type' => 'staff', 'status' => 'active']);
 
-        $this->post(route('admin.users.assign-role'), [
-            'user_id' => $target->id,
-            'roles' => ['admin'],
-        ]);
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+
+        Livewire::test(EditUser::class, ['record' => $target->getKey()])
+            ->fillForm(['roles' => [$adminRole->getKey()]])
+            ->call('save')
+            ->assertHasNoFormErrors();
 
         Livewire::test(ListAuditTrails::class)
             ->assertSee('Role Assigned')
