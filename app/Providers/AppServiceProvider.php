@@ -27,14 +27,40 @@ class AppServiceProvider extends ServiceProvider
         // errors when concurrent requests trigger recompilation simultaneously.
         // Registered in register() (not boot()) so package providers (e.g. Livewire's
         // tag precompiler) register on this instance rather than a discarded one.
+        // The original compiler is preserved so registrations made on it before the
+        // swap survive — otherwise Laravel's built-in `dynamic-component` alias (and
+        // any earlier package directives/aliases) would be silently dropped and
+        // `x-dynamic-component` would fail to compile.
         $this->app->extend('blade.compiler', function ($bladeCompiler, $app) {
-            return new AtomicBladeCompiler(
+            $atomic = new AtomicBladeCompiler(
                 $app['files'],
                 $app['config']['view.compiled'],
                 $app['config']->get('view.relative_hash', false) ? $app->basePath() : '',
                 $app['config']->get('view.cache', true),
                 $app['config']->get('view.compiled_extension', 'php'),
             );
+
+            foreach ($bladeCompiler->getClassComponentAliases() as $alias => $class) {
+                $atomic->component($class, $alias);
+            }
+
+            foreach ($bladeCompiler->getClassComponentNamespaces() as $prefix => $namespace) {
+                $atomic->componentNamespace($namespace, $prefix);
+            }
+
+            foreach ($bladeCompiler->getAnonymousComponentPaths() as $componentPath) {
+                $atomic->anonymousComponentPath(
+                    $componentPath['path'],
+                    $componentPath['prefix'],
+                    $componentPath['types'],
+                );
+            }
+
+            foreach ($bladeCompiler->getCustomDirectives() as $name => $handler) {
+                $atomic->directive($name, $handler);
+            }
+
+            return $atomic;
         });
     }
 
