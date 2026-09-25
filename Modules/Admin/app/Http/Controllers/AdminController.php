@@ -5,7 +5,6 @@ namespace Modules\Admin\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Mail\AccountCreated;
 use App\Models\User;
-use App\Models\UserActivityLog;
 use App\Models\UserLoginLog;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
@@ -773,34 +772,6 @@ class AdminController extends Controller
 
             return back()->with('success', "Module '{$name}' enabled.");
         }
-    }
-
-    public function activityLogs(Request $request)
-    {
-        $query = UserActivityLog::with('user')->recent();
-
-        if ($search = $request->input('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('description', 'like', "%{$search}%")
-                    ->orWhere('action', 'like', "%{$search}%")
-                    ->orWhere('ip_address', 'like', "%{$search}%")
-                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"));
-            });
-        }
-
-        if ($action = $request->input('action')) {
-            $query->where('action', $action);
-        }
-
-        if ($userId = $request->input('user_id')) {
-            $query->where('user_id', $userId);
-        }
-
-        $logs = $query->paginate(50);
-        $actions = UserActivityLog::select('action')->distinct()->pluck('action');
-        $users = User::orderBy('name')->get(['id', 'name']);
-
-        return view('admin::activity-logs.index', compact('logs', 'actions', 'users'));
     }
 
     public function auditTrails(Request $request)

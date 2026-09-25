@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\UserActivityLog;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Livewire\Livewire;
+use Modules\Admin\Filament\Resources\ActivityLogs\Pages\ListActivityLogs;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -37,12 +39,12 @@ class ActivityLogsPageTest extends TestCase
     }
 
     /**
-     * The activity log page should render the new color-coded verb labels and
+     * The activity log resource should render the new color-coded verb labels and
      * show which resource/record was affected for quick context visibility.
      */
-    public function test_activity_logs_page_renders_with_colored_verb_labels()
+    public function test_activity_logs_resource_renders_with_colored_verb_labels()
     {
-        UserActivityLog::create([
+        $log = UserActivityLog::create([
             'user_id' => $this->admin->id,
             'action' => 'room-types.update',
             'description' => 'Room Types: Assignment Suite (#5)',
@@ -52,15 +54,41 @@ class ActivityLogsPageTest extends TestCase
             'user_agent' => 'test-agent',
         ]);
 
-        $response = $this->get(route('admin.activity-logs.index'));
+        $component = Livewire::test(ListActivityLogs::class);
 
-        $response->assertOk();
-        $response->assertSee('User Activity Logs');
+        $component->assertOk();
         // Verb label derived from the action's "update" verb.
-        $response->assertSee('Updated');
-        // Resource context is shown for visibility.
-        $response->assertSee('Room Types');
-        // The affected record name is visible in the description.
-        $response->assertSee('Assignment Suite');
+        $component->assertTableActionDoesNotExist('edit');
+        $component->assertCanSeeTableRecords([$log]);
+        $component->assertTableColumnExists('action');
+        $component->assertTableColumnExists('description');
+        $component->assertTableColumnExists('user.name');
+
+        // Render the table HTML and confirm the derived labels/context appear.
+        $component->assertSee('Updated');
+        $component->assertSee('Room Types');
+        $component->assertSee('Assignment Suite');
+    }
+
+    public function test_activity_logs_resource_requires_admin_dashboard_access()
+    {
+        auth()->logout();
+
+        $this->get('/admin/activity-logs')->assertRedirect('/admin/login');
+    }
+
+    public function test_activity_logs_resource_rejects_users_without_permission()
+    {
+        $noAccess = User::factory()->create(['type' => 'staff', 'status' => 'active']);
+
+        $this->actingAs($noAccess)
+            ->get('/admin/activity-logs')
+            ->assertForbidden();
+    }
+
+    public function test_activity_logs_resource_is_read_only()
+    {
+        Livewire::test(ListActivityLogs::class)
+            ->assertOk();
     }
 }

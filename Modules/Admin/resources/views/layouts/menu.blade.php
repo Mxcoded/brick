@@ -61,8 +61,8 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Audit &amp; Logs</div>
 
-    <a href="{{ route('admin.activity-logs.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('admin.activity-logs.*') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.resources.activity-logs.index') }}"
+       class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.activity-logs.*') ? 'active' : '' }}">
         <i class="fas fa-history fa-fw me-2"></i> Activity Logs
     </a>
 

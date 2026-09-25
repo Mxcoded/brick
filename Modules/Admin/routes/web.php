@@ -36,7 +36,6 @@ Route::prefix('admin')
         Route::get('/modules', [AdminController::class, 'modules'])->name('modules.index');
         Route::post('/modules/{name}/toggle', [AdminController::class, 'toggleModule'])->name('modules.toggle');
 
-        Route::get('/activity-logs', [AdminController::class, 'activityLogs'])->name('activity-logs.index');
         Route::get('/audit-trails', [AdminController::class, 'auditTrails'])->name('audit-trails.index');
         Route::post('/audit-trails/{id}/restore', [AdminController::class, 'restoreAudit'])->name('audit-trails.restore');
 
