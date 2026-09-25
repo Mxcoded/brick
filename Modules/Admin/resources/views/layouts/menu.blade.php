@@ -71,8 +71,8 @@
         <i class="fas fa-sign-in-alt fa-fw me-2"></i> Login History
     </a>
 
-    <a href="{{ route('admin.audit-trails.index') }}"
-        class="list-group-item list-group-item-action {{ request()->routeIs('admin.audit-trails.*') ? 'active' : '' }}">
+    <a href="{{ route('filament.admin.resources.audit-trails.index') }}"
+        class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.audit-trails.*') ? 'active' : '' }}">
         <i class="fas fa-clipboard-list fa-fw me-2"></i> Audit Trails
     </a>
 

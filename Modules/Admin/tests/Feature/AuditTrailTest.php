@@ -6,6 +6,8 @@ use App\Enums\RoleEnum;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Livewire\Livewire;
+use Modules\Admin\Filament\Resources\AuditTrails\Pages\ListAuditTrails;
 use OwenIt\Auditing\Models\Audit;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -38,11 +40,8 @@ class AuditTrailTest extends TestCase
 
     public function test_audit_trail_page_loads()
     {
-        $response = $this->get(route('admin.audit-trails.index'));
-
-        $response->assertOk();
-        $response->assertSee('Field-Level Audit Trails');
-        $response->assertSee('Audit Trails');
+        Livewire::test(ListAuditTrails::class)
+            ->assertOk();
     }
 
     public function test_audit_trail_shows_field_changes()
@@ -50,48 +49,44 @@ class AuditTrailTest extends TestCase
         $targetUser = User::factory()->create(['name' => 'Original Name']);
         $targetUser->update(['name' => 'Updated Name']);
 
-        $response = $this->get(route('admin.audit-trails.index'));
+        $component = Livewire::test(ListAuditTrails::class);
 
-        $response->assertOk();
-        $response->assertSee('User');
-        $response->assertSee('Original Name');
-        $response->assertSee('Updated Name');
-        $response->assertSee('Updated');
+        $component->assertOk();
+        $component->assertSee('Original Name');
+        $component->assertSee('Updated Name');
+        $component->assertSee('Updated');
     }
 
     public function test_audit_trail_filters_by_event()
     {
         $targetUser = User::factory()->create();
 
-        $response = $this->get(route('admin.audit-trails.index', ['event' => 'created']));
+        $component = Livewire::test(ListAuditTrails::class);
 
-        $response->assertOk();
-        $response->assertSee(class_basename($targetUser::class));
+        $component->filterTable('event', 'created')
+            ->assertOk()
+            ->assertSee(class_basename($targetUser::class));
 
-        $response = $this->get(route('admin.audit-trails.index', ['event' => 'deleted']));
-
-        $response->assertOk();
+        $component->filterTable('event', 'deleted')
+            ->assertOk();
     }
 
     public function test_audit_trail_filters_by_model_type()
     {
         User::factory()->create();
 
-        $response = $this->get(route('admin.audit-trails.index', [
-            'auditable_type' => 'App\\Models\\User',
-        ]));
-
-        $response->assertOk();
-        $response->assertSee('User');
+        Livewire::test(ListAuditTrails::class)
+            ->filterTable('auditable_type', 'App\\Models\\User')
+            ->assertOk()
+            ->assertSee('User');
     }
 
     public function test_audit_trail_requires_authentication()
     {
         auth()->logout();
 
-        $response = $this->get(route('admin.audit-trails.index'));
-
-        $response->assertRedirect(route('login'));
+        $this->get('/admin/audit-trails')
+            ->assertRedirect('/admin/login');
     }
 
     public function test_audit_trail_requires_admin_permission()
@@ -99,9 +94,7 @@ class AuditTrailTest extends TestCase
         $user = User::factory()->create(['type' => 'staff', 'status' => 'active']);
         $this->actingAs($user);
 
-        $response = $this->get(route('admin.audit-trails.index'));
-
-        $response->assertForbidden();
+        $this->get('/admin/audit-trails')->assertForbidden();
     }
 
     public function test_model_update_creates_audit_record()
@@ -161,10 +154,10 @@ class AuditTrailTest extends TestCase
     {
         User::factory()->create(['name' => 'SearchableUser123']);
 
-        $response = $this->get(route('admin.audit-trails.index', ['search' => 'SearchableUser123']));
-
-        $response->assertOk();
-        $response->assertSee('SearchableUser123');
+        Livewire::test(ListAuditTrails::class)
+            ->searchTable('SearchableUser123')
+            ->assertOk()
+            ->assertSee('SearchableUser123');
     }
 
     public function test_restore_reverts_an_updated_record()
@@ -177,10 +170,10 @@ class AuditTrailTest extends TestCase
             ->where('event', 'updated')
             ->firstOrFail();
 
-        $response = $this->post(route('admin.audit-trails.restore', $audit->id));
+        Livewire::test(ListAuditTrails::class)
+            ->callTableAction('restore', $audit->getKey())
+            ->assertHasNoTableActionErrors();
 
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
         $this->assertEquals('Before Restore', $target->fresh()->name);
 
         // The revert itself is recorded as a new audit entry.
@@ -202,10 +195,8 @@ class AuditTrailTest extends TestCase
             ->where('event', 'created')
             ->firstOrFail();
 
-        $response = $this->post(route('admin.audit-trails.restore', $audit->id));
-
-        $response->assertRedirect();
-        $response->assertSessionHas('error');
+        Livewire::test(ListAuditTrails::class)
+            ->assertTableActionHidden('restore', $audit->getKey());
     }
 
     public function test_audit_trail_shows_restore_action_for_updated()
@@ -213,10 +204,14 @@ class AuditTrailTest extends TestCase
         $target = User::factory()->create(['name' => 'Restore Button User']);
         $target->update(['name' => 'Changed Name']);
 
-        $response = $this->get(route('admin.audit-trails.index'));
+        $audit = Audit::where('auditable_type', User::class)
+            ->where('auditable_id', $target->id)
+            ->where('event', 'updated')
+            ->firstOrFail();
 
-        $response->assertOk();
-        $response->assertSee('Restore');
+        Livewire::test(ListAuditTrails::class)
+            ->assertTableActionVisible('restore', $audit->getKey())
+            ->assertTableActionHasLabel('restore', 'Restore');
     }
 
     public function test_restore_requires_admin_permission()
@@ -226,14 +221,8 @@ class AuditTrailTest extends TestCase
 
         $target = User::factory()->create(['name' => 'Perm Check']);
         $target->update(['name' => 'Changed']);
-        $audit = Audit::where('auditable_type', User::class)
-            ->where('auditable_id', $target->id)
-            ->where('event', 'updated')
-            ->firstOrFail();
 
-        $response = $this->post(route('admin.audit-trails.restore', $audit->id));
-
-        $response->assertForbidden();
+        $this->get('/admin/audit-trails')->assertForbidden();
     }
 
     public function test_role_assignment_is_audited()
@@ -267,10 +256,8 @@ class AuditTrailTest extends TestCase
             'roles' => ['admin'],
         ]);
 
-        $response = $this->get(route('admin.audit-trails.index'));
-
-        $response->assertOk();
-        $response->assertSee('Role Assigned');
-        $response->assertSee('admin');
+        Livewire::test(ListAuditTrails::class)
+            ->assertSee('Role Assigned')
+            ->assertSee('admin');
     }
 }

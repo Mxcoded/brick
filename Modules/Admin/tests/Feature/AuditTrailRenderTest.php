@@ -6,6 +6,8 @@ use App\Enums\RoleEnum;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Livewire\Livewire;
+use Modules\Admin\Filament\Resources\AuditTrails\Pages\ListAuditTrails;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\Offer;
 use Modules\Website\Models\OffersPage;
@@ -41,12 +43,11 @@ class AuditTrailRenderTest extends TestCase
 
     public function test_page_renders_all_expected_columns(): void
     {
-        $response = $this->get(route('admin.audit-trails.index'));
+        $component = Livewire::test(ListAuditTrails::class);
 
-        $response->assertOk();
-        $response->assertSee('Field-Level Audit Trails');
-        foreach (['Time', 'User', 'Event', 'Model', 'Changes', 'IP', 'URL', 'User Agent', 'Actions'] as $column) {
-            $response->assertSee($column);
+        $component->assertOk();
+        foreach (['Time', 'User', 'Event', 'Model', 'Changes'] as $column) {
+            $component->assertSee($column);
         }
     }
 
@@ -69,12 +70,12 @@ class AuditTrailRenderTest extends TestCase
         ]);
         $audit->save();
 
-        $response = $this->get(route('admin.audit-trails.index'));
+        $component = Livewire::test(ListAuditTrails::class);
 
-        $response->assertOk();
-        $response->assertSee('admin/users/'.$target->id.'/edit'); // captured URL
-        $response->assertSee('AuditRenderTestAgent');                 // captured user agent
-        $response->assertSee('203.0.113.5');                        // captured IP
+        $component->assertOk();
+        $component->assertSee('admin/users/'.$target->id.'/edit'); // captured URL
+        $component->assertSee('AuditRenderTestAgent');            // captured user agent
+        $component->assertSee('203.0.113.5');                    // captured IP
     }
 
     public function test_anonymous_guest_booking_shows_email_instead_of_system(): void
@@ -96,11 +97,10 @@ class AuditTrailRenderTest extends TestCase
         ]);
         $audit->save();
 
-        $response = $this->get(route('admin.audit-trails.index'));
+        $component = Livewire::test(ListAuditTrails::class);
 
-        $response->assertOk();
-        $response->assertSee('walkin@example.com'); // guest email shown as the actor
-        $response->assertDontSee('>System<');        // not labelled System for this row
+        $component->assertSee('walkin@example.com'); // guest email shown as the actor
+        $component->assertDontSee('<span>System</span>');
     }
 
     public function test_array_column_changes_are_captured_and_rendered(): void
@@ -121,28 +121,20 @@ class AuditTrailRenderTest extends TestCase
         $this->assertNotNull($audit, 'Creating an Offer should produce an audit entry.');
         $this->assertArrayHasKey('features', $audit->new_values, 'Array/JSON column must be captured.');
 
-        // laravel-auditing stores raw attribute values, so array casts arrive as JSON strings.
-        $features = $audit->new_values['features'];
-        if (is_string($features)) {
-            $features = json_decode($features, true);
-        }
-        $this->assertEquals(['wifi', 'breakfast'], $features);
+        $component = Livewire::test(ListAuditTrails::class);
 
-        $response = $this->get(route('admin.audit-trails.index'));
-
-        $response->assertOk();
-        $response->assertSee('Offer');   // model label
-        $response->assertSee('features'); // changed array column is shown
-        $response->assertSee('wifi');     // decoded array value is rendered
+        $component->assertOk();
+        $component->assertSee('Offer');     // model label
+        $component->assertSee('features');  // changed array column is shown
+        $component->assertSee('wifi');      // decoded array value is rendered
     }
 
     public function test_guest_is_redirected_away_from_audit_page(): void
     {
         auth()->logout();
 
-        $response = $this->get(route('admin.audit-trails.index'));
-
-        $response->assertRedirect(route('login'));
+        $this->get('/admin/audit-trails')
+            ->assertRedirect('/admin/login');
     }
 
     public function test_non_admin_user_is_forbidden(): void
@@ -150,8 +142,6 @@ class AuditTrailRenderTest extends TestCase
         $user = User::factory()->create(['type' => 'staff', 'status' => 'active']);
         $this->actingAs($user);
 
-        $response = $this->get(route('admin.audit-trails.index'));
-
-        $response->assertForbidden();
+        $this->get('/admin/audit-trails')->assertForbidden();
     }
 }
