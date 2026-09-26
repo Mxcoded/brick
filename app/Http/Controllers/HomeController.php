@@ -24,7 +24,7 @@ class HomeController extends Controller
 
         // 1. Admin
         if ($user->can('access_admin_dashboard')) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route('filament.admin.pages.dashboard');
         }
 
         // 2. HR staff

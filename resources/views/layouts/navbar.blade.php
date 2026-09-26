@@ -5,7 +5,7 @@
             <i class="fas fa-bars"></i>
         </button>
 
-        <a href="{{ route('admin.dashboard') }}" class="text-decoration-none">
+        <a href="{{ route('filament.admin.pages.dashboard') }}" class="text-decoration-none">
             <div class="d-inline-flex align-items-center gap-2">
                 @if($logoSetting ?? null)
                     <img src="{{ Storage::url($logoSetting) }}" alt="Logo" style="height: 40px; width: auto; object-fit: contain;">

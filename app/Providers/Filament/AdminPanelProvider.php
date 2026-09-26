@@ -7,7 +7,6 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Facades\FilamentView;
@@ -31,7 +30,6 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->authGuard('web')
-            ->viteTheme('resources/css/app.css')
             ->colors([
                 'primary' => ThemeSettings::accent(),
             ])
@@ -46,9 +44,6 @@ class AdminPanelProvider extends PanelProvider
                 in: module_path('Admin', 'app/Filament/Pages'),
                 for: 'Modules\\Admin\\Filament\\Pages',
             )
-            ->pages([
-                Dashboard::class,
-            ])
             ->discoverWidgets(
                 in: module_path('Admin', 'app/Filament/Widgets'),
                 for: 'Modules\\Admin\\Filament\\Widgets',
@@ -77,6 +72,11 @@ class AdminPanelProvider extends PanelProvider
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
             fn (): string => view('admin::filament.theme')->render(),
+        );
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::STYLES_AFTER,
+            fn (): string => '<link rel="stylesheet" href="'.asset('css/admin.css').'">',
         );
     }
 }

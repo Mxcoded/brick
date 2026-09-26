@@ -74,7 +74,7 @@ class LoginController extends Controller
 
         // 1. Priority: Admin Dashboard
         if ($user->can('access_admin_dashboard')) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route('filament.admin.pages.dashboard');
         }
 
         // 2. Front Desk
