@@ -71,12 +71,12 @@ class User extends Authenticatable implements AuditableContract, FilamentUser
 
     public function isProcurementRequester(): bool
     {
-        return $this->isStaff() || $this->hasRole('line_manager');
+        return $this->isStaff() || $this->hasRole(RoleEnum::LINE_MANAGER->value);
     }
 
     public function isProcurementApprover(): bool
     {
-        return $this->hasAnyRole(['purchaser', 'gm', 'finance', 'auditor', 'ggm']);
+        return $this->hasAnyRole(RoleEnum::procurementApproverRoles());
     }
 
     public function isGuest(): bool

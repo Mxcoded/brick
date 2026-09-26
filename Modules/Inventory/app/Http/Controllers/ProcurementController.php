@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,19 +21,19 @@ class ProcurementController extends Controller
         $view = 'inventory::procurement.dashboard';
 
         if ($user->isProcurementApprover()) {
-            if ($user->hasRole('purchaser')) {
+            if ($user->hasRole(RoleEnum::PURCHASER->value)) {
                 return $this->purchaserDashboard();
             }
-            if ($user->hasRole('gm')) {
+            if ($user->hasRole(RoleEnum::GM->value)) {
                 return $this->gmDashboard();
             }
-            if ($user->hasRole('finance')) {
+            if ($user->hasRole(RoleEnum::FINANCE->value)) {
                 return $this->financeDashboard();
             }
-            if ($user->hasRole('auditor')) {
+            if ($user->hasRole(RoleEnum::AUDITOR->value)) {
                 return $this->auditorDashboard();
             }
-            if ($user->hasRole('ggm')) {
+            if ($user->hasRole(RoleEnum::GGM->value)) {
                 return $this->ggmDashboard();
             }
         }
@@ -231,7 +232,7 @@ class ProcurementController extends Controller
 
     public function review(Request $request, PurchaseRequest $purchaseRequest)
     {
-        if (! auth()->user()->hasRole('purchaser')) {
+        if (! auth()->user()->hasRole(RoleEnum::PURCHASER->value)) {
             return back()->with('error', 'Only purchasers can review purchase requests.');
         }
 
@@ -294,7 +295,7 @@ class ProcurementController extends Controller
 
     public function uploadInvoice(Request $request, PurchaseRequest $purchaseRequest)
     {
-        if (! auth()->user()->hasRole('purchaser')) {
+        if (! auth()->user()->hasRole(RoleEnum::PURCHASER->value)) {
             return back()->with('error', 'Only purchasers can upload invoices.');
         }
 
@@ -324,16 +325,16 @@ class ProcurementController extends Controller
     {
         $user = auth()->user();
 
-        $allowedRoles = ['gm', 'finance', 'auditor', 'ggm'];
+        $allowedRoles = [RoleEnum::GM->value, RoleEnum::FINANCE->value, RoleEnum::AUDITOR->value, RoleEnum::GGM->value];
         if (! $user->hasAnyRole($allowedRoles)) {
             return back()->with('error', 'You are not authorized to approve purchase requests.');
         }
 
         $roleMap = [
-            'gm' => ['pending_gm', 'pending_finance', 'gm'],
-            'finance' => ['pending_finance', 'pending_auditor', 'finance'],
-            'auditor' => ['pending_auditor', 'pending_ggm', 'auditor'],
-            'ggm' => ['pending_ggm', 'approved', 'ggm'],
+            RoleEnum::GM->value => ['pending_gm', 'pending_finance', 'gm'],
+            RoleEnum::FINANCE->value => ['pending_finance', 'pending_auditor', 'finance'],
+            RoleEnum::AUDITOR->value => ['pending_auditor', 'pending_ggm', 'auditor'],
+            RoleEnum::GGM->value => ['pending_ggm', 'approved', 'ggm'],
         ];
 
         $mapped = null;
@@ -387,17 +388,17 @@ class ProcurementController extends Controller
 
         $user = auth()->user();
 
-        $allowedRoles = ['purchaser', 'gm', 'finance', 'auditor', 'ggm'];
+        $allowedRoles = [RoleEnum::PURCHASER->value, RoleEnum::GM->value, RoleEnum::FINANCE->value, RoleEnum::AUDITOR->value, RoleEnum::GGM->value];
         if (! $user->hasAnyRole($allowedRoles)) {
             return back()->with('error', 'You are not authorized to reject purchase requests.');
         }
 
         $roleStepMap = [
-            'purchaser' => ['pending_purchaser', 'draft', 'line_manager'],
-            'gm' => ['pending_gm', 'pending_purchaser', 'purchaser'],
-            'finance' => ['pending_finance', 'pending_gm', 'gm'],
-            'auditor' => ['pending_auditor', 'pending_finance', 'finance'],
-            'ggm' => ['pending_ggm', 'pending_auditor', 'auditor'],
+            RoleEnum::PURCHASER->value => ['pending_purchaser', 'draft', 'line_manager'],
+            RoleEnum::GM->value => ['pending_gm', 'pending_purchaser', 'purchaser'],
+            RoleEnum::FINANCE->value => ['pending_finance', 'pending_gm', 'gm'],
+            RoleEnum::AUDITOR->value => ['pending_auditor', 'pending_finance', 'finance'],
+            RoleEnum::GGM->value => ['pending_ggm', 'pending_auditor', 'auditor'],
         ];
 
         $mapped = null;
@@ -446,11 +447,11 @@ class ProcurementController extends Controller
         ]);
 
         $user = auth()->user();
-        if (! $user->hasRole('purchaser') && ! $user->hasRole('gm')) {
+        if (! $user->hasRole(RoleEnum::PURCHASER->value) && ! $user->hasRole(RoleEnum::GM->value)) {
             return back()->with('error', 'Only purchasers and GMs can flag requests.');
         }
 
-        $expectedStatus = $user->hasRole('purchaser') ? 'pending_purchaser' : 'pending_gm';
+        $expectedStatus = $user->hasRole(RoleEnum::PURCHASER->value) ? 'pending_purchaser' : 'pending_gm';
         if ($purchaseRequest->status !== $expectedStatus) {
             return back()->with('error', 'Cannot flag this request at its current stage.');
         }
@@ -464,7 +465,7 @@ class ProcurementController extends Controller
 
             PurchaseRequestApproval::create([
                 'purchase_request_id' => $purchaseRequest->id,
-                'role' => $user->hasRole('purchaser') ? 'purchaser' : 'gm',
+                'role' => $user->hasRole(RoleEnum::PURCHASER->value) ? 'purchaser' : 'gm',
                 'action' => 'flagged',
                 'user_id' => $user->id,
                 'notes' => $validated['notes'],
@@ -488,7 +489,7 @@ class ProcurementController extends Controller
             return back()->with('error', 'Only fully approved requests can be converted to purchase orders.');
         }
 
-        if (! auth()->user()->hasRole('ggm')) {
+        if (! auth()->user()->hasRole(RoleEnum::GGM->value)) {
             return back()->with('error', 'Only GGM can convert requests to purchase orders.');
         }
 

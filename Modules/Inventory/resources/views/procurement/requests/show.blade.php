@@ -7,7 +7,6 @@
     @php
         $user = auth()->user();
         $pr = $purchaseRequest;
-        $isRequester = $pr->requester_id === $user->id;
     @endphp
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -23,7 +22,7 @@
             </div>
         </div>
         <div class="d-flex gap-2">
-            @if(in_array($pr->status, ['draft', 'flagged']) && $isRequester)
+            @if($actions['canEdit'])
                 <a href="{{ route('inventory.procurement.requests.edit', $pr) }}" class="btn btn-outline-primary shadow-sm">
                     <i class="fas fa-edit me-1"></i>Edit
                 </a>
@@ -115,7 +114,7 @@
                                     <th class="text-center">Quantity</th>
                                     <th class="text-end">Est. Unit Price</th>
                                     <th class="text-end pe-4">Est. Total</th>
-                                    @if($pr->status === 'pending_purchaser' && $user->hasRole('purchaser'))
+                                    @if($actions['canReview'])
                                     <th class="text-end pe-4">Unit Price</th>
                                     @endif
                                 </tr>
@@ -143,7 +142,7 @@
                                             <span class="text-muted">—</span>
                                         @endif
                                     </td>
-                                    @if($pr->status === 'pending_purchaser' && $user->hasRole('purchaser'))
+                                    @if($actions['canReview'])
                                     <td class="text-end pe-4" style="width:140px;">
                                         <input type="number" step="0.01" min="0" class="form-control form-control-sm item-price text-end"
                                                data-item-id="{{ $item->id }}" placeholder="0.00" value="{{ $item->estimated_unit_price ?? '' }}">
@@ -159,7 +158,7 @@
                                     <th class="text-end pe-4">
                                         ₦{{ number_format($pr->items->sum(fn($i) => ($i->estimated_unit_price ?? 0) * $i->quantity), 2) }}
                                     </th>
-                                    @if($pr->status === 'pending_purchaser' && $user->hasRole('purchaser'))
+                                    @if($actions['canReview'])
                                     <th></th>
                                     @endif
                                 </tr>
@@ -171,7 +170,7 @@
             </div>
 
             {{-- Action Forms --}}
-            @if($pr->status === 'draft' && $isRequester)
+            @if($actions['canSubmit'])
             <div class="card shadow border-0 mb-4 border-start border-success border-4">
                 <div class="card-body p-4 text-center">
                     <h5><i class="fas fa-paper-plane text-success me-2"></i>Ready to Submit?</h5>
@@ -187,7 +186,7 @@
             @endif
 
             {{-- Purchaser Review Form --}}
-            @if($pr->status === 'pending_purchaser' && $user->hasRole('purchaser'))
+            @if($actions['canReview'])
             <div class="card shadow border-0 mb-4 border-start border-warning border-4">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0 fw-bold text-warning"><i class="fas fa-clipboard-check me-2"></i>Purchaser Review</h5>
@@ -253,7 +252,7 @@
             @endif
 
             {{-- GM Approval Card --}}
-            @if($pr->status === 'pending_gm' && $user->hasRole('gm'))
+            @if($actions['canApproveGm'])
             <div class="card shadow border-0 mb-4 border-start border-primary border-4">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-gavel me-2"></i>GM Review</h5>
@@ -278,7 +277,7 @@
             @endif
 
             {{-- Finance Approval Card --}}
-            @if($pr->status === 'pending_finance' && $user->hasRole('finance'))
+            @if($actions['canApproveFinance'])
             <div class="card shadow border-0 mb-4 border-start border-success border-4">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0 fw-bold text-success"><i class="fas fa-calculator me-2"></i>Finance Verification</h5>
@@ -300,7 +299,7 @@
             @endif
 
             {{-- Auditor Approval Card --}}
-            @if($pr->status === 'pending_auditor' && $user->hasRole('auditor'))
+            @if($actions['canApproveAuditor'])
             <div class="card shadow border-0 mb-4 border-start border-info border-4">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0 fw-bold text-info"><i class="fas fa-shield-alt me-2"></i>Audit Review</h5>
@@ -322,7 +321,7 @@
             @endif
 
             {{-- GGM Final Approval Card --}}
-            @if($pr->status === 'pending_ggm' && $user->hasRole('ggm'))
+            @if($actions['canApproveGgm'])
             <div class="card shadow border-0 mb-4 border-start border-dark border-4">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-crown me-2"></i>GGM Final Approval</h5>
@@ -344,7 +343,7 @@
             @endif
 
             {{-- Convert to PO (GGM after approval) --}}
-            @if($pr->status === 'approved' && $user->hasRole('ggm'))
+            @if($actions['canConvertToPo'])
             <div class="card shadow border-0 mb-4 border-start border-success border-4">
                 <div class="card-body p-4 text-center">
                     <h5 class="text-success"><i class="fas fa-check-circle me-2"></i>Fully Approved</h5>

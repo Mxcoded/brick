@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -127,7 +128,32 @@ class PurchaseRequestController extends Controller
 
         $purchaseRequest->load('requester', 'supplier', 'items', 'approvals.user');
 
-        return view('inventory::procurement.requests.show', compact('purchaseRequest'));
+        // Compute the action flags once here so the blade never has to resolve
+        // which role owns the current approval stage.
+        $status = $purchaseRequest->status;
+        $actions = [
+            'canSubmit' => $status === 'draft'
+                && $purchaseRequest->requester_id === $user->id,
+            'canEdit' => in_array($status, ['draft', 'flagged'], true)
+                && $purchaseRequest->requester_id === $user->id,
+            'canReview' => $status === 'pending_purchaser'
+                && $user->hasRole(RoleEnum::PURCHASER->value),
+            'canApproveGm' => $status === 'pending_gm'
+                && $user->hasRole(RoleEnum::GM->value),
+            'canApproveFinance' => $status === 'pending_finance'
+                && $user->hasRole(RoleEnum::FINANCE->value),
+            'canApproveAuditor' => $status === 'pending_auditor'
+                && $user->hasRole(RoleEnum::AUDITOR->value),
+            'canApproveGgm' => $status === 'pending_ggm'
+                && $user->hasRole(RoleEnum::GGM->value),
+            'canConvertToPo' => $status === 'approved'
+                && $user->hasRole(RoleEnum::GGM->value),
+        ];
+
+        return view('inventory::procurement.requests.show', [
+            'purchaseRequest' => $purchaseRequest,
+            'actions' => $actions,
+        ]);
     }
 
     public function edit(PurchaseRequest $purchaseRequest)

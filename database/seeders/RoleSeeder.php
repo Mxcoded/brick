@@ -566,5 +566,53 @@ class RoleSeeder extends Seeder
                 'website.testimonials.update',
                 'website.testimonials.delete',
             ]);
+
+        // ──────────────────────────────────────────
+        // PROCUREMENT CHAIN (line manager -> GGM)
+        // ──────────────────────────────────────────
+        Role::firstOrCreate(['name' => 'line_manager', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'procurement.create_request',
+                'procurement.view_own_requests',
+            ]);
+
+        Role::firstOrCreate(['name' => 'purchaser', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'procurement.view_all_requests',
+                'procurement.review_request',
+                'procurement.reject_request',
+                'procurement.flag_request',
+                'procurement.attach_invoice',
+            ]);
+
+        Role::firstOrCreate(['name' => 'gm', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'procurement.view_all_requests',
+                'procurement.approve_request',
+                'procurement.reject_request',
+                'procurement.flag_request',
+            ]);
+
+        Role::firstOrCreate(['name' => 'finance', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'procurement.view_all_requests',
+                'procurement.approve_request',
+                'procurement.reject_request',
+            ]);
+
+        Role::firstOrCreate(['name' => 'auditor', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'procurement.view_all_requests',
+                'procurement.audit_request',
+                'procurement.reject_request',
+            ]);
+
+        Role::firstOrCreate(['name' => 'ggm', 'guard_name' => 'web'])
+            ->syncPermissions([
+                'procurement.view_all_requests',
+                'procurement.approve_request',
+                'procurement.reject_request',
+                'procurement.convert_to_po',
+            ]);
     }
 }

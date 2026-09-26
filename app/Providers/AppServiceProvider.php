@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Listeners\LogSuccessfulLogin;
 use App\Listeners\LogSuccessfulLogout;
 use App\Models\User;
+use App\Support\PermissionAliases;
 use App\Support\ThemeSettings;
 use App\View\Compilers\AtomicBladeCompiler;
 use Illuminate\Auth\Events\Login;
@@ -87,6 +88,15 @@ class AppServiceProvider extends ServiceProvider
         // Grant staff-account-type users the permissions the legacy `staff` role carried
         // so module route middleware (@can) and views keep working without a role.
         Gate::before(function ($user, $ability) {
+            // Resolve legacy <-> granular permission synonyms first so either
+            // spelling grants the same access; defer (null) when not aliased.
+            if ($user instanceof User && is_string($ability)) {
+                $synonyms = PermissionAliases::resolve($ability);
+                if ($synonyms !== null) {
+                    return $user->hasAnyPermission($synonyms);
+                }
+            }
+
             if ($user instanceof User
                 && $user->isStaff()
                 && in_array($ability, [
