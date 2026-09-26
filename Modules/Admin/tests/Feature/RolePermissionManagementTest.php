@@ -57,7 +57,8 @@ class RolePermissionManagementTest extends TestCase
         Livewire::test(CreateRole::class)
             ->assertOk()
             ->assertSee('permissions selected')
-            ->assertSee('Select all')
+            ->assertSee('Expand all')
+            ->assertSee('Collapse all')
             ->assertSee('Admin')
             ->assertSee('Restaurant');
     }
