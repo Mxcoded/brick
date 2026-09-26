@@ -47,7 +47,7 @@ class PaymentGatewayResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('manage_payment_gateways') ?? false;
+        return auth()->user()?->can('payment_gateways.manage') ?? false;
     }
 
     public static function filterCredentials(string $code, array $credentials): array

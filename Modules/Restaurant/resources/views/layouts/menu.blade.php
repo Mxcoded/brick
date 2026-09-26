@@ -7,7 +7,7 @@
 </a>
 <div class="collapse {{ request()->routeIs('restaurant.*') ? 'show' : '' }}" id="restoSubmenu">
 
-    @can('take_orders')
+    @can('orders.create')
     <a href="{{ route('restaurant.waiter.dashboard') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('restaurant.waiter.dashboard*') ? 'active' : '' }}">
         <i class="fas fa-calculator fa-fw me-2"></i> Waiter POS

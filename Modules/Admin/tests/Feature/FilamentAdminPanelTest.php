@@ -4,18 +4,21 @@ namespace Modules\Admin\Tests\Feature;
 
 use App\Enums\RoleEnum;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
+use Database\Seeders\RoleSeeder;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class FilamentAdminPanelTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        if (! Role::where('name', RoleEnum::ADMIN->value)->exists()) {
-            Role::create(['name' => RoleEnum::ADMIN->value, 'guard_name' => 'web']);
-        }
+        $this->seed(RoleSeeder::class);
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $this->admin = User::firstOrCreate(
             ['email' => 'filament-test@brickspoint.test'],
@@ -27,9 +30,7 @@ class FilamentAdminPanelTest extends TestCase
             ],
         );
 
-        if (! $this->admin->hasRole(RoleEnum::ADMIN->value)) {
-            $this->admin->assignRole(RoleEnum::ADMIN->value);
-        }
+        $this->admin->assignRole(RoleEnum::ADMIN->value);
     }
 
     public function test_login_page_renders(): void

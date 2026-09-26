@@ -20,7 +20,7 @@ class AppearanceRenderTest extends TestCase
     private function actingAsAdmin(): User
     {
         $role = Role::firstOrCreate(['name' => RoleEnum::ADMIN->value, 'guard_name' => 'web']);
-        $perm = Permission::firstOrCreate(['name' => 'manage_settings', 'guard_name' => 'web']);
+        $perm = Permission::firstOrCreate(['name' => 'settings.update', 'guard_name' => 'web']);
         $role->givePermissionTo($perm);
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 

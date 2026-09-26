@@ -8,53 +8,15 @@ use Spatie\Permission\Models\Permission;
 /**
  * Turns flat permission names into a module/resource/action catalogue so the
  * role form can render a grouped CRUD permission matrix.
+ *
+ * The group set is derived from the module tree (each "module.json" under the
+ * Modules directory) so a new module automatically appears here. Permission
+ * names themselves follow the "{resource}.{action}" convention and carry the
+ * owning module.
  */
 class PermissionCatalog
 {
-    /** Central 'group' definitions. Keep the key stable - used as a filter value. */
-    protected const GROUPS = [
-        'admin' => ['label' => 'Admin'],
-        'frontdesk' => ['label' => 'Front Desk'],
-        'staff' => ['label' => 'HR & Staff'],
-        'tasks' => ['label' => 'Tasks'],
-        'restaurant' => ['label' => 'Restaurant'],
-        'inventory' => ['label' => 'Inventory & Stock'],
-        'maintenance' => ['label' => 'Maintenance'],
-        'banquet' => ['label' => 'Banquets & Events'],
-        'gym' => ['label' => 'Gym'],
-        'website' => ['label' => 'Website'],
-        'procurement' => ['label' => 'Procurement'],
-        'finance' => ['label' => 'Finance'],
-        'contracts' => ['label' => 'Contracts'],
-        'other' => ['label' => 'Other'],
-    ];
-
-    /** First dot-segment of a permission name => group key. */
-    protected const PREFIX_GROUPS = [
-        'users' => 'admin',
-        'roles' => 'admin',
-        'permissions' => 'admin',
-        'settings' => 'admin',
-        'guests' => 'frontdesk',
-        'employees' => 'staff',
-        'leaves' => 'staff',
-        'departments' => 'staff',
-        'tasks' => 'tasks',
-        'menu' => 'restaurant',
-        'orders' => 'restaurant',
-        'inventory' => 'inventory',
-        'suppliers' => 'inventory',
-        'stores' => 'inventory',
-        'purchase_orders' => 'inventory',
-        'maintenance' => 'maintenance',
-        'banquet' => 'banquet',
-        'gym' => 'gym',
-        'website' => 'website',
-        'procurement' => 'procurement',
-        'finance' => 'finance',
-        'contracts' => 'contracts',
-    ];
-
+    /** Recognised CRUD action suffixes and their display labels. */
     protected const CRUD_ACTIONS = [
         'create' => 'Create',
         'read' => 'View',
@@ -62,46 +24,48 @@ class PermissionCatalog
         'delete' => 'Delete',
     ];
 
-    /** Legacy (underscore only) permission => [group, resource, action, kind]. */
-    protected const LEGACY_MAP = [
-        'manage_users' => ['admin', 'Users', 'Manage All', 'manage'],
-        'manage_roles' => ['admin', 'Roles', 'Manage All', 'manage'],
-        'manage_permissions' => ['admin', 'Permissions', 'Manage All', 'manage'],
-        'manage_settings' => ['admin', 'Settings', 'Manage All', 'manage'],
-        'manage_payment_gateways' => ['admin', 'Payment Gateways', 'Manage All', 'manage'],
-        'check_in_guest' => ['frontdesk', 'Guest Check-in', 'Perform', 'action'],
-        'check_out_guest' => ['frontdesk', 'Guest Check-out', 'Perform', 'action'],
-        'view_employees' => ['staff', 'Employees', 'View', 'crud'],
-        'manage_employees' => ['staff', 'Employees', 'Manage All', 'manage'],
-        'approve_leaves' => ['staff', 'Leaves', 'Approve', 'action'],
-        'view_inventory' => ['inventory', 'Inventory', 'View', 'crud'],
-        'adjust_stock' => ['inventory', 'Stock', 'Adjust', 'action'],
-        'manage_suppliers' => ['inventory', 'Suppliers', 'Manage All', 'manage'],
-        'take_orders' => ['restaurant', 'Orders', 'Take Orders', 'action'],
-        'manage_menu' => ['restaurant', 'Menu', 'Manage All', 'manage'],
-        'view_tasks' => ['maintenance', 'Maintenance Tasks', 'View', 'crud'],
-        'assign_tasks' => ['maintenance', 'Maintenance Tasks', 'Assign', 'action'],
-        'log_maintenance' => ['maintenance', 'Maintenance Log', 'Log', 'action'],
-        'manage_banquet' => ['banquet', 'Banquets', 'Manage All', 'manage'],
+    /** Module alias => group key when the permission prefix differs from the module alias. */
+    protected const MODULE_ALIAS_GROUPS = [
+        'frontdeskcrm' => 'frontdesk',
     ];
 
-    protected const MODULE_ALIAS_GROUPS = [
-        'admin' => 'admin',
-        'frontdesk' => 'frontdesk',
-        'staff' => 'staff',
-        'restaurant' => 'restaurant',
-        'gym' => 'gym',
-        'inventory' => 'inventory',
-        'maintenance' => 'maintenance',
-        'tasks' => 'tasks',
-        'banquet' => 'banquet',
-        'website' => 'website',
-        'contracts' => 'contracts',
+    /** Resource prefix (first dot segment) => group key for resources owned by a differently-named module. */
+    protected const RESOURCE_GROUPS = [
+        'users' => 'admin',
+        'roles' => 'admin',
+        'permissions' => 'admin',
+        'settings' => 'admin',
+        'payment_gateways' => 'admin',
+        'guests' => 'frontdesk',
+        'employees' => 'staff',
+        'leaves' => 'staff',
+        'departments' => 'staff',
+        'menu' => 'restaurant',
+        'orders' => 'restaurant',
+        'suppliers' => 'inventory',
+        'stores' => 'inventory',
+        'purchase_orders' => 'inventory',
+    ];
+
+    /** Group key => display label overrides for the generic headline label. */
+    protected const LABEL_OVERRIDES = [
+        'frontdesk' => 'Front Desk',
+        'staff' => 'HR & Staff',
+        'inventory' => 'Inventory & Stock',
+        'banquet' => 'Banquets & Events',
+    ];
+
+    /** Virtual groups that exist on top of the module scan (no module directory). */
+    protected const VIRTUAL_GROUPS = [
+        'procurement' => 'Procurement',
+        'other' => 'Other',
     ];
 
     protected static ?array $groups = null;
 
     protected static bool $loaded = false;
+
+    protected static ?array $definitions = null;
 
     /**
      * Grouped catalogue of every permission in the system.
@@ -116,7 +80,7 @@ class PermissionCatalog
 
         $groups = [];
 
-        foreach (static::GROUPS as $key => $meta) {
+        foreach (static::definitions() as $key => $meta) {
             $groups[$key] = [
                 'key' => $key,
                 'label' => $meta['label'],
@@ -179,16 +143,10 @@ class PermissionCatalog
     {
         if (str_starts_with($name, 'access_') && str_ends_with($name, '_dashboard')) {
             $module = substr($name, 7, -10);
-            $group = static::MODULE_ALIAS_GROUPS[$module] ?? 'other';
+            $group = static::hasGroup($module) ? $module : 'other';
             $resource = $group === 'other' ? 'Dashboards' : 'Dashboard';
 
             return self::descriptor($group, $resource, 'Access', 'access', "Access {$resource}");
-        }
-
-        if (isset(static::LEGACY_MAP[$name])) {
-            [$group, $resource, $action, $kind] = static::LEGACY_MAP[$name];
-
-            return self::descriptor($group, $resource, $action, $kind, static::labelFor($resource, $action, $kind));
         }
 
         $segments = explode('.', $name);
@@ -201,7 +159,7 @@ class PermissionCatalog
 
         $actionSegment = array_pop($segments);
         $first = $segments[0];
-        $group = static::PREFIX_GROUPS[$first] ?? 'other';
+        $group = static::RESOURCE_GROUPS[$first] ?? (static::hasGroup($first) ? $first : 'other');
 
         if (isset(static::CRUD_ACTIONS[$actionSegment])) {
             $action = static::CRUD_ACTIONS[$actionSegment];
@@ -245,9 +203,44 @@ class PermissionCatalog
         return static::describe($name)['group'];
     }
 
+    /**
+     * @return array<string, array{label: string}> group key => label
+     */
+    protected static function definitions(): array
+    {
+        if (static::$definitions !== null) {
+            return static::$definitions;
+        }
+
+        $definitions = [];
+
+        foreach (glob(base_path('Modules/*/module.json')) ?: [] as $file) {
+            $meta = json_decode((string) file_get_contents($file), true);
+            $alias = Str::lower((string) ($meta['alias'] ?? $meta['name'] ?? ''));
+
+            if ($alias === '') {
+                continue;
+            }
+
+            $key = static::MODULE_ALIAS_GROUPS[$alias] ?? $alias;
+            $definitions[$key] = ['label' => static::LABEL_OVERRIDES[$key] ?? Str::headline($key)];
+        }
+
+        foreach (static::VIRTUAL_GROUPS as $key => $label) {
+            $definitions[$key] = ['label' => $label];
+        }
+
+        return static::$definitions = $definitions;
+    }
+
+    protected static function hasGroup(string $key): bool
+    {
+        return isset(static::definitions()[$key]);
+    }
+
     public static function groupLabel(string $groupKey): string
     {
-        return static::GROUPS[$groupKey]['label'] ?? $groupKey;
+        return static::definitions()[$groupKey]['label'] ?? $groupKey;
     }
 
     /**
@@ -292,5 +285,6 @@ class PermissionCatalog
     {
         static::$groups = null;
         static::$loaded = false;
+        static::$definitions = null;
     }
 }

@@ -28,7 +28,7 @@ class ModuleManagerTest extends TestCase
 
         $role = Role::firstOrCreate(['name' => RoleEnum::ADMIN->value, 'guard_name' => 'web']);
         $perm = Permission::firstOrCreate(['name' => 'access_admin_dashboard', 'guard_name' => 'web']);
-        $settings = Permission::firstOrCreate(['name' => 'manage_settings', 'guard_name' => 'web']);
+        $settings = Permission::firstOrCreate(['name' => 'settings.update', 'guard_name' => 'web']);
         if (! $role->hasPermissionTo($perm)) {
             $role->givePermissionTo($perm);
         }
@@ -99,7 +99,7 @@ class ModuleManagerTest extends TestCase
             ->assertRedirect('/admin/login');
     }
 
-    public function test_module_manager_requires_manage_settings_permission()
+    public function test_module_manager_requires_settings_update_permission()
     {
         $role = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web']);
         $perm = Permission::firstOrCreate(['name' => 'access_admin_dashboard', 'guard_name' => 'web']);

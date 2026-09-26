@@ -17,6 +17,11 @@ class RbacReconciliationTest extends TestCase
 
     private function seedRoles(): void
     {
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        \DB::table('model_has_permissions')->delete();
+        \DB::table('role_has_permissions')->delete();
+        \DB::table('permissions')->delete();
+
         $this->seed(RoleSeeder::class);
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
@@ -49,15 +54,23 @@ class RbacReconciliationTest extends TestCase
         $this->assertDatabaseHas('roles', ['name' => RoleEnum::CONTRACTS_MANAGER->value, 'guard_name' => 'web']);
     }
 
-    public function test_every_alias_and_alias_target_is_a_seeded_permission(): void
+    public function test_every_alias_target_is_a_seeded_permission(): void
     {
         $this->seedRoles();
 
-        foreach (PermissionAliases::ALIASES as $legacy => $granular) {
-            $this->assertDatabaseHas('permissions', ['name' => $legacy, 'guard_name' => 'web']);
+        foreach (PermissionAliases::ALIASES as $granular) {
             foreach ($granular as $name) {
                 $this->assertDatabaseHas('permissions', ['name' => $name, 'guard_name' => 'web']);
             }
+        }
+    }
+
+    public function test_no_legacy_underscore_permissions_are_seeded(): void
+    {
+        $this->seedRoles();
+
+        foreach (array_keys(PermissionAliases::ALIASES) as $legacy) {
+            $this->assertDatabaseMissing('permissions', ['name' => $legacy, 'guard_name' => 'web']);
         }
     }
 
@@ -70,21 +83,5 @@ class RbacReconciliationTest extends TestCase
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $this->assertTrue($user->can('manage_menu'));
-    }
-
-    public function test_legacy_grant_satisfies_the_granular_permission(): void
-    {
-        $this->seedRoles();
-
-        $user = User::factory()->create(['type' => 'staff', 'status' => 'active']);
-        $user->givePermissionTo('manage_menu');
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
-
-        $this->assertTrue($user->can('menu.read'));
-        $this->assertTrue($user->can('menu.delete'));
-
-        $outsider = User::factory()->create(['type' => 'staff', 'status' => 'active']);
-        $this->assertFalse($outsider->can('menu.read'));
-        $this->assertFalse($outsider->can('menu.delete'));
     }
 }

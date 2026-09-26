@@ -19,7 +19,7 @@
         <i class="fas fa-clipboard-list fa-fw me-2"></i> Stay Management
     </a>
 
-    @can('check_in_guest')
+    @can('guests.check_in')
     <a href="{{ route('frontdesk.registrations.createWalkin') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('frontdesk.registrations.createWalkin') || request()->routeIs('frontdesk.registrations.lookup') ? 'active' : '' }}">
         <i class="fas fa-walking fa-fw me-2"></i> Walk-In Check-In

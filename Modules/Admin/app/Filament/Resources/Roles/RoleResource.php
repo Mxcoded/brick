@@ -43,7 +43,6 @@ class RoleResource extends Resource
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyPermission(
-            'manage_roles',
             'roles.manage',
             'roles.create',
             'roles.read',

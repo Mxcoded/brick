@@ -29,14 +29,6 @@ class RoleSeeder extends Seeder
             'access_website_dashboard',
 
             // ──────────────────────────────────────────
-            // ADMIN – legacy broad permissions (backward compat)
-            // ──────────────────────────────────────────
-            'manage_users',
-            'manage_roles',
-            'manage_permissions',
-            'manage_settings',
-
-            // ──────────────────────────────────────────
             // ADMIN – CRUD granular permissions
             // ──────────────────────────────────────────
             'users.create',
@@ -61,13 +53,7 @@ class RoleSeeder extends Seeder
             // ──────────────────────────────────────────
             // PAYMENT GATEWAYS – management (pluggable)
             // ──────────────────────────────────────────
-            'manage_payment_gateways',
-
-            // ──────────────────────────────────────────
-            // FRONT DESK – legacy
-            // ──────────────────────────────────────────
-            'check_in_guest',
-            'check_out_guest',
+            'payment_gateways.manage',
 
             // ──────────────────────────────────────────
             // FRONT DESK – CRUD
@@ -77,13 +63,8 @@ class RoleSeeder extends Seeder
             'guests.update',
             'guests.delete',
             'guests.manage',
-
-            // ──────────────────────────────────────────
-            // HR / STAFF – legacy (kept for backward compat)
-            // ──────────────────────────────────────────
-            'view_employees',
-            'manage_employees',
-            'approve_leaves',
+            'guests.check_in',
+            'guests.check_out',
 
             // ──────────────────────────────────────────
             // HR / STAFF – CRUD
@@ -107,13 +88,6 @@ class RoleSeeder extends Seeder
             'tasks.update',
             'tasks.delete',
             'tasks.assign',
-
-            // ──────────────────────────────────────────
-            // INVENTORY – legacy
-            // ──────────────────────────────────────────
-            'view_inventory',
-            'adjust_stock',
-            'manage_suppliers',
 
             // ──────────────────────────────────────────
             // INVENTORY – CRUD
@@ -151,12 +125,6 @@ class RoleSeeder extends Seeder
             'departments.delete',
 
             // ──────────────────────────────────────────
-            // RESTAURANT – legacy
-            // ──────────────────────────────────────────
-            'take_orders',
-            'manage_menu',
-
-            // ──────────────────────────────────────────
             // RESTAURANT – CRUD
             // ──────────────────────────────────────────
             'orders.create',
@@ -169,24 +137,12 @@ class RoleSeeder extends Seeder
             'menu.delete',
 
             // ──────────────────────────────────────────
-            // MAINTENANCE – legacy (backward compat)
-            // ──────────────────────────────────────────
-            'view_tasks',
-            'assign_tasks',
-            'log_maintenance',
-
-            // ──────────────────────────────────────────
             // MAINTENANCE – CRUD
             // ──────────────────────────────────────────
             'maintenance.create',
             'maintenance.read',
             'maintenance.update',
             'maintenance.delete',
-
-            // ──────────────────────────────────────────
-            // BANQUET – legacy
-            // ──────────────────────────────────────────
-            'manage_banquet',
 
             // ──────────────────────────────────────────
             // BANQUET – CRUD
@@ -353,8 +309,8 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'receptionist', 'guard_name' => 'web'])
             ->syncPermissions([
                 'access_frontdesk_dashboard',
-                'check_in_guest',
-                'check_out_guest',
+                'guests.check_in',
+                'guests.check_out',
                 'guests.create',
                 'guests.read',
                 'guests.update',
@@ -370,7 +326,6 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'restaurant_manager', 'guard_name' => 'web'])
             ->syncPermissions([
                 'access_restaurant_dashboard',
-                'take_orders',
                 'menu.create',
                 'menu.read',
                 'menu.update',
@@ -393,7 +348,6 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'waiter', 'guard_name' => 'web'])
             ->syncPermissions([
                 'access_restaurant_dashboard',
-                'take_orders',
                 'orders.create',
                 'orders.read',
                 'access_tasks_dashboard',
@@ -474,7 +428,6 @@ class RoleSeeder extends Seeder
             ->syncPermissions([
                 'access_banquet_dashboard',
                 'access_restaurant_dashboard',
-                'manage_banquet',
                 'banquet.create',
                 'banquet.read',
                 'banquet.update',
@@ -506,7 +459,6 @@ class RoleSeeder extends Seeder
         Role::firstOrCreate(['name' => 'website_admin', 'guard_name' => 'web'])
             ->syncPermissions([
                 'access_website_dashboard',
-                'manage_settings',
                 'settings.update',
                 'website.dashboard.read',
                 'website.dashboard.update',

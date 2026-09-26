@@ -37,10 +37,12 @@ class PermissionCatalogTest extends TestCase
         $this->createPermissions([
             'users.create',
             'access_admin_dashboard',
-            'take_orders',
+            'orders.create',
             'website.bookings.read',
             'inventory.restock',
             'finance.post_journal',
+            'payment_gateways.manage',
+            'guests.check_in',
         ]);
 
         PermissionCatalog::flush();
@@ -70,13 +72,42 @@ class PermissionCatalogTest extends TestCase
         $this->assertEqualsCanonicalizing(['Create', 'View', 'Edit', 'Delete', 'Manage All'], $userActions);
     }
 
-    public function test_legacy_permissions_are_mapped_to_modules(): void
+    public function test_permissions_are_mapped_to_modules(): void
     {
-        $this->createPermissions(['access_admin_dashboard', 'manage_users', 'take_orders']);
+        $this->createPermissions(['access_admin_dashboard', 'access_contracts_dashboard', 'users.manage', 'orders.create', 'payment_gateways.manage', 'guests.check_in']);
 
         $this->assertSame('admin', PermissionCatalog::groupFor('access_admin_dashboard'));
-        $this->assertSame('admin', PermissionCatalog::groupFor('manage_users'));
-        $this->assertSame('restaurant', PermissionCatalog::groupFor('take_orders'));
+        $this->assertSame('contracts', PermissionCatalog::groupFor('access_contracts_dashboard'));
+        $this->assertSame('admin', PermissionCatalog::groupFor('users.manage'));
+        $this->assertSame('admin', PermissionCatalog::groupFor('payment_gateways.manage'));
+        $this->assertSame('restaurant', PermissionCatalog::groupFor('orders.create'));
+        $this->assertSame('frontdesk', PermissionCatalog::groupFor('guests.check_in'));
+    }
+
+    public function test_module_groups_are_derived_from_the_module_tree(): void
+    {
+        $this->createPermissions([
+            'access_admin_dashboard',
+            'access_frontdesk_dashboard',
+            'access_staff_dashboard',
+            'access_restaurant_dashboard',
+            'access_gym_dashboard',
+            'access_inventory_dashboard',
+            'access_maintenance_dashboard',
+            'access_tasks_dashboard',
+            'access_banquet_dashboard',
+            'access_website_dashboard',
+            'access_contracts_dashboard',
+            'finance.view_coa',
+            'procurement.create_request',
+        ]);
+
+        $options = PermissionCatalog::groupOptions();
+
+        // Derived from the active modules plus virtual groups.
+        foreach (['admin', 'frontdesk', 'staff', 'restaurant', 'gym', 'inventory', 'maintenance', 'tasks', 'banquet', 'website', 'finance', 'contracts', 'procurement'] as $key) {
+            $this->assertArrayHasKey($key, $options, "Missing derived group {$key}");
+        }
     }
 
     public function test_website_permissions_strip_the_module_prefix(): void

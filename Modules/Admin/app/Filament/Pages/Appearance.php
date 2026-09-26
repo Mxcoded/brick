@@ -155,6 +155,6 @@ class Appearance extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('manage_settings') ?? false;
+        return auth()->user()?->can('settings.update') ?? false;
     }
 }

@@ -26,23 +26,21 @@ class PermissionGateTest extends TestCase
         'access_banquet_dashboard',
         'access_website_dashboard',
 
-        'manage_users', 'manage_roles', 'manage_permissions', 'manage_settings',
         'users.create', 'users.read', 'users.update', 'users.delete', 'users.manage',
         'roles.create', 'roles.read', 'roles.update', 'roles.delete', 'roles.manage',
         'permissions.create', 'permissions.read', 'permissions.update', 'permissions.delete',
         'settings.update',
+        'payment_gateways.manage',
 
-        'check_in_guest', 'check_out_guest',
         'guests.create', 'guests.read', 'guests.update', 'guests.delete', 'guests.manage',
+        'guests.check_in', 'guests.check_out',
 
-        'view_employees', 'manage_employees', 'approve_leaves',
         'employees.create', 'employees.read', 'employees.update', 'employees.delete',
         'leaves.create', 'leaves.read', 'leaves.update', 'leaves.approve', 'leaves.manage',
         'leaves.apply-for-others',
 
         'tasks.create', 'tasks.read', 'tasks.update', 'tasks.delete', 'tasks.assign',
 
-        'view_inventory', 'adjust_stock', 'manage_suppliers',
         'inventory.create', 'inventory.read', 'inventory.update', 'inventory.delete',
         'suppliers.create', 'suppliers.read', 'suppliers.update', 'suppliers.delete',
         'inventory.restock', 'inventory.transfer', 'inventory.usage', 'inventory.adjustments',
@@ -52,14 +50,11 @@ class PermissionGateTest extends TestCase
         'stores.create', 'stores.read', 'stores.update', 'stores.delete',
         'departments.create', 'departments.read', 'departments.update', 'departments.delete',
 
-        'take_orders', 'manage_menu',
         'orders.create', 'orders.read', 'orders.update', 'orders.delete',
         'menu.create', 'menu.read', 'menu.update', 'menu.delete',
 
-        'view_tasks', 'assign_tasks', 'log_maintenance',
         'maintenance.create', 'maintenance.read', 'maintenance.update', 'maintenance.delete',
 
-        'manage_banquet',
         'banquet.create', 'banquet.read', 'banquet.update', 'banquet.delete',
 
         'gym.manage',
@@ -434,9 +429,9 @@ class PermissionGateTest extends TestCase
     }
 
     #[Test]
-    public function website_settings_requires_dashboard_not_manage_settings()
+    public function website_settings_requires_dashboard_not_settings_update()
     {
-        // manage_settings is blade-only — route is gated by access_website_dashboard
+        // settings.update is blade-only — route is gated by access_website_dashboard
         $this->assertBlocked('/website/admin/settings', []);
         $this->assertPasses('/website/admin/settings', ['access_website_dashboard']);
     }

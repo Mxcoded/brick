@@ -30,7 +30,7 @@ class RolePermissionManagementTest extends TestCase
 
         $role = Role::firstOrCreate(['name' => RoleEnum::ADMIN->value, 'guard_name' => 'web']);
 
-        foreach (['access_admin_dashboard', 'manage_roles', 'manage_permissions'] as $name) {
+        foreach (['access_admin_dashboard', 'roles.manage', 'permissions.read'] as $name) {
             $permission = Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
             if (! $role->hasPermissionTo($permission)) {
                 $role->givePermissionTo($permission);

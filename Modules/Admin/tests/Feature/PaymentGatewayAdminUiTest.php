@@ -10,11 +10,13 @@ use Modules\Admin\Filament\Resources\PaymentGateways\Pages\CreatePaymentGateway;
 use Modules\Admin\Filament\Resources\PaymentGateways\Pages\EditPaymentGateway;
 use Modules\Admin\Filament\Resources\PaymentGateways\Pages\ListPaymentGateways;
 use Modules\Website\Models\PaymentGateway;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
  * Confirms the Filament payment-gateway resource renders correctly and is
- * guarded by the manage_payment_gateways permission.
+ * guarded by the payment_gateways.manage permission.
  */
 class PaymentGatewayAdminUiTest extends TestCase
 {
@@ -30,12 +32,17 @@ class PaymentGatewayAdminUiTest extends TestCase
 
     private function adminUser(): User
     {
+        $role = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        foreach (['access_admin_dashboard', 'payment_gateways.manage'] as $name) {
+            $role->givePermissionTo(Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']));
+        }
+
         $user = User::create([
             'name' => 'Gateway Admin',
             'email' => 'gwadmin'.uniqid().'@example.com',
             'password' => Hash::make('password'),
         ]);
-        $user->assignRole('admin'); // seeded with manage_payment_gateways + access_admin_dashboard
+        $user->assignRole($role);
 
         return $user;
     }
@@ -48,7 +55,7 @@ class PaymentGatewayAdminUiTest extends TestCase
             'password' => Hash::make('password'),
         ]);
         // Has admin dashboard access but NOT the gateway permission.
-        $user->givePermissionTo('access_admin_dashboard');
+        $user->givePermissionTo(Permission::firstOrCreate(['name' => 'access_admin_dashboard', 'guard_name' => 'web']));
 
         return $user;
     }

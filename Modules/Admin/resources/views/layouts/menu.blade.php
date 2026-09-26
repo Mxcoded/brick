@@ -15,14 +15,14 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">Access Control</div>
 
-    @can('manage_users')
+    @can('users.manage')
     <a href="{{ route('filament.admin.resources.users.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.users.*') ? 'active' : '' }}">
         <i class="fas fa-users fa-fw me-2"></i> Users
     </a>
     @endcan
 
-    @can('manage_roles')
+    @can('roles.manage')
     <a href="{{ route('filament.admin.resources.roles.index') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.roles.*') ? 'active' : '' }}">
         <i class="fas fa-user-tag fa-fw me-2"></i> Roles
@@ -39,7 +39,7 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-subheading">System</div>
 
-    @can('manage_settings')
+    @can('settings.update')
     <a href="{{ route('filament.admin.pages.modules') }}"
         class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.pages.modules') ? 'active' : '' }}">
         <i class="fas fa-cubes fa-fw me-2"></i> Modules
@@ -51,7 +51,7 @@
     </a>
     @endcan
 
-    @can('manage_payment_gateways')
+    @can('payment_gateways.manage')
     <a href="{{ route('filament.admin.resources.payment-gateways.index') }}"
         class="list-group-item list-group-item-action {{ request()->routeIs('filament.admin.resources.payment-gateways.*') ? 'active' : '' }}">
         <i class="fas fa-credit-card fa-fw me-2"></i> Payment Gateways

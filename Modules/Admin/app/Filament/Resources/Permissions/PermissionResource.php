@@ -43,7 +43,6 @@ class PermissionResource extends Resource
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyPermission(
-            'manage_permissions',
             'permissions.create',
             'permissions.read',
             'permissions.update',
