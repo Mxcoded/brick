@@ -40,6 +40,17 @@ class PermissionResource extends Resource
         return PermissionsTable::configure($table);
     }
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasAnyPermission(
+            'manage_permissions',
+            'permissions.create',
+            'permissions.read',
+            'permissions.update',
+            'permissions.delete',
+        ) ?? false;
+    }
+
     public static function getRelations(): array
     {
         return [

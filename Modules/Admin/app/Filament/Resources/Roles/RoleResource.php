@@ -40,6 +40,18 @@ class RoleResource extends Resource
         return RolesTable::configure($table);
     }
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasAnyPermission(
+            'manage_roles',
+            'roles.manage',
+            'roles.create',
+            'roles.read',
+            'roles.update',
+            'roles.delete',
+        ) ?? false;
+    }
+
     public static function getRelations(): array
     {
         return [
