@@ -127,6 +127,22 @@ class Appearance extends Page implements HasForms
             && ($this->data['theme'] !== ThemeSettings::theme());
     }
 
+    public function hasPendingChanges(): bool
+    {
+        if ($this->hasUnsavedThemeChanges()) {
+            return true;
+        }
+
+        $saved = ThemeSettings::logo();
+        $current = $this->data['logo'] ?? null;
+
+        if (is_array($current)) {
+            $current = $current[0] ?? null;
+        }
+
+        return is_string($current) && filled($current) && $current !== $saved;
+    }
+
     public function savedTheme(): string
     {
         return ThemeSettings::theme();

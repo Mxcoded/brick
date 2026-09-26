@@ -4,7 +4,10 @@ namespace Modules\Admin\Tests\Feature;
 
 use App\Enums\RoleEnum;
 use App\Models\User;
+use App\Support\ThemeSettings;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Livewire\Livewire;
+use Modules\Admin\Filament\Pages\Appearance;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -39,11 +42,25 @@ class AppearanceRenderTest extends TestCase
 
     public function test_discard_preview_handler_uses_global_saved_values(): void
     {
+        $this->actingAs($this->actingAsAdmin());
+
+        $saved = ThemeSettings::theme();
+        $other = $saved === 'platinum-noir' ? 'gold-legacy' : 'platinum-noir';
+
+        Livewire::test(Appearance::class)
+            ->fillForm(['theme' => $other])
+            ->assertSee('Discard Preview')
+            ->assertSee("x-on:click=\"\$wire.set('data.theme', window.brickspointSavedTheme, false);", false)
+            ->assertSee("document.documentElement.classList.toggle('dark', window.brickspointSavedThemeIsDark);", false);
+    }
+
+    public function test_discard_preview_hidden_when_no_unsaved_changes(): void
+    {
         $this->actingAs($this->actingAsAdmin())
             ->get('/admin/appearance')
             ->assertOk()
-            ->assertSee("x-on:click=\"\$wire.set('data.theme', window.brickspointSavedTheme, false);", false)
-            ->assertSee('document.documentElement.classList.toggle(\'dark\', window.brickspointSavedThemeIsDark);', false);
+            ->assertDontSee('Discard Preview')
+            ->assertDontSee('You have unsaved changes');
     }
 
     public function test_theme_card_swatches_are_rendered(): void

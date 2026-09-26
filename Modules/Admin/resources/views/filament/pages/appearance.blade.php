@@ -50,20 +50,13 @@
         <div class="space-y-6 xl:col-span-2">
             {{ $this->form }}
 
-            <div class="flex items-center justify-end gap-3">
-                <x-filament::button
-                    color="gray"
-                    size="sm"
-                    outlined
-                    x-data
-                    x-on:click="
-                        $wire.set('data.theme', window.brickspointSavedTheme, false);
-                        document.documentElement.dataset.theme = window.brickspointSavedTheme;
-                        document.documentElement.classList.toggle('dark', window.brickspointSavedThemeIsDark);
-                    "
-                >
-                    Discard Preview
-                </x-filament::button>
+            <div class="flex flex-wrap items-center justify-end gap-3">
+                @if ($this->hasPendingChanges())
+                    <span class="text-xs font-semibold text-warning-600 dark:text-warning-400">
+                        <x-filament::icon icon="heroicon-o-exclamation-triangle" class="me-1 inline h-3.5 w-3.5" />
+                        You have unsaved changes
+                    </span>
+                @endif
 
                 @if ($this->logoExists())
                     <x-filament::button
@@ -72,12 +65,39 @@
                         outlined
                         wire:click="removeLogo"
                         wire:confirm="Remove the current logo?"
+                        tooltip="Remove the saved logo"
                     >
+                        <x-filament::icon icon="heroicon-o-trash" class="h-4 w-4" />
                         Remove Logo
                     </x-filament::button>
                 @endif
 
-                <x-filament::button wire:click="save">
+                @if ($this->hasUnsavedThemeChanges())
+                    <x-filament::button
+                        color="gray"
+                        size="sm"
+                        outlined
+                        x-data
+                        x-on:click="
+                            $wire.set('data.theme', window.brickspointSavedTheme, false);
+                            document.documentElement.dataset.theme = window.brickspointSavedTheme;
+                            document.documentElement.classList.toggle('dark', window.brickspointSavedThemeIsDark);
+                        "
+                        tooltip="Revert to the last saved theme"
+                    >
+                        <x-filament::icon icon="heroicon-o-arrow-path" class="h-4 w-4" />
+                        Discard Preview
+                    </x-filament::button>
+                @endif
+
+                <x-filament::button
+                    wire:click="save"
+                    wire:loading.attr="disabled"
+                    wire:target="save"
+                    tooltip="Apply the theme and logo across the whole portal"
+                >
+                    <x-filament::icon icon="heroicon-o-check" class="h-4 w-4" wire:loading.remove wire:target="save" />
+                    <x-filament::loading-indicator wire:loading wire:target="save" class="h-4 w-4" />
                     Save Changes
                 </x-filament::button>
             </div>
