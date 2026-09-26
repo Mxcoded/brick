@@ -15,6 +15,7 @@ class RoleForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(2)
             ->components([
                 TextInput::make('name')
                     ->required()
@@ -22,9 +23,17 @@ class RoleForm
                     ->unique(ignoreRecord: true)
                     ->helperText('Lowercase letters, numbers and underscores only.'),
 
+                Select::make('guard_name')
+                    ->options([
+                        'web' => 'web',
+                    ])
+                    ->default('web')
+                    ->disabled(),
+
                 ViewField::make('permissions')
                     ->label('Permissions')
                     ->helperText('Tick the actions each role may perform. Permissions are grouped by business module.')
+                    ->columnSpanFull()
                     ->view('admin::filament.components.permission-matrix')
                     ->default([])
                     ->formatStateUsing(function (mixed $state, ?Role $record): array {
@@ -47,13 +56,6 @@ class RoleForm
                         ->unique()
                         ->values()
                         ->all()),
-
-                Select::make('guard_name')
-                    ->options([
-                        'web' => 'web',
-                    ])
-                    ->default('web')
-                    ->disabled(),
             ]);
     }
 }

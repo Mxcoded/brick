@@ -76,7 +76,37 @@ class AdminPanelProvider extends PanelProvider
 
         FilamentView::registerRenderHook(
             PanelsRenderHook::STYLES_AFTER,
-            fn (): string => '<link rel="stylesheet" href="'.asset('css/admin.css').'">',
+            fn (): string => <<<'HTML'
+                <script src="https://cdn.tailwindcss.com"></script>
+                <script>
+                    tailwind.config = {
+                        darkMode: 'class',
+                        corePlugins: { preflight: false },
+                        theme: {
+                            extend: {
+                                colors: {
+                                    primary: {
+                                        50: 'oklch(var(--primary-50) / <alpha-value>)',
+                                        100: 'oklch(var(--primary-100) / <alpha-value>)',
+                                        200: 'oklch(var(--primary-200) / <alpha-value>)',
+                                        300: 'oklch(var(--primary-300) / <alpha-value>)',
+                                        400: 'oklch(var(--primary-400) / <alpha-value>)',
+                                        500: 'oklch(var(--primary-500) / <alpha-value>)',
+                                        600: 'oklch(var(--primary-600) / <alpha-value>)',
+                                        700: 'oklch(var(--primary-700) / <alpha-value>)',
+                                        800: 'oklch(var(--primary-800) / <alpha-value>)',
+                                        900: 'oklch(var(--primary-900) / <alpha-value>)',
+                                        950: 'oklch(var(--primary-950) / <alpha-value>)',
+                                    },
+                                },
+                                fontFamily: {
+                                    sans: ['Figtree', 'ui-sans-serif', 'system-ui'],
+                                },
+                            },
+                        },
+                    };
+                </script>
+                HTML,
         );
     }
 }
