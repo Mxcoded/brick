@@ -1,6 +1,6 @@
 @php
     $catalog = \Modules\Admin\Support\PermissionCatalog::groups();
-    $selected = collect($state ?? [])
+    $selected = collect($getState() ?? [])
         ->map(fn ($value) => (int) $value)
         ->filter(fn ($value) => $value > 0)
         ->unique()
@@ -18,7 +18,7 @@
     data-name="permission-matrix"
     class="grid gap-4"
 >
-    <div class="sticky top-2 z-10 rounded-xl border border-gray-200 bg-gray-50/95 p-3 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95">
+    <div class="sticky top-2 z-10 rounded-xl border border-primary-200/60 bg-primary-50/60 p-3 shadow-sm backdrop-blur dark:border-primary-500/20 dark:bg-gray-900/95">
         <div class="flex flex-wrap items-center gap-2">
             <div class="relative min-w-[200px] flex-1">
                 <svg class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -28,16 +28,16 @@
                     x-model="search"
                     type="search"
                     placeholder="Search modules, resources or actions ..."
-                    class="w-full rounded-lg border-0 bg-white py-1.5 pr-4 pl-9 text-sm text-gray-900 shadow-sm ring-1 ring-gray-200 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-primary-500 dark:bg-gray-800 dark:text-gray-100 dark:ring-gray-700"
+                    class="w-full rounded-lg border-0 bg-white py-1.5 pr-4 pl-9 text-sm text-gray-900 shadow-sm ring-1 ring-primary-200 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-primary-500 dark:bg-gray-800 dark:text-gray-100 dark:ring-gray-700"
                 >
             </div>
-            <div class="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700">
+            <div class="rounded-lg bg-primary-100 px-3 py-1.5 text-xs font-medium text-primary-800 ring-1 ring-primary-200 dark:bg-primary-500/10 dark:text-primary-300 dark:ring-primary-500/30">
                 <span x-text="selected.length"></span> of {{ $total }} permissions selected
             </div>
-            <button type="button" @click="toggleAllCollapse(false)" class="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700 dark:hover:text-gray-100">
+            <button type="button" @click="toggleAllCollapse(false)" class="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:text-primary-700 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700 dark:hover:text-primary-300">
                 Expand all
             </button>
-            <button type="button" @click="toggleAllCollapse(true)" class="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700 dark:hover:text-gray-100">
+            <button type="button" @click="toggleAllCollapse(true)" class="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200 hover:text-primary-700 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700 dark:hover:text-primary-300">
                 Collapse all
             </button>
         </div>
@@ -48,27 +48,35 @@
             <div
                 x-show="visibleGroup(group)"
                 x-transition
-                class="mb-4 break-inside-avoid overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700"
+                class="mb-4 break-inside-avoid overflow-hidden rounded-xl border border-gray-200 shadow-sm transition-shadow duration-200 hover:shadow-md dark:border-gray-700"
+                :class="selectedInGroup(group).length > 0 ? 'border-primary-200 dark:border-primary-500/30' : ''"
             >
-                <div class="flex items-center justify-between gap-2 border-b border-gray-200 bg-gray-100/80 px-3 py-2 dark:border-gray-700 dark:bg-gray-800/80">
+                <div class="relative flex items-center justify-between gap-2 border-b border-gray-200 bg-gray-100/70 px-3 py-2 dark:border-gray-700 dark:bg-gray-800/70">
+                    <span
+                        class="absolute inset-y-0 left-0 w-1 bg-primary-500 opacity-0 transition-opacity duration-200"
+                        :class="selectedInGroup(group).length > 0 ? 'opacity-100' : ''"
+                    ></span>
                     <button
                         type="button"
                         @click="toggleCollapse(group.key)"
-                        class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left"
+                        class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left pl-1"
                     >
                         <svg
-                            class="h-4 w-4 shrink-0 text-gray-400 transition-transform"
-                            :class="isCollapsed(group.key) ? '-rotate-90' : ''"
+                            class="h-4 w-4 shrink-0 transition-transform"
+                            :class="isCollapsed(group.key) ? '-rotate-90 text-gray-400' : 'text-primary-500'"
                             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
                         >
                             <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
                         </svg>
                         <span x-text="group.label" class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100"></span>
-                        <span class="shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                        <span
+                            class="shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-transparent transition-colors duration-200 dark:bg-gray-700 dark:text-gray-300"
+                            :class="selectedInGroup(group).length > 0 ? 'bg-primary-100 text-primary-800 ring-primary-200 dark:bg-primary-500/20 dark:text-primary-300 dark:ring-primary-500/40' : ''"
+                        >
                             <span x-text="selectedInGroup(group).length"></span>/<span x-text="group.ids.length"></span>
                         </span>
                     </button>
-                    <label class="flex shrink-0 cursor-pointer items-center gap-1.5 text-[11px] font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100">
+                    <label class="flex shrink-0 cursor-pointer items-center gap-1.5 text-[11px] font-medium text-gray-600 transition-colors duration-200 hover:text-primary-700 dark:text-gray-300 dark:hover:text-primary-300">
                         <input
                             type="checkbox"
                             :checked="groupAllChecked(group)"
@@ -112,7 +120,7 @@
         </template>
     </div>
 
-    <div x-show="visibleGroupsCount() === 0" class="rounded-xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+    <div x-show="visibleGroupsCount() === 0" class="rounded-xl border border-dashed border-primary-300 p-8 text-center text-sm text-gray-500 dark:border-primary-500/40 dark:text-gray-400">
         No permissions match your search.
     </div>
 

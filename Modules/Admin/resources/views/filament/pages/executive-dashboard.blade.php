@@ -18,7 +18,7 @@
 
     {{-- ═══════════════════ STRATEGIC KPI BANNER ═══════════════════ --}}
     <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <div class="rounded-xl border-s-4 border-success-500 bg-white p-4 shadow-sm dark:bg-white/5 dark:border-success-500"
+        <div class="rounded-xl border-s-4 border-success-500 bg-white p-4 shadow-sm ring-1 ring-primary-100/50 transition-shadow duration-200 hover:shadow-md dark:border-success-500 dark:bg-white/5 dark:ring-primary-500/10"
              title="Total income from Banquet, Front Desk, Gym, and Website modules combined.">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Revenue</p>
             <p class="mt-1 text-lg font-bold text-gray-900 dark:text-white">₦{{ number_format($totalRevenue) }}</p>
@@ -28,13 +28,13 @@
                 </p>
             @endif
         </div>
-        <div class="rounded-xl border-s-4 border-primary-600 bg-white p-4 shadow-sm dark:bg-white/5 dark:border-primary-500"
+        <div class="rounded-xl border-s-4 border-primary-600 bg-white p-4 shadow-sm ring-1 ring-primary-100/50 transition-shadow duration-200 hover:shadow-md dark:border-primary-500 dark:bg-white/5 dark:ring-primary-500/10"
              title="Cumulative income from January 1st to today across all departments.">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">YTD Revenue</p>
             <p class="mt-1 text-lg font-bold text-gray-900 dark:text-white">₦{{ number_format($ytdRevenue) }}</p>
             <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ now()->year }} year-to-date</p>
         </div>
-        <div class="rounded-xl border-s-4 border-info-500 bg-white p-4 shadow-sm dark:bg-white/5 dark:border-info-400"
+        <div class="rounded-xl border-s-4 border-info-500 bg-white p-4 shadow-sm ring-1 ring-primary-100/50 transition-shadow duration-200 hover:shadow-md dark:border-info-400 dark:bg-white/5 dark:ring-primary-500/10"
              title="Percentage of hotel room units currently occupied.">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Occupancy</p>
             <p class="mt-1 text-lg font-bold text-gray-900 dark:text-white">{{ $occupancyRate }}%</p>
@@ -42,13 +42,13 @@
                 {{ $occupancyChange >= 0 ? '▲' : '▼' }} {{ abs($occupancyChange) }}pp
             </p>
         </div>
-        <div class="rounded-xl border-s-4 border-gray-400 bg-white p-4 shadow-sm dark:bg-white/5 dark:border-gray-500"
+        <div class="rounded-xl border-s-4 border-gray-400 bg-white p-4 shadow-sm ring-1 ring-primary-100/50 transition-shadow duration-200 hover:shadow-md dark:border-gray-500 dark:bg-white/5 dark:ring-primary-500/10"
              title="Employees currently employed (no end date recorded).">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Active Staff</p>
             <p class="mt-1 text-lg font-bold text-gray-900 dark:text-white">{{ $activeEmployees }}</p>
             <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">of {{ $totalEmployees }} total</p>
         </div>
-        <div class="rounded-xl border-s-4 border-danger-500 bg-white p-4 shadow-sm dark:bg-white/5 dark:border-danger-500"
+        <div class="rounded-xl border-s-4 border-danger-500 bg-white p-4 shadow-sm ring-1 ring-primary-100/50 transition-shadow duration-200 hover:shadow-md dark:border-danger-500 dark:bg-white/5 dark:ring-primary-500/10"
              title="Total urgent items requiring your decision across the hotel.">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Critical Alerts</p>
             <p class="mt-1 text-lg font-bold {{ $criticalAlerts > 0 ? 'text-danger-600 dark:text-danger-400' : 'text-gray-900 dark:text-white' }}">
@@ -56,7 +56,7 @@
             </p>
             <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">needs attention</p>
         </div>
-        <div class="rounded-xl border-s-4 border-teal-500 bg-white p-4 shadow-sm dark:bg-white/5 dark:border-teal-400"
+        <div class="rounded-xl border-s-4 border-teal-500 bg-white p-4 shadow-sm ring-1 ring-primary-100/50 transition-shadow duration-200 hover:shadow-md dark:border-teal-400 dark:bg-white/5 dark:ring-primary-500/10"
              title="Number of guests currently staying in the hotel.">
             <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Checked In</p>
             <p class="mt-1 text-lg font-bold text-gray-900 dark:text-white">{{ $checkedIn }}</p>
@@ -66,7 +66,7 @@
 
     {{-- ═══════════════════ REVENUE TREND CHART ═══════════════════ --}}
     <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5 xl:col-span-2"
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40 xl:col-span-2"
              title="Monthly revenue broken down by department.">
             <div class="mb-3 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Revenue Trend (Last 6 Months)</h3>
@@ -112,7 +112,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5"
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40"
              title="Side-by-side comparison of the current month versus the previous month.">
             <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">This Month vs Last Month</h3>
             <div class="grid grid-cols-2 gap-2">
@@ -196,7 +196,7 @@
             ];
         @endphp
         @foreach ($moduleCards as $card)
-            <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+            <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
                 <div class="mb-2 flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $card['title'] }}</h3>
                     <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $card['badge'][1] }}">{{ $card['badge'][0] }}</span>
@@ -229,7 +229,7 @@
 
     {{-- ═══════════════════ MODULE HEALTH (ROW 2) ═══════════════════ --}}
     <div class="mt-4">
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
             <div class="mb-2 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Maintenance</h3>
                 <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $maintenanceCritical > 0 ? 'bg-danger-500/15 text-danger-700 dark:text-danger-400' : ($maintenanceOpen > 0 ? 'bg-warning-500/15 text-warning-700 dark:text-warning-400' : 'bg-success-500/15 text-success-700 dark:text-success-400') }}">{{ $maintenanceOpen }} open</span>
@@ -281,7 +281,7 @@
     </div>
 
     <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
             <div class="mb-2 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Tasks</h3>
                 <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $tasksOverdue > 0 ? 'bg-danger-500/15 text-danger-700 dark:text-danger-400' : ($tasksPending > 0 ? 'bg-warning-500/15 text-warning-700 dark:text-warning-400' : 'bg-success-500/15 text-success-700 dark:text-success-400') }}">{{ $tasksPending }} pending</span>
@@ -295,7 +295,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
             <div class="mb-2 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Inventory</h3>
                 <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $lowStockItems > 0 ? 'bg-danger-500/15 text-danger-700 dark:text-danger-400' : 'bg-success-500/15 text-success-700 dark:text-success-400' }}">{{ $lowStockItems }} low</span>
@@ -307,7 +307,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
             <div class="mb-2 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Website</h3>
                 <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $unreadMessages > 0 ? 'bg-warning-500/15 text-warning-700 dark:text-warning-400' : 'bg-success-500/15 text-success-700 dark:text-success-400' }}">{{ $unreadMessages }} unread</span>
@@ -321,7 +321,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
             <div class="mb-2 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">KPI Snapshot</h3>
             </div>
@@ -337,7 +337,7 @@
 
     {{-- ═══════════════════ BOTTOM ROW: ACTION ITEMS, HR, ACTIVITY ═══════════════════ --}}
     <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
             <div class="mb-2 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Action Items</h3>
                 @if ($criticalAlerts > 0)
@@ -386,7 +386,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
             <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">HR Overview</h3>
             <div class="mb-3 grid grid-cols-3 gap-2 text-center">
                 <div>
@@ -418,7 +418,7 @@
             @endif
         </div>
 
-        <div class="rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+        <div class="rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
             <div class="mb-2 flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
                 <span class="text-xs text-gray-500 dark:text-gray-400">{{ $recentLogins }} logins today</span>
@@ -442,7 +442,7 @@
     </div>
 
     {{-- ═══════════════════ UPCOMING BANQUET EVENTS ═══════════════════ --}}
-    <div class="mt-4 rounded-xl bg-white p-4 shadow-sm dark:bg-white/5">
+    <div class="mt-4 rounded-xl border border-primary-200/40 bg-white p-4 shadow-sm transition-all duration-200 hover:border-primary-300/60 hover:shadow-md dark:border-primary-500/15 dark:bg-white/5 dark:hover:border-primary-500/40">
         <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Upcoming Banquet Events</h3>
         @if ($upcomingEvents->count())
             <div class="overflow-x-auto">

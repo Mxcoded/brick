@@ -164,7 +164,7 @@ class AuditTrailResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('access_admin_dashboard') ?? false;
+        return auth()->user()?->can('audit_trails.read') ?? false;
     }
 
     public static function table(Table $table): Table

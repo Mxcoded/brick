@@ -40,6 +40,17 @@ class UserResource extends Resource
         return UsersTable::configure($table);
     }
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasAnyPermission(
+            'users.manage',
+            'users.create',
+            'users.read',
+            'users.update',
+            'users.delete',
+        ) ?? false;
+    }
+
     public static function getRelations(): array
     {
         return [

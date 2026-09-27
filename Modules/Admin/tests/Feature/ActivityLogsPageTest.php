@@ -27,9 +27,15 @@ class ActivityLogsPageTest extends TestCase
         $this->withoutMiddleware([ValidateCsrfToken::class]);
 
         $role = Role::firstOrCreate(['name' => RoleEnum::ADMIN->value, 'guard_name' => 'web']);
-        $perm = Permission::firstOrCreate(['name' => 'access_admin_dashboard', 'guard_name' => 'web']);
-        if (! $role->hasPermissionTo($perm)) {
-            $role->givePermissionTo($perm);
+        $perms = [
+            'access_admin_dashboard',
+            'activity_logs.read',
+        ];
+        foreach ($perms as $permName) {
+            $perm = Permission::firstOrCreate(['name' => $permName, 'guard_name' => 'web']);
+            if (! $role->hasPermissionTo($perm)) {
+                $role->givePermissionTo($perm);
+            }
         }
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 

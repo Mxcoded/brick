@@ -74,12 +74,15 @@ class PermissionCatalogTest extends TestCase
 
     public function test_permissions_are_mapped_to_modules(): void
     {
-        $this->createPermissions(['access_admin_dashboard', 'access_contracts_dashboard', 'users.manage', 'orders.create', 'payment_gateways.manage', 'guests.check_in']);
+        $this->createPermissions(['access_admin_dashboard', 'access_contracts_dashboard', 'users.manage', 'orders.create', 'payment_gateways.manage', 'guests.check_in', 'login_logs.read', 'activity_logs.read', 'audit_trails.read']);
 
         $this->assertSame('admin', PermissionCatalog::groupFor('access_admin_dashboard'));
         $this->assertSame('contracts', PermissionCatalog::groupFor('access_contracts_dashboard'));
         $this->assertSame('admin', PermissionCatalog::groupFor('users.manage'));
         $this->assertSame('admin', PermissionCatalog::groupFor('payment_gateways.manage'));
+        $this->assertSame('admin', PermissionCatalog::groupFor('login_logs.read'));
+        $this->assertSame('admin', PermissionCatalog::groupFor('activity_logs.read'));
+        $this->assertSame('admin', PermissionCatalog::groupFor('audit_trails.read'));
         $this->assertSame('restaurant', PermissionCatalog::groupFor('orders.create'));
         $this->assertSame('frontdesk', PermissionCatalog::groupFor('guests.check_in'));
     }

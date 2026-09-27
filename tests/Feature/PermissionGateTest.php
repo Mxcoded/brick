@@ -31,6 +31,9 @@ class PermissionGateTest extends TestCase
         'permissions.create', 'permissions.read', 'permissions.update', 'permissions.delete',
         'settings.update',
         'payment_gateways.manage',
+        'login_logs.read',
+        'activity_logs.read',
+        'audit_trails.read',
 
         'guests.create', 'guests.read', 'guests.update', 'guests.delete', 'guests.manage',
         'guests.check_in', 'guests.check_out',
@@ -158,6 +161,42 @@ class PermissionGateTest extends TestCase
     public function access_admin_dashboard()
     {
         $this->assertModuleAccess('/admin', 'access_admin_dashboard');
+    }
+
+    #[Test]
+    public function admin_dashboard_access_does_not_grant_users_management()
+    {
+        // "Access" (read dashboard) only — the user must NOT reach User management.
+        $this->assertBlocked('/admin/users', ['access_admin_dashboard']);
+        $this->assertPasses('/admin/users', ['access_admin_dashboard', 'users.read']);
+    }
+
+    #[Test]
+    public function admin_dashboard_access_does_not_grant_roles_management()
+    {
+        $this->assertBlocked('/admin/roles', ['access_admin_dashboard']);
+        $this->assertPasses('/admin/roles', ['access_admin_dashboard', 'roles.read']);
+    }
+
+    #[Test]
+    public function login_logs_require_granular_read_permission()
+    {
+        $this->assertBlocked('/admin/login-logs', ['access_admin_dashboard']);
+        $this->assertPasses('/admin/login-logs', ['access_admin_dashboard', 'login_logs.read']);
+    }
+
+    #[Test]
+    public function activity_logs_require_granular_read_permission()
+    {
+        $this->assertBlocked('/admin/activity-logs', ['access_admin_dashboard']);
+        $this->assertPasses('/admin/activity-logs', ['access_admin_dashboard', 'activity_logs.read']);
+    }
+
+    #[Test]
+    public function audit_trails_require_granular_read_permission()
+    {
+        $this->assertBlocked('/admin/audit-trails', ['access_admin_dashboard']);
+        $this->assertPasses('/admin/audit-trails', ['access_admin_dashboard', 'audit_trails.read']);
     }
 
     #[Test]

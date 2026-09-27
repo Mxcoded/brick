@@ -119,7 +119,7 @@
 
                 <div x-data="{ theme: $wire.$entangle('data.theme', true) }">
                     <div
-                        class="overflow-hidden rounded-xl border border-gray-200 shadow-sm dark:border-gray-700"
+                        class="overflow-hidden rounded-xl border border-primary-200/70 shadow-sm dark:border-primary-500/20"
                         x-bind:style="`background-color: ${(window.brickspointThemePreview(theme ?? 'gold-legacy') ?? { bg: '#f0f2f5' }).bg};`"
                     >
                         <div

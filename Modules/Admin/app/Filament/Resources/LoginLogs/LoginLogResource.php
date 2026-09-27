@@ -68,7 +68,7 @@ class LoginLogResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('access_admin_dashboard') ?? false;
+        return auth()->user()?->can('login_logs.read') ?? false;
     }
 
     public static function table(Table $table): Table

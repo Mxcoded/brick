@@ -35,6 +35,11 @@ class CreateUserFromEmployee extends Page implements HasForms
 
     protected static bool $shouldRegisterNavigation = false;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasAnyPermission('users.manage', 'users.create') ?? false;
+    }
+
     public ?array $data = [];
 
     public function mount(): void

@@ -97,6 +97,8 @@ class RolePermissionManagementTest extends TestCase
         Livewire::test(EditRole::class, ['record' => $role->getRouteKey()])
             ->assertOk()
             ->assertFormSet(['permissions' => [$usersRead->id]])
+            ->assertSeeHtml('selected: JSON.parse(')
+            ->assertSeeHtml((string) $usersRead->id)
             ->fillForm([
                 'name' => 'catering_supervisor',
                 'permissions' => [$menuDelete->id],

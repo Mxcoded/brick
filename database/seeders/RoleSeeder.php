@@ -51,6 +51,13 @@ class RoleSeeder extends Seeder
             'settings.update',
 
             // ──────────────────────────────────────────
+            // ADMIN – log & audit trail viewers
+            // ──────────────────────────────────────────
+            'login_logs.read',
+            'activity_logs.read',
+            'audit_trails.read',
+
+            // ──────────────────────────────────────────
             // PAYMENT GATEWAYS – management (pluggable)
             // ──────────────────────────────────────────
             'payment_gateways.manage',
