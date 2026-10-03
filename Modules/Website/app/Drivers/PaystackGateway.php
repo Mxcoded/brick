@@ -5,12 +5,12 @@ namespace Modules\Website\Drivers;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Modules\Finance\Services\PostingService;
 use Modules\Website\Contracts\PaymentGatewayInterface;
 use Modules\Website\Emails\BookingConfirmation;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\PaymentGateway;
 use Modules\Website\Models\Refund;
+use Modules\Website\Services\BookingLedgerService;
 
 class PaystackGateway implements PaymentGatewayInterface
 {
@@ -159,12 +159,7 @@ class PaystackGateway implements PaymentGatewayInterface
             'status' => 'confirmed',
         ]);
 
-        try {
-            app(PostingService::class)
-                ->recordSale('website', (float) $booking->total_amount, $gateway, 'booking', $booking->id);
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        app(BookingLedgerService::class)->recordSettlement($booking, $gateway);
 
         $this->sendConfirmationEmail($booking);
     }
@@ -210,6 +205,25 @@ class PaystackGateway implements PaymentGatewayInterface
 
             foreach ($bookings as $booking) {
                 if ($newStatus === 'processed') {
+                    // Reverse the revenue the settlement recognised, otherwise
+                    // the guest is refunded but the sale stays in the ledger.
+                    // Amounts arrive in kobo; the refunds row is preferred when
+                    // one exists, else the webhook amount, else the full total.
+                    $refundForBooking = $refund && (int) $refund->refundable_id === (int) $booking->id
+                        ? $refund
+                        : Refund::where('refundable_id', $booking->id)
+                            ->where('status', 'processed')
+                            ->latest('id')
+                            ->first();
+
+                    app(BookingLedgerService::class)->recordRefund(
+                        $booking,
+                        $refundForBooking,
+                        $amount > 0 ? (float) $amount : null,
+                        $this->code(),
+                        'Paystack refund processed',
+                    );
+
                     $booking->update(['payment_status' => 'refunded', 'amount_paid' => 0]);
                 } elseif (in_array($newStatus, ['failed', 'declined'])) {
                     $booking->update(['payment_status' => 'paid']);

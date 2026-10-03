@@ -41,6 +41,7 @@ use Modules\Website\Models\Settings;
 use Modules\Website\Models\Testimonial;
 use Modules\Website\Services\BookingCartService;
 use Modules\Website\Services\BookingDraftService;
+use Modules\Website\Services\BookingLedgerService;
 use Modules\Website\Services\GoogleReviewsService;
 use Modules\Website\Services\PaymentGatewayManager;
 use Modules\Website\Services\RoomAvailabilityService;
@@ -1586,6 +1587,7 @@ class WebsiteController extends Controller
                             'amount_paid' => $booking->total_amount,
                             'status' => 'confirmed',
                         ]);
+                        app(BookingLedgerService::class)->recordSettlement($booking);
                         $this->sendConfirmationEmail($booking);
                     }
 
@@ -1605,6 +1607,11 @@ class WebsiteController extends Controller
                             'amount_paid' => $booking->total_amount,
                             'status' => 'confirmed',
                         ]);
+
+                        // The synchronous verification is a settlement: if the
+                        // gateway webhook is delayed or lost, revenue would
+                        // otherwise never be recognised.
+                        app(BookingLedgerService::class)->recordSettlement($booking);
 
                         $this->sendConfirmationEmail($booking);
                         session()->put('just_booked_ref', $booking->booking_reference);

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Restaurant\Support\RoomServiceAccess;
 use Modules\Website\Models\Booking;
 
 class GuestController extends Controller
@@ -41,12 +42,23 @@ class GuestController extends Controller
             ->take(3)
             ->get();
 
+        // 3. Room service. The room is derived from the guest's own checked-in
+        // stay, never chosen by them, so the dashboard can only ever point at
+        // the room they are actually occupying. Guarded on the Restaurant
+        // module being present, since it is not a dependency of this one.
+        $roomServiceRoom = null;
+
+        if (class_exists(RoomServiceAccess::class)) {
+            $roomServiceRoom = app(RoomServiceAccess::class)->roomFor($user);
+        }
+
         return view('website::guest.dashboard', compact(
             'user',
             'activeBookingsCount',
             'pendingPaymentCount',
             'totalSpent',
-            'recentBookings'
+            'recentBookings',
+            'roomServiceRoom'
         ));
     }
 

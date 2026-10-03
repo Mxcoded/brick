@@ -5,6 +5,7 @@ namespace Modules\Website\Tests\Feature;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
+use Modules\Finance\Models\JournalEntry;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\PaymentGateway;
 use Modules\Website\Models\Refund;
@@ -138,6 +139,27 @@ class PaystackRefundTest extends TestCase
         $this->assertEquals('processed', $refund->fresh()->status);
         $this->assertEquals('refunded', $booking->fresh()->payment_status);
         $this->assertEquals(0, (float) $booking->fresh()->amount_paid);
+
+        // The guest has been refunded, so the sale the settlement recognised
+        // must be reversed. This used to be missing entirely, leaving revenue
+        // permanently overstated for every refunded booking.
+        $this->assertDatabaseHas('finance_journal_entries', [
+            'reference_type' => 'booking',
+            'reference_id' => $booking->id,
+            'status' => 'posted',
+            'entry_number' => "REF-booking-{$booking->id}-refund-{$refund->id}",
+        ]);
+
+        $reversal = JournalEntry::where(
+            'entry_number',
+            "REF-booking-{$booking->id}-refund-{$refund->id}"
+        )->firstOrFail();
+
+        $this->assertEquals(
+            (float) $booking->amount_paid,
+            (float) $reversal->lines->sum('debit'),
+            'The refund reversal did not match the refunded amount.',
+        );
     }
 
     public function test_webhook_refund_failed_reverts_booking_to_paid(): void

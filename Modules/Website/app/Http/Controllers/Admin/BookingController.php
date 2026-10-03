@@ -13,6 +13,7 @@ use Modules\Website\Models\Booking;
 use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
+use Modules\Website\Services\BookingLedgerService;
 use Modules\Website\Services\RoomAssignmentService;
 use Modules\Website\Services\WebsiteRateService;
 
@@ -249,6 +250,11 @@ class BookingController extends Controller
             'amount_paid' => $booking->total_amount,
             'payment_status' => 'paid',
         ]);
+
+        // Manual confirmation is a settlement too: without this the guest is
+        // marked paid and the gateway webhook never arrives, so revenue would
+        // never reach the ledger.
+        app(BookingLedgerService::class)->recordSettlement($booking);
 
         // The model's saving event auto-confirms pending → confirmed, so send confirmation
         $booking->fresh()->sendNotification('Payment Confirmed');

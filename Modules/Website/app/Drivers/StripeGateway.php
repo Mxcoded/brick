@@ -5,11 +5,12 @@ namespace Modules\Website\Drivers;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Modules\Finance\Services\PostingService;
 use Modules\Website\Contracts\PaymentGatewayInterface;
 use Modules\Website\Emails\BookingConfirmation;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\PaymentGateway;
+use Modules\Website\Models\Refund;
+use Modules\Website\Services\BookingLedgerService;
 
 /**
  * Stripe payment gateway driver (template).
@@ -146,13 +147,36 @@ class StripeGateway implements PaymentGatewayInterface
             return false;
         }
 
-        // Stripe sends `t=<timestamp>,v1=<hmac>`; verify the v1 HMAC-SHA256.
-        $parts = collect(explode(',', $signature))
-            ->mapWithKeys(fn ($p) => explode('=', $p, 2) + [1 => '']);
+        // Stripe sends `t=<timestamp>,v1=<hmac>[,v1=<hmac>]` and signs
+        // "{timestamp}.{raw_body}". Signing the bare body made every genuine
+        // Stripe webhook fail verification. Two v1 values are sent while a
+        // webhook secret is being rotated, so accept any that matches.
+        $timestamp = null;
+        $candidates = [];
 
-        $expected = hash_hmac('sha256', $payload, $secret);
+        foreach (explode(',', $signature) as $part) {
+            [$key, $value] = array_pad(explode('=', $part, 2), 2, '');
 
-        return hash_equals($expected, (string) $parts->get('v1', ''));
+            if ($key === 't') {
+                $timestamp = $value;
+            } elseif ($key === 'v1') {
+                $candidates[] = $value;
+            }
+        }
+
+        if ($timestamp === null || $candidates === []) {
+            return false;
+        }
+
+        $expected = hash_hmac('sha256', $timestamp.'.'.$payload, $secret);
+
+        foreach ($candidates as $candidate) {
+            if (hash_equals($expected, (string) $candidate)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function handleWebhook(array $event): void
@@ -195,20 +219,92 @@ class StripeGateway implements PaymentGatewayInterface
                 'status' => 'confirmed',
             ]);
 
-            try {
-                app(PostingService::class)
-                    ->recordSale('website', (float) $booking->total_amount, $gateway, 'booking', $booking->id);
-            } catch (\Throwable $e) {
-                report($e);
-            }
+            app(BookingLedgerService::class)->recordSettlement($booking, $gateway);
 
             $this->sendConfirmationEmail($booking);
         }
     }
 
+    /**
+     * Stripe sends `charge.refunded` (charge object, refunds[]) and
+     * `refund.updated` (refund object with a charge id). Both are handled so a
+     * refund is not silently dropped: the sale must be reversed in the ledger
+     * or the guest is refunded while revenue stays recognised.
+     */
     private function handleRefundWebhook(array $event): void
     {
-        Log::info('Stripe refund webhook (template)', ['event' => $event['type'] ?? null]);
+        $type = $event['type'] ?? null;
+        $object = $event['data']['object'] ?? [];
+        $status = $type === 'refund.updated'
+            ? strtolower((string) ($object['status'] ?? ''))
+            : 'succeeded';
+
+        $succeeded = in_array($status, ['succeeded', 'success', 'processed'], true);
+
+        // charge.refunded carries the full refunds[] list; refund.updated carries
+        // a single refund and points back at the charge.
+        $refunds = $object['refunds']['data'] ?? [[
+            'id' => $object['id'] ?? null,
+            'amount' => $object['amount'] ?? 0,
+            'status' => $object['status'] ?? $status,
+            'reason' => $object['reason'] ?? null,
+        ]];
+
+        foreach ((array) $refunds as $refund) {
+            $refundAmount = (float) (($refund['amount'] ?? 0) / 100);
+            $this->reverseRefundForCharge($object, (int) $refundAmount, $refund['reason'] ?? null, $succeeded);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $object  the charge (or payment intent) object
+     */
+    private function reverseRefundForCharge(array $object, int $refundAmount, ?string $reason, bool $succeeded): void
+    {
+        $reference = $object['metadata']['reference']
+            ?? $object['payment_intent']
+            ?? null;
+
+        if (! $reference) {
+            Log::warning('Stripe refund received without a booking reference', [
+                'charge' => $object['id'] ?? null,
+            ]);
+
+            return;
+        }
+
+        $bookings = str_starts_with((string) $reference, 'GRP')
+            ? Booking::where('booking_group_id', $reference)->get()
+            : Booking::where('booking_reference', $reference)->get();
+
+        if ($bookings->isEmpty()) {
+            Log::warning('Stripe refund matched no booking', ['reference' => $reference]);
+
+            return;
+        }
+
+        foreach ($bookings as $booking) {
+            if (! $succeeded) {
+                // Only a settled refund reverses revenue.
+                continue;
+            }
+
+            $refund = Refund::where('gateway', 'stripe')
+                ->where('refundable_id', $booking->id)
+                ->where('status', '!=', 'failed')
+                ->latest('id')
+                ->first();
+
+            app(BookingLedgerService::class)->recordRefund(
+                $booking,
+                $refund,
+                $refundAmount > 0 ? (float) $refundAmount : null,
+                $this->code(),
+                $reason ? "Stripe refund: {$reason}" : 'Stripe refund processed',
+            );
+
+            $booking->update(['payment_status' => 'refunded', 'amount_paid' => 0]);
+        }
     }
 
     private function sendConfirmationEmail(Booking $booking): void

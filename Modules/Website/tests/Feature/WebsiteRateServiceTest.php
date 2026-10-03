@@ -2,7 +2,7 @@
 
 namespace Modules\Website\Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Modules\Frontdeskcrm\Models\RateCalendar;
 use Modules\Frontdeskcrm\Models\RateCode;
 use Modules\Website\Models\RoomType;
@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 class WebsiteRateServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected WebsiteRateService $service;
 

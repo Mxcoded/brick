@@ -2,10 +2,12 @@
 
 namespace Modules\Website\Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Testing\TestResponse;
 use Modules\Finance\Models\ChartOfAccount;
 use Modules\Website\Emails\BookingConfirmation;
 use Modules\Website\Models\Addon;
@@ -15,6 +17,9 @@ use Modules\Website\Models\Refund;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
 use Modules\Website\Services\BookingCartService;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /**
@@ -360,6 +365,16 @@ class BookingPaymentFlowTest extends TestCase
             'status' => 'confirmed',
         ]);
         Mail::assertSent(BookingConfirmation::class, fn ($m) => $m->hasTo('cbguest@example.com'));
+
+        // The synchronous callback is a settlement: without a ledger entry here
+        // a booking confirmed this way earns no revenue until (or unless) the
+        // gateway webhook happens to arrive.
+        $this->assertDatabaseHas('finance_journal_entries', [
+            'entry_number' => "SALE-booking-{$booking->id}",
+            'reference_type' => 'booking',
+            'reference_id' => $booking->id,
+            'status' => 'posted',
+        ]);
     }
 
     public function test_callback_marks_group_booking_paid(): void
@@ -763,5 +778,152 @@ class BookingPaymentFlowTest extends TestCase
         $this->get(route('website.booking.confirmation', $booking->booking_reference))
             ->assertOk()
             ->assertDontSee('Complete Payment');
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // SCENARIO GROUP 7 — Ledger coverage for every settlement path
+    // ─────────────────────────────────────────────────────────────
+
+    public function test_admin_mark_paid_posts_revenue_to_the_ledger(): void
+    {
+        $role = Role::firstOrCreate([
+            'name' => 'website_admin', 'guard_name' => 'web',
+        ]);
+
+        foreach (['access_website_dashboard', 'website.bookings.update'] as $name) {
+            $role->givePermissionTo(
+                Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web'])
+            );
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $admin = User::create([
+            'name' => 'Site Admin',
+            'email' => 'site-admin-'.uniqid().'@example.com',
+            'password' => bcrypt('password'),
+            'type' => 'staff',
+            'status' => 'active',
+        ]);
+        $admin->assignRole($role);
+
+        $booking = $this->makePendingBooking('BK-MARK-'.substr(uniqid(), -5));
+
+        $this->actingAs($admin)
+            ->post(route('website.admin.bookings.mark-paid', $booking->id))
+            ->assertRedirect();
+
+        $this->assertSame('paid', $booking->fresh()->payment_status);
+
+        // Manual confirmation used to mark the booking paid and post nothing,
+        // so a cash/transfer settled at the desk earned no revenue at all.
+        $this->assertDatabaseHas('finance_journal_entries', [
+            'entry_number' => "SALE-booking-{$booking->id}",
+            'reference_type' => 'booking',
+            'reference_id' => $booking->id,
+            'status' => 'posted',
+        ]);
+    }
+
+    /**
+     * Registers an active Stripe gateway and returns a signed webhook sender.
+     */
+    private function stripeWebhook(array $event): TestResponse
+    {
+        $secret = 'whsec_test_'.substr(uniqid(), -8);
+
+        PaymentGateway::query()->delete();
+        PaymentGateway::create([
+            'code' => 'stripe',
+            'name' => 'Stripe',
+            'driver' => 'stripe',
+            'is_active' => true,
+            'is_default' => true,
+            'credentials' => [
+                'secret' => 'sk_test_'.substr(uniqid(), -8),
+                'public' => 'pk_test_xxx',
+                'webhook_secret' => $secret,
+            ],
+        ]);
+
+        $payload = json_encode($event);
+
+        $timestamp = time();
+        $signature = hash_hmac('sha256', $timestamp.'.'.$payload, $secret);
+
+        return $this->postJson('/webhooks/payment/stripe', $event, [
+            'stripe-signature' => "t={$timestamp},v1={$signature}",
+        ]);
+    }
+
+    public function test_stripe_refund_webhook_reverses_the_sale(): void
+    {
+        $booking = $this->makePendingBooking('BK-STR-'.substr(uniqid(), -5), 30000);
+
+        // Revenue recognised at settlement...
+        $this->stripeWebhook([
+            'type' => 'payment_intent.succeeded',
+            'data' => ['object' => [
+                'metadata' => ['reference' => $booking->booking_reference],
+            ]],
+        ])->assertStatus(200);
+
+        $this->assertDatabaseHas('finance_journal_entries', [
+            'entry_number' => "SALE-booking-{$booking->id}",
+        ]);
+
+        // ...must be reversed when Stripe reports the refund settled. This
+        // handler used to be a log-only stub, so Stripe refunds silently left
+        // revenue in the ledger forever.
+        $this->stripeWebhook([
+            'type' => 'charge.refunded',
+            'data' => ['object' => [
+                'id' => 'ch_test_123',
+                'amount' => 30000,
+                'refunded' => true,
+                'metadata' => ['reference' => $booking->booking_reference],
+                'refunds' => ['data' => [[
+                    'id' => 're_test_1',
+                    'amount' => 30000,
+                    'status' => 'succeeded',
+                    'reason' => 'requested_by_customer',
+                ]]],
+            ]],
+        ])->assertStatus(200);
+
+        $this->assertSame('refunded', $booking->fresh()->payment_status);
+
+        $this->assertDatabaseHas('finance_journal_entries', [
+            'entry_number' => "REF-booking-{$booking->id}",
+            'reference_type' => 'booking',
+            'reference_id' => $booking->id,
+            'status' => 'posted',
+        ]);
+    }
+
+    public function test_stripe_pending_refund_does_not_reverse_revenue(): void
+    {
+        $booking = $this->makePendingBooking('BK-STP-'.substr(uniqid(), -5), 15000);
+
+        $this->stripeWebhook([
+            'type' => 'payment_intent.succeeded',
+            'data' => ['object' => ['metadata' => ['reference' => $booking->booking_reference]]],
+        ])->assertStatus(200);
+
+        // A refund that has not settled yet must not unwind recognised revenue.
+        $this->stripeWebhook([
+            'type' => 'refund.updated',
+            'data' => ['object' => [
+                'id' => 're_pending',
+                'status' => 'pending',
+                'amount' => 15000,
+                'payment_intent' => $booking->booking_reference,
+            ]],
+        ])->assertStatus(200);
+
+        $this->assertSame('paid', $booking->fresh()->payment_status);
+        $this->assertDatabaseMissing('finance_journal_entries', [
+            'entry_number' => "REF-booking-{$booking->id}",
+        ]);
     }
 }
