@@ -52,7 +52,11 @@ return Application::configure(basePath: __DIR__.'/../')
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Only denial of the panel as a whole is turned into a redirect, and
+        // that happens in RedirectUnauthorizedPanelUsers. Refusing a single
+        // page to a user who is otherwise a legitimate panel user stays a 403:
+        // they are already somewhere they belong, so a bare 403 is the honest
+        // answer and a bounce to another page would just hide the refusal.
     })
     // ** ADD THIS ENTIRE BLOCK TO YOUR FILE **
     ->withSchedule(function (Schedule $schedule) {

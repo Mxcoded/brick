@@ -148,6 +148,7 @@ class AuditTrailRenderTest extends TestCase
         $user = User::factory()->create(['type' => 'staff', 'status' => 'active']);
         $this->actingAs($user);
 
+        // Admitted to the panel by the staff tasks grant, refused by this page.
         $this->get('/admin/audit-trails')->assertForbidden();
     }
 }

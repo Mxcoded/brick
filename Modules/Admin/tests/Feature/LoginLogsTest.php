@@ -153,6 +153,8 @@ class LoginLogsTest extends TestCase
         $user = User::factory()->create(['type' => 'staff', 'status' => 'active']);
         $this->actingAs($user);
 
+        // A staff account may enter the panel for its task board, but login logs
+        // are admin-only, so the page refuses with a 403.
         $this->get('/admin/login-logs')->assertForbidden();
     }
 }

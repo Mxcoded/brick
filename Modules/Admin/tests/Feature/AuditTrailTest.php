@@ -103,6 +103,7 @@ class AuditTrailTest extends TestCase
         $user = User::factory()->create(['type' => 'staff', 'status' => 'active']);
         $this->actingAs($user);
 
+        // Panel entry is granted by the staff tasks grant; this page is not.
         $this->get('/admin/audit-trails')->assertForbidden();
     }
 
@@ -231,6 +232,8 @@ class AuditTrailTest extends TestCase
         $target = User::factory()->create(['name' => 'Perm Check']);
         $target->update(['name' => 'Changed']);
 
+        // The restore button is driven by canRestoreAny(), which is false here,
+        // so the screen itself must refuse rather than redirect.
         $this->get('/admin/audit-trails')->assertForbidden();
     }
 

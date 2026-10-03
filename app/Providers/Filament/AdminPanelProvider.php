@@ -3,7 +3,6 @@
 namespace App\Providers\Filament;
 
 use App\Support\ThemeSettings;
-use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -19,6 +18,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Modules\Admin\Http\Middleware\RedirectUnauthorizedPanelUsers;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -60,6 +60,23 @@ class AdminPanelProvider extends PanelProvider
                 in: module_path('Admin', 'app/Filament/Pages'),
                 for: 'Modules\\Admin\\Filament\\Pages',
             )
+            // Pages need registering too, not just resources. Only resources were
+            // discovered, so a module's custom screens had no route at all:
+            // Restaurant's settings screen 404'd, which is where a manager
+            // reaches the sales points, and the Tasks board and the Finance
+            // dashboards were unreachable from the panel.
+            ->discoverPages(
+                in: module_path('Restaurant', 'app/Filament/Pages'),
+                for: 'Modules\\Restaurant\\Filament\\Pages',
+            )
+            ->discoverPages(
+                in: module_path('Finance', 'app/Filament/Pages'),
+                for: 'Modules\\Finance\\Filament\\Pages',
+            )
+            ->discoverPages(
+                in: module_path('Tasks', 'app/Filament/Pages'),
+                for: 'Modules\\Tasks\\Filament\\Pages',
+            )
             ->discoverWidgets(
                 in: module_path('Admin', 'app/Filament/Widgets'),
                 for: 'Modules\\Admin\\Filament\\Widgets',
@@ -79,7 +96,7 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
-                Authenticate::class,
+                RedirectUnauthorizedPanelUsers::class,
             ]);
     }
 

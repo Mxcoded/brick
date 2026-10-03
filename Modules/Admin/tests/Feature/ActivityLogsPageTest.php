@@ -87,6 +87,9 @@ class ActivityLogsPageTest extends TestCase
     {
         $noAccess = User::factory()->create(['type' => 'staff', 'status' => 'active']);
 
+        // The staff blanket tasks grant makes this a legitimate panel user, so
+        // the panel admits them and this one page is what refuses them. A 403 is
+        // the honest answer; only denial of the panel as a whole redirects.
         $this->actingAs($noAccess)
             ->get('/admin/activity-logs')
             ->assertForbidden();

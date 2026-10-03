@@ -121,6 +121,9 @@ class RolePermissionManagementTest extends TestCase
 
         $this->actingAs($staff);
 
+        // Neither screen redirects: role and permission management are admin-only
+        // pages inside a panel this user can legitimately enter, so each one
+        // refuses on its own with a 403.
         $this->get(RoleResource::getUrl('index'))->assertForbidden();
         $this->get(PermissionResource::getUrl('index'))->assertForbidden();
     }
