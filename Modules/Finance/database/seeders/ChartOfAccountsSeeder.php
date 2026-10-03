@@ -37,6 +37,9 @@ class ChartOfAccountsSeeder extends Seeder
         ['code' => '4100', 'name' => 'Restaurant Revenue', 'type' => 'income'],
         ['code' => '4200', 'name' => 'Banquet Revenue', 'type' => 'income'],
         ['code' => '4300', 'name' => 'Gym Revenue', 'type' => 'income'],
+        // Kept apart from 4100 so a service charge can be reported as its own
+        // income stream and stripped out of restaurant revenue for analysis.
+        ['code' => '4400', 'name' => 'Service Charge Revenue', 'type' => 'income'],
         ['code' => '4900', 'name' => 'Other Income', 'type' => 'income'],
 
         // Expenses (debit normal)

@@ -1,19 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Modules\Finance\Http\Controllers\FinanceController;
-
 /*
- *--------------------------------------------------------------------------
- * API Routes
- *--------------------------------------------------------------------------
- *
- * Here is where you can register API routes for your application. These
- * routes are loaded by the RouteServiceProvider within a group which
- * is assigned the "api" middleware group. Enjoy building your API!
- *
-*/
-
-Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
-    Route::apiResource('finance', FinanceController::class)->names('finance');
-});
+ * The Finance module is served through the Filament admin panel. There is no
+ * legacy API surface; the previous FinanceController apiResource has been
+ * removed alongside the controller.
+ */

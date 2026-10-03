@@ -45,13 +45,84 @@ class PostingServiceTest extends TestCase
         $this->assertSame('1100', $assetLine->account->code); // Bank
     }
 
+    public function test_a_gross_sale_is_split_across_revenue_tax_and_service_charge(): void
+    {
+        $entry = app(PostingService::class)->recordSale(
+            'restaurant',
+            1175,
+            'cash',
+            'restaurant_payment',
+            71,
+            null,
+            null,
+            75.0,
+            100.0
+        );
+
+        $this->assertTrue($entry->isBalanced());
+        $this->assertSame('1000', $entry->lines->firstWhere('debit', '>', 0)->account->code);
+
+        $credits = $entry->lines->where('credit', '>', 0)
+            ->mapWithKeys(fn ($line) => [$line->account->code => (float) $line->credit])
+            ->all();
+
+        $this->assertSame(['4100' => 1000.0, '2200' => 75.0, '4400' => 100.0], $credits);
+    }
+
+    public function test_a_sale_with_no_components_stays_two_lines(): void
+    {
+        // Modules without tax or a service charge must keep the entry they
+        // always posted, and must not need 2200 or 4400 to exist at all.
+        $entry = app(PostingService::class)
+            ->recordSale('gym', 500, 'cash', 'gym_payment', 72);
+
+        $this->assertCount(2, $entry->lines);
+    }
+
+    public function test_a_split_cannot_exceed_what_was_collected(): void
+    {
+        // A caller passing an order's full tax against a part payment would
+        // otherwise post credits with no debit to match them.
+        $entry = app(PostingService::class)->recordSale(
+            'restaurant',
+            500,
+            'cash',
+            'restaurant_payment',
+            73,
+            null,
+            null,
+            750.0,
+            750.0
+        );
+
+        $this->assertTrue($entry->isBalanced());
+        $this->assertSame(500.0, (float) $entry->lines->sum('credit'));
+    }
+
+    public function test_a_refund_mirrors_the_sales_accounts(): void
+    {
+        $posting = app(PostingService::class);
+
+        $posting->recordSale('restaurant', 1175, 'cash', 'restaurant_payment', 74, null, null, 75.0, 100.0);
+        $refund = $posting->recordRefund('restaurant', 1175, 'cash', 'restaurant_payment', 74, null, null, null, 75.0, 100.0);
+
+        $this->assertTrue($refund->isBalanced());
+
+        $debits = $refund->lines->where('debit', '>', 0)
+            ->mapWithKeys(fn ($line) => [$line->account->code => (float) $line->debit])
+            ->all();
+
+        $this->assertSame(['4100' => 1000.0, '2200' => 75.0, '4400' => 100.0], $debits);
+        $this->assertSame('1000', $refund->lines->firstWhere('credit', '>', 0)->account->code);
+    }
+
     public function test_expense_posts_debit_expense_credit_asset(): void
     {
         $entry = app(PostingService::class)
             ->recordExpense('gym', 300, 'bank_transfer', 'gym_trainer_payment', 3);
 
         $this->assertSame(300.0, (float) $entry->lines->sum('debit'));
-        $this->assertSame('5400', $entry->lines->firstWhere('debit', '>', 0)->account->code);
+        $this->assertSame('5100', $entry->lines->firstWhere('debit', '>', 0)->account->code);
         $this->assertSame('1100', $entry->lines->firstWhere('credit', '>', 0)->account->code);
     }
 

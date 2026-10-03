@@ -116,8 +116,26 @@ class FinancialIntegrationTest extends TestCase
         $entry = $this->posting->recordExpense('gym', 50000, 'bank_transfer', 'gym_trainer_payment', 10);
 
         $this->assertNotNull($entry);
-        $this->assertSame('5400', $entry->lines->firstWhere('debit', '>', 0)->account->code);
+        // 5100 Salaries & Wages. This used to assert 5400, which the chart of
+        // accounts defines as Depreciation, locking the misposting in place.
+        $this->assertSame('5100', $entry->lines->firstWhere('debit', '>', 0)->account->code);
         $this->assertSame('1100', $entry->lines->firstWhere('credit', '>', 0)->account->code);
+    }
+
+    public function test_gym_trainer_payout_never_lands_in_depreciation(): void
+    {
+        $depreciation = ChartOfAccount::where('code', '5400')->first();
+
+        $this->assertNotNull($depreciation);
+        $this->assertSame('Depreciation', $depreciation->name);
+
+        $entry = $this->posting->recordExpense('gym', 25000, 'cash', 'gym_trainer_payment', 11);
+
+        $this->assertNotNull($entry);
+        $this->assertFalse(
+            $entry->lines->contains('account_id', $depreciation->id),
+            'Gym trainer payout was booked to Depreciation.',
+        );
     }
 
     public function test_inventory_ap_liability_posts_correct_accounts(): void

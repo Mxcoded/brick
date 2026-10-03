@@ -16,6 +16,15 @@ return [
         'inventory' => '1300',
         'accounts_payable' => '2000',
 
+        /*
+         * Where a sale's non-revenue components land. A gross receipt is not
+         * revenue: VAT is money held for the tax authority and a service charge
+         * is a separate income stream, so recordSale() credits each to its own
+         * account and leaves only the net in the module's revenue.
+         */
+        'tax_payable' => '2200',
+        'service_charge_revenue' => '4400',
+
         // Revenue account per module (credited on a sale / cash receipt)
         'revenue' => [
             'restaurant' => '4100',
@@ -27,8 +36,14 @@ return [
 
         // Expense account per module (debited on an outflow)
         'expense' => [
+            // Purchases are expensed to Cost of Sales at goods-receipt because
+            // consumption-side COGS posting is not implemented yet. Revisit
+            // once stock issues post Dr COGS / Cr Inventory.
             'inventory' => '5000',
-            'gym' => '5400', // trainer payouts
+            // 5100 Salaries & Wages. This previously pointed at 5400, which the
+            // chart of accounts defines as Depreciation, so every gym trainer
+            // payout landed in the wrong account.
+            'gym' => '5100', // trainer payouts
         ],
     ],
 

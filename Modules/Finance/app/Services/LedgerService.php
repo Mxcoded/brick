@@ -8,6 +8,10 @@ use Modules\Finance\Services\Contracts\LedgerServiceInterface;
 
 class LedgerService implements LedgerServiceInterface
 {
+    public function __construct(
+        protected FiscalPeriodService $fiscalPeriods,
+    ) {}
+
     public function isBalanced(array $lines): bool
     {
         $debit = collect($lines)->sum(fn ($line) => (float) ($line['debit'] ?? 0));
@@ -26,9 +30,13 @@ class LedgerService implements LedgerServiceInterface
             throw new \InvalidArgumentException('Journal entry is not balanced: total debits must equal total credits.');
         }
 
+        $date = $meta['date'] ?? now()->toDateString();
+
+        $this->fiscalPeriods->assertOpenFor($date);
+
         $entry = JournalEntry::create([
-            'entry_number' => $meta['entry_number'] ?? $this->nextEntryNumber(),
-            'date' => $meta['date'] ?? now()->toDateString(),
+            'entry_number' => $meta['entry_number'] ?? JournalEntry::nextEntryNumber(),
+            'date' => $date,
             'reference_type' => $meta['reference_type'] ?? null,
             'reference_id' => $meta['reference_id'] ?? null,
             'description' => $meta['description'] ?? null,
@@ -52,14 +60,5 @@ class LedgerService implements LedgerServiceInterface
         }
 
         return $entry;
-    }
-
-    protected function nextEntryNumber(): string
-    {
-        $prefix = 'JE-'.now()->format('Ym').'-';
-        $last = JournalEntry::where('entry_number', 'like', $prefix.'%')->max('entry_number');
-        $sequence = $last ? (int) substr($last, strlen($prefix)) + 1 : 1;
-
-        return $prefix.str_pad($sequence, 4, '0', STR_PAD_LEFT);
     }
 }
