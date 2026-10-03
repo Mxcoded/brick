@@ -29,7 +29,7 @@ class ModuleManager extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->can('settings.update') ?? false;
+        return auth()->user()?->can('modules.manage') ?? false;
     }
 
     public function toggleModule(string $name): void

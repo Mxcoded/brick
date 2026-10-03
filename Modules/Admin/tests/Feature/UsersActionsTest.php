@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use Modules\Admin\Filament\Pages\CreateUserFromEmployee;
 use Modules\Admin\Filament\Resources\Users\Pages\ListUsers;
+use Modules\Admin\Filament\Resources\Users\Widgets\UserStatsOverview;
 use Modules\Staff\Models\Employee;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -194,5 +195,30 @@ class UsersActionsTest extends TestCase
         $this->expectException(RouteNotFoundException::class);
 
         route('admin.users.assign-role');
+    }
+
+    public function test_user_list_page_renders_stats_overview()
+    {
+        $this->actingAs($this->adminUser());
+
+        $this->travelTo(now()->startOfMonth()->addDay());
+
+        User::factory()->create(['type' => 'staff', 'status' => 'active']);
+        User::factory()->create(['type' => 'guest', 'status' => 'active']);
+        User::factory()->create(['type' => 'staff', 'status' => 'suspended']);
+        User::factory()->create(['type' => 'guest', 'status' => 'deactivated']);
+
+        Livewire::test(ListUsers::class)
+            ->assertOk()
+            ->assertCanSeeTableRecords(User::all());
+
+        Livewire::test(UserStatsOverview::class)
+            ->assertSee('Total Users')
+            ->assertSee('Active')
+            ->assertSee('Staff Accounts')
+            ->assertSee('Guest Accounts')
+            ->assertSee('Suspended')
+            ->assertSee('Deactivated')
+            ->assertSee('New This Month');
     }
 }

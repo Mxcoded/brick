@@ -33,8 +33,8 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('tasks.index') ? 'active' : '' }}"
-                            href="{{ route('tasks.index') }}">
+                        <a class="nav-link {{ request()->routeIs('filament.admin.resources.tasks.index', 'filament.admin.pages.tasks.board') ? 'active' : '' }}"
+                            href="{{ \Modules\Tasks\Filament\Resources\Tasks\TaskResource::getUrl('index') }}">
                             <i class="fa fa-list-alt me-1"></i> Tasks
                         </a>
                     </li>

@@ -39,6 +39,7 @@ class PermissionCatalog
         'login_logs' => 'admin',
         'activity_logs' => 'admin',
         'audit_trails' => 'admin',
+        'modules' => 'admin',
         'guests' => 'frontdesk',
         'employees' => 'staff',
         'leaves' => 'staff',
@@ -69,6 +70,41 @@ class PermissionCatalog
     protected static bool $loaded = false;
 
     protected static ?array $definitions = null;
+
+    /**
+     * Module-supplied permission descriptors, keyed by permission name.
+     *
+     * @var array<string, array{group: string, resource: string, action: string, kind: string, label: string}>|null
+     */
+    protected static ?array $moduleOverrides = null;
+
+    /**
+     * Descriptors contributed by modules that own a namespaced taxonomy.
+     *
+     * @return array<string, array{group: string, resource: string, action: string, kind: string, label: string}>
+     */
+    protected static function moduleOverrides(): array
+    {
+        if (static::$moduleOverrides !== null) {
+            return static::$moduleOverrides;
+        }
+
+        $overrides = [];
+
+        foreach (static::definitions() as $key => $meta) {
+            $class = 'Modules\\'.Str::studly($key).'\\Support\\PermissionCatalog';
+
+            if (! class_exists($class) || ! method_exists($class, 'catalogOverrides')) {
+                continue;
+            }
+
+            foreach ($class::catalogOverrides() as $name => $descriptor) {
+                $overrides[$name] = $descriptor;
+            }
+        }
+
+        return static::$moduleOverrides = $overrides;
+    }
 
     /**
      * Grouped catalogue of every permission in the system.
@@ -144,6 +180,14 @@ class PermissionCatalog
      */
     public static function describe(string $name): array
     {
+        // A module that owns a namespaced taxonomy (finance.*) supplies its own
+        // grouping so the role editor shows "Post to Ledger / Journal Entries"
+        // instead of treating every permission as belonging to a resource
+        // called "Finance".
+        if (isset(static::moduleOverrides()[$name])) {
+            return static::moduleOverrides()[$name];
+        }
+
         if (str_starts_with($name, 'access_') && str_ends_with($name, '_dashboard')) {
             $module = substr($name, 7, -10);
             $group = static::hasGroup($module) ? $module : 'other';
@@ -289,5 +333,6 @@ class PermissionCatalog
         static::$groups = null;
         static::$loaded = false;
         static::$definitions = null;
+        static::$moduleOverrides = null;
     }
 }

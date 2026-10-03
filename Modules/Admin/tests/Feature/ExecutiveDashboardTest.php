@@ -49,9 +49,17 @@ class ExecutiveDashboardTest extends TestCase
             ->assertSee('Upcoming Banquet Events');
     }
 
-    public function test_dashboard_keeps_admin_panel_root_route()
+    public function test_dashboard_lives_under_its_own_slug()
     {
-        $this->assertSame(url('/admin'), route('filament.admin.pages.dashboard'));
+        $this->assertSame(
+            url('/admin/executive-dashboard'),
+            route('filament.admin.pages.dashboard'),
+        );
+    }
+
+    public function test_panel_root_is_the_neutral_home_page()
+    {
+        $this->assertSame(url('/admin'), route('filament.admin.pages..'));
     }
 
     public function test_legacy_admin_dashboard_route_has_been_removed()

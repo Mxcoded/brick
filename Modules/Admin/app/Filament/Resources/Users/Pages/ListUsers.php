@@ -8,6 +8,7 @@ use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
 use Modules\Admin\Filament\Pages\CreateUserFromEmployee;
 use Modules\Admin\Filament\Resources\Users\UserResource;
+use Modules\Admin\Filament\Resources\Users\Widgets\UserStatsOverview;
 
 class ListUsers extends ListRecords
 {
@@ -22,6 +23,13 @@ class ListUsers extends ListRecords
                 ->label('Create from Employee')
                 ->icon(Heroicon::OutlinedUserPlus)
                 ->url(fn (): string => CreateUserFromEmployee::getUrl()),
+        ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            UserStatsOverview::class,
         ];
     }
 }
