@@ -40,6 +40,22 @@ class AdminPanelProvider extends PanelProvider
                 in: module_path('Admin', 'app/Filament/Resources'),
                 for: 'Modules\\Admin\\Filament\\Resources',
             )
+            ->discoverResources(
+                in: module_path('Frontdeskcrm', 'app/Filament/Resources'),
+                for: 'Modules\\Frontdeskcrm\\Filament\\Resources',
+            )
+            ->discoverResources(
+                in: module_path('Restaurant', 'app/Filament/Resources'),
+                for: 'Modules\\Restaurant\\Filament\\Resources',
+            )
+            ->discoverResources(
+                in: module_path('Finance', 'app/Filament/Resources'),
+                for: 'Modules\\Finance\\Filament\\Resources',
+            )
+            ->discoverResources(
+                in: module_path('Tasks', 'app/Filament/Resources'),
+                for: 'Modules\\Tasks\\Filament\\Resources',
+            )
             ->discoverPages(
                 in: module_path('Admin', 'app/Filament/Pages'),
                 for: 'Modules\\Admin\\Filament\\Pages',

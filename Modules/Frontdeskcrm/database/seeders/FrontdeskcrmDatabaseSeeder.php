@@ -12,6 +12,9 @@ class FrontdeskcrmDatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            // First: the Filament PMS resources gate on this taxonomy, so the
+            // permission names have to exist before anything renders.
+            FrontdeskPermissionSeeder::class,
             BookingSourcesSeeder::class,
             GuestTypesSeeder::class,
             GuestsSeeder::class,

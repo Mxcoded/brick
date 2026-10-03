@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Frontdeskcrm\Exports\GuestImportGuide;
+use Modules\Frontdeskcrm\Exports\GuestsExcelImport;
 use Modules\Frontdeskcrm\Exports\GuestsImport;
 use Modules\Frontdeskcrm\Models\Guest;
 use Yajra\DataTables\DataTables;
