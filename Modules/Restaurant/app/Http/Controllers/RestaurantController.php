@@ -7,10 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
-use Modules\Finance\Services\PostingService;
-use Modules\Restaurant\Events\OrderPaid;
-use Modules\Restaurant\Events\OrderRefunded;
-use Modules\Restaurant\Events\PaymentRecorded;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Restaurant\Models\CollectionPoint;
 use Modules\Restaurant\Models\Customer;
 use Modules\Restaurant\Models\MenuCategory;
 use Modules\Restaurant\Models\MenuItem;
@@ -19,54 +19,93 @@ use Modules\Restaurant\Models\OrderItem;
 use Modules\Restaurant\Models\Payment;
 use Modules\Restaurant\Models\RecipeItem;
 use Modules\Restaurant\Models\RestaurantSetting;
+use Modules\Restaurant\Models\SalesPoint;
 use Modules\Restaurant\Models\StockItem;
 use Modules\Restaurant\Models\StockMovement;
 use Modules\Restaurant\Models\Table;
 use Modules\Restaurant\Models\WaiterShift;
+use Modules\Restaurant\Services\OrderPaymentService;
+use Modules\Restaurant\Services\OrderPricingService;
+use Modules\Restaurant\Support\OrderStatus;
 use Modules\Website\Models\Room;
+use Modules\Website\Models\RoomUnit;
+use Modules\Website\Services\PaymentGatewayManager;
 
 class RestaurantController extends Controller
 {
     protected $validTypes = ['table', 'room', 'online'];
 
-    public function index()
-    {
-        $sources = [
-            'table' => [
-                'label' => 'Dine-In Tables',
-                'items' => Table::all()->map(function ($table) {
-                    return ['id' => $table->id, 'number' => $table->number];
-                }),
-            ],
-            'room' => [
-                'label' => 'Room Service',
-                'items' => Room::all()->map(function ($room) {
-                    return ['id' => $room->id, 'name' => $room->name];
-                }),
-            ],
-        ];
+    /**
+     * Ceiling on a single cart line, and on the order types the waiter
+     * terminal is allowed to settle. The terminal takes money for orders that
+     * were served in the restaurant; online orders are settled on the website,
+     * so a waiter must not be able to pay, refund or print one.
+     */
+    public const POS_MAX_LINE_QUANTITY = 999;
 
-        return view('restaurant::index', compact('sources'));
+    public const POS_SETTLEABLE_TYPES = ['table', 'room', 'walk_in'];
+
+    protected function payments(): OrderPaymentService
+    {
+        return app(OrderPaymentService::class);
     }
 
-    public function selectSource(Request $request)
+    /**
+     * The one place order totals are calculated.
+     */
+    protected function pricing(): OrderPricingService
     {
-        $request->validate([
-            'type' => 'required|in:table,room',
-            'source_id' => 'required|integer',
-        ]);
+        return app(OrderPricingService::class);
+    }
 
-        $type = $request->input('type');
-        $sourceId = $request->input('source_id');
+    /**
+     * The outlet an order from this shift belongs to.
+     *
+     * Falls back to the property default when the waiter clocked in without
+     * picking one, because an order with no outlet is still a real sale and
+     * should land somewhere rather than be dropped from the outlet reports.
+     */
+    protected function salesPointForShift(?WaiterShift $shift): ?int
+    {
+        return $shift?->sales_point_id ?: SalesPoint::default()?->id;
+    }
 
-        if ($type === 'table' && ! Table::find($sourceId)) {
-            return redirect()->back()->with('error', 'Invalid table selected.');
+    /**
+     * The physical terminal the takings for this order came through.
+     */
+    protected function collectionPointForShift(?WaiterShift $shift): ?int
+    {
+        return $shift?->collection_point_id ?: CollectionPoint::default()?->id;
+    }
+
+    /**
+     * Refuse an order the waiter terminal is not allowed to act on.
+     *
+     * Implicit route binding will happily hand a waiter any order in the
+     * system, including a delivery order they never served, so the type is
+     * checked before the order is touched.
+     */
+    protected function guardSettleableOrder(Order $order): Order
+    {
+        if (! in_array($order->type, self::POS_SETTLEABLE_TYPES, true)) {
+            abort(403, 'This order cannot be settled from the waiter terminal.');
         }
-        if ($type === 'room' && ! Room::find($sourceId)) {
-            return redirect()->back()->with('error', 'Invalid room selected.');
-        }
 
-        return redirect()->route('restaurant.menu', ['type' => $type, 'source' => $sourceId]);
+        return $order;
+    }
+
+    /**
+     * The public restaurant front door.
+     *
+     * Only online ordering is offered here. Dine-in tables are ordered by staff
+     * on the waiter terminal, and room service belongs to a checked-in guest in
+     * the guest dashboard, so neither is a choice the open web gets to make.
+     * Listing the tables and rooms here used to let anyone pick one and order
+     * against it.
+     */
+    public function index()
+    {
+        return view('restaurant::index');
     }
 
     public function menu($type, $source, Request $request)
@@ -94,6 +133,16 @@ class RestaurantController extends Controller
         }
 
         try {
+            // Sold-out dishes are withheld from the public menu, where there is
+            // nobody to explain the absence. A dish that vanishes mid-service
+            // leaves the customer wondering whether they misremembered it, and
+            // the kitchen should not have to turn an item away at the pass. The
+            // server also refuses one at add and at submit, so a tab left open
+            // across a sell-out is still caught.
+            //
+            // Waiter ordering keeps the full list, including sold-out dishes:
+            // the terminal is staff, and seeing a sold-out item next to its
+            // category is what tells a waiter not to promise it to a guest.
             $itemFilter = $type === 'online'
                 ? fn ($q) => $q->where('is_available', true)
                 : fn ($q) => $q;
@@ -154,7 +203,7 @@ class RestaurantController extends Controller
         // Validate request data
         $validated = $request->validate([
             'item_id' => 'required|exists:restaurant_menu_items,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:'.self::POS_MAX_LINE_QUANTITY,
             'instructions' => 'nullable|string|max:255',
         ]);
 
@@ -265,6 +314,14 @@ class RestaurantController extends Controller
         return response()->json(['success' => true, 'cart' => $cart]);
     }
 
+    /**
+     * Replace a guest's whole cart in one call.
+     *
+     * Kept for clients that build a cart in a single request. The payload is
+     * rebuilt from the database here: names and prices are display fields, and
+     * trusting the caller's copy would let a guest post its own prices and
+     * name arbitrary session keys.
+     */
     public function addToOrder(Request $request, $type, $source = null)
     {
         if (! in_array($type, $this->validTypes)) {
@@ -274,7 +331,7 @@ class RestaurantController extends Controller
         $request->validate([
             'order' => 'required|array',
             'order.*.item_id' => 'required|exists:restaurant_menu_items,id',
-            'order.*.quantity' => 'required|integer|min:1',
+            'order.*.quantity' => 'required|integer|min:1|max:'.self::POS_MAX_LINE_QUANTITY,
             'order.*.instructions' => 'nullable|string|max:255',
         ]);
 
@@ -288,8 +345,28 @@ class RestaurantController extends Controller
             abort(404, 'Online orders do not require a source.');
         }
 
+        $submitted = collect($request->input('order'));
+        $menuItems = MenuItem::whereIn('id', $submitted->pluck('item_id')->unique())
+            ->get()->keyBy('id');
+
+        $cart = [];
+        foreach ($submitted as $item) {
+            $menuItem = $menuItems[$item['item_id']] ?? null;
+            if (! $menuItem) {
+                continue;
+            }
+
+            $cart[] = [
+                'item_id' => $menuItem->id,
+                'name' => $menuItem->name,
+                'price' => (float) $menuItem->price,
+                'quantity' => (int) $item['quantity'],
+                'instructions' => $item['instructions'] ?? null,
+            ];
+        }
+
         $cartKey = $type.'_cart';
-        session()->put($cartKey, $request->input('order'));
+        session()->put($cartKey, $cart);
 
         return response()->json(['success' => 'Cart updated successfully!']);
     }
@@ -314,7 +391,22 @@ class RestaurantController extends Controller
         $itemIds = array_column($cart, 'item_id');
         $items = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
 
-        return view('restaurant::cart', compact('cart', 'items', 'type', 'sourceModel'));
+        // The checkout applies VAT on top of the line totals. Showing only the
+        // line sum here means the number on the checkout is not the number the
+        // customer was just shown, so the same rate is passed down and the
+        // page can state the amount that will actually be charged.
+        $vatRate = (float) RestaurantSetting::getValue('vat_rate', '7.5');
+        $serviceChargeRate = (float) RestaurantSetting::getValue('service_charge_rate', '0');
+
+        // Survives a validation bounce via old(), so fixing a typo is a new
+        // order while resubmitting an unchanged form is a repeat of the same one.
+        $idempotencyKey = (string) Str::uuid();
+
+        // Online checkout is the only flow that pays up front, so it is the only
+        // one that needs the public key for the browser-side gateway widget.
+        $paystackPublicKey = (string) config('services.paystack.public');
+
+        return view('restaurant::cart', compact('cart', 'items', 'type', 'sourceModel', 'vatRate', 'serviceChargeRate', 'idempotencyKey', 'paystackPublicKey'));
     }
 
     public function updateCart(Request $request, $type, $source = null)
@@ -325,7 +417,7 @@ class RestaurantController extends Controller
 
         $request->validate([
             'index' => 'required|integer|min:0',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:'.self::POS_MAX_LINE_QUANTITY,
         ]);
 
         $cartKey = $type.'_cart';
@@ -396,6 +488,38 @@ class RestaurantController extends Controller
             abort(404, 'Online orders do not require a source.');
         }
 
+        $cartKey = $type.'_cart';
+        $cart = session()->get($cartKey, []);
+
+        // A double-tapped Place Order must not become two real orders. The key
+        // is paired with a fingerprint of the basket it was issued for, so a
+        // resubmit of the same form is answered with the order it already made
+        // while a basket edited since the page was rendered is treated as the
+        // new order the customer actually means. Comparing contents rather
+        // than trusting the key alone is what stops a stale page from
+        // silently discarding items the customer just added.
+        $idempotencyKey = $request->input('idempotency_key');
+        $cartFingerprint = $this->cartFingerprint($cart);
+        if (is_string($idempotencyKey) && $idempotencyKey !== '') {
+            $known = session()->get('submitted_order_keys', []);
+            $match = $known[$idempotencyKey] ?? null;
+            if (is_array($match) && $existing = Order::find($match['order_id'] ?? null)) {
+                // Two shapes of replay count as the same order. An empty basket
+                // is the normal case: a successful submit consumed it, so a
+                // double-tap arrives with nothing left. A basket that still
+                // matches the one recorded is a resubmitted form. Anything else
+                // means the customer changed the order after the page was
+                // rendered, which is a new order and must be placed as one.
+                $alreadyPlaced = empty($cart)
+                    || ($match['fingerprint'] ?? null) === $cartFingerprint;
+
+                if ($alreadyPlaced) {
+                    return $this->orderConfirmationRedirect($type, $source, $existing)
+                        ->with('success', 'Order already received.');
+                }
+            }
+        }
+
         if ($type === 'online') {
             $request->validate([
                 'customer_name' => 'required|string|max:255',
@@ -404,8 +528,6 @@ class RestaurantController extends Controller
             ]);
         }
 
-        $cartKey = $type.'_cart';
-        $cart = session()->get($cartKey, []);
         if (empty($cart)) {
             return redirect()->back()->with('error', 'Your cart is empty.');
         }
@@ -428,22 +550,49 @@ class RestaurantController extends Controller
         }
 
         $subtotal = collect($cart)->sum(fn ($i) => ($menuItems[$i['item_id']]->price ?? 0) * $i['quantity']);
-        $vatRate = (float) (RestaurantSetting::getValue('vat_rate', '7.5'));
-        $vat = $subtotal * $vatRate / 100;
+
+        // Priced by the same service the POS uses, so a table guest, a room
+        // guest and a delivery guest are charged the same for the same basket.
+        $totals = $this->pricing()->quote((float) $subtotal);
+        $grandTotal = $totals['grand_total'];
+
+        // Online orders are paid before they exist. The reference is verified
+        // against the gateway here, before a row is written, so an abandoned or
+        // failed payment leaves no order behind for the kitchen to cook.
+        $paymentReference = null;
+        $paymentMethod = null;
+        if ($type === 'online') {
+            $paymentReference = (string) $request->input('payment_reference', '');
+            $verification = $this->verifyOnlinePayment($paymentReference, $grandTotal);
+            if ($verification['error'] !== null) {
+                return redirect()->back()->withInput()->with('error', $verification['error']);
+            }
+            $paymentMethod = $verification['method'];
+        }
 
         $orderData = [
             'type' => $type,
             'status' => 'pending',
             'tracking_status' => $type === 'online' || $type === 'room' ? 'pending' : null,
-            'subtotal' => $subtotal,
-            'vat' => $vat,
-            'vat_rate' => $vatRate,
-            'grand_total' => $subtotal + $vat,
+            'subtotal' => $totals['subtotal'],
+            'discount' => $totals['discount'],
+            'vat' => $totals['vat'],
+            'vat_rate' => $totals['vat_rate'],
+            'service_charge' => $totals['service_charge'],
+            'service_charge_rate' => $totals['service_charge_rate'],
+            'grand_total' => $totals['grand_total'],
         ];
 
         if ($type === 'table' || $type === 'room') {
             $orderData['source_id'] = $sourceModel->id;
         }
+
+        // A guest order has no waiter and so no shift to inherit from. It falls
+        // back to the property's default outlet, and to none at all if the
+        // property has not declared one, in which case the sale stays on the
+        // module revenue account as it always has.
+        $orderData['sales_point_id'] = SalesPoint::default()?->id;
+        $orderData['collection_point_id'] = CollectionPoint::default()?->id;
         if ($type === 'online') {
             $orderData['customer_name'] = $request->input('customer_name');
             $orderData['customer_phone'] = $request->input('customer_phone');
@@ -457,16 +606,153 @@ class RestaurantController extends Controller
                 'restaurant_order_id' => $order->id,
                 'restaurant_menu_item_id' => $item['item_id'],
                 'quantity' => $item['quantity'],
+                // Freeze the price the order was priced from, so the
+                // confirmation and any reprint keep showing this figure.
+                'unit_price' => $menuItems[$item['item_id']]->price,
                 'instructions' => $item['instructions'],
             ]);
         }
 
         session()->forget($cartKey);
 
+        // The money already cleared with the gateway, so record it against the
+        // fresh order. This does not close the order out: the kitchen still has
+        // to make it and get it to the customer.
+        if ($type === 'online') {
+            $this->payments()->recordGatewayPayment($order, [
+                'amount' => (float) $grandTotal,
+                'method' => $paymentMethod ?? 'card',
+                'reference' => $paymentReference,
+            ]);
+        }
+
+        // Remember what this session bought. Guests have no account, so the
+        // session is the only thing tying a confirmation link to the person
+        // who placed the order.
+        $sessionKey = $type === 'online' ? 'online_order_ids' : 'guest_order_ids';
+        $placed = array_values(array_unique(array_merge(
+            (array) session()->get($sessionKey, []),
+            [$order->id]
+        )));
+        session()->put($sessionKey, array_slice($placed, -50));
+
+        if (is_string($idempotencyKey) && $idempotencyKey !== '') {
+            $keys = session()->get('submitted_order_keys', []);
+            $keys[$idempotencyKey] = [
+                'order_id' => $order->id,
+                'fingerprint' => $cartFingerprint,
+            ];
+            session()->put('submitted_order_keys', array_slice($keys, -25, null, true));
+        }
+
+        return $this->orderConfirmationRedirect($type, $source, $order)
+            ->with('success', 'Order placed successfully!');
+    }
+
+    /**
+     * A stable digest of the basket, used to tell an accidental resubmit of one
+     * form apart from a genuine new order made after the basket changed.
+     *
+     * Lines are sorted before hashing so that two identical baskets written in
+     * a different order still match, and notes are included because two lines
+     * of the same dish with different notes are different orders to the kitchen.
+     */
+    protected function cartFingerprint(array $cart): string
+    {
+        $lines = [];
+        foreach ($cart as $line) {
+            $lines[] = implode(':', [
+                (int) ($line['item_id'] ?? 0),
+                (int) ($line['quantity'] ?? 0),
+                trim((string) ($line['instructions'] ?? '')),
+            ]);
+        }
+        sort($lines);
+
+        return hash('sha256', implode('|', $lines));
+    }
+
+    /**
+     * Confirm an online customer's gateway payment before the order is written.
+     *
+     * The browser runs the gateway widget and hands back a reference, so the
+     * reference is the claim. It is checked three ways against the gateway and
+     * our own records: it must be a successful charge, cover the server-priced
+     * total, and not have settled an earlier order. Prices are recomputed from
+     * the database, never taken from the response.
+     *
+     * @return array{error: string|null, method: string} The method is the
+     *                                                   restaurant's own vocabulary for how the money arrived, so the payment
+     *                                                   row and the ledger say "transfer" (or "mobile_money", or "card") rather
+     *                                                   than the gateway's name for the channel.
+     */
+    protected function verifyOnlinePayment(string $reference, float $expected): array
+    {
+        if ($reference === '') {
+            return ['error' => 'Please complete payment before placing your order.', 'method' => 'card'];
+        }
+
+        // A reference may settle one order only. The gateway will happily verify
+        // the same successful charge again, so this is what stops one payment
+        // being replayed against a second basket.
+        if (Payment::where('reference', $reference)->where('status', 'completed')->exists()) {
+            return ['error' => 'That payment has already been used for another order.', 'method' => 'card'];
+        }
+
+        try {
+            $verification = app(PaymentGatewayManager::class)->driver('paystack')->verify($reference);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return ['error' => 'We could not confirm your payment. Please try again.', 'method' => 'card'];
+        }
+
+        if (! ($verification['status'] ?? false) || ($verification['data']['status'] ?? null) !== 'success') {
+            return ['error' => 'Your payment was not successful, so no order was placed.', 'method' => 'card'];
+        }
+
+        $paid = (int) ($verification['data']['amount'] ?? 0);
+        if ($paid < (int) round($expected * 100)) {
+            return ['error' => 'The amount paid does not cover this order.', 'method' => 'card'];
+        }
+
+        return [
+            'error' => null,
+            'method' => $this->paystackChannelMethod($verification['data']['channel'] ?? null),
+        ];
+    }
+
+    /**
+     * Translate a Paystack channel into the restaurant's payment vocabulary.
+     *
+     * Paystack names the rail the money travelled on; our reports and the GL
+     * only understand the handful of methods used at the till. Anything
+     * unfamiliar is treated as a card, which is also the account a gateway
+     * charge settles through.
+     */
+    protected function paystackChannelMethod(?string $channel): string
+    {
+        return match ($channel) {
+            'mobile_money' => 'mobile_money',
+            'bank', 'bank_transfer', 'ussd', 'eft' => 'transfer',
+            default => 'card',
+        };
+    }
+
+    /**
+     * The one place a placed order is turned into its confirmation redirect,
+     * so a repeat submission lands on the same page a first one does.
+     */
+    protected function orderConfirmationRedirect(string $type, $source, Order $order)
+    {
+        if (! $order) {
+            abort(404, 'Order not found.');
+        }
+
         return redirect()->route(
             $type === 'online' ? 'restaurant.online.order.confirm' : 'restaurant.order.confirm',
             $type === 'online' ? ['order' => $order->id] : ['type' => $type, 'source' => $source, 'order' => $order->id]
-        )->with('success', 'Order placed successfully!');
+        );
     }
 
     public function confirmOrder($type, $source, $order)
@@ -489,7 +775,28 @@ class RestaurantController extends Controller
             abort(403, 'Unauthorized access to this order.');
         }
 
+        // Guests have no account, so the order id is guessable: these are
+        // sequential, and the page renders the customer's name and delivery
+        // address. Require the session that placed the order, which is what
+        // links a guest to their own order and nothing else.
+        if (! $this->sessionOwnsOrder($order)) {
+            abort(403, 'Unauthorized access to this order.');
+        }
+
         return view('restaurant::confirm', compact('order', 'type', 'sourceModel'));
+    }
+
+    /**
+     * Whether the current session is one that placed this order.
+     *
+     * Staff working an order look it up through the back office, not the guest
+     * confirmation route, so staff sessions are not a concern here.
+     */
+    protected function sessionOwnsOrder(Order $order): bool
+    {
+        $key = $order->type === 'online' ? 'online_order_ids' : 'guest_order_ids';
+
+        return in_array($order->id, (array) session()->get($key, []), true);
     }
 
     public function viewOrderHistory(Request $request)
@@ -503,8 +810,14 @@ class RestaurantController extends Controller
             ]);
 
             $phone = $request->input('customer_phone');
+
+            // Lookup stays available to guests, but only for orders this
+            // session actually placed. Otherwise the endpoint hands every
+            // online order for any phone number to whoever asks, which is a
+            // customer-enumeration and bulk-scraping hole.
             $orders = Order::where('type', 'online')
                 ->where('customer_phone', $phone)
+                ->whereIn('id', (array) session()->get('online_order_ids', []))
                 ->with('orderItems.menuItem')
                 ->get();
         }
@@ -545,14 +858,45 @@ class RestaurantController extends Controller
             ->unique()
             ->toArray();
 
-        return view('restaurant::waiter.dashboard', compact('pendingOrders', 'activeOrders', 'paidOrders', 'categories', 'tables', 'occupiedTableIds'));
+        // Only currently checked-in rooms may be posted to from the waiter
+        // terminal. A guest who has checked out must not be billed again here,
+        // and vacant rooms must not appear as selectable targets.
+        $rooms = collect();
+        if (class_exists(RoomUnit::class)) {
+            $rooms = RoomUnit::query()
+                ->with('currentOccupant')
+                ->whereHas('currentOccupant', function ($query) {
+                    if (class_exists(Registration::class)) {
+                        $query->where('stay_status', 'checked_in');
+                    }
+                })
+                ->orderBy('room_number')
+                ->get(['id', 'room_number', 'floor', 'status'])
+                ->map(function ($unit) {
+                    return [
+                        'id' => $unit->id,
+                        'room_number' => $unit->room_number,
+                        'floor' => $unit->floor,
+                        'status' => $unit->status,
+                        'guest' => $unit->currentOccupant?->full_name,
+                    ];
+                });
+        }
+
+        $salesPoints = SalesPoint::query()
+            ->active()
+            ->orderBy('name')
+            ->get(['id', 'name', 'code', 'is_default'])
+            ->all();
+
+        return view('restaurant::waiter.dashboard', compact('pendingOrders', 'activeOrders', 'paidOrders', 'categories', 'tables', 'rooms', 'occupiedTableIds', 'salesPoints'));
     }
 
     public function posAddToCart(Request $request)
     {
         $validated = $request->validate([
             'item_id' => 'required|exists:restaurant_menu_items,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:'.self::POS_MAX_LINE_QUANTITY,
         ]);
 
         $cart = session()->get('pos_cart', []);
@@ -566,7 +910,10 @@ class RestaurantController extends Controller
         }
 
         if ($existing !== null) {
-            $cart[$existing]['quantity'] += $validated['quantity'];
+            $cart[$existing]['quantity'] = min(
+                $cart[$existing]['quantity'] + $validated['quantity'],
+                self::POS_MAX_LINE_QUANTITY
+            );
         } else {
             $menuItem = MenuItem::find($validated['item_id']);
             $cart[] = [
@@ -586,7 +933,7 @@ class RestaurantController extends Controller
     {
         $validated = $request->validate([
             'index' => 'required|integer|min:0',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'required|integer|min:1|max:'.self::POS_MAX_LINE_QUANTITY,
         ]);
 
         $cart = session()->get('pos_cart', []);
@@ -630,7 +977,7 @@ class RestaurantController extends Controller
     {
         $validated = $request->validate([
             'source_type' => 'required|in:table,walk_in',
-            'source_id' => 'required_if:source_type,table|nullable|integer',
+            'source_id' => 'required_if:source_type,table|nullable|integer|exists:restaurant_tables,id',
             'customer_name' => 'nullable|string|max:255',
             'discount' => 'nullable|numeric|min:0',
             'discount_type' => 'nullable|in:percentage,fixed',
@@ -642,41 +989,60 @@ class RestaurantController extends Controller
         }
 
         $itemIds = array_column($cart, 'item_id');
-        $validItems = MenuItem::whereIn('id', $itemIds)->pluck('id')->toArray();
-        $invalidItems = array_diff($itemIds, $validItems);
+        $menuItems = MenuItem::whereIn('id', $itemIds)->get()->keyBy('id');
+        $invalidItems = array_diff($itemIds, $menuItems->pluck('id')->toArray());
         if (! empty($invalidItems)) {
             return response()->json(['success' => false, 'message' => 'Some items are no longer available.'], 422);
         }
 
-        $subtotal = collect($cart)->sum(fn ($i) => $i['price'] * $i['quantity']);
+        // Price from the database, never from the session snapshot. The cart
+        // holds the price the item had when it was added, so a menu edit
+        // between adding and settling would otherwise bill the old figure.
+        $subtotal = collect($cart)->sum(
+            fn ($i) => (float) ($menuItems[$i['item_id']]->price ?? 0) * (int) $i['quantity']
+        );
 
         $discount = (float) ($validated['discount'] ?? 0);
         $discountType = $validated['discount_type'] ?? null;
-        $discountAmount = $discountType === 'percentage' ? $subtotal * $discount / 100 : $discount;
 
-        $vatRate = (float) (RestaurantSetting::getValue('vat_rate', '7.5'));
-        $vat = ($subtotal - $discountAmount) * $vatRate / 100;
+        // Clamp the discount server-side. The browser clamps it too, but that
+        // is cosmetic: without this a request can carry a discount larger than
+        // the order, which drives the VAT base and the grand total negative and
+        // writes that to the order.
+        $discountLimit = (float) RestaurantSetting::getValue('discount_limit', '10000');
+        if ($discountType === 'percentage') {
+            $discountAmount = $subtotal * min($discount, 100) / 100;
+        } else {
+            $discountAmount = min($discount, $discountLimit, $subtotal);
+        }
+        $discountAmount = max(0, $discountAmount);
 
-        $serviceChargeRate = (float) (RestaurantSetting::getValue('service_charge_rate', '0'));
-        $serviceCharge = $serviceChargeRate > 0 ? ($subtotal - $discountAmount) * $serviceChargeRate / 100 : 0;
-
-        $grandTotal = $subtotal - $discountAmount + $vat + $serviceCharge;
+        $totals = $this->pricing()->quote($subtotal, $discountAmount);
+        $grandTotal = $totals['grand_total'];
 
         $shift = WaiterShift::where('user_id', auth()->id())->where('status', 'open')->first();
 
+        $sourceId = $validated['source_type'] === 'table' ? $validated['source_id'] : null;
+
         $orderData = [
             'type' => $validated['source_type'],
-            'source_id' => $validated['source_type'] === 'table' ? $validated['source_id'] : null,
-            'status' => 'pending',
-            'tracking_status' => 'pending',
-            'customer_name' => $validated['customer_name'] ?? ($validated['source_type'] === 'table' ? 'Table '.Table::find($validated['source_id'])?->number : 'Walk-in'),
+            'source_id' => $sourceId,
+            'status' => OrderStatus::PENDING,
+            'tracking_status' => OrderStatus::PENDING,
+            'customer_name' => ($validated['customer_name'] ?? null) ?: ($validated['source_type'] === 'table' ? 'Table '.Table::find($sourceId)?->number : 'Walk-in'),
             'shift_id' => $shift?->id,
-            'subtotal' => $subtotal,
-            'discount' => $discountAmount,
+            'subtotal' => $totals['subtotal'],
+            'discount' => $totals['discount'],
             'discount_type' => $discountType,
-            'vat' => $vat,
-            'vat_rate' => $vatRate,
-            'grand_total' => $grandTotal,
+            'vat' => $totals['vat'],
+            'vat_rate' => $totals['vat_rate'],
+            'service_charge' => $totals['service_charge'],
+            'service_charge_rate' => $totals['service_charge_rate'],
+            'grand_total' => $totals['grand_total'],
+            // Snapshotted from the shift so the order keeps saying which counter
+            // it came from after the waiter moves on.
+            'sales_point_id' => $this->salesPointForShift($shift),
+            'collection_point_id' => $this->collectionPointForShift($shift),
         ];
 
         $order = Order::create($orderData);
@@ -686,6 +1052,7 @@ class RestaurantController extends Controller
                 'restaurant_order_id' => $order->id,
                 'restaurant_menu_item_id' => $item['item_id'],
                 'quantity' => $item['quantity'],
+                'unit_price' => $menuItems[$item['item_id']]->price,
                 'instructions' => null,
             ]);
         }
@@ -743,6 +1110,12 @@ class RestaurantController extends Controller
                 'starting_cash' => $shift->starting_cash,
                 'total_sales' => $shift->total_sales,
                 'status' => $shift->status,
+                // The terminal reads this back to tell the waiter which counter
+                // they are on rather than showing a picker over a live shift.
+                'sales_point_id' => $shift->sales_point_id,
+                'sales_point_name' => $shift->salesPoint?->name,
+                'collection_point_id' => $shift->collection_point_id,
+                'collection_point_name' => $shift->collectionPoint?->name,
             ] : null,
         ]);
     }
@@ -751,6 +1124,17 @@ class RestaurantController extends Controller
     {
         $validated = $request->validate([
             'starting_cash' => 'nullable|numeric|min:0',
+            // Which counter the waiter is on. Every order they place for the rest
+            // of the shift inherits it, which is how a cafe and a restaurant
+            // sharing one kitchen stay separable in the revenue.
+            'sales_point_id' => [
+                'nullable',
+                Rule::exists('restaurant_sales_points', 'id')->where('is_active', true),
+            ],
+            'collection_point_id' => [
+                'nullable',
+                Rule::exists('restaurant_collection_points', 'id')->where('is_active', true),
+            ],
         ]);
 
         $existing = WaiterShift::where('user_id', auth()->id())
@@ -782,6 +1166,8 @@ class RestaurantController extends Controller
 
         $shift = WaiterShift::create([
             'user_id' => auth()->id(),
+            'sales_point_id' => $validated['sales_point_id'] ?? null,
+            'collection_point_id' => $validated['collection_point_id'] ?? null,
             'clock_in' => now(),
             'starting_cash' => $validated['starting_cash'] ?? 0,
             'status' => 'open',
@@ -791,6 +1177,8 @@ class RestaurantController extends Controller
             'id' => $shift->id,
             'clock_in' => $shift->clock_in->format('Y-m-d H:i:s'),
             'starting_cash' => $shift->starting_cash,
+            'sales_point_id' => $shift->sales_point_id,
+            'collection_point_id' => $shift->collection_point_id,
         ]]);
     }
 
@@ -828,8 +1216,19 @@ class RestaurantController extends Controller
                 'discount_limit' => RestaurantSetting::getValue('discount_limit', '10000'),
                 'shift_start_time' => RestaurantSetting::getValue('shift_start_time', '06:00'),
                 'shift_end_time' => RestaurantSetting::getValue('shift_end_time', '22:00'),
-                'paystack_public_key' => config('services.paystack.public'),
             ],
+            // The terminal has to offer the counter picker, so the list of
+            // outlets travels with the rest of the settings the shift card needs.
+            $salesPoints = SalesPoint::query()
+                ->active()
+                ->orderBy('name')
+                ->get(['id', 'name', 'code', 'is_default'])
+                ->all(),
+            'collection_points' => CollectionPoint::query()
+                ->active()
+                ->orderBy('name')
+                ->get(['id', 'name', 'code', 'is_default'])
+                ->all(),
         ]);
     }
 
@@ -932,6 +1331,7 @@ class RestaurantController extends Controller
 
     public function printReceipt(Order $order)
     {
+        $this->guardSettleableOrder($order);
         $order->load('orderItems.menuItem', 'shift.user', 'payments');
 
         return view('restaurant::waiter.receipt', compact('order'));
@@ -1111,27 +1511,15 @@ class RestaurantController extends Controller
         }
         $order->save();
 
+        // Completing an unpaid order is a sale, so it goes through the same
+        // service the waiter terminal uses rather than a second copy of the
+        // posting sequence.
         if ($request->input('status') === 'completed' && ! $order->payments()->where('status', 'completed')->exists()) {
-            $tendered = $request->input('amount_tendered', $order->grand_total);
-            $payment = Payment::create([
-                'restaurant_order_id' => $order->id,
-                'amount' => $order->grand_total,
+            $this->payments()->takePayment($order, [
+                'amount' => (float) $order->grand_total,
+                'amount_tendered' => $request->input('amount_tendered', $order->grand_total),
                 'method' => $request->input('payment_method', 'cash'),
-                'change_due' => max(0, $tendered - $order->grand_total),
-                'status' => 'completed',
-                'paid_at' => now(),
             ]);
-
-            try {
-                $entry = app(PostingService::class)
-                    ->recordSale('restaurant', (float) $payment->amount, $payment->method, 'restaurant_payment', $payment->id);
-                if ($entry) {
-                    $payment->finance_posted = true;
-                    $payment->save();
-                }
-            } catch (\Throwable $e) {
-                report($e);
-            }
         }
 
         return redirect()->back()->with('success', 'Order updated successfully!');
@@ -1149,6 +1537,8 @@ class RestaurantController extends Controller
 
     public function processPayment(Request $request, Order $order)
     {
+        $this->guardSettleableOrder($order);
+
         $validated = $request->validate([
             'amount' => 'nullable|numeric|min:0',
             'amount_tendered' => 'nullable|numeric|min:0',
@@ -1165,96 +1555,39 @@ class RestaurantController extends Controller
             return response()->json(['success' => false, 'message' => 'No balance due.'], 422);
         }
 
-        $amountTendered = $validated['amount_tendered'] ?? $amount;
-        $changeDue = max(0, (float) $amountTendered - (float) $amount);
-
-        $payment = Payment::create([
-            'restaurant_order_id' => $order->id,
-            'amount' => $amount,
-            'method' => $validated['method'],
-            'reference' => $validated['reference'] ?? null,
-            'change_due' => $changeDue,
-            'status' => 'completed',
-            'paid_at' => now(),
-            'notes' => $validated['notes'] ?? null,
-        ]);
-
         try {
-            $entry = app(PostingService::class)
-                ->recordSale('restaurant', (float) $payment->amount, $payment->method, 'restaurant_payment', $payment->id);
-            if ($entry) {
-                $payment->finance_posted = true;
-                $payment->save();
-            }
+            $result = $this->payments()->takePayment($order, [
+                'amount' => $amount,
+                'amount_tendered' => $validated['amount_tendered'] ?? null,
+                'method' => $validated['method'],
+                'reference' => $validated['reference'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+            ]);
         } catch (\Throwable $e) {
-            report($e);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
-
-        $order->load('payments');
-        $balanceRemaining = $order->balance;
-
-        if ($order->is_fully_paid) {
-            $order->status = 'completed';
-            $order->tracking_status = 'paid';
-            $order->save();
-
-            OrderPaid::dispatch($order, $payment);
-
-            if ($order->customer_phone) {
-                $customer = Customer::firstOrCreate(
-                    ['phone' => $order->customer_phone],
-                    ['name' => $order->customer_name ?? 'Unknown']
-                );
-                $customer->increment('visit_count');
-                $customer->increment('total_spent', $order->grand_total);
-                $customer->increment('loyalty_points', (int) floor($order->grand_total / 100));
-            }
-        }
-
-        PaymentRecorded::dispatch($payment, $balanceRemaining);
 
         return response()->json([
             'success' => true,
-            'payment' => $payment,
-            'change' => $changeDue,
-            'balance_remaining' => $balanceRemaining,
-            'fully_paid' => $order->is_fully_paid,
-            'order' => $order,
+            'payment' => $result['payment'],
+            'change' => $result['change_due'],
+            'balance_remaining' => $result['balance_remaining'],
+            'fully_paid' => $result['fully_paid'],
+            'order' => $order->fresh(),
         ]);
     }
 
     public function refundPayment(Request $request, Order $order)
     {
-        if ($order->status !== 'completed' || $order->tracking_status !== 'paid') {
-            return response()->json(['success' => false, 'message' => 'Only paid orders can be refunded.'], 422);
-        }
+        $this->guardSettleableOrder($order);
 
         $request->validate(['reason' => 'required|string|max:500']);
 
-        $payment = $order->payments()->where('status', 'completed')->first();
-        if (! $payment) {
-            return response()->json(['success' => false, 'message' => 'No completed payment found for this order.'], 404);
+        try {
+            $payment = $this->payments()->refundPayment($order, $request->input('reason'));
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
-
-        $payment->status = 'refunded';
-        $payment->refunded_at = now();
-        $payment->refund_reason = $request->input('reason');
-        $payment->save();
-
-        $order->status = 'completed';
-        $order->tracking_status = 'refunded';
-        $order->save();
-
-        if ($payment->finance_posted) {
-            try {
-                app(PostingService::class)
-                    ->recordRefund('restaurant', (float) $payment->amount, $payment->method, 'restaurant_payment', $payment->id);
-            } catch (\Throwable $e) {
-                report($e);
-            }
-        }
-
-        OrderRefunded::dispatch($order, $payment, $request->input('reason'));
 
         return response()->json(['success' => true, 'payment' => $payment]);
     }

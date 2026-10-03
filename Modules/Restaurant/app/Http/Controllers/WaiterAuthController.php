@@ -46,7 +46,12 @@ class WaiterAuthController extends Controller
                 ->with('account_name', $user->name);
         }
 
-        return redirect()->intended($this->redirectTo());
+        // The terminal has a single entry point, so this goes straight to the
+        // dashboard rather than through redirect()->intended(). An intended URL
+        // left in the session from an earlier visit (a dead legacy path, or a
+        // different module entirely) would otherwise be replayed here and send
+        // the waiter to a 404 or off the terminal instead of to their shift.
+        return redirect()->to($this->redirectTo());
     }
 
     public function logout(Request $request)

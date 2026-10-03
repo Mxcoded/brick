@@ -19,6 +19,7 @@ class RestaurantDatabaseSeeder extends Seeder
         DB::table('restaurant_settings')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
+        $this->call(RestaurantPermissionSeeder::class);
         $this->call(CategorySeeder::class);
         $this->call(MenuItemSeeder::class);
         $this->call(TableSeeder::class);

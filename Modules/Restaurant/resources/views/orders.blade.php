@@ -42,7 +42,7 @@
             <div class="col-md-6 offset-md-3">
                 <div class="card shadow-lg border-0 rounded-3">
                     <div class="card-body">
-                        <form action="{{ route('restaurant.online.orders') }}" method="POST">
+                        <form action="{{ route('restaurant.online.orders.lookup') }}" method="POST">
                             @csrf
                             <div class="mb-3">
                                 <label for="customer_phone" class="form-label">Phone Number</label>
@@ -140,8 +140,8 @@
                                                             @endif
                                                         </td>
                                                         <td>{{ $item->quantity }}</td>
-                                                        <td>{{ $item->menuItem ? '₦' . number_format($item->menuItem->price, 2) : 'N/A' }}</td>
-                                                        <td>{{ $item->menuItem ? '₦' . number_format($item->menuItem->price * $item->quantity, 2) : 'N/A' }}</td>
+                                                        <td>{{ '₦' . number_format($item->resolvedUnitPrice(), 2) }}</td>
+                                                        <td>{{ '₦' . number_format($item->lineTotal(), 2) }}</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>

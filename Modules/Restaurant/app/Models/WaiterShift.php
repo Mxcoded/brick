@@ -16,6 +16,8 @@ class WaiterShift extends Model implements AuditableContract
 
     protected $fillable = [
         'user_id',
+        'sales_point_id',
+        'collection_point_id',
         'clock_in',
         'clock_out',
         'starting_cash',
@@ -39,6 +41,22 @@ class WaiterShift extends Model implements AuditableContract
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The outlet this waiter was on for the duration of the shift.
+     */
+    public function salesPoint()
+    {
+        return $this->belongsTo(SalesPoint::class);
+    }
+
+    /**
+     * The physical terminal the takings for this shift went through.
+     */
+    public function collectionPoint()
+    {
+        return $this->belongsTo(CollectionPoint::class);
     }
 
     public function orders()

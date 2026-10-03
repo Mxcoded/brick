@@ -77,6 +77,14 @@
                                 <strong>{{ $order->customer_phone }}</strong>
                             </div>
                             @endif
+                            {{-- Null on orders predating sales points, so it is
+                                 only shown when there is something to say. --}}
+                            @if($order->salesPoint)
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Sales Point</small>
+                                <strong>{{ $order->salesPoint->name }}</strong>
+                            </div>
+                            @endif
                             @if($order->delivery_address)
                             <div class="col-12">
                                 <small class="text-muted d-block">Delivery Address</small>
@@ -121,9 +129,9 @@
                                                 <br><small class="text-muted">{{ $item->instructions }}</small>
                                             @endif
                                         </td>
-                                        <td>₦{{ number_format($item->menuItem?->price ?? 0, 2) }}</td>
+                                        <td>₦{{ number_format($item->resolvedUnitPrice(), 2) }}</td>
                                         <td>{{ $item->quantity }}</td>
-                                        <td class="text-end fw-bold">₦{{ number_format(($item->menuItem?->price ?? 0) * $item->quantity, 2) }}</td>
+                                        <td class="text-end fw-bold">₦{{ number_format($item->lineTotal(), 2) }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -154,6 +162,14 @@
                                     <tr>
                                         <td>VAT ({{ number_format($order->vat_rate, 1) }}%)</td>
                                         <td class="text-end">₦{{ number_format($order->vat, 2) }}</td>
+                                    </tr>
+                                    @endif
+                                    {{-- Keyed on the amount, not the rate: orders placed before the columns
+                                         existed have a recovered charge but no rate to show. --}}
+                                    @if($order->service_charge > 0)
+                                    <tr>
+                                        <td>Service charge@if($order->service_charge_rate > 0) ({{ number_format($order->service_charge_rate, 1) }}%)@endif</td>
+                                        <td class="text-end">₦{{ number_format($order->service_charge, 2) }}</td>
                                     </tr>
                                     @endif
                                     <tr class="border-top">

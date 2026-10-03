@@ -1,125 +1,127 @@
 @extends('restaurant::layouts.master')
 @section('title', 'Order Confirmation')
+
 @section('content')
-    <div class="container-fluid content py-4">
-        <div class="text-center mb-5">
-            <h1 class="display-4 fw-bold text-dark">Order #{{ $order->id }} Confirmed</h1>
-            <p class="lead text-muted">
-    Thank you for your order
-    @switch($type)
-        @case('table')
-            – Table {{ $sourceModel->number ?? 'N/A' }}
-            @break
+    @php
+        // The status is shown in plain words rather than a database value, so a
+        // customer knows whether to sit tight or expect the food shortly.
+        $status = strtolower($order->tracking_status ?? 'pending');
+        $statusLabels = [
+            'pending' => 'Waiting for the kitchen',
+            'accepted' => 'Being prepared',
+            'preparing' => 'Being prepared',
+            'ready' => 'Ready',
+            'served' => 'Served',
+            'completed' => 'Completed',
+            'paid' => 'Paid',
+        ];
+        $statusLabel = $statusLabels[$status] ?? ucfirst($status);
+        $deliveryAddress = $type === 'online' ? ($order->delivery_address ?? null) : null;
+        // Online orders are settled before the kitchen ever sees them, so the
+        // confirmation says so instead of asking for a payment that is done.
+        $paid = $type === 'online' && (float) $order->grand_total > 0 && $order->is_fully_paid;
+    @endphp
 
-        @case('room')
-            – Room {{ $sourceModel->name ?? 'N/A' }}
-            @break
-
-        @case('online')
-            , {{ $order->customer_name ?? 'Customer' }}! It will be delivered to {{ $order->delivery_address ?? 'your address' }}.
-            @break
-
-        @default
-            – Type: {{ ucfirst($type) }}
-    @endswitch
-    It has been sent to our staff for processing.
-</p>
-        </div>
+    <div class="order-page container" style="max-width: 760px;">
+        <header class="order-head text-center">
+            <div class="confirm-check" aria-hidden="true">
+                <i class="fas fa-check"></i>
+            </div>
+            <h1 class="order-title">
+                @if ($type === 'online' && ! empty($order->customer_name))
+                    Thank you, {{ $order->customer_name }}!
+                @else
+                    Thank you!
+                @endif
+            </h1>
+            <p class="order-sub">
+                <span class="order-count">Order #{{ $order->id }} &middot; {{ $statusLabel }}</span>
+                @if ($type === 'online')
+                    We have your order and will bring it to {{ $deliveryAddress ?: 'your address' }}.
+                @elseif ($type === 'table')
+                    Your order has been sent to the kitchen for Table {{ $sourceModel->number ?? '' }}.
+                @elseif ($type === 'room')
+                    Your order has been sent to the kitchen for Room {{ $sourceModel->name ?? '' }}.
+                @else
+                    Your order has been sent to our staff.
+                @endif
+            </p>
+        </header>
 
         @if ($order->orderItems->isEmpty())
-            <div class="alert alert-warning text-center rounded-3 shadow-sm">
-                <i class="bi bi-exclamation-triangle me-2"></i>No items found in this order.
+            <div class="order-notice order-notice-bad" role="alert">
+                <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+                <span>We could not find any items on this order. Please speak to a member of staff.</span>
             </div>
         @else
-            <div class="row">
-                <div class="col-md-8 offset-md-2">
-                    <div class="shadow-lg border-0 rounded-3">
-                        <div class="card-body">
-                            <h3 class="card-title fw-bold">Order Summary</h3>
-                            <p><strong>Tracking Status:</strong> {{ ucfirst($order->tracking_status ?? 'Pending') }}</p>
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Image</th>
-                                        <th>Item</th>
-                                        <th>Quantity</th>
-                                        <th>Price</th>
-                                        <th>Instructions</th>
-                                        <th>Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($order->orderItems as $item)
-                                        <tr>
-                                            <td>
-                                                <img src="{{ $item->menuItem && $item->menuItem->image && file_exists(public_path('storage/' . $item->menuItem->image)) ? asset('storage/' . $item->menuItem->image) : asset('storage/images/menudefaultimage.png') }}"
-                                                    alt="{{ $item->menuItem ? $item->menuItem->name : 'No Image' }}"
-                                                    class="img-fluid rounded"
-                                                    style="max-width: 60px; max-height: 60px; object-fit: cover;">
-                                            </td>
-                                            <td>{{ $item->menuItem ? $item->menuItem->name : 'Item not found' }}</td>
-                                            <td>{{ $item->quantity }}</td>
-                                            <td>{{ $item->menuItem ? '₦' . number_format($item->menuItem->price, 2) : 'N/A' }}</td>
-                                            <td>{{ $item->instructions ?: 'None' }}</td>
-                                            <td>{{ $item->menuItem ? '₦' . number_format($item->menuItem->price * $item->quantity, 2) : 'N/A' }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                                @if ((float) $order->grand_total > 0)
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="4" class="text-end fw-bold">Subtotal:</td>
-                                        <td></td>
-                                        <td>₦{{ number_format((float) $order->subtotal, 2) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="4" class="text-end fw-bold">VAT ({{ $order->vat_rate }}%):</td>
-                                        <td></td>
-                                        <td>₦{{ number_format((float) $order->vat, 2) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="4" class="text-end fw-bold">Total:</td>
-                                        <td></td>
-                                        <td><strong>₦{{ number_format((float) $order->grand_total, 2) }}</strong></td>
-                                    </tr>
-                                </tfoot>
-                                @endif
-                            </table>
+            <ul class="order-lines" aria-label="Items in this order">
+                @foreach ($order->orderItems as $item)
+                    @php $unitPrice = $item->resolvedUnitPrice(); @endphp
+                    <li class="order-line">
+                        <img class="order-line-img"
+                            src="{{ $item->menuItem && $item->menuItem->image && file_exists(public_path('storage/' . $item->menuItem->image)) ? asset('storage/' . $item->menuItem->image) : asset('storage/images/menudefaultimage.png') }}"
+                            alt="" loading="lazy">
+                        <div class="order-line-body">
+                            <p class="order-line-name">{{ $item->menuItem->name ?? 'Item' }}</p>
+                            @if (! empty($item->instructions))
+                                <p class="order-line-note">Your note: {{ $item->instructions }}</p>
+                            @endif
+                            <p class="order-line-price">
+                                {{ $item->quantity }} &times; {{ '₦' . number_format($unitPrice, 2) }}
+                            </p>
                         </div>
+                        <span class="order-line-total">{{ '₦' . number_format($unitPrice * $item->quantity, 2) }}</span>
+                    </li>
+                @endforeach
+            </ul>
+
+            @if ((float) $order->grand_total > 0)
+                <div class="order-totals">
+                    <div class="order-total-row">
+                        <span>Food subtotal</span>
+                        <span>{{ '₦' . number_format((float) $order->subtotal, 2) }}</span>
+                    </div>
+                    @if ((float) $order->vat > 0)
+                        <div class="order-total-row">
+                            <span>VAT ({{ rtrim(rtrim(number_format((float) $order->vat_rate, 2), '0'), '.') }}%)</span>
+                            <span>{{ '₦' . number_format((float) $order->vat, 2) }}</span>
+                        </div>
+                    @endif
+                    @if ((float) $order->service_charge > 0)
+                        <div class="order-total-row">
+                            <span>Service charge ({{ rtrim(rtrim(number_format((float) $order->service_charge_rate, 2), '0'), '.') }}%)</span>
+                            <span>{{ '₦' . number_format((float) $order->service_charge, 2) }}</span>
+                        </div>
+                    @endif
+                    <div class="order-total-row order-total-grand">
+                        <span>{{ $paid ? 'Paid' : 'Total to pay' }}</span>
+                        <span>{{ '₦' . number_format((float) $order->grand_total, 2) }}</span>
                     </div>
                 </div>
+            @endif
+
+            @if ($paid)
+                <div class="order-notice order-notice-good" role="status">
+                    <i class="fas fa-circle-check" aria-hidden="true"></i>
+                    <span>Payment received. Your order is already paid &mdash; nothing is due on delivery.</span>
+                </div>
+            @endif
+        @endif
+
+        @if ($deliveryAddress)
+            <div class="checkout">
+                <h2 class="checkout-title">Delivering to</h2>
+                <p class="order-line-note">{{ $deliveryAddress }}</p>
+                @if (! empty($order->customer_phone))
+                    <p class="order-line-note">We will call {{ $order->customer_phone }} if we need to check anything.</p>
+                @endif
             </div>
         @endif
 
-        <div class="text-center mt-4">
-            <a href="{{ route($type === 'online' ? 'restaurant.online.menu' : 'restaurant.menu', $type === 'online' ? [] : [$type, $sourceModel->id]) }}"
-                class="btn btn-outline-primary btn-lg">Back to Menu</a>
-        </div>
-
-        <style>
-            .card {
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-                border-radius: 0.75rem;
-            }
-            .card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-            }
-            .btn-primary {
-                background-color: #d9534f;
-                border-color: #d9534f;
-            }
-            .btn-primary:hover {
-                background-color: #c9302c;
-                border-color: #c9302c;
-            }
-            .alert {
-                padding: 1.25rem;
-                border-radius: 0.75rem;
-            }
-            .table img {
-                border-radius: 0.5rem;
-            }
-        </style>
+        <p class="order-back">
+            <a href="{{ route($type === 'online' ? 'restaurant.online.menu' : 'restaurant.menu', $type === 'online' ? [] : [$type, $sourceModel->id]) }}">
+                <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Order something else
+            </a>
+        </p>
     </div>
 @endsection

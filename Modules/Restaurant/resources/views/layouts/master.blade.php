@@ -18,7 +18,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+    {{-- Public ordering pages are served from CDN, not the npm/Vite bundle, so
+         they need no build step. Versions are pinned to the same packages the
+         internal ERP uses. --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/restaurant-ordering.css') }}">
 
     <style>
         :root {
@@ -34,6 +40,43 @@
             --border-radius: 14px;
             --box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
             --transition: all 0.25s ease-in-out;
+        }
+
+        /* Stock CDN Bootstrap defaults the "primary" colour to blue. The internal
+           build compiles Bootstrap with a gold $primary, so the same gold is
+           reapplied here to keep the two from drifting apart. */
+        .btn-primary {
+            --bs-btn-bg: #d4af37;
+            --bs-btn-border-color: #d4af37;
+            --bs-btn-hover-bg: #bfa133;
+            --bs-btn-hover-border-color: #bfa133;
+            --bs-btn-active-bg: #b08f2b;
+            --bs-btn-active-border-color: #b08f2b;
+            --bs-btn-disabled-bg: #d4af37;
+            --bs-btn-disabled-border-color: #d4af37;
+            --bs-btn-focus-shadow-rgb: 212, 175, 55;
+        }
+
+        .btn-outline-primary {
+            --bs-btn-color: #b8932f;
+            --bs-btn-border-color: #d4af37;
+            --bs-btn-hover-bg: #d4af37;
+            --bs-btn-hover-border-color: #d4af37;
+            --bs-btn-active-bg: #b08f2b;
+            --bs-btn-active-border-color: #b08f2b;
+            --bs-btn-focus-shadow-rgb: 212, 175, 55;
+        }
+
+        .text-primary {
+            color: #b8932f !important;
+        }
+
+        .bg-primary {
+            background-color: #d4af37 !important;
+        }
+
+        .border-primary {
+            border-color: #d4af37 !important;
         }
 
         * {
@@ -141,12 +184,13 @@
             position: fixed;
             bottom: 30px;
             right: 30px;
-            width: 60px;
+            min-width: 60px;
             height: 60px;
+            padding: 0 1rem;
             background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
             color: white;
             border: none;
-            border-radius: 50%;
+            border-radius: 999px;
             font-size: 1.5rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             transition: var(--transition);
@@ -154,6 +198,52 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 0.5rem;
+        }
+
+        /* The button carries a written label as well as an icon, so it reads
+           the same to someone who is not sure what a cart glyph means. The
+           label appears once there is something in the basket. */
+        .cart-indicator-text {
+            display: none;
+            font-size: 1rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .cart-indicator.has-items {
+            min-width: auto;
+        }
+
+        .cart-indicator.has-items .cart-indicator-text {
+            display: inline;
+        }
+
+        .cart-indicator:focus-visible {
+            outline: 3px solid #1c1b1f;
+            outline-offset: 3px;
+        }
+
+        /* Notices have to be visible whether or not the basket panel is open,
+           because adding an item no longer opens it. */
+        .order-toasts {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(92vw, 30rem);
+            z-index: 1080;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+
+        .order-toasts .alert {
+            pointer-events: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-radius: 0.75rem;
+            margin: 0;
         }
 
         .cart-indicator:hover {
@@ -417,13 +507,17 @@
 
     @yield('content')
     @if (View::getSection('title') !== 'Welcome' && !View::getSection('hideNav'))
-        <button class="cart-indicator" data-bs-toggle="modal" data-bs-target="#cartModal">
+        <button class="cart-indicator" data-bs-toggle="modal" data-bs-target="#cartModal"
+            aria-label="Open my basket" :class="$store.cart.items.length > 0 ? 'has-items' : ''">
             <i class="fas fa-shopping-cart"></i>
+            <span class="cart-indicator-text" x-show="$store.cart.items.length > 0">My order</span>
             <span class="cart-count" x-show="$store.cart.items.length > 0" x-text="$store.cart.items.length"></span>
         </button>
 
+        <div class="order-toasts" id="cart-alerts" role="status" aria-live="polite"></div>
+
         <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true"
-            @show.bs.modal="$store.cart.refreshCart()">
+            x-data x-init="$store.cart.refreshCart()" @show.bs.modal="$store.cart.refreshCart()">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <form action="{{ route($type === 'online' ? 'restaurant.online.order.submit' : 'restaurant.order.submit', $routeParams) }}" method="POST">
                     @csrf
@@ -435,15 +529,25 @@
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <div id="cart-alerts"></div>
                             <template x-if="$store.cart.isLoading">
                                 <div class="modal-loading">
                                     <i class="fas fa-spinner fa-spin fa-3x text-muted"></i>
+                                    <p class="text-muted mt-3 mb-0">Loading your order…</p>
                                 </div>
                             </template>
                             <template x-if="!$store.cart.isLoading">
                                 <div>
-                                    <template x-if="$store.cart.items.length === 0">
+                                    {{-- A failed read is shown as itself. Reporting it as
+                                         an empty basket would tell the customer they
+                                         had ordered nothing. --}}
+                                    <template x-if="$store.cart.loadError">
+                                        <div class="alert alert-warning d-flex justify-content-between align-items-start gap-3" role="alert">
+                                            <span x-text="$store.cart.loadError"></span>
+                                            <button type="button" class="btn btn-sm btn-outline-dark flex-shrink-0"
+                                                @click="$store.cart.refreshCart()">Retry</button>
+                                        </div>
+                                    </template>
+                                    <template x-if="!$store.cart.loadError && $store.cart.items.length === 0">
                                         <div class="text-center py-5">
                                             <i class="fas fa-shopping-cart text-muted mb-3" style="font-size: 4rem; opacity: 0.3;"></i>
                                             <h5 class="text-muted">Your cart is empty</h5>
@@ -481,8 +585,13 @@
                                                 </div>
                                             </template>
                                             <div class="cart-summary mt-4 p-3 glass-morphism rounded">
-                                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <span class="h5 mb-0">Total:</span>
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    {{-- This is the food subtotal. VAT and the amount
+                                                         actually payable are worked out on the
+                                                         checkout page, so calling it "Total"
+                                                         here would promise a number the
+                                                         customer never sees. --}}
+                                                    <span class="h5 mb-0">Food subtotal</span>
                                                     <span class="h4 fw-bold text-success mb-0" x-text="`₦${$store.cart.totalPrice.toLocaleString()}`"></span>
                                                 </div>
                                             </div>
@@ -522,6 +631,14 @@
         </script>
     @endif
     @stack('scripts')
+
+    {{-- CDN runtime for the public ordering pages; no npm build involved.
+         Load order matters: restaurant.js is deferred and registers its
+         alpine:init listener before the deferred Alpine script starts and
+         fires it. Bootstrap's bundle only powers the basket modal and toasts. --}}
+    <script src="{{ asset('js/restaurant.js') }}" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js" defer></script>
 </body>
 
 </html>

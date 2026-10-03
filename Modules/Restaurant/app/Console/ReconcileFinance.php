@@ -3,8 +3,8 @@
 namespace Modules\Restaurant\Console;
 
 use Illuminate\Console\Command;
-use Modules\Finance\Services\PostingService;
 use Modules\Restaurant\Models\Payment;
+use Modules\Restaurant\Services\OrderPaymentService;
 
 class ReconcileFinance extends Command
 {
@@ -12,7 +12,7 @@ class ReconcileFinance extends Command
 
     protected $description = 'Retry finance posting for restaurant payments that were not posted';
 
-    public function handle(): int
+    public function handle(OrderPaymentService $payments): int
     {
         $unposted = Payment::where('status', 'completed')
             ->where('finance_posted', false)
@@ -33,19 +33,12 @@ class ReconcileFinance extends Command
                 continue;
             }
 
-            try {
-                $entry = app(PostingService::class)
-                    ->recordSale('restaurant', (float) $payment->amount, $payment->method, 'restaurant_payment', $payment->id);
-
-                if ($entry) {
-                    $payment->finance_posted = true;
-                    $payment->save();
-                    $this->info("  ✓ Posted (entry: {$entry->entry_number})");
-                } else {
-                    $this->warn('  — Skipped (duplicate key)');
-                }
-            } catch (\Throwable $e) {
-                $this->error("  ✗ Failed: {$e->getMessage()}");
+            // Posting goes back through the service rather than reaching for
+            // PostingService directly, so a fix to the source or reference slug
+            // applies to the repair path too. A false return means the ledger
+            // refused or threw; the payment stays unflagged for the next run.
+            if (! $payments->postSale($payment)) {
+                $this->error('  ✗ Failed to post');
             }
         }
 

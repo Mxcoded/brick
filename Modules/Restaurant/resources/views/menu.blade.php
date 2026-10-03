@@ -3,205 +3,216 @@
 
 @section('content')
     @auth
-    @canany(['access_restaurant_dashboard', 'orders.create', 'menu.read', 'menu.create', 'menu.update', 'menu.delete'])
-    <div class="admin-quick-bar">
-        <div class="d-flex align-items-center gap-2 px-3 py-2">
-            <span class="text-white-50 small me-2"><i class="bi bi-person-badge me-1"></i>Staff</span>
-            @can('orders.create')
-            <a href="{{ route('restaurant.waiter.dashboard') }}" class="btn btn-sm btn-outline-light rounded-pill">
-                <i class="bi bi-calculator me-1"></i>POS
-            </a>
-            @endcan
-            @canany(['menu.create', 'menu.update', 'menu.delete', 'menu.read'])
-            <a href="{{ route('restaurant.admin.dashboard') }}" class="btn btn-sm btn-outline-light rounded-pill">
-                <i class="bi bi-gear me-1"></i>Manage Menu
-            </a>
-            @endcanany
-            <span class="ms-auto">
-                <a href="{{ route('restaurant.landing') }}" class="btn btn-sm btn-outline-light rounded-pill">
-                    <i class="bi bi-house me-1"></i>Home
-                </a>
-            </span>
-        </div>
-    </div>
-    @endcanany
-    @endauth
-
-    <div class="container-fluid py-5" x-data="{
-        search: '',
-        sortBy: 'name',
-        sortOptions: [
-            { value: 'name', label: 'Name A-Z' },
-            { value: 'price_asc', label: 'Price Low-High' },
-            { value: 'price_desc', label: 'Price High-Low' }
-        ],
-        categories: {{ json_encode($categories) }} || [],
-        instructions: {},
-        activeTab: {{ $categories->first()->id ?? 'null' }}, // Set the first category as active
-        
-        getFilteredAndSortedItems(category) {
-            if (!category || !Array.isArray(category.menu_items)) return [];
-            let items = category.menu_items.filter(item =>
-                !this.search ||
-                (item.name && item.name.toLowerCase().includes(this.search.toLowerCase())) ||
-                (item.description && item.description.toLowerCase().includes(this.search.toLowerCase()))
-            );
-            if (this.sortBy === 'name') items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-            else if (this.sortBy === 'price_asc') items.sort((a, b) => (a.price || 0) - (b.price || 0));
-            else if (this.sortBy === 'price_desc') items.sort((a, b) => (b.price || 0) - (a.price || 0));
-            return items;
-        },
-        handleAddToCart(item) {
-            const itemInstructions = this.instructions[item.id] || '';
-            $store.cart.addToCart(item.id, item.name, item.price, 1, itemInstructions);
-        }
-    }">
-        <div class="hero-section mb-5 text-center text-white">
-            <h1 class="display-4 fw-bold">
-                @if ($type === 'table')
-                    Menu - Table {{ $sourceModel->number ?? 'N/A' }}
-                @elseif ($type === 'room')
-                    Menu - Room {{ $sourceModel->name ?? 'N/A' }}
-                @else
-                    Online Menu
-                @endif
-            </h1>
-            <p class="lead">Discover extraordinary flavors crafted with passion and precision.</p>
-        </div>
-
-        <div class="container-fluid" style="max-width: 1400px;">
-            <div class="menu-tabs-container mb-4">
-                <ul class="nav nav-tabs">
-                    <template x-for="category in categories" :key="category.id">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" :class="{ 'active': activeTab === category.id }" @click.prevent="activeTab = category.id" x-text="category.name"></a>
-                        </li>
-                    </template>
-                </ul>
-            </div>
-
-            <div class="search-filter-section p-3 rounded-3 shadow-sm mb-5">
-                <div class="row g-3 align-items-center">
-                    <div class="col-lg-9">
-                        <input type="text" x-model.debounce.300ms="search" placeholder="Search within the selected category..." class="form-control" aria-label="Search menu">
-                    </div>
-                    <div class="col-lg-3">
-                        <select x-model="sortBy" class="form-select" aria-label="Sort by">
-                            <template x-for="option in sortOptions" :key="option.value">
-                                <option :value="option.value" x-text="option.label"></option>
-                            </template>
-                        </select>
-                    </div>
+        @canany(['access_restaurant_dashboard', 'orders.create', 'menu.read', 'menu.create', 'menu.update', 'menu.delete'])
+            <div class="admin-quick-bar">
+                <div class="d-flex align-items-center gap-2 px-3 py-2">
+                    <span class="text-white-50 small me-2"><i class="bi bi-person-badge me-1"></i>Staff</span>
+                    @can('orders.create')
+                        <a href="{{ route('restaurant.waiter.dashboard') }}" class="btn btn-sm btn-outline-light rounded-pill">
+                            <i class="bi bi-calculator me-1"></i>POS
+                        </a>
+                    @endcan
+                    @canany(['menu.create', 'menu.update', 'menu.delete', 'menu.read'])
+                        <a href="{{ route('restaurant.admin.dashboard') }}" class="btn btn-sm btn-outline-light rounded-pill">
+                            <i class="bi bi-gear me-1"></i>Manage Menu
+                        </a>
+                    @endcanany
+                    <span class="ms-auto">
+                        <a href="{{ route('restaurant.landing') }}" class="btn btn-sm btn-outline-light rounded-pill">
+                            <i class="bi bi-house me-1"></i>Home
+                        </a>
+                    </span>
                 </div>
             </div>
+        @endcanany
+    @endauth
 
-            <div class="tab-content">
-                <template x-for="category in categories" :key="category.id">
-                    <div x-show="activeTab === category.id" class="fade-in">
-                        <div class="row g-4">
-                            <template x-for="item in getFilteredAndSortedItems(category)" :key="item.id">
-                                 <div class="col-md-6 col-lg-4 d-flex">
-                                     <div class="card menu-item-card w-100 shadow-sm border-0">
-                                         <img :src="item.image ? `{{ asset('storage') }}/${item.image}` : '{{ asset('storage/images/menudefaultimage.png') }}'" class="card-img-top" :alt="item.name">
-                                         <div class="card-body d-flex flex-column">
-                                             <h5 class="card-title fw-bold" x-text="item.name"></h5>
-                                             <p class="card-text text-muted small flex-grow-1" x-text="item.description ? item.description.substring(0, 80) + '...' : 'No description available.'"></p>
-                                             <h6 class="fw-bold text-primary">₦<span x-text="Number(item.price).toLocaleString()"></span></h6>
-                                             <textarea x-model="instructions[item.id]" placeholder="Special instructions..." class="form-control form-control-sm my-2" rows="2"></textarea>
-                                             <div class="mt-auto d-grid">
-                                                 <button class="btn btn-primary-custom" @click="handleAddToCart(item)" :disabled="$store.cart.isSubmitting">
-                                                     <span x-show="!$store.cart.isSubmitting"><i class="fas fa-cart-plus me-2"></i>Add to Cart</span>
-                                                     <span x-show="$store.cart.isSubmitting"><i class="fas fa-spinner fa-spin me-2"></i>Adding...</span>
-                                                 </button>
-                                             </div>
-                                         </div>
-                                     </div>
-                                 </div>
-                            </template>
-                        </div>
+    <div class="menu-simple" x-data="simpleMenu">
+        <div class="menu-simple-head">
+            <h1>
+                @if ($type === 'table')
+                    Menu &mdash; Table {{ $sourceModel->number ?? 'N/A' }}
+                @elseif ($type === 'room')
+                    Menu &mdash; Room {{ $sourceModel->name ?? 'N/A' }}
+                @else
+                    Our Menu
+                @endif
+            </h1>
+            <p>Tap a dish to add it to your order. You can add notes for the kitchen if you want to.</p>
+        </div>
 
-                        <template x-for="subcategory in (category.children_recursive || [])" :key="subcategory.id">
-                            <div class="mt-5">
-                                <h4 class="category-title mb-4 ms-3 border-start border-primary border-3 ps-2" x-text="subcategory.name"></h4>
-                                <div class="row g-4">
-                                    <template x-for="subItem in getFilteredAndSortedItems(subcategory)" :key="subItem.id">
-                                        <div class="col-md-6 col-lg-4 d-flex">
-                                            <div class="card menu-item-card w-100 shadow-sm border-0">
-                                                <img :src="subItem.image ? `{{ asset('storage') }}/${subItem.image}` : '{{ asset('storage/images/menudefaultimage.png') }}'" class="card-img-top" :alt="subItem.name">
-                                                <div class="card-body d-flex flex-column">
-                                                    <h5 class="card-title fw-bold" x-text="subItem.name"></h5>
-                                                    <p class="card-text text-muted small flex-grow-1" x-text="subItem.description ? subItem.description.substring(0, 80) + '...' : 'No description available.'"></p>
-                                                    <h6 class="fw-bold text-primary">₦<span x-text="Number(subItem.price).toLocaleString()"></span></h6>
-                                                    <textarea x-model="instructions[subItem.id]" placeholder="Special instructions..." class="form-control form-control-sm my-2" rows="2"></textarea>
-                                                    <div class="mt-auto d-grid">
-                                                        <button class="btn btn-primary-custom" @click="handleAddToCart(subItem)" :disabled="$store.cart.isSubmitting">
-                                                            <span x-show="!$store.cart.isSubmitting"><i class="fas fa-cart-plus me-2"></i>Add to Cart</span>
-                                                            <span x-show="$store.cart.isSubmitting"><i class="fas fa-spinner fa-spin me-2"></i>Adding...</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
+        {{-- The whole list is rendered by Alpine from the same JSON the search
+             reads, so searching and browsing cannot disagree about what exists. --}}
+        <template x-if="groups.length > 0">
+            <div>
+                <template x-if="groups.length > 1">
+                    <div class="menu-cats" role="tablist" aria-label="Menu sections">
+                        <template x-for="group in groups" :key="group.id">
+                            <button type="button" class="menu-cat" role="tab" :aria-selected="activeCategory === group.id"
+                                @click="activeCategory = group.id" x-text="group.name"></button>
                         </template>
                     </div>
                 </template>
+
+                <div class="menu-search">
+                    <input type="search" x-model.debounce.250ms="search"
+                        placeholder="Search for a dish" aria-label="Search the menu" autocomplete="off">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                </div>
+
+                {{-- While a search is running every section that has a match
+                     stays on screen. Hiding all but the selected section would
+                     hide a hit the customer can see is right there. --}}
+                <template x-for="group in groups" :key="group.id">
+                    <section x-show="activeCategory === group.id || search.trim() !== ''" class="menu-section"
+                        :hidden="activeCategory !== group.id && search.trim() === ''">
+                        <h2 class="menu-group-title" x-text="group.name"></h2>
+
+                        <div class="menu-grid">
+                            <template x-for="item in visibleItems(group)" :key="item.id">
+                                <article class="menu-card" :class="{ 'menu-card-sold': !item.is_available }">
+                                    <img class="menu-card-img" :src="imageFor(item)" :alt="item.name" loading="lazy">
+
+                                    <div class="menu-card-body">
+                                        <h3 class="menu-card-name" x-text="item.name"></h3>
+                                        <p class="menu-card-desc" x-show="item.description" x-text="item.description"></p>
+
+                                        {{-- Only the waiter terminal is shown
+                                             sold-out dishes, and it renders the
+                                             item as unavailable rather than
+                                             letting a sale be attempted. --}}
+                                        <template x-if="!item.is_available">
+                                            <span class="menu-sold-flag">Sold out today</span>
+                                        </template>
+
+                                        <template x-if="item.is_available">
+                                            <div>
+                                                <div class="menu-card-foot">
+                                                    <span class="menu-card-price"
+                                                        x-text="`₦${Number(item.price || 0).toLocaleString()}`"></span>
+                                                    <button type="button" class="menu-card-add"
+                                                        @click="add(item)" :disabled="busyItem === item.id">
+                                                        <span x-show="busyItem !== item.id">Add</span>
+                                                        <span x-show="busyItem === item.id">
+                                                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                                            <span class="visually-hidden">Adding</span>
+                                                        </span>
+                                                    </button>
+                                                </div>
+
+                                                {{-- Notes are opt-in. A text box on every card is
+                                                     clutter, and it is the easiest way for a
+                                                     customer to send the kitchen a mistake. --}}
+                                                <button type="button" class="menu-note-toggle"
+                                                    @click="toggleNote(item.id)"
+                                                    :aria-expanded="noteOpen(item.id) ? 'true' : 'false'"
+                                                    x-text="noteOpen(item.id) ? 'Hide note' : 'Add a note'"></button>
+
+                                                <div class="menu-note" :class="{ open: noteOpen(item.id) }">
+                                                    <div>
+                                                        <textarea x-model="notes[item.id]" rows="2"
+                                                            :aria-label="`Note for ${item.name}`"
+                                                            placeholder="No onions, extra spicy&hellip;"
+                                                            x-bind:disabled="busyItem === item.id"></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </article>
+                            </template>
+
+                            <div class="menu-none" x-show="visibleItems(group).length === 0">
+                                <i class="fas fa-utensils" aria-hidden="true"></i>
+                                <strong x-text="search.trim() ? 'No dish matches that' : 'Nothing here right now'"></strong>
+                                <span x-text="search.trim() ? 'Try a shorter word, or pick another section.' : 'Please check another section.'"></span>
+                            </div>
+                        </div>
+                    </section>
+                </template>
             </div>
-        </div>
-        
-        <style>
-             .hero-section {
-                background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4') center/cover no-repeat;
-                padding: 4rem 1rem;
-                border-radius: var(--border-radius);
-            }
-            .search-filter-section {
-                background: rgba(255, 255, 255, 0.9);
-                backdrop-filter: blur(10px);
-            }
-            .menu-tabs-container .nav-tabs {
-                border-bottom: 2px solid #dee2e6;
-            }
-            .menu-tabs-container .nav-tabs .nav-link {
-                color: rgb(165, 165, 165);
-                font-weight: 600;
-                padding: 0.75rem 1.5rem;
-                border: none;
-                border-bottom: 2px solid transparent;
-                transition: var(--transition);
-                margin-bottom: -2px;
-            }
-            body.dark-mode .menu-tabs-container .nav-tabs .nav-link {
-                color: #adb5bd;
-            }
-            .menu-tabs-container .nav-tabs .nav-link:hover {
-                color: var(--primary-color);
-            }
-            .menu-tabs-container .nav-tabs .nav-link.active {
-                color: var(--primary-color);
-                border-bottom: 2px solid var(--primary-color);
-                background-color: transparent;
-            }
-            .menu-item-card {
-                transition: var(--transition);
-            }
-            .menu-item-card:hover {
-                transform: translateY(-8px);
-                box-shadow: var(--box-shadow) !important;
-            }
-            .menu-item-card .card-img-top {
-                height: 200px;
-                object-fit: cover;
-            }
-            .admin-quick-bar {
-                background: #1a1a2e;
-                position: sticky;
-                top: 0;
-                z-index: 1020;
-                border-radius: 0 0 0.5rem 0.5rem;
-            }
-        </style>
+        </template>
+
+        <template x-if="groups.length === 0">
+            <div class="order-empty">
+                <i class="fas fa-utensils" aria-hidden="true"></i>
+                <h2>The menu is not ready yet</h2>
+                <p>Please ask a member of staff, or check back in a moment.</p>
+            </div>
+        </template>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        // The public menu is one Alpine component so that category selection,
+        // search and the add button all read the same item list.
+        document.addEventListener('alpine:init', () => {
+            const data = @json($categories);
+
+            const itemsOf = (node) => (node && Array.isArray(node.menu_items) ? node.menu_items : []);
+
+            // Children carry their own sub-dishes, so a category becomes one
+            // list of cards per level. The parent renders as its own group and
+            // each child renders as a further group, which keeps the
+            // relationship obvious without a nested accordion.
+            const buildGroups = (nodes) => {
+                const groups = [];
+                const walk = (node) => {
+                    groups.push({ id: node.id, name: node.name, items: itemsOf(node) });
+                    (node.children_recursive || []).forEach(walk);
+                };
+                (Array.isArray(data) ? data : []).forEach(walk);
+                return groups;
+            };
+
+            Alpine.data('simpleMenu', () => ({
+                groups: buildGroups(data),
+                activeCategory: null,
+                search: '',
+                notes: {},
+                openNotes: {},
+                busyItem: null,
+                init() {
+                    this.activeCategory = this.groups.length ? this.groups[0].id : null;
+                },
+                noteOpen(id) {
+                    return this.openNotes[id] === true;
+                },
+                toggleNote(id) {
+                    this.openNotes[id] = !this.openNotes[id];
+                },
+                imageFor(item) {
+                    return item.image
+                        ? `{{ asset('storage') }}/${item.image}`
+                        : `{{ asset('storage/images/menudefaultimage.png') }}`;
+                },
+                visibleItems(group) {
+                    const term = this.search.trim().toLowerCase();
+                    if (!term) return group.items;
+                    return group.items.filter((item) => {
+                        const name = (item.name || '').toLowerCase();
+                        const description = (item.description || '').toLowerCase();
+                        return name.includes(term) || description.includes(term);
+                    });
+                },
+                add(item) {
+                    if (this.busyItem !== null) return;
+                    this.busyItem = item.id;
+                    // The store is reached through the component because the
+                    // bare $store magic only exists inside expressions Alpine
+                    // evaluates from the markup. In a method body it is a plain
+                    // function scope with no such name in it.
+                    //
+                    // Price and name are passed only so the confirmation can
+                    // read nicely. The server re-reads both from the database.
+                    this.$store.cart
+                        .addToCart(item.id, item.name, item.price, 1, this.notes[item.id] || '')
+                        .finally(() => {
+                            this.busyItem = null;
+                        });
+                },
+            }));
+        });
+    </script>
+@endpush

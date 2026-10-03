@@ -24,16 +24,14 @@
                         </div>
                     </td>
                     <td class="text-center">{{ $item->quantity }}</td>
-                    <td class="text-end">{{ $item->menuItem ? '₦' . number_format($item->menuItem->price * $item->quantity, 2) : 'N/A' }}</td>
+                    <td class="text-end">{{ '₦' . number_format($item->lineTotal(), 2) }}</td>
                 </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr class="fw-bold border-top">
                 <td colspan="2" class="text-end">Grand Total:</td>
-                <td class="text-end h5 mb-0 text-success">{{ '₦' . number_format($order->orderItems->sum(function($item) {
-                    return $item->menuItem ? $item->menuItem->price * $item->quantity : 0;
-                }), 2) }}</td>
+                <td class="text-end h5 mb-0 text-success">{{ '₦' . number_format($order->orderItems->sum(fn ($item) => $item->lineTotal()), 2) }}</td>
             </tr>
         </tfoot>
     </table>

@@ -60,6 +60,9 @@
             @if($order->customer_name && $order->type === 'walk_in')
             <tr><td>Customer</td><td class="right">{{ $order->customer_name }}</td></tr>
             @endif
+            @if($order->salesPoint)
+            <tr><td>Counter</td><td class="right">{{ $order->salesPoint->name }}</td></tr>
+            @endif
             @if($order->shift && $order->shift->user)
             <tr><td>Cashier</td><td class="right">{{ $order->shift->user->name }}</td></tr>
             @endif
@@ -84,7 +87,7 @@
             <tr>
                 <td>{{ $item->menuItem?->name ?? 'Item' }}</td>
                 <td class="qty">{{ $item->quantity }}</td>
-                <td class="price">₦{{ number_format(($item->menuItem?->price ?? 0) * $item->quantity) }}</td>
+                <td class="price">₦{{ number_format($item->lineTotal()) }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -107,6 +110,12 @@
             <td class="label">VAT ({{ $order->vat_rate }}%)</td>
             <td class="value">₦{{ number_format($order->vat) }}</td>
         </tr>
+        @if($order->service_charge > 0)
+        <tr>
+            <td class="label">Service Charge ({{ $order->service_charge_rate }}%)</td>
+            <td class="value">₦{{ number_format($order->service_charge) }}</td>
+        </tr>
+        @endif
         <tr class="grand-total">
             <td class="label">TOTAL</td>
             <td class="value">₦{{ number_format($order->grand_total) }}</td>

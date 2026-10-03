@@ -22,6 +22,8 @@ class Order extends Model implements AuditableContract
 
     protected $fillable = [
         'source_id',
+        'sales_point_id',
+        'collection_point_id',
         'type',
         'customer_name',
         'customer_phone',
@@ -36,6 +38,8 @@ class Order extends Model implements AuditableContract
         'vat',
         'vat_rate',
         'grand_total',
+        'service_charge',
+        'service_charge_rate',
     ];
 
     protected $table = 'restaurant_orders';
@@ -48,6 +52,24 @@ class Order extends Model implements AuditableContract
     public function shift()
     {
         return $this->belongsTo(WaiterShift::class, 'shift_id');
+    }
+
+    /**
+     * The outlet the sale was made in. Snapshotted on the order rather than
+     * derived from the shift, so the order keeps its attribution after the
+     * shift is closed and the waiter has moved to another counter.
+     */
+    public function salesPoint()
+    {
+        return $this->belongsTo(SalesPoint::class, 'sales_point_id');
+    }
+
+    /**
+     * The physical terminal the money came in through.
+     */
+    public function collectionPoint()
+    {
+        return $this->belongsTo(CollectionPoint::class, 'collection_point_id');
     }
 
     public function payments()
@@ -67,6 +89,20 @@ class Order extends Model implements AuditableContract
     public function getIsFullyPaidAttribute(): bool
     {
         return $this->balance <= 0;
+    }
+
+    /**
+     * What the sale actually earned, with VAT and any service charge taken out.
+     *
+     * This is the figure that belongs in 4100 Restaurant Revenue; grand_total is
+     * what the customer handed over, which is not the same number.
+     */
+    public function getNetTotalAttribute(): float
+    {
+        return max(0, round(
+            (float) $this->grand_total - (float) $this->vat - (float) $this->service_charge,
+            2
+        ));
     }
 
     public function getSourceAttribute()

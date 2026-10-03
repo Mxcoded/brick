@@ -7,14 +7,12 @@ use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Modules\Restaurant\Models\Table;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
+use Modules\Restaurant\Tests\Concerns\GrantsRestaurantRoles;
 use Tests\TestCase;
 
 class TableCrudTest extends TestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTransactions, GrantsRestaurantRoles;
 
     private User $admin;
 
@@ -24,18 +22,16 @@ class TableCrudTest extends TestCase
 
         $this->withoutMiddleware(ValidateCsrfToken::class);
 
-        $role = Role::firstOrCreate(['name' => RoleEnum::WAITER->value, 'guard_name' => 'web']);
-        $permission = Permission::firstOrCreate(['name' => 'access_restaurant_dashboard', 'guard_name' => 'web']);
-        if (! $role->hasPermissionTo($permission)) {
-            $role->givePermissionTo($permission);
-        }
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        // Table management is a manager capability, so these CRUD tests run as
+        // restaurant_manager rather than as a waiter. The waiter's reduced
+        // reach is asserted in RestaurantRoleMatrixTest.
+        $this->grantRestaurantRole(RoleEnum::RESTAURANT_MANAGER->value);
 
         $this->admin = User::factory()->create([
             'type' => 'staff',
             'status' => 'active',
         ]);
-        $this->admin->assignRole(RoleEnum::WAITER->value);
+        $this->admin->assignRole(RoleEnum::RESTAURANT_MANAGER->value);
     }
 
     public function test_admin_can_view_tables_page(): void

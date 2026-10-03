@@ -11,14 +11,12 @@ use Modules\Restaurant\Models\MenuItem;
 use Modules\Restaurant\Models\Order;
 use Modules\Restaurant\Models\Payment;
 use Modules\Restaurant\Models\Table;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
+use Modules\Restaurant\Tests\Concerns\GrantsRestaurantRoles;
 use Tests\TestCase;
 
 class KitchenFlowTest extends TestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTransactions, GrantsRestaurantRoles;
 
     private User $waiter;
 
@@ -34,12 +32,9 @@ class KitchenFlowTest extends TestCase
 
         $this->withoutMiddleware(ValidateCsrfToken::class);
 
-        $role = Role::firstOrCreate(['name' => RoleEnum::WAITER->value, 'guard_name' => 'web']);
-        $permission = Permission::firstOrCreate(['name' => 'access_restaurant_dashboard', 'guard_name' => 'web']);
-        if (! $role->hasPermissionTo($permission)) {
-            $role->givePermissionTo($permission);
-        }
-        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        // The kitchen display is part of the waiter's working set, so this runs
+        // with whatever the config map grants that role.
+        $this->grantRestaurantRole(RoleEnum::WAITER->value);
 
         $this->waiter = User::factory()->create([
             'type' => 'staff',
