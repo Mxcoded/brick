@@ -2,16 +2,30 @@
 
 namespace Modules\Frontdeskcrm\Services;
 
-use Modules\Finance\Models\JournalEntry;
-use Modules\Finance\Services\Contracts\LedgerServiceInterface;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
+use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Models\CityLedgerAccount;
 use Modules\Frontdeskcrm\Models\CityLedgerTransaction;
 use Modules\Frontdeskcrm\Models\Invoice;
+use Modules\Frontdeskcrm\Models\Registration;
 
+/**
+ * Corporate accounts that owe the hotel money.
+ *
+ * A city ledger account can carry both kinds of folio in the hotel: an
+ * individual guest's registration, and a group's booking invoiced to a company.
+ * Both are *on account*, so none of them move cash at charge time - they debit
+ * AR and credit revenue, and the account's own balance tracks what is owed.
+ *
+ * Every journal posting goes through the central `PostingService` rather than
+ * building entries here, so idempotency, account mapping and reversal stay
+ * defined in exactly one place no matter which module raised the charge.
+ */
 class CityLedgerService
 {
     public function __construct(
-        protected LedgerServiceInterface $ledger
+        protected PostingService $posting
     ) {}
 
     public function createAccount(array $data, ?int $userId = null): CityLedgerAccount
@@ -31,7 +45,7 @@ class CityLedgerService
 
     /**
      * Post a charge to a city ledger account.
-     * Dr Accounts Receivable (1200), Cr Revenue (4000).
+     * Dr Accounts Receivable, Cr Revenue.
      */
     public function postCharge(
         CityLedgerAccount $account,
@@ -43,30 +57,110 @@ class CityLedgerService
         ?int $userId = null,
         ?string $date = null
     ): CityLedgerTransaction {
+        $this->guardPositiveAmount($amount);
         $date = $date ?? now()->toDateString();
 
-        $transaction = CityLedgerTransaction::create([
-            'city_ledger_account_id' => $account->id,
-            'registration_id' => $registrationId,
-            'invoice_id' => $invoiceId,
-            'transaction_type' => 'charge',
-            'amount' => $amount,
-            'description' => $description,
-            'transaction_date' => $date,
-            'reference' => $reference,
-            'created_by' => $userId,
-        ]);
+        return DB::transaction(function () use ($account, $amount, $description, $reference, $registrationId, $invoiceId, $userId, $date) {
+            $transaction = CityLedgerTransaction::create([
+                'city_ledger_account_id' => $account->id,
+                'registration_id' => $registrationId,
+                'invoice_id' => $invoiceId,
+                'transaction_type' => 'charge',
+                'amount' => $amount,
+                'description' => $description,
+                'transaction_date' => $date,
+                'reference' => $reference,
+                'created_by' => $userId,
+            ]);
 
-        $account->increment('balance', $amount);
+            $account->increment('balance', $amount);
 
-        $this->postJournal($account, 'CLCHARGE', $transaction->id, $amount, $date, $description);
+            $this->posting->recordReceivableCharge(
+                amount: $amount,
+                revenueCode: $this->posting->revenueCodeFor('frontdesk'),
+                referenceType: 'city_ledger_transaction',
+                referenceId: $transaction->id,
+                date: $date,
+                description: $description,
+                idempotencyKey: 'CLCHARGE-'.$transaction->id,
+            );
 
-        return $transaction;
+            return $transaction;
+        });
+    }
+
+    /**
+     * Bill an individual guest's stay to their company's city ledger account.
+     */
+    public function chargeRegistration(
+        CityLedgerAccount $account,
+        Registration $registration,
+        float $amount,
+        ?string $description = null,
+        ?int $userId = null,
+        ?string $date = null
+    ): CityLedgerTransaction {
+        return $this->postCharge(
+            account: $account,
+            amount: $amount,
+            description: $description ?: 'Guest folio: '.$this->registrationLabel($registration),
+            reference: 'REG-'.$registration->id,
+            registrationId: $registration->id,
+            userId: $userId,
+            date: $date,
+        );
+    }
+
+    /**
+     * Bill a group's booking to their company's city ledger account.
+     */
+    public function chargeGroupBooking(
+        CityLedgerAccount $account,
+        Invoice $invoice,
+        float $amount,
+        ?string $description = null,
+        ?int $userId = null,
+        ?string $date = null
+    ): CityLedgerTransaction {
+        return $this->postCharge(
+            account: $account,
+            amount: $amount,
+            description: $description ?: 'Group booking: '.($invoice->invoice_number ?: $invoice->id),
+            reference: 'INV-'.$invoice->id,
+            invoiceId: $invoice->id,
+            userId: $userId,
+            date: $date,
+        );
+    }
+
+    /**
+     * Bill a whole booking group (a block of rooms under one group reference) to
+     * a company's city ledger account in a single on-account charge.
+     *
+     * Hotels normally invoice the company once for the block rather than per
+     * room, so the group reference identifies the charge on the account.
+     */
+    public function chargeBookingGroup(
+        CityLedgerAccount $account,
+        string $bookingGroupId,
+        float $amount,
+        ?string $description = null,
+        ?int $userId = null,
+        ?string $date = null
+    ): CityLedgerTransaction {
+        return $this->postCharge(
+            account: $account,
+            amount: $amount,
+            description: $description ?: "Booking group $bookingGroupId",
+            reference: 'GRP-'.$bookingGroupId,
+            userId: $userId,
+            date: $date,
+        );
     }
 
     /**
      * Record a payment from the corporate account.
-     * Dr Cash/Bank (by method), Cr Accounts Receivable (1200).
+     * Dr Cash/Bank (by method), Cr Accounts Receivable.
      */
     public function recordPayment(
         CityLedgerAccount $account,
@@ -77,46 +171,39 @@ class CityLedgerService
         ?int $userId = null,
         ?string $date = null
     ): CityLedgerTransaction {
+        $this->guardPositiveAmount($amount);
         $date = $date ?? now()->toDateString();
 
-        $transaction = CityLedgerTransaction::create([
-            'city_ledger_account_id' => $account->id,
-            'transaction_type' => 'payment',
-            'amount' => $amount,
-            'description' => $description,
-            'transaction_date' => $date,
-            'reference' => $reference,
-            'created_by' => $userId,
-        ]);
+        return DB::transaction(function () use ($account, $amount, $paymentMethod, $description, $reference, $userId, $date) {
+            $transaction = CityLedgerTransaction::create([
+                'city_ledger_account_id' => $account->id,
+                'transaction_type' => 'payment',
+                'amount' => $amount,
+                'description' => $description,
+                'transaction_date' => $date,
+                'reference' => $reference,
+                'created_by' => $userId,
+            ]);
 
-        $account->decrement('balance', $amount);
+            $account->decrement('balance', $amount);
 
-        $assetCode = $this->assetForMethod($paymentMethod);
-        $arCode = config('finance.accounts.accounts_receivable', '1200');
-
-        $key = 'CLPAY-'.$transaction->id;
-        if (! JournalEntry::where('entry_number', $key)->exists()) {
-            $this->ledger->post(
-                [
-                    ['account_code' => $assetCode, 'debit' => $amount],
-                    ['account_code' => $arCode, 'credit' => $amount],
-                ],
-                [
-                    'entry_number' => $key,
-                    'reference_type' => 'city_ledger_payment',
-                    'reference_id' => $transaction->id,
-                    'date' => $date,
-                    'description' => $description,
-                ]
+            $this->posting->recordReceivablePayment(
+                amount: $amount,
+                paymentMethod: $paymentMethod,
+                referenceType: 'city_ledger_payment',
+                referenceId: $transaction->id,
+                date: $date,
+                description: $description,
+                idempotencyKey: 'CLPAY-'.$transaction->id,
             );
-        }
 
-        return $transaction;
+            return $transaction;
+        });
     }
 
     /**
      * Create a credit note / adjustment for a city ledger account.
-     * Dr Revenue (4000) / Cr Accounts Receivable (1200) — reverses the AR.
+     * Dr Revenue / Cr Accounts Receivable - reverses the AR.
      */
     public function createCreditNote(
         CityLedgerAccount $account,
@@ -126,41 +213,34 @@ class CityLedgerService
         ?int $userId = null,
         ?string $date = null
     ): CityLedgerTransaction {
+        $this->guardPositiveAmount($amount);
         $date = $date ?? now()->toDateString();
 
-        $transaction = CityLedgerTransaction::create([
-            'city_ledger_account_id' => $account->id,
-            'transaction_type' => 'credit_note',
-            'amount' => $amount,
-            'description' => $description,
-            'transaction_date' => $date,
-            'reference' => $reference,
-            'created_by' => $userId,
-        ]);
+        return DB::transaction(function () use ($account, $amount, $description, $reference, $userId, $date) {
+            $transaction = CityLedgerTransaction::create([
+                'city_ledger_account_id' => $account->id,
+                'transaction_type' => 'credit_note',
+                'amount' => $amount,
+                'description' => $description,
+                'transaction_date' => $date,
+                'reference' => $reference,
+                'created_by' => $userId,
+            ]);
 
-        $account->decrement('balance', $amount);
+            $account->decrement('balance', $amount);
 
-        $arCode = config('finance.accounts.accounts_receivable', '1200');
-        $revenueCode = config('finance.accounts.revenue.frontdesk', '4000');
-
-        $key = 'CLCN-'.$transaction->id;
-        if (! JournalEntry::where('entry_number', $key)->exists()) {
-            $this->ledger->post(
-                [
-                    ['account_code' => $revenueCode, 'debit' => $amount],
-                    ['account_code' => $arCode, 'credit' => $amount],
-                ],
-                [
-                    'entry_number' => $key,
-                    'reference_type' => 'city_ledger_credit_note',
-                    'reference_id' => $transaction->id,
-                    'date' => $date,
-                    'description' => $description,
-                ]
+            $this->posting->recordReceivableCreditNote(
+                amount: $amount,
+                revenueCode: $this->posting->revenueCodeFor('frontdesk'),
+                referenceType: 'city_ledger_credit_note',
+                referenceId: $transaction->id,
+                date: $date,
+                description: $description,
+                idempotencyKey: 'CLCN-'.$transaction->id,
             );
-        }
 
-        return $transaction;
+            return $transaction;
+        });
     }
 
     /**
@@ -243,41 +323,34 @@ class CityLedgerService
         $invoice->update(['city_ledger_account_id' => $account->id]);
     }
 
-    protected function postJournal(
-        CityLedgerAccount $account,
-        string $prefix,
-        int $transactionId,
-        float $amount,
-        string $date,
-        string $description
-    ): void {
-        $arCode = config('finance.accounts.accounts_receivable', '1200');
-        $revenueCode = config('finance.accounts.revenue.frontdesk', '4000');
-
-        $key = $prefix.'-'.$transactionId;
-        if (! JournalEntry::where('entry_number', $key)->exists()) {
-            $this->ledger->post(
-                [
-                    ['account_code' => $arCode, 'debit' => $amount],
-                    ['account_code' => $revenueCode, 'credit' => $amount],
-                ],
-                [
-                    'entry_number' => $key,
-                    'reference_type' => 'city_ledger_transaction',
-                    'reference_id' => $transactionId,
-                    'date' => $date,
-                    'description' => $description,
-                ]
-            );
+    /**
+     * A charge, payment or credit note is always a positive amount.
+     *
+     * The posting service quietly ignores a non-positive amount, so without this
+     * the account's balance would move while the ledger entry silently did not.
+     * Failing loudly keeps the two in step.
+     */
+    protected function guardPositiveAmount(float $amount): void
+    {
+        if ($amount <= 0) {
+            throw new InvalidArgumentException('A city ledger amount must be greater than zero.');
         }
     }
 
-    protected function assetForMethod(string $method): string
+    /**
+     * A readable label for a guest on a charge description, including the group
+     * when the guest belongs to one.
+     */
+    protected function registrationLabel(Registration $registration): string
     {
-        $kind = config("finance.payment_methods.$method", 'bank');
-        $accounts = config('finance.accounts', []);
+        $name = trim(($registration->title ?? '').' '.($registration->full_name ?? ''));
 
-        return ($accounts[$kind] ?? null)
-            ?? ($accounts['bank'] ?? '1100');
+        if ($name === '') {
+            $name = 'Guest #'.$registration->id;
+        }
+
+        return $registration->booking_group_id
+            ? "$name (group {$registration->booking_group_id})"
+            : $name;
     }
 }

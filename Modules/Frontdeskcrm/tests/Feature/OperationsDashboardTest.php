@@ -4,7 +4,7 @@ namespace Modules\Frontdeskcrm\Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Modules\Frontdeskcrm\Models\Folio;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Models\RoomType;
@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 class OperationsDashboardTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected User $user;
 

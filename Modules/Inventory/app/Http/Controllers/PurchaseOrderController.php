@@ -144,6 +144,7 @@ class PurchaseOrderController extends Controller
         try {
             $allFullyReceived = true;
             $receivedValue = 0;
+            $firstRestockLogId = null;
 
             foreach ($validated['items'] as $line) {
                 $poItem = PurchaseOrderItem::findOrFail($line['id']);
@@ -165,15 +166,17 @@ class PurchaseOrderController extends Controller
                 $storeItem->total_cost += $totalCost;
                 $storeItem->save();
 
-                RestockLog::create([
+                $restockLog = RestockLog::create([
                     'item_id' => $poItem->item_id,
-                    'store_id' => $purchaseOrder->store_id,
+                    'store_id' => $poItem->store_id,
                     'quantity' => $newReceived,
                     'total_cost' => $totalCost,
                     'lot_number' => 'PO-'.$purchaseOrder->po_number,
                     'restocked_by_id' => auth()->id(),
                     'restocked_by' => auth()->user()->name,
                 ]);
+
+                $firstRestockLogId ??= $restockLog->getKey();
 
                 StockMovement::log([
                     'item_id' => $poItem->item_id,
@@ -197,8 +200,24 @@ class PurchaseOrderController extends Controller
 
             try {
                 $expenseCode = config('finance.accounts.expense.inventory', '5000');
-                app(PostingService::class)
-                    ->recordApLiability((float) $receivedValue, $expenseCode, 'purchase_order', $purchaseOrder->id);
+
+                // Key on this delivery, not the purchase order: a PO can be
+                // received in several deliveries and the previous per-PO key
+                // silently dropped every delivery after the first, so stock was
+                // added at cost with no matching payable or expense.
+                $key = $firstRestockLogId
+                    ? "AP-purchase_order-{$purchaseOrder->id}-rcpt-{$firstRestockLogId}"
+                    : null;
+
+                app(PostingService::class)->recordApLiability(
+                    (float) $receivedValue,
+                    $expenseCode,
+                    'purchase_order',
+                    $purchaseOrder->id,
+                    null,
+                    "Goods received against PO #{$purchaseOrder->po_number}",
+                    $key,
+                );
             } catch (\Throwable $e) {
                 report($e);
             }
