@@ -6,6 +6,7 @@ use BackedEnum;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -30,7 +31,7 @@ class GuestResource extends Resource
     {
         return $schema
             ->components([
-                Forms\Components\Section::make('Personal Information')
+                Section::make('Personal Information')
                     ->schema([
                         Forms\Components\TextInput::make('first_name')->required()->maxLength(255),
                         Forms\Components\TextInput::make('last_name')->required()->maxLength(255),
@@ -39,13 +40,13 @@ class GuestResource extends Resource
                         Forms\Components\DatePicker::make('birthday')->nullable(),
                         Forms\Components\TextInput::make('nationality')->maxLength(255)->nullable(),
                     ]),
-                Forms\Components\Section::make('Contact Details')
+                Section::make('Contact Details')
                     ->schema([
                         Forms\Components\TextInput::make('email')->email()->maxLength(255)->nullable(),
                         Forms\Components\TextInput::make('contact_number')->maxLength(255)->nullable(),
                         Forms\Components\Textarea::make('home_address')->maxLength(500)->nullable()->columnSpanFull(),
                     ]),
-                Forms\Components\Section::make('Professional & Emergency')
+                Section::make('Professional & Emergency')
                     ->schema([
                         Forms\Components\TextInput::make('occupation')->maxLength(255)->nullable(),
                         Forms\Components\TextInput::make('company_name')->maxLength(255)->nullable(),

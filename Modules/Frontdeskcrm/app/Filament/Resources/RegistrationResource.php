@@ -6,6 +6,7 @@ use BackedEnum;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -32,7 +33,7 @@ class RegistrationResource extends Resource
     {
         return $schema
             ->components([
-                Forms\Components\Section::make('Guest & Booking')
+                Section::make('Guest & Booking')
                     ->schema([
                         Forms\Components\Select::make('guest_id')
                             ->relationship('guest', 'full_name')
@@ -64,7 +65,7 @@ class RegistrationResource extends Resource
                             ->nullable(),
                     ])
                     ->columns(2),
-                Forms\Components\Section::make('Room & Rate')
+                Section::make('Room & Rate')
                     ->schema([
                         Forms\Components\Select::make('room_type_id')
                             ->relationship('roomType', 'name')
@@ -83,7 +84,7 @@ class RegistrationResource extends Resource
                             ->default(1),
                     ])
                     ->columns(2),
-                Forms\Components\Section::make('Stay Details')
+                Section::make('Stay Details')
                     ->schema([
                         Forms\Components\DatePicker::make('check_in')
                             ->required(),
