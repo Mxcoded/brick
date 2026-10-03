@@ -51,7 +51,19 @@ class User extends Authenticatable implements AuditableContract, FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasRole(RoleEnum::ADMIN) || $this->can('access_admin_dashboard');
+        if ($this->hasRole(RoleEnum::ADMIN) || $this->can('access_admin_dashboard')) {
+            return true;
+        }
+
+        // Module staff reach the shared panel through the permissions that gate
+        // their own resources, without picking up admin-only pages.
+        foreach ($panel->getResources() as $resource) {
+            if ($resource::canAccess()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function employee()

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\LandingPage;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Foundation\Auth\ThrottlesLogins;
 use Illuminate\Http\Request;
@@ -72,33 +73,8 @@ class LoginController extends Controller
             ->where('id', '!=', session()->getId())
             ->delete();
 
-        // 1. Priority: Admin Dashboard
-        if ($user->can('access_admin_dashboard')) {
-            return redirect()->route('filament.admin.pages.dashboard');
-        }
-
-        // 2. Front Desk
-        if ($user->can('access_frontdesk_dashboard')) {
-            return redirect()->route('frontdesk.dashboard');
-        }
-
-        // 3. HR Dashboard (only for users with employee management permissions)
-        if ($user->can('access_staff_dashboard') && $user->can('employees.read')) {
-            return redirect()->route('staff.dashboard');
-        }
-
-        // 4. Regular Staff → personal task list
-        if ($user->can('access_tasks_dashboard')) {
-            return redirect()->route('tasks.index');
-        }
-
-        // 5. Staff with no roles assigned
-        if ($user->isStaff()) {
-            return redirect()->route('staff.pending');
-        }
-
-        // 6. Default: Guest Dashboard
-        return redirect()->route('guest.dashboard');
+        // 1–6. Priority: admin → front desk → HR → finance → tasks → staff → guest
+        return redirect()->route(LandingPage::routeFor($user));
     }
 
     protected function sendLockoutResponse(Request $request)

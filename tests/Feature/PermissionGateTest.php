@@ -34,6 +34,7 @@ class PermissionGateTest extends TestCase
         'login_logs.read',
         'activity_logs.read',
         'audit_trails.read',
+        'modules.manage',
 
         'guests.create', 'guests.read', 'guests.update', 'guests.delete', 'guests.manage',
         'guests.check_in', 'guests.check_out',
@@ -95,7 +96,19 @@ class PermissionGateTest extends TestCase
         foreach ($permissions as $perm) {
             $user->givePermissionTo($perm);
         }
-        $this->actingAs($user)->get($url)->assertStatus(403);
+
+        $response = $this->actingAs($user)->get($url);
+
+        // A user holding only the listed permissions may be bounced by the panel
+        // middleware (302 to their own landing page) when those permissions do
+        // not grant panel access at all, or rejected by the page gate (403) when
+        // they do. Either way the page must not be served. The 302 branch is
+        // pinned precisely in LoginRedirectTest.
+        $this->assertContains(
+            $response->getStatusCode(),
+            [302, 403],
+            "Expected {$url} to be blocked, got {$response->getStatusCode()}.",
+        );
     }
 
     private function assertPasses(string $url, array $permissions): void
@@ -131,7 +144,9 @@ class PermissionGateTest extends TestCase
     #[Test]
     public function unauthenticated_user_is_redirected_to_login()
     {
-        $this->get('/admin')->assertRedirect(route('login'));
+        // Filament guards the whole panel, so /admin redirects to the panel's own
+        // login page rather than the universal /login form.
+        $this->get('/admin')->assertRedirect('/admin/login');
     }
 
     #[Test]
@@ -142,7 +157,7 @@ class PermissionGateTest extends TestCase
         $user = User::factory()->create(['type' => 'guest', 'status' => 'active']);
         $this->actingAs($user);
 
-        $this->get('/admin')->assertStatus(403);
+        $this->get('/admin')->assertRedirect(route('guest.dashboard'));
         $this->get('/frontdesk/registrations')->assertStatus(403);
         $this->get('/restaurant-admin/dashboard')->assertStatus(403);
         $this->get('/gym')->assertStatus(403);
@@ -197,6 +212,13 @@ class PermissionGateTest extends TestCase
     {
         $this->assertBlocked('/admin/audit-trails', ['access_admin_dashboard']);
         $this->assertPasses('/admin/audit-trails', ['access_admin_dashboard', 'audit_trails.read']);
+    }
+
+    #[Test]
+    public function module_manager_requires_granular_manage_permission()
+    {
+        $this->assertBlocked('/admin/modules', ['access_admin_dashboard']);
+        $this->assertPasses('/admin/modules', ['access_admin_dashboard', 'modules.manage']);
     }
 
     #[Test]

@@ -61,10 +61,7 @@
             @includeIf('inventory::procurement.sidebar')
         @endcanany
 
-        @canany(['finance.view_coa', 'finance.view_ledger', 'finance.view_reports'])
-            <div class="sidebar-subheading {{ request()->routeIs('finance.*') ? 'text-primary fw-bold' : '' }}" style="padding-left: 1rem; padding-top: 1rem;">Finance</div>
-            @includeIf('finance::layouts.menu')
-        @endcanany
+        {{-- Finance now lives in the Filament admin panel (Modules/Finance/app/Filament). --}}
 
         @can('access_banquet_dashboard')
             @includeIf('banquet::layouts.menu')

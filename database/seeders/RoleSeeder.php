@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Finance\Support\FinancePermission;
+use Modules\Restaurant\Support\RestaurantPermission;
+use Modules\Tasks\Support\TaskPermission;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -56,6 +59,7 @@ class RoleSeeder extends Seeder
             'login_logs.read',
             'activity_logs.read',
             'audit_trails.read',
+            'modules.manage',
 
             // ──────────────────────────────────────────
             // PAYMENT GATEWAYS – management (pluggable)
@@ -89,12 +93,16 @@ class RoleSeeder extends Seeder
 
             // ──────────────────────────────────────────
             // TASKS – CRUD
+            //
+            // Granted to admin as part of the superset. Every other role's task
+            // access is applied by applyTaskPermissions() at the end of this
+            // seeder, so the matrix lives in one place.
             // ──────────────────────────────────────────
-            'tasks.create',
-            'tasks.read',
-            'tasks.update',
-            'tasks.delete',
-            'tasks.assign',
+            TaskPermission::READ,
+            TaskPermission::CREATE,
+            TaskPermission::UPDATE,
+            TaskPermission::DELETE,
+            TaskPermission::ASSIGN,
 
             // ──────────────────────────────────────────
             // INVENTORY – CRUD
@@ -244,12 +252,19 @@ class RoleSeeder extends Seeder
 
             // ──────────────────────────────────────────
             // FINANCE – double-entry ledger
+            //
+            // The legacy flat names stay listed so nothing that still checks
+            // them directly breaks, but the granular CRUD permissions are merged
+            // in below. Admin is the superuser, so it must hold every Finance
+            // capability - including any added later.
             // ──────────────────────────────────────────
             'finance.view_coa',
             'finance.manage_coa',
+            'finance.create_journal',
             'finance.post_journal',
             'finance.view_ledger',
             'finance.view_reports',
+            'finance.manage_periods',
 
             // ──────────────────────────────────────────
             // CONTRACTS & AGREEMENTS
@@ -264,6 +279,16 @@ class RoleSeeder extends Seeder
             'contracts.manage_templates',
             'contracts.view_audit',
         ];
+
+        // Every Finance permission the module currently defines. Deriving this
+        // from the module's registry means a new finance.* capability is granted
+        // to the superuser without anyone remembering to add it here.
+        $permissions = array_merge($permissions, FinancePermission::all());
+
+        // Same for Restaurant: the back office is now split into per-resource,
+        // per-action capabilities, so the superuser has to pick up the whole
+        // taxonomy from the module registry rather than a hand-kept list.
+        $permissions = array_merge($permissions, RestaurantPermission::all());
 
         foreach ($permissions as $permission) {
             Permission::firstOrCreate([
@@ -291,9 +316,6 @@ class RoleSeeder extends Seeder
                 'employees.read',
                 'employees.update',
                 'employees.delete',
-                'access_tasks_dashboard',
-                'tasks.create',
-                'tasks.read',
                 'leaves.approve',
                 'leaves.manage',
                 'leaves.apply-for-others',
@@ -322,45 +344,32 @@ class RoleSeeder extends Seeder
                 'guests.read',
                 'guests.update',
                 'guests.delete',
-                'access_tasks_dashboard',
-                'tasks.create',
-                'tasks.read',
             ]);
 
         // ──────────────────────────────────────────
         // RESTAURANT MANAGER
+        //
+        // Only the non-Restaurant rights live here. The module's own
+        // capabilities are applied by applyRestaurantPermissions() from
+        // config/restaurant.php, because a syncPermissions() call here would
+        // strip them on every re-run of this seeder.
         // ──────────────────────────────────────────
         Role::firstOrCreate(['name' => 'restaurant_manager', 'guard_name' => 'web'])
             ->syncPermissions([
-                'access_restaurant_dashboard',
-                'menu.create',
-                'menu.read',
-                'menu.update',
-                'menu.delete',
-                'orders.create',
-                'orders.read',
-                'orders.update',
-                'orders.delete',
                 'access_inventory_dashboard',
                 'inventory.reports',
                 'inventory.export',
-                'access_tasks_dashboard',
-                'tasks.create',
-                'tasks.read',
             ]);
 
         // ──────────────────────────────────────────
         // WAITER
+        //
+        // Restaurant grants are applied additively below. Dashboard access alone
+        // used to be enough to reach every admin route, which is why waiter is
+        // now given an explicit, narrow set instead.
         // ──────────────────────────────────────────
         Role::firstOrCreate(['name' => 'waiter', 'guard_name' => 'web'])
-            ->syncPermissions([
-                'access_restaurant_dashboard',
-                'orders.create',
-                'orders.read',
-                'access_tasks_dashboard',
-                'tasks.create',
-                'tasks.read',
-            ]);
+            ->syncPermissions([]);
 
         // ──────────────────────────────────────────
         // GYM SUPERVISOR
@@ -371,9 +380,6 @@ class RoleSeeder extends Seeder
                 'gym.create',
                 'gym.update',
                 'gym.delete',
-                'access_tasks_dashboard',
-                'tasks.create',
-                'tasks.read',
             ]);
 
         // ──────────────────────────────────────────
@@ -421,9 +427,6 @@ class RoleSeeder extends Seeder
                 'maintenance.read',
                 'maintenance.update',
                 'maintenance.delete',
-                'access_tasks_dashboard',
-                'tasks.read',
-                'tasks.update',
                 'access_inventory_dashboard',
                 'inventory.reports',
             ]);
@@ -439,9 +442,6 @@ class RoleSeeder extends Seeder
                 'banquet.read',
                 'banquet.update',
                 'banquet.delete',
-                'access_tasks_dashboard',
-                'tasks.create',
-                'tasks.read',
             ]);
 
         // ──────────────────────────────────────────
@@ -552,12 +552,23 @@ class RoleSeeder extends Seeder
                 'procurement.flag_request',
             ]);
 
+        // Additive on purpose: the finance.* ledger permissions are owned by the
+        // Finance module's FinancePermissionSeeder. syncPermissions() here would
+        // replace the whole grant and strip ledger access from finance staff.
         Role::firstOrCreate(['name' => 'finance', 'guard_name' => 'web'])
-            ->syncPermissions([
+            ->givePermissionTo([
                 'procurement.view_all_requests',
                 'procurement.approve_request',
                 'procurement.reject_request',
             ]);
+
+        // Senior accountant is the posting tier: it may draft, post and reverse
+        // journals and lock periods, which the junior `finance` role may not.
+        // The ledger grant itself lives in FinancePermissionSeeder (SENIOR_ONLY)
+        // so the read-only / post-capable split is defined in exactly one place.
+        // Created here so the role is assignable even before the Finance module
+        // seeder has run.
+        Role::firstOrCreate(['name' => 'senior_accountant', 'guard_name' => 'web']);
 
         Role::firstOrCreate(['name' => 'auditor', 'guard_name' => 'web'])
             ->syncPermissions([
@@ -573,5 +584,86 @@ class RoleSeeder extends Seeder
                 'procurement.reject_request',
                 'procurement.convert_to_po',
             ]);
+
+        $this->applyTaskPermissions();
+        $this->applyRestaurantPermissions();
+    }
+
+    /**
+     * Apply the Restaurant role matrix from config/restaurant.php.
+     *
+     * The module is no longer gated by `access_restaurant_dashboard` alone, so
+     * the role lists above must not state Restaurant rights twice: the config
+     * map is the single authority, and the taxonomy itself comes from
+     * RestaurantPermission.
+     *
+     * Additive for the same reason as the Tasks matrix, and roles outside the
+     * map have their Restaurant grants withdrawn, which is what actually
+     * reduces waiter to a server rather than a full back-office operator.
+     */
+    protected function applyRestaurantPermissions(): void
+    {
+        $all = RestaurantPermission::all();
+
+        foreach (Role::all() as $role) {
+            // The superuser is granted the full taxonomy above.
+            if ($role->name === 'admin') {
+                continue;
+            }
+
+            $grants = RestaurantPermission::forRole($role->name);
+
+            $held = array_values(array_intersect($role->permissions->pluck('name')->all(), $all));
+            $toRevoke = array_values(array_diff($held, $grants));
+
+            if ($toRevoke !== []) {
+                $role->revokePermissionTo($toRevoke);
+            }
+
+            if ($grants !== []) {
+                $role->givePermissionTo($grants);
+            }
+        }
+    }
+
+    /**
+     * Apply the Tasks role matrix.
+     *
+     * Task access is deliberately not spelled out in the per-role lists above.
+     * Tasks is a working tool, so the baseline (open, read, create, update)
+     * applies to every member of staff through the isStaff() blanket in
+     * AppServiceProvider, and only delegation needs a role to say so. Keeping
+     * the matrix here means one list decides who can hand work to whom, rather
+     * than the same four strings repeated down the file.
+     *
+     * Additive on purpose. The finance roles in particular are seeded elsewhere
+     * by FinancePermissionSeeder, and a syncPermissions() here would strip the
+     * ledger grants the line above this method was careful to preserve.
+     */
+    protected function applyTaskPermissions(): void
+    {
+        foreach (Role::all() as $role) {
+            $extras = TaskPermission::extrasFor($role->name);
+
+            if ($extras === []) {
+                continue;
+            }
+
+            $role->givePermissionTo($extras);
+        }
+
+        // Drop assignment from anyone it was handed to outside the matrix, so
+        // retiring a role from DELEGATOR_ROLES actually withdraws the ability
+        // rather than leaving it behind from an earlier seed.
+        $delegators = TaskPermission::DELEGATOR_ROLES;
+
+        Role::all()
+            ->reject(fn ($role) => in_array($role->name, $delegators, true))
+            ->reject(fn ($role) => $role->name === 'admin')
+            ->each(function ($role) {
+                if ($role->hasPermissionTo(TaskPermission::ASSIGN)) {
+                    $role->revokePermissionTo(TaskPermission::ASSIGN);
+                }
+            });
     }
 }

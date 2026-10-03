@@ -65,7 +65,30 @@
                     </div>
                 </div>
 
+                {{-- Room service. Rendered only when the guest is checked in, so
+                     it can never dangle as a link to a room that is not theirs. --}}
+                @if (! empty($roomServiceRoom) && Route::has('restaurant.menu'))
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div
+                            class="card-body p-4 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+                            <div>
+                                <h5 class="mb-1 fw-bold text-dark">
+                                    <i class="fas fa-utensils me-2 text-danger"></i>Room Service
+                                </h5>
+                                <p class="mb-0 text-muted">
+                                    Order to <strong>{{ $roomServiceRoom->name }}</strong> and we will bring it up to you.
+                                </p>
+                            </div>
+                            <a href="{{ route('restaurant.menu', ['type' => 'room', 'source' => $roomServiceRoom->id]) }}"
+                                class="btn btn-danger rounded-pill px-4 flex-shrink-0">
+                                <i class="fas fa-concierge-bell me-2"></i>Order to My Room
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Recent Activity --}}
+
                 <div class="card border-0 shadow-sm rounded-4">
                     <div
                         class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">

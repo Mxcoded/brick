@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\LandingPage;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -15,39 +16,15 @@ class HomeController extends Controller
     }
 
     /**
-     * Show the application dashboard.
-     * Actually, we just redirect to the correct Module Dashboard.
+     * Send the signed-in user to the landing page for their capabilities.
+     *
+     * This used to re-derive the destination with its own if-chain, which
+     * drifted from the login redirect (it knew nothing about Finance or
+     * Restaurant). LandingPage is the single source of truth, so both paths now
+     * give the same answer.
      */
     public function index(Request $request)
     {
-        $user = $request->user();
-
-        // 1. Admin
-        if ($user->can('access_admin_dashboard')) {
-            return redirect()->route('filament.admin.pages.dashboard');
-        }
-
-        // 2. HR staff
-        if ($user->can('access_staff_dashboard') && $user->can('employees.read')) {
-            return redirect()->route('staff.dashboard');
-        }
-
-        // 3. Front desk
-        if ($user->can('access_frontdesk_dashboard')) {
-            return redirect()->route('frontdesk.dashboard');
-        }
-
-        // 4. Regular staff → tasks
-        if ($user->can('access_tasks_dashboard')) {
-            return redirect()->route('tasks.index');
-        }
-
-        // 5. Staff with no roles assigned
-        if ($user->isStaff()) {
-            return redirect()->route('staff.pending');
-        }
-
-        // 6. Guest (Default)
-        return redirect()->route('guest.dashboard');
+        return redirect()->route(LandingPage::routeFor($request->user()));
     }
 }

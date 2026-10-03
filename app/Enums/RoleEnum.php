@@ -20,6 +20,9 @@ enum RoleEnum: string
     case PURCHASER = 'purchaser';
     case GM = 'gm';
     case FINANCE = 'finance';
+
+    case SENIOR_ACCOUNTANT = 'senior_accountant';
+
     case AUDITOR = 'auditor';
     case GGM = 'ggm';
 
