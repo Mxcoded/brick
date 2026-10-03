@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 use Modules\Staff\Models\Employee;
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -40,6 +41,24 @@ class Task extends Model implements AuditableContract
     ];
 
     public const RECURRENCE_TYPES = ['daily', 'weekly', 'biweekly', 'monthly'];
+
+    public const STATUSES = ['pending', 'in_progress', 'completed'];
+
+    public const PRIORITIES = ['high', 'medium', 'low'];
+
+    /**
+     * Whether the deadline has passed on a task that is still open. Used for
+     * colouring in the admin table and for the dashboard's overdue count.
+     *
+     * A task due today is not overdue: the deadline is a date, so it runs to the
+     * end of the day. This matches the overdue count, which compares dates.
+     */
+    public function isOverdue(): bool
+    {
+        return $this->status !== 'completed'
+            && $this->deadline !== null
+            && $this->deadline->startOfDay()->isBefore(Carbon::today());
+    }
 
     public function creator()
     {

@@ -9,6 +9,10 @@ use Modules\Tasks\Models\TaskUpdate;
 
 class TaskRecurrenceService
 {
+    public function __construct(
+        protected TaskNumberGenerator $taskNumbers
+    ) {}
+
     public function createNextOccurrence(Task $completedTask): ?Task
     {
         if (! $completedTask->is_recurring || ! $completedTask->recurrence_type) {
@@ -24,12 +28,9 @@ class TaskRecurrenceService
         $rootTask = $completedTask->parentTask ?? $completedTask;
 
         $today = Carbon::today();
-        $datePart = $today->format('dmy');
-        $taskCount = Task::whereDate('created_at', $today)->count() + 1;
-        $taskNumber = sprintf('TASK-%s-%d', $datePart, $taskCount);
 
         $nextTask = Task::create([
-            'task_number' => $taskNumber,
+            'task_number' => $this->taskNumbers->next($today),
             'date' => $today->toDateString(),
             'created_by' => $completedTask->created_by,
             'description' => $completedTask->description,
