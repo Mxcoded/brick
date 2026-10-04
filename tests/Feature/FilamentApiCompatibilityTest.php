@@ -31,7 +31,7 @@ class FilamentApiCompatibilityTest extends TestCase
      *
      * @var array<int, string>
      */
-    private const MODULES = ['Admin', 'Finance', 'Frontdeskcrm', 'Restaurant', 'Tasks'];
+    private const MODULES = ['Admin', 'Finance', 'Frontdeskcrm', 'Restaurant', 'Tasks', 'Website'];
 
     #[Test]
     public function every_module_with_filament_code_is_covered_by_this_guard(): void

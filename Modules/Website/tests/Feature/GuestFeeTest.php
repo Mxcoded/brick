@@ -219,7 +219,7 @@ class GuestFeeTest extends TestCase
         $checkIn = now()->format('Y-m-d');
         $checkOut = now()->addDays(2)->format('Y-m-d');
 
-        $response = $this->getJson('/api/room-rate?' . http_build_query([
+        $response = $this->getJson('/api/room-rate?'.http_build_query([
             'room_type_id' => $roomType->id,
             'check_in_date' => $checkIn,
             'check_out_date' => $checkOut,

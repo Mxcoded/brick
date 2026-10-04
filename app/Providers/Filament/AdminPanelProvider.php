@@ -56,6 +56,10 @@ class AdminPanelProvider extends PanelProvider
                 in: module_path('Tasks', 'app/Filament/Resources'),
                 for: 'Modules\\Tasks\\Filament\\Resources',
             )
+            ->discoverResources(
+                in: module_path('Website', 'app/Filament/Resources'),
+                for: 'Modules\\Website\\Filament\\Resources',
+            )
             ->discoverPages(
                 in: module_path('Admin', 'app/Filament/Pages'),
                 for: 'Modules\\Admin\\Filament\\Pages',
@@ -76,6 +80,10 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(
                 in: module_path('Tasks', 'app/Filament/Pages'),
                 for: 'Modules\\Tasks\\Filament\\Pages',
+            )
+            ->discoverPages(
+                in: module_path('Website', 'app/Filament/Pages'),
+                for: 'Modules\\Website\\Filament\\Pages',
             )
             ->discoverWidgets(
                 in: module_path('Admin', 'app/Filament/Widgets'),

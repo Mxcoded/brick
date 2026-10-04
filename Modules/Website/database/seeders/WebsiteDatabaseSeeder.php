@@ -11,6 +11,10 @@ class WebsiteDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Permissions first: the role map is authoritative, so a fresh install
+        // should not create website content for roles that cannot see it.
+        $this->call(WebsitePermissionSeeder::class);
+
         $this->call(AmenitySeeder::class);
         $this->call(AddonSeeder::class);
         $this->call(DiningSeeder::class);

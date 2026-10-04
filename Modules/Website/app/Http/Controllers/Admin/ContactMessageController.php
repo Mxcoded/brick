@@ -4,6 +4,7 @@ namespace Modules\Website\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +15,7 @@ use Illuminate\View\View;
 use Modules\Website\Emails\ContactReply;
 use Modules\Website\Models\ContactMessage;
 use Modules\Website\Models\ContactMessageReply;
+use Modules\Website\Support\WebsitePermission;
 use Symfony\Component\Mailer\Exception\TransportException;
 
 class ContactMessageController extends Controller
@@ -65,11 +67,7 @@ class ContactMessageController extends Controller
         $archivedCount = ContactMessage::archived()->count();
         $unreadCount = ContactMessage::active()->unread()->count();
 
-        $staffUsers = User::where(function ($q) {
-            $q->whereHas('roles', function ($q) {
-                $q->whereIn('name', ['admin', 'super_admin', 'hr_manager']);
-            })->orWhere('type', 'staff');
-        })->orderBy('name')->get();
+        $staffUsers = $this->assignableUsers();
 
         return view('website::admin.contact-messages.index', compact(
             'messages',
@@ -78,6 +76,28 @@ class ContactMessageController extends Controller
             'unreadCount',
             'staffUsers'
         ));
+    }
+
+    /**
+     * Who an enquiry may be assigned to.
+     *
+     * This used to name three roles outright - admin, super_admin and hr_manager -
+     * with an `orWhere('type', 'staff')` alongside, so the role list decided almost
+     * nothing and quietly went stale whenever a role was renamed.
+     *
+     * The question is a capability one, so it is asked as a capability: anyone who
+     * can already update an enquiry can be handed one, plus any staff account, which
+     * keeps an assignment possible before permissions have been sorted out.
+     *
+     * @return Collection<int, User>
+     */
+    private function assignableUsers()
+    {
+        return User::where(function ($query) {
+            $query->whereHas('permissions', function ($query) {
+                $query->where('name', WebsitePermission::CONTACT_MESSAGES_UPDATE);
+            })->orWhere('type', 'staff');
+        })->orderBy('name')->get();
     }
 
     /**
@@ -94,11 +114,7 @@ class ContactMessageController extends Controller
         // Load replies with staff user info
         $contactMessage->load(['replies.user', 'assignedUser']);
 
-        $staffUsers = User::where(function ($q) {
-            $q->whereHas('roles', function ($q) {
-                $q->whereIn('name', ['admin', 'super_admin', 'hr_manager']);
-            })->orWhere('type', 'staff');
-        })->orderBy('name')->get();
+        $staffUsers = $this->assignableUsers();
 
         return view('website::admin.contact-messages.show', compact('contactMessage', 'staffUsers'));
     }
