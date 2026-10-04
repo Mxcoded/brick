@@ -190,9 +190,9 @@
                             {{-- Current Main Image --}}
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Main Image</label>
-                                @if($roomType->image_url)
+                                @if($roomType->imageUrl())
                                     <div class="mb-2" id="currentMainImage">
-                                        <img src="{{ $roomType->image_url }}" class="img-thumbnail" style="max-height: 150px;">
+                                        <img src="{{ $roomType->imageUrl() }}" class="img-thumbnail" style="max-height: 150px;">
                                     </div>
                                 @endif
                                 <div id="mainImagePreview" class="mb-2 d-none">
@@ -210,7 +210,7 @@
                                     @if($roomType->images->count() > 0)
                                         @foreach($roomType->images as $img)
                                             <div class="position-relative gallery-item">
-                                                <img src="{{ $img->image_url }}" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
+                                                <img src="{{ \Modules\Website\Support\MediaPath::toUrl($img->path) ?? \Modules\Website\Support\MediaPath::toUrl($img->image_url) }}" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
                                                 <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 p-0 delete-gallery-image" 
                                                         style="width: 18px; height: 18px; font-size: 10px; line-height: 1;"
                                                         data-image-id="{{ $img->id }}">

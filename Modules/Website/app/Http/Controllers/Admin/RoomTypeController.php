@@ -17,6 +17,7 @@ use Modules\Website\Models\Booking;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomTypeImage;
 use Modules\Website\Models\RoomUnit;
+use Modules\Website\Support\MediaPath;
 
 class RoomTypeController extends Controller
 {
@@ -92,7 +93,9 @@ class RoomTypeController extends Controller
             // Upload & Compress Primary Image
             if ($request->hasFile('image')) {
                 $result = $this->imageService->compressAndStore($request->file('image'), 'room_types');
-                $validated['image_url'] = $result['url'];
+                // Store the disk path, not the URL. The URL baked in whatever APP_URL
+                // was at upload time, which is why the front desk could not render it.
+                $validated['image_url'] = $result['path'];
             }
 
             $roomType = RoomType::create($validated);
@@ -224,10 +227,17 @@ class RoomTypeController extends Controller
             // Upload & Compress Primary Image
             if ($request->hasFile('image')) {
                 if ($roomType->image_url) {
-                    $this->imageService->deleteByUrl($roomType->image_url);
+                    // Delete by path. deleteByUrl() only stripped '/storage/', so a row
+                    // that already held a bare path was passed straight through and the
+                    // old file was orphaned on disk.
+                    $oldPath = MediaPath::toStoragePath($roomType->image_url);
+
+                    if ($oldPath !== null) {
+                        $this->imageService->delete($oldPath);
+                    }
                 }
                 $result = $this->imageService->compressAndStore($request->file('image'), 'room_types');
-                $validated['image_url'] = $result['url'];
+                $validated['image_url'] = $result['path'];
             }
 
             $roomType->update($validated);
@@ -379,7 +389,11 @@ class RoomTypeController extends Controller
 
         // Clean up images
         if ($roomType->image_url) {
-            $this->imageService->deleteByUrl($roomType->image_url);
+            $primaryPath = MediaPath::toStoragePath($roomType->image_url);
+
+            if ($primaryPath !== null) {
+                $this->imageService->delete($primaryPath);
+            }
         }
         foreach ($roomType->images as $img) {
             if ($img->path) {

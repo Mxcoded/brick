@@ -47,8 +47,8 @@
                                                 {{-- Room Type Info --}}
                                                 <td class="ps-4">
                                                     <div class="d-flex align-items-center">
-                                                        @if (optional($booking->roomType)->image_url || optional($booking->room)->image_url)
-                                                            <img src="{{ optional($booking->roomType)->image_url ?? optional($booking->room)->image_url }}" class="rounded me-3"
+                                                            @if ($booking->roomType?->imageUrl() || $booking->room?->image_url)
+                                                                <img src="{{ $booking->roomType?->imageUrl() ?? $booking->room?->image_url }}" class="rounded me-3"
                                                                 style="width: 50px; height: 50px; object-fit: cover;">
                                                         @else
                                                             <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center text-muted"

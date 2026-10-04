@@ -15,6 +15,11 @@ class RoomTypeSeeder extends Seeder
         // Get amenity IDs for linking
         $amenityIds = Amenity::pluck('id')->toArray();
 
+        // room_types.image_url stores a path on the public disk. The photographs below
+        // are remote stock images with no local copy, so they are stored as absolute
+        // URLs and RoomType::imageUrl() passes them through. That keeps the seeder
+        // usable offline - it does not need to download anything to produce a working
+        // catalogue - while still exercising the reader's remote-URL branch.
         $roomTypes = [
             // ==========================================
             // STUDIO SUITES

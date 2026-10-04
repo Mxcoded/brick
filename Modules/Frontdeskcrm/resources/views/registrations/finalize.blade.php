@@ -338,8 +338,8 @@
                                         <div class="row g-3 align-items-center">
                                             @if ($bookedRoomType)
                                                 <div class="col-md-2 text-center">
-                                                    @if ($bookedRoomType->image_url)
-                                                        <img src="{{ asset('storage/' . $bookedRoomType->image_url) }}" 
+@if ($bookedRoomType?->imageUrl())
+    <img src="{{ $bookedRoomType->imageUrl() }}"
                                                             alt="{{ $bookedRoomType->name }}" 
                                                             class="img-fluid rounded" style="max-height: 80px; object-fit: cover;">
                                                     @else

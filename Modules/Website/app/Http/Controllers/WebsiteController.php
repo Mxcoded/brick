@@ -1847,7 +1847,7 @@ class WebsiteController extends Controller
                     'slug' => $roomType->slug,
                     'price' => (float) $roomType->display_price,
                     'capacity' => $roomType->capacity,
-                    'image_url' => $roomType->image_url,
+                    'image_url' => $roomType->imageUrl(),
                     'bed_type' => $roomType->bed_type,
                     'description' => $roomType->description,
                     'total_units' => $roomType->units_count,

@@ -96,10 +96,19 @@ class RoomTypeResource extends Resource
                             ->required()
                             ->rows(4)
                             ->columnSpanFull(),
-                        Forms\Components\TextInput::make('image_url')
-                            ->label('Image URL')
-                            ->url()
-                            ->maxLength(255),
+                        Forms\Components\FileUpload::make('image_url')
+                            ->label('Image')
+                            ->disk('public')
+                            ->directory('room-types')
+                            ->image()
+                            ->visibility('public')
+                            ->maxSize(5120)
+                            ->imageEditor()
+                            // The column holds a disk path, so Filament renders it
+                            // against the public disk. Pasting a remote URL here
+                            // stores the URL verbatim and RoomType::imageUrl() will
+                            // pass it through, which is why the hint says so.
+                            ->helperText('Stored on the public disk. An existing image URL will keep working until it is replaced.'),
                         Forms\Components\TextInput::make('video_url')
                             ->label('Video URL')
                             ->url()

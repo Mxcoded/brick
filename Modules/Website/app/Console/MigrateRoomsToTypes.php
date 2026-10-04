@@ -11,6 +11,7 @@ use Modules\Website\Models\Room;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomTypeImage;
 use Modules\Website\Models\RoomUnit;
+use Modules\Website\Support\MediaPath;
 
 class MigrateRoomsToTypes extends Command
 {
@@ -108,7 +109,10 @@ class MigrateRoomsToTypes extends Command
                     'size' => $room->size,
                     'bed_type' => $room->bed_type,
                     'description' => $room->description,
-                    'image_url' => $room->image_url,
+                    // The legacy rooms table stored absolute URLs; room_types stores a
+                    // disk path. A remote photograph has no local copy, so fall back
+                    // to the original value rather than dropping the image.
+                    'image_url' => MediaPath::toStoragePath($room->image_url) ?? $room->image_url,
                     'video_url' => $room->video_url,
                     'is_featured' => $room->is_featured,
                     'amenities' => $room->amenities->pluck('id')->toArray(),
@@ -212,7 +216,7 @@ class MigrateRoomsToTypes extends Command
                     'size' => $data['type_data']['size'],
                     'bed_type' => $data['type_data']['bed_type'],
                     'description' => $data['type_data']['description'],
-                    'image_url' => $data['type_data']['image_url'],
+                    'image_url' => MediaPath::toStoragePath($data['type_data']['image_url']) ?? $data['type_data']['image_url'],
                     'video_url' => $data['type_data']['video_url'],
                     'is_featured' => $data['type_data']['is_featured'],
                     'is_active' => true,

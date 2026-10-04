@@ -556,8 +556,8 @@
                             @endphp
                             @if ($roomInfo)
                                 <div class="d-flex align-items-start mb-3">
-                                    @if ($roomInfo->image_url)
-                                        <img src="{{ $roomInfo->image_url }}" class="rounded me-3" style="width: 70px; height: 70px; object-fit: cover;">
+                                        @if ($roomInfo->imageUrl())
+                                            <img src="{{ $roomInfo->imageUrl() }}" class="rounded me-3" style="width: 70px; height: 70px; object-fit: cover;">
                                     @else
                                         <div class="bg-bp-neutral rounded me-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
                                             <i class="fas fa-bed text-bp-gold fa-lg"></i>

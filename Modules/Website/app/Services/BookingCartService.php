@@ -72,7 +72,7 @@ class BookingCartService
             'capacity' => $roomType->capacity,
             'adults' => $adults,
             'children' => $children,
-            'image_url' => $roomType->image_url,
+            'image_url' => $roomType->imageUrl(),
             'nights' => $nights,
             'subtotal' => $rate['total'] * $quantity,
         ];

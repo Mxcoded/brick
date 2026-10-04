@@ -205,7 +205,7 @@
                     <div class="col-md-6 col-lg-4">
                         <div class="room-card card border-0 shadow-sm h-100 overflow-hidden">
                             <div class="room-img-container position-relative overflow-hidden">
-                                <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
+                                <img src="{{ $roomType->imageUrl() ?? 'https://via.placeholder.com/400x300' }}"
                                     class="card-img-top room-image" alt="{{ $roomType->name }}" loading="lazy" width="400" height="300">
                                     <div class="price-tag position-absolute btn-primary text-white px-3 py-2">
                                     ₦{{ number_format($roomType->display_price, 2) }} <small>/ night</small>

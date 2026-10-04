@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Frontdeskcrm\Models\RateCode;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Website\Services\RoomAvailabilityService;
+use Modules\Website\Support\MediaPath;
 use OwenIt\Auditing\Auditable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -144,6 +145,18 @@ class RoomType extends Model implements AuditableContract
         }
 
         return (float) $this->price;
+    }
+
+    /**
+     * The browser URL for this room type's image.
+     *
+     * `image_url` holds a path on the public disk. Templates must call this rather
+     * than echo the column, so a path and a legacy absolute URL both render. See
+     * {@see MediaPath} for the storage contract.
+     */
+    public function imageUrl(?string $disk = 'public'): ?string
+    {
+        return MediaPath::toUrl($this->image_url, $disk);
     }
 
     /**

@@ -61,8 +61,8 @@
             {{-- Room Type Details --}}
             <div class="col-lg-4 mb-4">
                 <div class="card border-0 shadow-sm">
-                    @if($roomType->image_url)
-                        <img src="{{ $roomType->image_url }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+@if($roomType->imageUrl())
+    <img src="{{ $roomType->imageUrl() }}" class="card-img-top" style="height: 200px; object-fit: cover;">
                     @endif
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-3">

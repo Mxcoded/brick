@@ -129,7 +129,7 @@
                                         {{-- Room Image (desktop) --}}
                                         <div class="col-md-4 d-none d-md-block">
                                             <div class="room-card-image-wrap h-100">
-                                                <img src="{{ $roomType->image_url ?? asset('images/default-room.jpg') }}"
+                                                <img src="{{ $roomType->imageUrl() ?? asset('images/default-room.jpg') }}"
                                                     class="img-fluid h-100 w-100 object-fit-cover room-card-img"
                                                     alt="{{ $roomType->name }}">
                                                 <div class="room-price-badge">
@@ -142,7 +142,7 @@
                                         {{-- Room Image (mobile, full width) --}}
                                         <div class="col-12 d-md-none position-relative">
                                             <div class="room-card-image-wrap">
-                                                <img src="{{ $roomType->image_url ?? asset('images/default-room.jpg') }}"
+                                                <img src="{{ $roomType->imageUrl() ?? asset('images/default-room.jpg') }}"
                                                     class="img-fluid w-100 object-fit-cover room-card-img"
                                                     alt="{{ $roomType->name }}" style="height: 200px;">
                                                 <div class="room-price-badge room-price-badge-mobile">
@@ -305,7 +305,7 @@
                                                                     data-base-occupancy="{{ $roomType->base_occupancy ?? 2 }}"
                                                                     data-extra-adult-fee="{{ $roomType->extra_adult_fee ?? 0 }}"
                                                                     data-extra-child-fee="{{ $roomType->extra_child_fee ?? 0 }}"
-                                                                    data-room-image="{{ $roomType->image_url }}">
+                                                                    data-room-image="{{ $roomType->imageUrl() }}">
                                                                     <i class="fas fa-plus"></i>
                                                                     <span>Select Room</span>
                                                                 </button>

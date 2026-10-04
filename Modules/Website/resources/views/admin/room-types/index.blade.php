@@ -58,8 +58,8 @@
                                     {{-- Room Type Name & Image --}}
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center">
-                                            @if($roomType->image_url)
-                                                <img src="{{ $roomType->image_url }}" class="rounded shadow-sm me-3" 
+@if($roomType->imageUrl())
+    <img src="{{ $roomType->imageUrl() }}" class="rounded shadow-sm me-3"
                                                      style="width: 60px; height: 40px; object-fit: cover;">
                                             @else
                                                 <div class="rounded bg-secondary d-flex align-items-center justify-content-center me-3 text-white" 

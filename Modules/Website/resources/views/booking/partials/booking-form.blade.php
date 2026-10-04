@@ -81,14 +81,14 @@
                                     data-price="{{ $roomOption->display_price }}"
                                     data-flat-price="{{ $roomOption->price }}"
                                     data-rate-code-id="{{ $roomOption->rate_code_id ?? '' }}"
-                                    data-image="{{ $roomOption->image_url }}"
+                                        data-image="{{ $roomOption->imageUrl() }}"
                                     data-name="{{ $roomOption->name }}"
                                     data-capacity="{{ $roomOption->capacity }}"
                                     data-base-occupancy="{{ $roomOption->base_occupancy ?? 2 }}"
                                     data-extra-adult-fee="{{ $roomOption->extra_adult_fee ?? 0 }}"
                                     data-extra-child-fee="{{ $roomOption->extra_child_fee ?? 0 }}"
                                     data-units="{{ $roomOption->units_count }}">
-                                    <img src="{{ $roomOption->image_url ?? asset('images/default-room.jpg') }}"
+                                    <img src="{{ $roomOption->imageUrl() ?? asset('images/default-room.jpg') }}"
                                         alt="{{ $roomOption->name }}" class="card-img-top" loading="lazy"
                                         onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22120%22 fill=%22%23C8A165%22%3E%3Crect width=%22400%22 height=%22120%22 fill=%22%23faf8f5%22/%3E%3Ctext x=%22200%22 y=%2265%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22 fill=%22%23b08c54%22%3ENo Image Available%3C/text%3E%3C/svg%3E'">
                                     <span class="capacity-badge"><i
@@ -109,7 +109,7 @@
                                     data-price="{{ $roomOption->display_price }}"
                                     data-flat-price="{{ $roomOption->price }}"
                                     data-rate-code-id="{{ $roomOption->rate_code_id ?? '' }}"
-                                    data-image="{{ $roomOption->image_url }}"
+                                        data-image="{{ $roomOption->imageUrl() }}"
                                     data-name="{{ $roomOption->name }}"
                                     data-capacity="{{ $roomOption->capacity }}"
                                     data-base-occupancy="{{ $roomOption->base_occupancy ?? 2 }}"

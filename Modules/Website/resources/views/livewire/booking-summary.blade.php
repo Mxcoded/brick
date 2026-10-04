@@ -24,7 +24,7 @@
         $guestsLabel = implode(', ', $guestsParts) ?: '1 Adult';
     @endphp
 
-    <img src="{{ $roomType->image_url ?? asset('images/default-room.jpg') }}"
+    <img src="{{ $roomType->imageUrl() ?? asset('images/default-room.jpg') }}"
         class="card-img-top {{ $hasRoom ? '' : 'd-none' }}"
         style="height: 180px; object-fit: cover;" alt="{{ $roomType->name ?? 'Selected room' }}">
 

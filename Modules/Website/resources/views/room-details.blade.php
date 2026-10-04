@@ -66,7 +66,7 @@
                             <div class="carousel-inner">
                                 @foreach ($roomType->images as $key => $image)
                                     <div class="carousel-item {{ $key == 0 ? 'active' : '' }}">
-                                        <img src="{{ $image->image_url }}" class="d-block w-100"
+                                        <img src="{{ \Modules\Website\Support\MediaPath::toUrl($image->path) ?? \Modules\Website\Support\MediaPath::toUrl($image->image_url) }}" class="d-block w-100"
                                             alt="{{ $roomType->name }} Gallery Image {{ $key + 1 }}"
                                             style="height: 500px; object-fit: cover;">
                                     </div>
@@ -87,8 +87,8 @@
                         </div>
                     @else
                         {{-- Fallback: Show Main Image if no gallery exists --}}
-                        @if ($roomType->image_url)
-                            <img src="{{ $roomType->image_url }}" class="img-fluid rounded shadow-lg mb-5 w-100"
+                            @if ($roomType->imageUrl())
+                                <img src="{{ $roomType->imageUrl() }}" class="img-fluid rounded shadow-lg mb-5 w-100"
                                 alt="{{ $roomType->name }}" style="max-height: 500px; object-fit: cover;">
                         @endif
                     @endif
@@ -187,8 +187,8 @@
                     @foreach ($relatedRooms as $related)
                         <div class="col-md-4">
                             <div class="card border-0 shadow-sm h-100">
-                                @if ($related->image_url)
-                                    <img src="{{ $related->image_url }}" class="card-img-top"
+                                    @if ($related->imageUrl())
+                                        <img src="{{ $related->imageUrl() }}" class="card-img-top"
                                         alt="{{ $related->name }}" style="height: 200px; object-fit: cover;">
                                 @endif
                                 <div class="card-body">

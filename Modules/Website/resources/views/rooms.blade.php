@@ -87,7 +87,7 @@
                             <div class="room-card card border-0 shadow-sm overflow-hidden h-100">
                                 <div class="row g-0 h-100">
                                     <div class="col-md-6 position-relative">
-                                        <img src="{{ $roomType->image_url ?? 'https://via.placeholder.com/400x300' }}"
+                                        <img src="{{ $roomType->imageUrl() ?? 'https://via.placeholder.com/400x300' }}"
                                             class="img-fluid h-100 w-100 object-fit-cover" alt="{{ $roomType->name }}"
                                             loading="lazy">
                                         <div class="price-badge position-absolute top-0 end-0 btn-primary text-white p-3">
