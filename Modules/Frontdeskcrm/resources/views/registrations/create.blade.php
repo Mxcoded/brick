@@ -263,18 +263,11 @@
                                                 <select class="form-select @error('title') is-invalid @enderror"
                                                     name="title" id="title">
                                                     <option value="">Select...</option>
-                                                    <option value="Mr."
-                                                        {{ old('title', $guestData['title'] ?? '') == 'Mr.' ? 'selected' : '' }}>
-                                                        Mr.</option>
-                                                    <option value="Ms."
-                                                        {{ old('title', $guestData['title'] ?? '') == 'Ms.' ? 'selected' : '' }}>
-                                                        Ms.</option>
-                                                    <option value="Mrs."
-                                                        {{ old('title', $guestData['title'] ?? '') == 'Mrs.' ? 'selected' : '' }}>
-                                                        Mrs.</option>
-                                                    <option value="Dr."
-                                                        {{ old('title', $guestData['title'] ?? '') == 'Dr.' ? 'selected' : '' }}>
-                                                        Dr.</option>
+                                                    @php $registrationTitle = \Modules\Frontdeskcrm\Support\GuestTitle::normalise(old('title', $guestData['title'] ?? '')); @endphp
+                                                    @foreach (\Modules\Frontdeskcrm\Support\GuestTitle::options() as $titleValue => $titleLabel)
+                                                        <option value="{{ $titleValue }}"
+                                                            @selected($registrationTitle === $titleValue)>{{ $titleLabel }}</option>
+                                                    @endforeach
                                                 </select>
                                                 @error('title')
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -337,7 +330,11 @@
                                                 <select class="form-select @error('nationality') is-invalid @enderror"
                                                     name="nationality" id="nationality">
                                                     <option value="">Select a Country...</option>
-                                                    @include('frontdeskcrm::registrations.partials._countries_options')
+                                                    @include('frontdeskcrm::registrations.partials._countries_options', [
+                                                        'selectedNationality' => \Modules\Frontdeskcrm\Support\GuestNationality::normalise(
+                                                            old('nationality', $guestData['nationality'] ?? '')
+                                                        ),
+                                                    ])
                                                 </select>
                                                 @error('nationality')
                                                     <div class="invalid-feedback">{{ $message }}</div>

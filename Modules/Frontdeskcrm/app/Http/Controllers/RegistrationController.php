@@ -23,6 +23,10 @@ use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Models\RegistrationCharge;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
 use Modules\Frontdeskcrm\Services\FolioService;
+use Modules\Frontdeskcrm\Support\GuestGender;
+use Modules\Frontdeskcrm\Support\GuestIdentificationType;
+use Modules\Frontdeskcrm\Support\GuestNationality;
+use Modules\Frontdeskcrm\Support\GuestTitle;
 use Modules\Website\Models\Booking;
 use Modules\Website\Models\Refund;
 use Modules\Website\Models\Room;
@@ -216,7 +220,7 @@ class RegistrationController extends Controller
         $totalGuests = $booking->adults + $booking->children;
         $totalNights = $booking->check_in_date->diffInDays($booking->check_out_date);
         $guest = $booking->guest;
-        $title = $guest ? (($guest->gender == 'Male') ? 'Mr. ' : 'Ms. ') : '';
+        $title = GuestTitle::forGuest($guest?->title, $guest?->gender) ?? '';
 
         session([
             'returning_guest' => [
@@ -232,12 +236,12 @@ class RegistrationController extends Controller
                 'email' => $booking->guest_email,
                 'contact_number' => $booking->guest_phone,
                 'birthday' => $guest?->birthday ? Carbon::parse($guest->birthday)->format('Y-m-d') : null,
-                'gender' => $guest?->gender,
-                'nationality' => $guest?->nationality,
+                'gender' => GuestGender::forRegistration($guest?->gender),
+                'nationality' => GuestNationality::normalise($guest?->nationality),
                 'home_address' => $guest?->home_address,
                 'occupation' => $guest?->occupation,
                 'company_name' => $guest?->company_name,
-                'identification_type' => $guest?->identification_type,
+                'identification_type' => GuestIdentificationType::normalise($guest?->identification_type),
                 'identification_number' => $guest?->identification_number,
                 // Emergency Contact (Step 2)
                 'emergency_name' => $guest?->emergency_name,
@@ -275,13 +279,13 @@ class RegistrationController extends Controller
             ],
             'guest_data' => [
                 // Personal Info (Step 1)
-                'title' => $guest->title,
+                'title' => GuestTitle::forGuest($guest->title, $guest->gender),
                 'full_name' => $guest->full_name,
                 'email' => $guest->email,
                 'contact_number' => $guest->contact_number,
                 'birthday' => $guest->birthday ? Carbon::parse($guest->birthday)->format('Y-m-d') : null,
-                'gender' => $guest->gender,
-                'nationality' => $guest->nationality,
+                'gender' => GuestGender::forRegistration($guest->gender),
+                'nationality' => GuestNationality::normalise($guest->nationality),
                 'home_address' => $guest->home_address,
                 'occupation' => $guest->occupation,
                 'company_name' => $guest->company_name,
@@ -331,7 +335,7 @@ class RegistrationController extends Controller
             session()->flash('info', 'Welcome! We noticed your scheduled arrival was '.$checkInDate->format('M d').'. We have held your reservation.');
         }
 
-        $title = ($guest && $guest->gender == 'Male') ? 'Mr. ' : 'Ms. ';
+        $title = GuestTitle::forGuest($guest?->title, $guest?->gender) ?? '';
         $totalGuests = $bookings->sum(function ($b) {
             return $b->adults + $b->children;
         });
@@ -366,8 +370,8 @@ class RegistrationController extends Controller
                 'email' => $primaryBooking->guest_email,
                 'contact_number' => $primaryBooking->guest_phone,
                 'birthday' => $guest && $guest->birthday ? Carbon::parse($guest->birthday)->format('Y-m-d') : null,
-                'gender' => $guest->gender ?? null,
-                'nationality' => $guest->nationality ?? null,
+                'gender' => GuestGender::forRegistration($guest->gender),
+                'nationality' => GuestNationality::normalise($guest->nationality),
                 'home_address' => $guest->home_address ?? null,
                 'occupation' => $guest->occupation ?? null,
                 'company_name' => $guest->company_name ?? null,
@@ -467,9 +471,9 @@ class RegistrationController extends Controller
                 // [CRITICAL FIX] Use '?? $guest->attribute' to fallback to existing DB value
                 // if the input is missing from the form (which happens for Secure Returning Guests).
                 $updateData = [
-                    'title' => $validated['title'] ?? $guest->title,
+                    'title' => GuestTitle::forGuest($validated['title'] ?? $guest->title, $guest->gender),
                     'full_name' => $validated['full_name'] ?? $guest->full_name ?? session('returning_guest.name'), // <--- PREVENTS CRASH
-                    'nationality' => $validated['nationality'] ?? $guest->nationality,
+                    'nationality' => GuestNationality::normalise($validated['nationality'] ?? $guest->nationality),
                     'home_address' => $validated['home_address'] ?? $guest->home_address,
                     'emergency_name' => $validated['emergency_name'] ?? $guest->emergency_name,
                     'emergency_contact' => $validated['emergency_contact'] ?? $guest->emergency_contact,
@@ -502,13 +506,13 @@ class RegistrationController extends Controller
                     $guest = $existingPhoneGuest;
                 } else {
                     $guest = Guest::create([
-                        'title' => $validated['title'] ?? null,
+                        'title' => GuestTitle::normalise($validated['title'] ?? null),
                         'full_name' => $fullName, // Required for new guests
                         'contact_number' => $contactNumber, // Required for new guests
                         'email' => $inputEmail,
-                        'nationality' => $validated['nationality'] ?? null,
+                        'nationality' => GuestNationality::normalise($validated['nationality'] ?? null),
                         'home_address' => $validated['home_address'] ?? null,
-                        'gender' => $validated['gender'] ?? null,
+                        'gender' => GuestGender::normalise($validated['gender'] ?? null),
                         'occupation' => $validated['occupation'] ?? null,
                         'company_name' => $validated['company_name'] ?? null,
                         'emergency_name' => $validated['emergency_name'] ?? null,
@@ -568,12 +572,12 @@ class RegistrationController extends Controller
                 'stay_status' => 'draft_by_guest',
 
                 // Guest Snapshot
-                'title' => $validated['title'] ?? $guest->title,
+                'title' => GuestTitle::forGuest($validated['title'] ?? $guest->title, $guest->gender),
                 'full_name' => $validated['full_name'] ?? $guest->full_name,
                 'contact_number' => $inputPhone ?? $guest->contact_number,
                 'email' => $validated['email'] ?? $guest->email,
-                'nationality' => $validated['nationality'] ?? $guest->nationality,
-                'gender' => $validated['gender'] ?? $guest->gender,
+                'nationality' => GuestNationality::normalise($validated['nationality'] ?? $guest->nationality),
+                'gender' => GuestGender::forRegistration($validated['gender'] ?? $guest->gender),
                 'occupation' => $validated['occupation'] ?? $guest->occupation,
                 'company_name' => $validated['company_name'] ?? $guest->company_name,
                 'home_address' => $validated['home_address'] ?? $guest->home_address,
@@ -806,14 +810,17 @@ class RegistrationController extends Controller
                 'guest' => [
                     'full_name' => $guest->full_name,
                     'email' => $guest->email,
-                    'gender' => $guest->gender,
-                    'title' => $guest->title,
-                    'nationality' => $guest->nationality,
+                    // Lowercase, because the walk-in form's select posts
+                    // lowercase values and a Title-cased one would leave the
+                    // field showing "Select Gender..." on a known guest.
+                    'gender' => GuestGender::forRegistration($guest->gender),
+                    'title' => GuestTitle::forGuest($guest->title, $guest->gender),
+                    'nationality' => GuestNationality::normalise($guest->nationality),
                     'home_address' => $guest->home_address,
                     'contact_number' => $guest->contact_number,
                     'occupation' => $guest->occupation,
                     'company_name' => $guest->company_name,
-                    'identification_type' => $guest->identification_type,
+                    'identification_type' => GuestIdentificationType::normalise($guest->identification_type),
                     'identification_number' => $guest->identification_number,
                     'birthday' => $guest->birthday?->format('Y-m-d'),
                 ],
@@ -832,15 +839,15 @@ class RegistrationController extends Controller
         $guest = Guest::firstOrCreate(
             ['contact_number' => $request->contact_number],
             [
-                'title' => $request->title ?? null,
+                'title' => GuestTitle::normalise($request->title ?? null),
                 'full_name' => $request->full_name,
                 'email' => $request->email,
-                'gender' => $request->gender ?? null,
+                'gender' => GuestGender::normalise($request->gender ?? null),
                 'home_address' => $request->home_address ?? null,
                 'identification_number' => $request->identification_number ?? null,
-                'nationality' => $request->nationality ?? null,
+                'nationality' => GuestNationality::normalise($request->nationality),
                 'zip_code' => $request->zip_code ?? null,
-                'identification_type' => $request->identification_type ?? null,
+                'identification_type' => GuestIdentificationType::normalise($request->identification_type) ?? $request->identification_type,
                 'birthday' => $request->birthday ?? null,
                 'occupation' => $request->occupation ?? null,
                 'company_name' => $request->company_name ?? null,
@@ -916,7 +923,7 @@ class RegistrationController extends Controller
             'full_name' => $guest->full_name,
             'contact_number' => $guest->contact_number,
             'email' => $guest->email,
-            'gender' => $request->gender,
+            'gender' => GuestGender::forRegistration($request->gender),
 
             // Stay Details
             'check_in' => $request->check_in,

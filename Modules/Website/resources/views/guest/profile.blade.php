@@ -66,17 +66,31 @@
                     <div class="card-body p-4" id="profileBody">
                         @php
                             $p = $profile;
-                            $sections = [
+                            $genderOptions = \Modules\Frontdeskcrm\Support\GuestGender::options();
+                            $genderValue = \Modules\Frontdeskcrm\Support\GuestGender::normalise($p->gender ?? null) ?? '';
+                            $titleOptions = \Modules\Frontdeskcrm\Support\GuestTitle::options();
+                            $titleValue = \Modules\Frontdeskcrm\Support\GuestTitle::normalise($p->title ?? null) ?? '';
+                            $nationalityValue = \Modules\Frontdeskcrm\Support\GuestNationality::normalise($p->nationality ?? null) ?? '';
+                            $identificationTypeOptions = \Modules\Frontdeskcrm\Support\GuestIdentificationType::options();
+                                        $identificationTypeValue = \Modules\Frontdeskcrm\Support\GuestIdentificationType::normalise($p->identification_type ?? null) ?? '';
+                                        $sections = [
                                 'personal' => [
                                     'icon' => 'fa-user',
                                     'title' => 'Personal Details',
                                     'fields' => [
-                                        'title' => ['label' => 'Title', 'type' => 'select', 'options' => ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'], 'value' => $p->title ?? '', 'col' => 2],
+                                        'title' => ['label' => 'Title', 'type' => 'select', 'options' => $titleOptions, 'value' => $titleValue, 'col' => 2],
                                         'full_name' => ['label' => 'Full Name', 'type' => 'text', 'value' => $user->name, 'col' => 5, 'required' => true],
                                         'email' => ['label' => 'Email Address', 'type' => 'text', 'value' => $user->email, 'col' => 5, 'readonly' => true],
-                                        'gender' => ['label' => 'Gender', 'type' => 'select', 'options' => ['Male', 'Female'], 'value' => $p->gender ?? '', 'col' => 4],
+                                        // Options and value come from GuestGender so a guest booked as "Other", or
+                                        // stored lowercase by the public site, still shows correctly here instead
+                                        // of rendering as an unselected control that silently clears on save.
+                                        'gender' => ['label' => 'Gender', 'type' => 'select', 'options' => $genderOptions, 'value' => $genderValue, 'col' => 4],
                                         'birthday' => ['label' => 'Date of Birth', 'type' => 'date', 'value' => optional($p->birthday ?? null)->format('Y-m-d'), 'col' => 4],
-                                        'nationality' => ['label' => 'Nationality', 'type' => 'select', 'options' => ['Nigeria', 'Ghana', 'USA', 'UK', 'Other'], 'value' => $p->nationality ?? '', 'col' => 4],
+                                        // Free text, not a five-item select. The front desk records nationality as a
+                                        // country name from a 200-entry list, so any short list here matched
+                                        // only a handful of guests, rendered the rest blank, and wrote that
+                                        // blank over the stored country on save. A text input cannot mismatch.
+                                        'nationality' => ['label' => 'Nationality', 'type' => 'text', 'value' => $nationalityValue, 'col' => 4, 'placeholder' => 'e.g. Nigeria'],
                                     ]
                                 ],
                                 'employment' => [
@@ -111,7 +125,7 @@
                                     'icon' => 'fa-id-card',
                                     'title' => 'Identification',
                                     'fields' => [
-                                        'identification_type' => ['label' => 'ID Type', 'type' => 'select', 'options' => ['International Passport', 'National ID (NIN)', 'Drivers License'], 'value' => $p->identification_type ?? '', 'col' => 6],
+                                        'identification_type' => ['label' => 'ID Type', 'type' => 'select', 'options' => $identificationTypeOptions, 'value' => $identificationTypeValue, 'col' => 6],
                                         'identification_number' => ['label' => 'ID Number', 'type' => 'text', 'value' => $p->identification_number ?? '', 'col' => 6],
                                     ]
                                 ],

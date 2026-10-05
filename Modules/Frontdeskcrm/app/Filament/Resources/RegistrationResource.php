@@ -71,7 +71,7 @@ class RegistrationResource extends Resource
                             ->relationship('roomType', 'name')
                             ->nullable(),
                         Forms\Components\Select::make('room_unit_id')
-                            ->relationship('roomUnit', 'name')
+                            ->relationship('roomUnit', 'room_number')
                             ->nullable(),
                         Forms\Components\Select::make('rate_code_id')
                             ->relationship('rateCode', 'code')

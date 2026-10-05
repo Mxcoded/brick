@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Frontdeskcrm\Filament\Pages\ImportGuests;
 use Modules\Frontdeskcrm\Http\Controllers\BookingSourceController;
 use Modules\Frontdeskcrm\Http\Controllers\ChannelController;
 use Modules\Frontdeskcrm\Http\Controllers\CityLedgerController;
@@ -139,9 +140,12 @@ Route::prefix('frontdesk')
             Route::get('/datatable', [GuestController::class, 'datatable'])->name('datatable')->middleware('can:guests.read');
             Route::get('/create', [GuestController::class, 'create'])->name('create')->middleware('can:guests.create');
             Route::post('/', [GuestController::class, 'store'])->name('store')->middleware('can:guests.create');
-            Route::get('/import', [GuestController::class, 'showImportForm'])->name('import')->middleware('can:guests.create');
-            Route::get('/import/template', [GuestController::class, 'downloadTemplate'])->name('import.template')->middleware('can:guests.create');
-            Route::post('/import', [GuestController::class, 'import'])->name('import.process')->middleware('can:guests.create');
+            // The import screen is Filament now. The old route name is kept so
+            // bookmarks and the Blade guest views' "Import guests" links do not
+            // 404, but they land on the Filament page instead of the old form.
+            Route::get('/import', fn () => redirect()->to(ImportGuests::getUrl()))->name('import')->middleware('can:guests.import');
+            Route::get('/import/template', [GuestController::class, 'downloadTemplate'])->name('import.template')->middleware('can:guests.import');
+            Route::post('/import', [GuestController::class, 'import'])->name('import.process')->middleware('can:guests.import');
             Route::get('/{guest}', [GuestController::class, 'show'])->name('show')->middleware('can:guests.read');
             Route::get('/{guest}/edit', [GuestController::class, 'edit'])->name('edit')->middleware('can:guests.update');
             Route::put('/{guest}', [GuestController::class, 'update'])->name('update')->middleware('can:guests.update');

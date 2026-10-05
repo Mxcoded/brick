@@ -4,11 +4,17 @@ namespace Modules\Frontdeskcrm\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Frontdeskcrm\Exports\GuestImportGuide;
 use Modules\Frontdeskcrm\Exports\GuestsExcelImport;
 use Modules\Frontdeskcrm\Exports\GuestsImport;
+use Modules\Frontdeskcrm\Filament\Pages\ImportGuests;
 use Modules\Frontdeskcrm\Models\Guest;
+use Modules\Frontdeskcrm\Support\GuestGender;
+use Modules\Frontdeskcrm\Support\GuestIdentificationType;
+use Modules\Frontdeskcrm\Support\GuestNationality;
+use Modules\Frontdeskcrm\Support\GuestTitle;
 use Yajra\DataTables\DataTables;
 
 class GuestController extends Controller
@@ -94,14 +100,14 @@ class GuestController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title' => 'nullable|string|max:20',
+            'title' => ['nullable', 'string', 'max:20', Rule::in([...GuestTitle::values(), ...GuestTitle::acceptedValues()])],
             'full_name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'contact_number' => 'required|string|max:20',
             'nationality' => 'nullable|string|max:100',
             'identification_type' => 'nullable|string|max:50',
             'identification_number' => 'nullable|string|max:100',
-            'gender' => 'nullable|in:Male,Female,Other',
+            'gender' => ['nullable', Rule::in([...array_keys(GuestGender::options()), ...GuestGender::registrationValues()])],
             'birthday' => 'nullable|date',
             'occupation' => 'nullable|string|max:100',
             'company_name' => 'nullable|string|max:255',
@@ -114,10 +120,44 @@ class GuestController extends Controller
             'emergency_contact' => 'nullable|string|max:20',
         ]);
 
-        Guest::create($validated);
+        Guest::create($this->canonicalAttributes($validated));
 
         return redirect()->route('frontdesk.guests.index')
             ->with('success', 'Guest profile created successfully.');
+    }
+
+    /**
+     * Reduce the guest's controlled attributes to their canonical values.
+     *
+     * Applied on the way in so every writer agrees. Without this, whichever screen
+     * happened to record the guest decided the spelling, and the other screens
+     * could not read it back.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    protected function canonicalAttributes(array $validated): array
+    {
+        if (array_key_exists('gender', $validated)) {
+            $validated['gender'] = GuestGender::normalise($validated['gender']);
+        }
+
+        if (array_key_exists('title', $validated)) {
+            $validated['title'] = GuestTitle::normalise($validated['title']);
+        }
+
+        if (array_key_exists('nationality', $validated)) {
+            $validated['nationality'] = GuestNationality::normalise($validated['nationality']);
+        }
+
+        if (array_key_exists('identification_type', $validated)) {
+            // Falls back to the raw value: a document this code has no name for is
+            // still a real answer, and must not be discarded.
+            $validated['identification_type'] = GuestIdentificationType::normalise($validated['identification_type'])
+                ?? $validated['identification_type'];
+        }
+
+        return $validated;
     }
 
     /**
@@ -157,14 +197,14 @@ class GuestController extends Controller
         $guest = Guest::findOrFail($id);
 
         $validated = $request->validate([
-            'title' => 'nullable|string|max:20',
+            'title' => ['nullable', 'string', 'max:20', Rule::in([...GuestTitle::values(), ...GuestTitle::acceptedValues()])],
             'full_name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
             'contact_number' => 'required|string|max:20',
             'nationality' => 'nullable|string|max:100',
             'identification_type' => 'nullable|string|max:50',
             'identification_number' => 'nullable|string|max:100',
-            'gender' => 'nullable|in:Male,Female,Other',
+            'gender' => ['nullable', Rule::in([...array_keys(GuestGender::options()), ...GuestGender::registrationValues()])],
             'birthday' => 'nullable|date',
             'occupation' => 'nullable|string|max:100',
             'company_name' => 'nullable|string|max:255',
@@ -177,7 +217,7 @@ class GuestController extends Controller
             'emergency_contact' => 'nullable|string|max:20',
         ]);
 
-        $guest->update($validated);
+        $guest->update($this->canonicalAttributes($validated));
 
         return redirect()->route('frontdesk.guests.show', $id)
             ->with('success', 'Guest profile updated successfully.');
@@ -211,7 +251,7 @@ class GuestController extends Controller
         return Excel::download(new GuestImportGuide, 'guest-import-guide.xlsx');
     }
 
-public function import(Request $request)
+    public function import(Request $request)
     {
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
@@ -219,15 +259,31 @@ public function import(Request $request)
 
         $file = $request->file('file');
         $extension = strtolower($file->getClientOriginalExtension());
-        
+
         // Use multi-sheet aware import for Excel files to skip Instructions sheet
         $import = in_array($extension, ['xlsx', 'xls'])
             ? new GuestsExcelImport
             : new GuestsImport;
-            
+
         Excel::import($import, $file);
 
-        return redirect()->route('frontdesk.guests.index')
-            ->with('success', $import->getImportedCount().' guests imported. '.$import->getSkippedCount().' skipped (duplicates).');
+        $rejected = $import->getSkippedCount();
+
+        // Was: "...N skipped (duplicates)." - which called every rejection a
+        // duplicate, including rows with no name, no phone number, or a value
+        // the database refused. Those were silently indistinguishable from a
+        // real duplicate, so rows went missing without anyone noticing.
+        $message = $import->getImportedCount().' guests imported.';
+
+        if ($rejected > 0) {
+            $message .= ' '.$rejected.' row'.($rejected === 1 ? '' : 's').' not imported - see the import page for the reason on each row.';
+        }
+
+        // to(), not route(): the argument here is an absolute URL from the
+        // Filament page's own getUrl(), not a named route, and route() looks
+        // the string up by name.
+        return redirect()
+            ->to(ImportGuests::getUrl())
+            ->with('success', $message);
     }
 }

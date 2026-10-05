@@ -55,11 +55,10 @@
                         <label class="form-label">Title</label>
                         <select name="title" class="form-select">
                             <option value="">Select</option>
-                            <option value="Mr." {{ old('title') == 'Mr.' ? 'selected' : '' }}>Mr.</option>
-                            <option value="Mrs." {{ old('title') == 'Mrs.' ? 'selected' : '' }}>Mrs.</option>
-                            <option value="Ms." {{ old('title') == 'Ms.' ? 'selected' : '' }}>Ms.</option>
-                            <option value="Dr." {{ old('title') == 'Dr.' ? 'selected' : '' }}>Dr.</option>
-                            <option value="Chief" {{ old('title') == 'Chief' ? 'selected' : '' }}>Chief</option>
+                            @php $legacyTitle = \Modules\Frontdeskcrm\Support\GuestTitle::normalise(old('title')); @endphp
+                            @foreach (\Modules\Frontdeskcrm\Support\GuestTitle::options() as $titleValue => $titleLabel)
+                                <option value="{{ $titleValue }}" @selected($legacyTitle === $titleValue)>{{ $titleLabel }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="col-md-5">
@@ -83,16 +82,16 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Nationality</label>
-                        <input type="text" name="nationality" class="form-control" value="{{ old('nationality') }}" placeholder="e.g., Nigerian">
+                        <input type="text" name="nationality" class="form-control" value="{{ \Modules\Frontdeskcrm\Support\GuestNationality::normalise(old('nationality')) }}" placeholder="e.g., Nigeria">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">ID Type</label>
                         <select name="identification_type" class="form-select">
                             <option value="">Select</option>
-                            <option value="NIN" {{ old('identification_type') == 'NIN' ? 'selected' : '' }}>National ID (NIN)</option>
-                            <option value="Passport" {{ old('identification_type') == 'Passport' ? 'selected' : '' }}>Passport</option>
-                            <option value="Driver's License" {{ old('identification_type') == "Driver's License" ? 'selected' : '' }}>Driver's License</option>
-                            <option value="Voter's Card" {{ old('identification_type') == "Voter's Card" ? 'selected' : '' }}>Voter's Card</option>
+                            @php $legacyIdType = \Modules\Frontdeskcrm\Support\GuestIdentificationType::normalise(old('identification_type')); @endphp
+                            @foreach (\Modules\Frontdeskcrm\Support\GuestIdentificationType::options() as $idTypeValue => $idTypeLabel)
+                                <option value="{{ $idTypeValue }}" @selected($legacyIdType === $idTypeValue)>{{ $idTypeLabel }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="col-md-4">

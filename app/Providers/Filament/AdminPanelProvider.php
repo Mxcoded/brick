@@ -85,6 +85,13 @@ class AdminPanelProvider extends PanelProvider
                 in: module_path('Website', 'app/Filament/Pages'),
                 for: 'Modules\\Website\\Filament\\Pages',
             )
+            // Frontdeskcrm has custom screens too - the guest import page.
+            // Without this its pages have no route at all, so the header action
+            // that links to one resolves to a 404.
+            ->discoverPages(
+                in: module_path('Frontdeskcrm', 'app/Filament/Pages'),
+                for: 'Modules\\Frontdeskcrm\\Filament\\Pages',
+            )
             ->discoverWidgets(
                 in: module_path('Admin', 'app/Filament/Widgets'),
                 for: 'Modules\\Admin\\Filament\\Widgets',

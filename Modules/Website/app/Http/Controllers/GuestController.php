@@ -6,8 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Frontdeskcrm\Support\GuestGender;
+use Modules\Frontdeskcrm\Support\GuestIdentificationType;
+use Modules\Frontdeskcrm\Support\GuestNationality;
+use Modules\Frontdeskcrm\Support\GuestTitle;
 use Modules\Restaurant\Support\RoomServiceAccess;
 use Modules\Website\Models\Booking;
 
@@ -129,8 +134,14 @@ class GuestController extends Controller
             'email' => 'required|email|unique:users,email,'.$user->id,
 
             // Personal
-            'title' => 'nullable|string|max:10',
-            'gender' => 'nullable|in:Male,Female,Other',
+            'title' => ['nullable', Rule::in([...GuestTitle::values(), ...GuestTitle::acceptedValues()])],
+            // Both spellings accepted: the profile form offers Title case but
+            // guests booked through the public site hold lowercase, and
+            // re-saving such a profile must not wipe the value.
+            'gender' => ['nullable', Rule::in([
+                ...GuestGender::registrationValues(),
+                ...array_keys(GuestGender::options()),
+            ])],
             'birthday' => 'nullable|date',
             'nationality' => 'nullable|string|max:100',
             'occupation' => 'nullable|string|max:100',
@@ -149,6 +160,9 @@ class GuestController extends Controller
             'emergency_contact' => 'nullable|string|max:20',
 
             // Identification
+            // Free text is still accepted: a guest may hold a document this code has no
+            // name for, and rejecting it would lose the record. A recognised
+            // spelling is reduced to the canonical value.
             'identification_type' => 'nullable|string|max:50',
             'identification_number' => 'nullable|string|max:50',
         ]);
@@ -164,15 +178,16 @@ class GuestController extends Controller
             ['email' => $user->email], // Match by email
             [
                 'user_id' => $user->id,
-                'title' => $validated['title'],
+                'title' => GuestTitle::normalise($validated['title'] ?? null),
                 'full_name' => $validated['full_name'],
-                'nationality' => $validated['nationality'],
+                'nationality' => GuestNationality::normalise($validated['nationality'] ?? null),
                 'zip_code' => $validated['zip_code'],
-                'identification_type' => $validated['identification_type'],
+                'identification_type' => GuestIdentificationType::normalise($validated['identification_type'] ?? null)
+                    ?? ($validated['identification_type'] ?? null),
                 'identification_number' => $validated['identification_number'],
                 'contact_number' => $validated['contact_number'],
                 'birthday' => $validated['birthday'],
-                'gender' => $validated['gender'],
+                'gender' => GuestGender::normalise($validated['gender'] ?? null),
                 'occupation' => $validated['occupation'],
                 'company_name' => $validated['company_name'],
                 'home_address' => $validated['home_address'],

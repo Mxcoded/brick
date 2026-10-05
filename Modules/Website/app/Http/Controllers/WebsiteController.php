@@ -11,10 +11,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-// use Modules\Website\Models\GuestProfile;
 use Illuminate\Support\Facades\Mail;
+// use Modules\Website\Models\GuestProfile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Modules\Banquet\Mail\EventLeadConfirmation;
 use Modules\Banquet\Models\BanquetEnquiry;
 use Modules\Banquet\Models\EventLead;
@@ -23,6 +24,9 @@ use Modules\Banquet\Notifications\NewEnquiryNotification;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Rules\ValidEmail;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Frontdeskcrm\Support\GuestGender;
+use Modules\Frontdeskcrm\Support\GuestIdentificationType;
+use Modules\Frontdeskcrm\Support\GuestNationality;
 use Modules\Website\Emails\BookingConfirmation; // ✅ Import Contact Mail
 use Modules\Website\Emails\ContactMessageReceived;
 use Modules\Website\Emails\ReviewSubmitted;
@@ -368,26 +372,43 @@ class WebsiteController extends Controller
             'guest_name' => 'required|string|max:255',
             'guest_email' => 'required|email|max:255',
             'guest_phone' => ['required', 'string', 'max:20', new ValidPhoneNumber],
-            'guest_gender' => 'required|in:male,female,other',
+            // Accepts the canonical Title case as well as the lowercase the form and the
+            // enum have always used, because guests predating GuestGender hold
+            // both and re-submitting one must not fail validation.
+            'guest_gender' => ['required', Rule::in([
+                ...GuestGender::registrationValues(),
+                ...array_keys(GuestGender::options()),
+            ])],
             'guest_address' => 'required|string|max:500',
             'guest_nationality' => 'required|string|max:100',
             'guest_dob' => 'nullable|date',
-            'guest_id_type' => 'required|string|max:50',
+            'guest_id_type' => [
+                'required',
+                'string',
+                // Accepts every spelling this class knows - the canonical label
+                // and the historic ones like 'NIN' or 'Drivers License' - then
+                // stores the canonical value below. Rejecting a recognisable
+                // document here would fail a guest who is merely re-submitting
+                // a draft booked before the vocabulary was pinned down.
+                function ($attribute, $value, $fail) {
+                    if (GuestIdentificationType::normalise($value) === null) {
+                        $fail('Please select a valid ID card type.');
+                    }
+                },
+            ],
             'guest_id_number' => [
                 'required', 'string', 'max:50',
                 function ($attribute, $value, $fail) {
-                    $type = request('guest_id_type');
-                    if ($type === 'NIN' && ! preg_match('/^\d{11}$/', $value)) {
-                        $fail('NIN must be exactly 11 digits (e.g., 12345678901).');
-                    }
-                    if ($type === 'International Passport' && ! preg_match('/^[A-Za-z]\d{7,9}$/', $value)) {
-                        $fail('International Passport number must start with a letter followed by 7-9 digits (e.g., A01234567).');
-                    }
-                    if ($type === 'Drivers License' && ! preg_match('/^[A-Za-z]{3}\d{12}[A-Za-z]$/', $value)) {
-                        $fail('Driver\'s License must be 3 letters + 12 digits + 1 letter (e.g., ABC123456789012X).');
-                    }
-                    if ($type === 'Voters Card' && ! preg_match('/^\d{19}$/', $value)) {
-                        $fail('Voter\'s Card number must be 19 digits.');
+                    // Keyed on the canonical type, so the format is enforced
+                    // however the value was spelled. This used to compare
+                    // against raw literals ('NIN', 'Drivers License'), which
+                    // meant the 'National ID (NIN)' and "Driver's License"
+                    // spellings offered by the walk-in and profile forms
+                    // skipped these checks entirely.
+                    $failure = GuestIdentificationType::numberRule(request('guest_id_type'));
+
+                    if ($failure !== null && ! GuestIdentificationType::numberIsValid(request('guest_id_type'), $value)) {
+                        $fail($failure);
                     }
                 },
             ],
@@ -501,11 +522,11 @@ class WebsiteController extends Controller
                 if ($guest) {
                     $guest->update([
                         'full_name' => $validated['guest_name'],
-                        'gender' => $validated['guest_gender'],
+                        'gender' => GuestGender::normalise($validated['guest_gender']),
                         'home_address' => $validated['guest_address'],
-                        'nationality' => $validated['guest_nationality'],
+                        'nationality' => GuestNationality::normalise($validated['guest_nationality']),
                         'birthday' => $validated['guest_dob'] ?? null,
-                        'identification_type' => $validated['guest_id_type'],
+                        'identification_type' => GuestIdentificationType::normalise($validated['guest_id_type']),
                         'identification_number' => $validated['guest_id_number'],
                         'user_id' => $userId ?? $guest->user_id,
                     ]);
@@ -515,11 +536,11 @@ class WebsiteController extends Controller
                         'full_name' => $validated['guest_name'],
                         'email' => $validated['guest_email'],
                         'contact_number' => $validated['guest_phone'],
-                        'gender' => $validated['guest_gender'],
+                        'gender' => GuestGender::normalise($validated['guest_gender']),
                         'home_address' => $validated['guest_address'],
-                        'nationality' => $validated['guest_nationality'],
+                        'nationality' => GuestNationality::normalise($validated['guest_nationality']),
                         'birthday' => $validated['guest_dob'] ?? null,
-                        'identification_type' => $validated['guest_id_type'],
+                        'identification_type' => GuestIdentificationType::normalise($validated['guest_id_type']),
                         'identification_number' => $validated['guest_id_number'],
                     ]);
                 }

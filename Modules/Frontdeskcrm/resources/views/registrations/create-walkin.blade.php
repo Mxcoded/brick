@@ -94,10 +94,12 @@
                                     <label class="form-label fw-semibold text-dark">Title</label>
                                     <select class="form-select" name="title">
                                         <option value="">--</option>
-                                        <option value="Mr." @selected(old('title') == 'Mr.')>Mr.</option>
-                                        <option value="Mrs." @selected(old('title') == 'Mrs.')>Mrs.</option>
-                                        <option value="Ms." @selected(old('title') == 'Ms.')>Ms.</option>
-                                        <option value="Dr." @selected(old('title') == 'Dr.')>Dr.</option>
+                                        @php
+                                                $walkInTitle = \Modules\Frontdeskcrm\Support\GuestTitle::normalise(old('title'));
+                                            @endphp
+                                            @foreach (\Modules\Frontdeskcrm\Support\GuestTitle::options() as $titleValue => $titleLabel)
+                                                <option value="{{ $titleValue }}" @selected($walkInTitle === $titleValue)>{{ $titleLabel }}</option>
+                                            @endforeach
                                     </select>
                                 </div>
                                 <div class="col-md-5">
@@ -109,14 +111,18 @@
                                     <label class="form-label fw-semibold text-dark">Gender <span class="text-danger">*</span></label>
                                     <select class="form-select" name="gender" id="guestGender" required>
                                         <option value="">Select</option>
-                                        <option value="male" @selected(old('gender') == 'male')>Male</option>
-                                        <option value="female" @selected(old('gender') == 'female')>Female</option>
+                                        @php
+                                        $walkInGender = \Modules\Frontdeskcrm\Support\GuestGender::forRegistration(old('gender'));
+                                    @endphp
+                                    @foreach (\Modules\Frontdeskcrm\Support\GuestGender::registrationValues() as $genderValue)
+                                        <option value="{{ $genderValue }}" @selected($walkInGender === $genderValue)>{{ ucfirst($genderValue) }}</option>
+                                    @endforeach
                                     </select>
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label fw-semibold text-dark">Nationality</label>
                                     <input type="text" class="form-control" name="nationality"
-                                        value="{{ old('nationality', 'Nigerian') }}" placeholder="e.g. Nigerian">
+                                        value="{{ old('nationality', 'Nigeria') }}" placeholder="e.g. Nigeria">
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label fw-semibold text-dark">Date of Birth</label>
@@ -134,11 +140,12 @@
                                     <label class="form-label fw-semibold text-dark">ID Type</label>
                                     <select class="form-select" name="identification_type">
                                         <option value="">-- Select --</option>
-                                        <option value="International Passport" @selected(old('identification_type') == 'International Passport')>International Passport</option>
-                                        <option value="National ID (NIN)" @selected(old('identification_type') == 'National ID (NIN)')>National ID (NIN)</option>
-                                        <option value="Driver's License" @selected(old('identification_type') == "Driver's License")>Driver's License</option>
-                                        <option value="Voter's Card" @selected(old('identification_type') == "Voter's Card")>Voter's Card</option>
-                                        <option value="Other" @selected(old('identification_type') == 'Other')>Other</option>
+                                        @php
+                                            $walkInIdType = \Modules\Frontdeskcrm\Support\GuestIdentificationType::normalise(old('identification_type'));
+                                        @endphp
+                                        @foreach (\Modules\Frontdeskcrm\Support\GuestIdentificationType::options() as $idTypeValue => $idTypeLabel)
+                                            <option value="{{ $idTypeValue }}" @selected($walkInIdType === $idTypeValue)>{{ $idTypeLabel }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="col-md-3">

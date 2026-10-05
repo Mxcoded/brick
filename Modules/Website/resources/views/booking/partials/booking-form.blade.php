@@ -250,18 +250,16 @@
                         {{ $hasIdType ? 'disabled' : '' }}>
                         <option value="" disabled {{ empty($selIdType) ? 'selected' : '' }}>Select
                             ID Type...</option>
-                        <option value="International Passport"
-                            {{ $selIdType == 'International Passport' ? 'selected' : '' }}>International
-                            Passport</option>
-                        <option value="NIN" {{ $selIdType == 'NIN' ? 'selected' : '' }}>NIN (National
-                            ID)</option>
-                        <option value="Drivers License" {{ $selIdType == 'Drivers License' ? 'selected' : '' }}>
-                            Driver's License
-                        </option>
-                        <option value="Voters Card" {{ $selIdType == 'Voters Card' ? 'selected' : '' }}>
-                            Voter's Card</option>
-                        <option value="Other" {{ $selIdType == 'Other' ? 'selected' : '' }}>Other Govt ID
-                        </option>
+                        @php
+                            // Options and the stored value both come from the canonical
+                            // vocabulary, so a guest booked as "NIN" or "Drivers License"
+                            // still matches an option here instead of rendering unselected.
+                            $selIdTypeCanonical = \Modules\Frontdeskcrm\Support\GuestIdentificationType::normalise($selIdType ?? null);
+                        @endphp
+                        @foreach (\Modules\Frontdeskcrm\Support\GuestIdentificationType::options() as $idTypeValue => $idTypeLabel)
+                            <option value="{{ $idTypeValue }}"
+                                {{ $selIdTypeCanonical === $idTypeValue ? 'selected' : '' }}>{{ $idTypeLabel }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div class="col-md-6">
