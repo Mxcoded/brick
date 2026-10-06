@@ -5,8 +5,14 @@ namespace Modules\Frontdeskcrm\Tests\Feature;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Livewire\Livewire;
+use Modules\Frontdeskcrm\Filament\Resources\FolioResource;
+use Modules\Frontdeskcrm\Filament\Resources\FolioResource\Pages\ListFolios;
+use Modules\Frontdeskcrm\Filament\Resources\FolioResource\Pages\ViewFolio;
+use Modules\Frontdeskcrm\Filament\Resources\FolioResource\RelationManagers\FolioItemsRelationManager;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Frontdeskcrm\Models\RegistrationPayment;
 use Modules\Frontdeskcrm\Services\FolioService;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Models\RoomUnit;
@@ -30,6 +36,8 @@ class FolioTest extends TestCase
         $this->user = User::factory()->create();
         Permission::firstOrCreate(['name' => 'access_frontdesk_dashboard', 'guard_name' => 'web']);
         $this->user->givePermissionTo('access_frontdesk_dashboard');
+        Permission::firstOrCreate(['name' => 'folios.read', 'guard_name' => 'web']);
+        $this->user->givePermissionTo('folios.read');
         $this->registration = $this->makeRegistration();
     }
 
@@ -170,5 +178,102 @@ class FolioTest extends TestCase
         $response->assertOk();
         $response->assertSee($folio->folio_number);
         $response->assertSee('45,000');
+    }
+
+    public function test_total_charges_and_total_payments_accessors(): void
+    {
+        $folio = $this->folioService->ensureFolio($this->registration);
+        $this->folioService->postCharge($folio, [
+            'charge_type' => 'room', 'description' => 'Room charge',
+            'amount' => 50000, 'tax_code' => 'VAT', 'tax_rate' => 7.5,
+            'post_date' => Carbon::today(),
+        ], $this->user->id);
+
+        $folio->refresh();
+
+        $this->assertEqualsWithDelta(50000.0 + 3750.0, (float) $folio->total_charges, 0.01);
+
+        RegistrationPayment::create([
+            'registration_id' => $this->registration->id,
+            'payment_date' => Carbon::today(),
+            'amount' => 25000,
+            'payment_method' => 'cash',
+        ]);
+
+        $this->assertEquals(25000.0, (float) $folio->fresh()->total_payments);
+    }
+
+    public function test_filament_view_page_renders_folio_and_items(): void
+    {
+        $folio = $this->folioService->ensureFolio($this->registration);
+        $this->folioService->postCharge($folio, [
+            'charge_type' => 'room',
+            'description' => 'Test charge',
+            'amount' => 45000,
+            'post_date' => Carbon::today(),
+        ], $this->user->id);
+
+        $response = $this->actingAs($this->user)
+            ->get(ViewFolio::getUrl(['record' => $folio]));
+
+        $response->assertSuccessful();
+        $response->assertSee($folio->folio_number);
+        $response->assertSee($folio->registration->full_name);
+    }
+
+    public function test_folio_items_relation_manager_is_registered(): void
+    {
+        $this->assertContains(
+            FolioItemsRelationManager::class,
+            FolioResource::getRelations(),
+        );
+    }
+
+    public function test_folio_items_relation_manager_lists_items(): void
+    {
+        $folio = $this->folioService->ensureFolio($this->registration);
+        $this->folioService->postCharge($folio, [
+            'charge_type' => 'room',
+            'description' => 'Test charge',
+            'amount' => 45000,
+            'post_date' => Carbon::today(),
+        ], $this->user->id);
+
+        Livewire::actingAs($this->user)
+            ->test(
+                FolioItemsRelationManager::class,
+                [
+                    'ownerRecord' => $folio,
+                    'pageClass' => ViewFolio::class,
+                ],
+            )
+            ->assertSuccessful()
+            ->assertSee('Test charge')
+            ->assertSee('Room');
+    }
+
+    public function test_filament_list_page_renders_folio_columns(): void
+    {
+        $folio = $this->folioService->ensureFolio($this->registration);
+        $this->folioService->postCharge($folio, [
+            'charge_type' => 'room', 'description' => 'Test charge',
+            'amount' => 45000, 'post_date' => Carbon::today(),
+        ], $this->user->id);
+
+        $response = $this->actingAs($this->user)
+            ->get(ListFolios::getUrl());
+
+        $response->assertSuccessful();
+        $response->assertSee($folio->folio_number);
+        $response->assertSee($this->registration->guest->full_name);
+    }
+
+    public function test_filament_list_page_rejects_users_without_folio_permission(): void
+    {
+        $stranger = User::factory()->create();
+
+        $this->actingAs($stranger)
+            ->get(ListFolios::getUrl())
+            ->assertRedirect();
     }
 }

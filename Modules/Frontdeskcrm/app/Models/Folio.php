@@ -43,6 +43,16 @@ class Folio extends Model
         return $this->hasMany(Invoice::class);
     }
 
+    public function getTotalChargesAttribute(): float
+    {
+        return (float) $this->balance;
+    }
+
+    public function getTotalPaymentsAttribute(): float
+    {
+        return (float) ($this->registration?->payments()->sum('amount') ?? 0);
+    }
+
     public static function generateFolioNumber(): string
     {
         $prefix = 'FOL-'.now()->format('Ymd');
