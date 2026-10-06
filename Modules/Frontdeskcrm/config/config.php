@@ -62,6 +62,7 @@ return [
             'invoices.issue',
             'rate_codes.read',
             'guest_types.read',
+            'pms.settings.read',
         ],
 
         // Finance reads the billing picture and issues/credits documents, but
@@ -96,6 +97,7 @@ return [
             'invoices.read',
             'rate_codes.read',
             'guest_types.read',
+            'pms.settings.read',
         ],
     ],
 

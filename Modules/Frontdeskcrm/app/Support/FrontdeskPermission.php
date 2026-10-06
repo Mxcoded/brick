@@ -117,6 +117,12 @@ class FrontdeskPermission
 
     public const GUEST_TYPES_DELETE = 'guest_types.delete';
 
+    // ── PMS settings (the back-office switches) ─────────────────────────
+    public const PMS_SETTINGS_READ = 'pms.settings.read';
+
+    /** Change what the scheduler automatically charges. */
+    public const PMS_SETTINGS_UPDATE = 'pms.settings.update';
+
     /**
      * Resource => [action => permission], in the order the role editor should
      * display them. One order for the matrix, the seeders and the tests.
@@ -169,6 +175,10 @@ class FrontdeskPermission
             'create' => self::GUEST_TYPES_CREATE,
             'update' => self::GUEST_TYPES_UPDATE,
             'delete' => self::GUEST_TYPES_DELETE,
+        ],
+        'pms_settings' => [
+            'read' => self::PMS_SETTINGS_READ,
+            'update' => self::PMS_SETTINGS_UPDATE,
         ],
     ];
 
@@ -299,6 +309,7 @@ class FrontdeskPermission
             'invoices' => 'Invoices',
             'rate_codes' => 'Rate Codes',
             'guest_types' => 'Guest Types',
+            'pms_settings' => 'PMS Settings',
         ];
 
         // Verb => display action. Kept as a table so the role editor says what

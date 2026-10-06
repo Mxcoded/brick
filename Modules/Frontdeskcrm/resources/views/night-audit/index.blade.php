@@ -13,6 +13,18 @@
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
+    @php($autoChargeEnabled = (string) \Modules\Frontdeskcrm\Models\FrontdeskSetting::getValue('auto_charge_enabled', '0') === '1')
+    @php($autoChargeTime = (string) \Modules\Frontdeskcrm\Models\FrontdeskSetting::getValue('auto_charge_time', '02:00'))
+    <div class="alert {{ $autoChargeEnabled ? 'alert-success' : 'alert-secondary' }}">
+        @if ($autoChargeEnabled)
+            <i class="fas fa-clock me-1"></i>
+            Automatic room charging is <strong>on</strong> - posts nightly charges every day at <strong>{{ $autoChargeTime }}</strong>.
+        @else
+            <i class="fas fa-pause me-1"></i>
+            Automatic room charging is <strong>off</strong>. Room charges are only posted when you run an audit manually.
+        @endif
+    </div>
+
     {{-- Status Cards --}}
     <div class="row g-3 mb-4">
         <div class="col-md-3">

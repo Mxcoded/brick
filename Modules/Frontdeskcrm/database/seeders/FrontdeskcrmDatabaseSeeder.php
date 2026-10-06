@@ -20,6 +20,7 @@ class FrontdeskcrmDatabaseSeeder extends Seeder
             GuestsSeeder::class,
             RateAndSeasonSeeder::class,
             TaxCodeSeeder::class,
+            FrontdeskSettingSeeder::class,
         ]);
     }
 }
