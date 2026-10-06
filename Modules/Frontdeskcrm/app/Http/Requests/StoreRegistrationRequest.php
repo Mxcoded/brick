@@ -33,7 +33,7 @@ class StoreRegistrationRequest extends FormRequest
             'room_type_id' => 'nullable|exists:room_types,id',
             'room_unit_id' => 'nullable|exists:room_units,id',
             'room_rate' => 'nullable|numeric|min:0',
-            'billing_type' => 'nullable|string|in:consolidate,split',
+            'billing_type' => 'nullable|string|in:consolidate,individual',
             'payment_method' => 'nullable|string|max:50',
             'identification_type' => 'nullable|string|max:50',
             'identification_number' => 'nullable|string|max:50',

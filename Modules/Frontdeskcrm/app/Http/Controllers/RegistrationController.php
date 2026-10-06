@@ -6,6 +6,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -914,6 +915,9 @@ class RegistrationController extends Controller
             $reservationCode = 'FD'.date('y').strtoupper(Str::random(4));
         } while (Registration::where('reservation_code', $reservationCode)->exists());
 
+        $groupMembersData = $request->input('group_members', []);
+        $isGroupLead = $request->boolean('is_group_lead') || ! empty($groupMembersData);
+
         // 5. Create Registration
         $registration = Registration::create([
             'guest_id' => $guest->id,
@@ -929,6 +933,9 @@ class RegistrationController extends Controller
             'check_in' => $request->check_in,
             'check_out' => $request->check_out,
             'no_of_guests' => $request->no_of_guests,
+
+            // Grouping
+            'is_group_lead' => $isGroupLead,
 
             // Room Assignment
             'room_id' => $resolvedRoomId,
@@ -949,6 +956,51 @@ class RegistrationController extends Controller
             'stay_status' => $isFuture ? 'reserved' : 'draft_by_guest',
             'registration_date' => now(),
         ]);
+
+        // 5b. Create the walk-in's group members (each linked to a Guest record)
+        if ($isGroupLead && ! empty($groupMembersData)) {
+            foreach ($groupMembersData as $memberData) {
+                $memberName = trim((string) ($memberData['full_name'] ?? ''));
+                $memberPhone = $memberData['contact_number'] ?? null;
+                $memberEmail = $memberData['email'] ?? null;
+
+                // A Guest record requires a unique contact number, so skip
+                // incomplete member rows rather than failing the walk-in.
+                if ($memberName === '' || ! $memberPhone) {
+                    continue;
+                }
+
+                $memberGuest = null;
+
+                if ($memberPhone) {
+                    $memberGuest = Guest::where('contact_number', $memberPhone)->first();
+                }
+                if (! $memberGuest && $memberEmail) {
+                    $memberGuest = Guest::where('email', $memberEmail)->first();
+                }
+
+                if ($memberGuest) {
+                    $memberGuest->update(['full_name' => $memberName]);
+                } else {
+                    $memberGuest = Guest::create([
+                        'full_name' => $memberName,
+                        'contact_number' => $memberPhone,
+                        'email' => $memberEmail,
+                    ]);
+                }
+
+                Registration::create([
+                    'parent_registration_id' => $registration->id,
+                    'guest_id' => $memberGuest->id,
+                    'full_name' => $memberName,
+                    'contact_number' => $memberPhone,
+                    'email' => $memberEmail,
+                    'check_in' => $registration->check_in,
+                    'check_out' => $registration->check_out,
+                    'stay_status' => $isFuture ? 'reserved' : 'draft_by_guest',
+                ]);
+            }
+        }
 
         $this->sendNotification($registration);
 
@@ -1499,22 +1551,80 @@ class RegistrationController extends Controller
             return redirect()->route('frontdesk.registrations.show', $registration->parent_registration_id);
         }
 
-        $registration->load('guest', 'guestType', 'bookingSource', 'roomUnit', 'roomType', 'room', 'booking');
-        $groupMembers = Registration::with(['roomUnit', 'roomType', 'room'])->where('parent_registration_id', $registration->id)->get();
+        $registration->load('guest', 'guestType', 'bookingSource', 'roomUnit', 'roomType', 'room', 'booking', 'payments');
+        $groupMembers = Registration::with(['roomUnit', 'roomType', 'room', 'payments'])
+            ->where('parent_registration_id', $registration->id)
+            ->get();
 
-        // Calculate Group Financial Summary
-        $membersBill = $groupMembers->where('stay_status', 'checked_in')->sum('total_amount');
-        $leadPersonalBill = $registration->room_rate * $registration->no_of_nights; // Calculate the lead's personal bill
-
-        $groupFinancialSummary = [
-            // This is clearer for the UI
-            'lead_personal_bill' => $leadPersonalBill,
-            'members_bill' => $membersBill,
-            // The total outstanding is simply the lead's total_amount field, which holds the grand total
-            'total_outstanding' => $registration->total_amount,
-        ];
+        $groupFinancialSummary = $this->buildGroupFinancialSummary($registration, $groupMembers);
 
         return view('frontdeskcrm::registrations.show', compact('registration', 'groupMembers', 'groupFinancialSummary'));
+    }
+
+    /**
+     * Work out what the lead's stay is worth, what has been paid, and what is
+     * still owed - for the lead alone and for the whole party.
+     *
+     * This is the single source of truth for the financial figures on the
+     * registration screen. It has to understand two things that used to be
+     * handled inconsistently:
+     *
+     * - Under `consolidate`, finalize() writes the members' room charges into
+     *   the lead's `total_amount` and zeroes the members' own `total_amount`,
+     *   so the lead's field already IS the group figure. Under `individual` it
+     *   carries only the lead's own bill and the members must be added on.
+     *
+     * - finalize() copies an online deposit into `payments()` using the booking
+     *   reference as the marker. Once that has happened the deposit is already
+     *   inside the payments total, so adding `booking.amount_paid` separately
+     *   counts the same money twice and reports a balance that is too low.
+     *
+     * @param  Collection<int, Registration>  $groupMembers
+     * @return array<string, float|bool>
+     */
+    private function buildGroupFinancialSummary(Registration $registration, Collection $groupMembers): array
+    {
+        $leadOwnBill = (float) $registration->room_rate * (int) $registration->no_of_nights;
+
+        $checkedInMembers = $groupMembers->where('stay_status', 'checked_in');
+        $membersBill = (float) $checkedInMembers->sum(
+            fn (Registration $member): float => (float) $member->room_rate * (int) $member->no_of_nights
+        );
+
+        $leadBill = $registration->total_amount !== null
+            ? (float) $registration->total_amount
+            : $leadOwnBill;
+
+        $groupCharges = $registration->billing_type === 'individual'
+            ? $leadBill + $membersBill
+            : $leadBill;
+
+        $leadPayments = (float) $registration->payments->sum('amount');
+        $memberPayments = (float) $groupMembers->sum(
+            fn (Registration $member): float => (float) $member->payments->sum('amount')
+        );
+
+        $booking = $registration->booking;
+        $onlineAmountPaid = $booking ? (float) $booking->amount_paid : 0.0;
+        $bookingReference = $booking ? $booking->booking_reference : null;
+
+        $onlinePaymentSynced = $bookingReference !== null
+            && $registration->payments->contains(
+                fn ($payment): bool => $payment->reference === $bookingReference
+            );
+
+        $groupPaid = $leadPayments + $memberPayments + ($onlinePaymentSynced ? 0.0 : $onlineAmountPaid);
+
+        return [
+            'lead_personal_bill' => $leadOwnBill,
+            'members_bill' => $membersBill,
+            'group_charges' => $groupCharges,
+            'group_paid' => $groupPaid,
+            'balance_due' => $groupCharges - $groupPaid,
+            'online_payment_synced' => $onlinePaymentSynced,
+            'online_amount_paid' => $onlineAmountPaid,
+            'member_payments' => $memberPayments,
+        ];
     }
 
     /**
@@ -1778,7 +1888,7 @@ class RegistrationController extends Controller
         // 1. Validate
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
-            'contact_number' => ['nullable', 'string', 'max:20', new ValidPhoneNumber],
+            'contact_number' => ['required', 'string', 'max:20', new ValidPhoneNumber],
         ]);
 
         // 2. Ensure we are linking to the Lead
@@ -1788,19 +1898,34 @@ class RegistrationController extends Controller
             return back()->with('error', 'Cannot add member: This registration is not part of a group.');
         }
 
-        // 3. Create the Member Draft
+        // 3. Link (or create) the Guest record so the member lives in the guest databank
+        $memberPhone = $validated['contact_number'] ?? null;
+        $memberGuest = $memberPhone
+            ? Guest::where('contact_number', $memberPhone)->first()
+            : null;
+
+        if ($memberGuest) {
+            $memberGuest->update(['full_name' => $validated['full_name']]);
+        } else {
+            $memberGuest = Guest::create([
+                'full_name' => $validated['full_name'],
+                'contact_number' => $memberPhone,
+            ]);
+        }
+
+        // 4. Create the Member Draft
         $newMember = Registration::create([
             'parent_registration_id' => $parent->id,
-            'guest_id' => null, // Optional: You could do the Guest::firstOrCreate logic here if needed
+            'guest_id' => $memberGuest->id,
             'full_name' => $validated['full_name'],
-            'contact_number' => $validated['contact_number'],
+            'contact_number' => $memberPhone,
             'check_in' => now(), // Default to today
             'check_out' => $parent->check_out, // Sync with group checkout
             'stay_status' => 'draft_by_guest',
             'no_of_nights' => now()->diffInDays($parent->check_out) ?: 1,
         ]);
 
-        // 4. Redirect immediately to Finalize for this single person
+        // 5. Redirect immediately to Finalize for this single person
         return redirect()->route('frontdesk.registrations.finalize.form', $newMember)
             ->with('success', 'New member added! Please finalize their room and rate.');
     }

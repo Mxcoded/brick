@@ -98,10 +98,24 @@ class FolioService
         return $folio;
     }
 
+    /**
+     * Outstanding balance for a single registration.
+     *
+     * The folio is the ledger: every posted charge (night-audit room charges and
+     * incidentals alike) is a FolioItem that increments `folios.balance`, so
+     * that column is the authoritative total of what the stay has run up.
+     *
+     * The previous implementation added `charges()->sum('amount')` (the
+     * RegistrationCharge rows) on top of the folio balances - but those rows are
+     * the very items the folio balance is built from, so each charge was counted
+     * twice and the balance was overstated by one full set of charges.
+     */
     public function getOutstandingBalance(Registration $registration): float
     {
-        $totalCharges = $registration->charges()->sum('amount');
-        $totalCharges += $registration->folios()->where('status', 'open')->sum('balance');
+        $totalCharges = $registration->folios()
+            ->where('status', 'open')
+            ->sum('balance');
+
         $totalPaid = $registration->payments()->sum('amount');
 
         return max(0, $totalCharges - $totalPaid);

@@ -302,7 +302,7 @@
                                     <label class="form-label fw-semibold text-dark">Billing Type</label>
                                     <select class="form-select" name="billing_type">
                                         <option value="consolidate" @selected(old('billing_type', 'consolidate') == 'consolidate')>Consolidated (Single Bill)</option>
-                                        <option value="split" @selected(old('billing_type') == 'split')>Split by Guest</option>
+                                        <option value="individual" @selected(old('billing_type') == 'individual')>Split by Guest</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
@@ -354,6 +354,75 @@
                                             <span class="fw-bold fs-5 text-gold" id="previewTotal">₦0.00</span>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ===== GROUP BOOKING ===== --}}
+                    <div class="card border-0 shadow-sm rounded-3 mt-4">
+                        <div class="card-header bg-white border-bottom py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-light p-2 me-3">
+                                    <i class="fas fa-users text-gold"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0 text-dark fw-bold">Group Booking</h5>
+                                    <p class="text-muted small mb-0">Optional — register the party as one stay.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="is_group_lead" value="1"
+                                    id="isGroupLead" @checked(old('is_group_lead'))>
+                                <label class="form-check-label fw-semibold text-dark" for="isGroupLead">
+                                    This guest is the group lead
+                                </label>
+                                <div class="form-text">
+                                    The group lead carries the master bill for the stay. Members added below are
+                                    linked to this lead's registration.
+                                </div>
+                            </div>
+
+                            <div id="groupMembersWrap" class="{{ old('is_group_lead') ? '' : 'd-none' }}">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label fw-semibold text-dark mb-0">Group Members</label>
+                                    <button type="button" class="btn btn-sm btn-outline-gold" id="addGroupMemberBtn">
+                                        <i class="fas fa-user-plus me-1"></i> Add Member
+                                    </button>
+                                </div>
+
+                                <div id="groupMembersList">
+                                    @foreach ((array) old('group_members', []) as $i => $member)
+                                        <div class="row g-2 align-items-end border rounded p-2 mb-2 bg-light group-member-row">
+                                            <div class="col-md-4">
+                                                <label class="form-label small mb-1">Full Name <span
+                                                        class="text-danger">*</span></label>
+                                                <input type="text" class="form-control form-control-sm"
+                                                    name="group_members[{{ $i }}][full_name]"
+                                                    value="{{ old('group_members.'.$i.'.full_name', $member['full_name'] ?? '') }}"
+                                                    required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small mb-1">Phone</label>
+                                                <input type="text" class="form-control form-control-sm"
+                                                    name="group_members[{{ $i }}][contact_number]"
+                                                    value="{{ old('group_members.'.$i.'.contact_number', $member['contact_number'] ?? '') }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small mb-1">Email</label>
+                                                <input type="email" class="form-control form-control-sm"
+                                                    name="group_members[{{ $i }}][email]"
+                                                    value="{{ old('group_members.'.$i.'.email', $member['email'] ?? '') }}">
+                                            </div>
+                                            <div class="col-md-1 text-end">
+                                                <button type="button"
+                                                    class="btn btn-sm btn-outline-danger remove-member-btn"
+                                                    title="Remove"><i class="fas fa-times"></i></button>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
                         </div>
@@ -603,6 +672,69 @@
                     }
                 });
             });
+
+            // ==================== GROUP BOOKING ====================
+            const isGroupLead = document.getElementById('isGroupLead');
+            const groupMembersWrap = document.getElementById('groupMembersWrap');
+            const groupMembersList = document.getElementById('groupMembersList');
+            const addGroupMemberBtn = document.getElementById('addGroupMemberBtn');
+
+            function memberRowHtml(index) {
+                return '' +
+                    '<div class="row g-2 align-items-end border rounded p-2 mb-2 bg-light group-member-row">' +
+                        '<div class="col-md-4">' +
+                            '<label class="form-label small mb-1">Full Name <span class="text-danger">*</span></label>' +
+                            '<input type="text" class="form-control form-control-sm" required' +
+                                ' name="group_members[' + index + '][full_name]" value="">' +
+                        '</div>' +
+                        '<div class="col-md-3">' +
+                            '<label class="form-label small mb-1">Phone</label>' +
+                            '<input type="text" class="form-control form-control-sm"' +
+                                ' name="group_members[' + index + '][contact_number]" value="">' +
+                        '</div>' +
+                        '<div class="col-md-4">' +
+                            '<label class="form-label small mb-1">Email</label>' +
+                            '<input type="email" class="form-control form-control-sm"' +
+                                ' name="group_members[' + index + '][email]" value="">' +
+                        '</div>' +
+                        '<div class="col-md-1 text-end">' +
+                            '<button type="button" class="btn btn-sm btn-outline-danger remove-member-btn" title="Remove">' +
+                                '<i class="fas fa-times"></i>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>';
+            }
+
+            function nextMemberIndex() {
+                let max = -1;
+                groupMembersList.querySelectorAll('input[name^="group_members["]').forEach(function(input) {
+                    const match = input.name.match(/group_members\[(\d+)\]/);
+                    if (match) max = Math.max(max, parseInt(match[1], 10));
+                });
+                return max + 1;
+            }
+
+            if (isGroupLead) {
+                isGroupLead.addEventListener('change', function() {
+                    groupMembersWrap.classList.toggle('d-none', !this.checked);
+                    if (this.checked && !groupMembersList.querySelector('.group-member-row')) {
+                        groupMembersList.insertAdjacentHTML('beforeend', memberRowHtml(nextMemberIndex()));
+                    }
+                });
+            }
+
+            if (addGroupMemberBtn) {
+                addGroupMemberBtn.addEventListener('click', function() {
+                    groupMembersList.insertAdjacentHTML('beforeend', memberRowHtml(nextMemberIndex()));
+                });
+            }
+
+            if (groupMembersList) {
+                groupMembersList.addEventListener('click', function(e) {
+                    const removeBtn = e.target.closest('.remove-member-btn');
+                    if (removeBtn) removeBtn.closest('.group-member-row').remove();
+                });
+            }
         });
     </script>
 @endsection

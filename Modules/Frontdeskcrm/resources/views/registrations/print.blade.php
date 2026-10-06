@@ -256,7 +256,17 @@
             // Staff payments
             $staffPayments = $registration->payments ?? collect();
             $staffPaymentsTotal = $staffPayments->sum('amount');
-            $totalPaid = $registration->total_paid ?? ($onlineAmountPaid + $staffPaymentsTotal);
+
+            // finalize() copies the online deposit into payments(), keyed on the booking
+            // reference, so it is already inside $staffPaymentsTotal by the time a guest
+            // checks in. Adding it separately would count that deposit twice.
+            $bookingReference = $hasOnlineBooking ? $registration->booking->booking_reference : null;
+            $onlinePaymentSynced = $bookingReference !== null
+                && $staffPayments->contains(function ($payment) use ($bookingReference) {
+                    return $payment->reference === $bookingReference;
+                });
+
+            $totalPaid = $staffPaymentsTotal + ($onlinePaymentSynced ? 0 : $onlineAmountPaid);
             
             $balanceDue = $totalCharges - $totalPaid;
             $hasCredit = $balanceDue < 0;

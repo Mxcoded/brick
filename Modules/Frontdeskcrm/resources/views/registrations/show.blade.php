@@ -260,13 +260,21 @@ $checkoutConfirmMsg = $isGroupLead
                                 }
                             }
                             
-                            // Staff recorded payments
+                            // Staff recorded payments on the lead
                             $staffPayments = $registration->payments->sum('amount');
-                            
-                            // Total paid and balance
-                            $totalPaid = $onlineAmountPaid + $staffPayments;
-                            $totalCharges = $registration->total_amount ?? $roomCharges;
-                            $balanceDue = $totalCharges - $totalPaid;
+                            $memberPayments = $groupFinancialSummary['member_payments'];
+
+                            // finalize() copies the online deposit into payments() using the booking
+                            // reference as the marker. Once that has happened the deposit has its own
+                            // line in the list below, so the separate "Online Payment" row would be
+                            // a second copy of the same money.
+                            $onlinePaymentSynced = $groupFinancialSummary['online_payment_synced'];
+
+                            // Group-aware totals, computed once in RegistrationController::show() so
+                            // the balance block and the sidebar summary cannot drift apart.
+                            $totalCharges = $groupFinancialSummary['group_charges'];
+                            $totalPaid = $groupFinancialSummary['group_paid'];
+                            $balanceDue = $groupFinancialSummary['balance_due'];
                             $hasCredit = $balanceDue < 0;
                         @endphp
                         
@@ -305,13 +313,15 @@ $checkoutConfirmMsg = $isGroupLead
                                 <p class="text-muted small text-uppercase fw-bold mb-2">Payments Received</p>
                                 <div class="bg-white rounded p-2">
                                     @if ($hasOnlineBooking && $onlineAmountPaid > 0)
-                                        <div class="d-flex justify-content-between small py-1">
-                                            <span>
-                                                <i class="fas fa-globe text-info me-1"></i>Online Payment
-                                                <small class="text-muted">({{ $registration->booking->booking_reference }})</small>
-                                            </span>
-                                            <span class="text-success">+ ₦{{ number_format($onlineAmountPaid, 2) }}</span>
-                                        </div>
+                                        @unless ($onlinePaymentSynced)
+                                            <div class="d-flex justify-content-between small py-1">
+                                                <span>
+                                                    <i class="fas fa-globe text-info me-1"></i>Online Payment
+                                                    <small class="text-muted">({{ $registration->booking->booking_reference }})</small>
+                                                </span>
+                                                <span class="text-success">+ ₦{{ number_format($onlineAmountPaid, 2) }}</span>
+                                            </div>
+                                        @endunless
                                         @if ($originalBookingNights != $nights)
                                             <div class="small text-muted ps-3 py-1 fst-italic">
                                                 <i class="fas fa-info-circle me-1"></i>
@@ -336,12 +346,21 @@ $checkoutConfirmMsg = $isGroupLead
                                             <span class="text-success">+ ₦{{ number_format($payment->amount, 2) }}</span>
                                         </div>
                                     @empty
-                                        @if (!$hasOnlineBooking || $onlineAmountPaid <= 0)
+                                        @if ((!$hasOnlineBooking || $onlineAmountPaid <= 0) && $memberPayments <= 0)
                                             <div class="text-center text-muted fst-italic small py-2">
                                                 No payments recorded yet
                                             </div>
                                         @endif
                                     @endforelse
+
+                                    @if ($memberPayments > 0)
+                                        <div class="d-flex justify-content-between small py-1">
+                                            <span>
+                                                <i class="fas fa-users text-success me-1"></i>Group member payments
+                                            </span>
+                                            <span class="text-success">+ ₦{{ number_format($memberPayments, 2) }}</span>
+                                        </div>
+                                    @endif
                                     
                                     <div class="d-flex justify-content-between small py-1 border-top fw-bold text-success">
                                         <span>Total Paid</span>
@@ -576,10 +595,16 @@ $checkoutConfirmMsg = $isGroupLead
                                         class="fw-bold text-dark">₦{{ number_format($groupFinancialSummary['members_bill'], 2) }}</span>
                                 </div>
                                 <div
+                                    class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3 border-top">
+                                    <div><span class="text-muted small">Group Total Charges</span></div>
+                                    <span
+                                        class="fw-bold text-dark">₦{{ number_format($groupFinancialSummary['group_charges'], 2) }}</span>
+                                </div>
+                                <div
                                     class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3 bg-light rounded-2 mt-2">
                                     <div><span class="fw-bold text-dark">Total Outstanding</span></div>
                                     <span
-                                        class="fw-bold fs-5 text-dark">₦{{ number_format($groupFinancialSummary['total_outstanding'], 2) }}</span>
+                                        class="fw-bold fs-5 {{ $groupFinancialSummary['balance_due'] > 0 ? 'text-danger' : 'text-success' }}">₦{{ number_format($groupFinancialSummary['balance_due'], 2) }}</span>
                                 </div>
                             </div>
                         </div>
@@ -792,8 +817,8 @@ $checkoutConfirmMsg = $isGroupLead
                                         placeholder="Guest Name">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Contact Number (Optional)</label>
-                                    <input type="text" name="contact_number" class="form-control"
+                                    <label class="form-label">Contact Number <span class="text-danger">*</span></label>
+                                    <input type="text" name="contact_number" class="form-control" required
                                         placeholder="+234...">
                                 </div>
                                 <div class="alert alert-info small">
