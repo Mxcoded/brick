@@ -268,6 +268,57 @@ class FolioTest extends TestCase
         $response->assertSee($this->registration->guest->full_name);
     }
 
+    public function test_filament_view_page_can_post_a_charge_to_the_folio(): void
+    {
+        Permission::firstOrCreate(['name' => 'folios.post_charge', 'guard_name' => 'web']);
+        $this->user->givePermissionTo('folios.post_charge');
+
+        $folio = $this->folioService->ensureFolio($this->registration);
+
+        Livewire::actingAs($this->user)
+            ->test(ViewFolio::class, ['record' => $folio->getRouteKey()])
+            ->assertSuccessful()
+            ->assertActionVisible('postCharge')
+            ->callAction('postCharge', [
+                'charge_type' => 'laundry',
+                'description' => 'Express laundry service',
+                'amount' => 5000,
+                'tax_code' => null,
+                'tax_rate' => 0,
+                'post_date' => Carbon::today()->toDateString(),
+            ])
+            ->assertNotified();
+
+        $folio->refresh();
+
+        $this->assertEqualsWithDelta(5000.0, (float) $folio->balance, 0.01);
+        $this->assertSame(1, $folio->items()->count());
+        $this->assertSame('laundry', $folio->items()->first()->charge_type);
+        $this->assertSame($this->user->id, $folio->items()->first()->posted_by);
+    }
+
+    public function test_post_charge_action_hidden_without_folio_post_charge_permission(): void
+    {
+        $folio = $this->folioService->ensureFolio($this->registration);
+
+        Livewire::actingAs($this->user)
+            ->test(ViewFolio::class, ['record' => $folio->getRouteKey()])
+            ->assertActionHidden('postCharge');
+    }
+
+    public function test_post_charge_action_hidden_on_closed_folio(): void
+    {
+        Permission::firstOrCreate(['name' => 'folios.post_charge', 'guard_name' => 'web']);
+        $this->user->givePermissionTo('folios.post_charge');
+
+        $folio = $this->folioService->ensureFolio($this->registration);
+        $this->folioService->closeFolio($folio);
+
+        Livewire::actingAs($this->user)
+            ->test(ViewFolio::class, ['record' => $folio->getRouteKey()])
+            ->assertActionHidden('postCharge');
+    }
+
     public function test_filament_list_page_rejects_users_without_folio_permission(): void
     {
         $stranger = User::factory()->create();
