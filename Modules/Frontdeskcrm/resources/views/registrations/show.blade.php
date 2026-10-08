@@ -4,6 +4,7 @@
 
 @section('page-content')
     <div class="container-fluid py-4">
+        @include('frontdeskcrm::registrations.partials._notifications')
         @php
             // ### ROBUST CALCULATIONS ###
             $isGroupLead = $registration->is_group_lead;
@@ -436,6 +437,12 @@ $checkoutConfirmMsg = $isGroupLead
                                     data-bs-target="#paymentModal">
                                     <i class="fas fa-money-bill-wave me-1"></i> Record a Payment
                                 </button>
+                                @if ($folioOutstanding > 0 && $cityLedgerAccounts->isNotEmpty())
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+                                        data-bs-target="#postToCityLedgerModal">
+                                        <i class="fas fa-landmark me-1"></i> Post to City Ledger
+                                    </button>
+                                @endif
                                 <form action="{{ route('frontdesk.registrations.checkout', $registration) }}"
                                     method="POST" class="d-inline"
                                     onsubmit="return confirm('{{ $checkoutConfirmMsg }}');">
@@ -886,6 +893,46 @@ $checkoutConfirmMsg = $isGroupLead
         </div>
     </div>
 </div>
+
+@if ($cityLedgerAccounts->isNotEmpty())
+    <div class="modal fade" id="postToCityLedgerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-landmark me-2"></i>Post Balance to City Ledger</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('frontdesk.registrations.post-to-city-ledger', $registration) }}" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        @if ($folioOutstanding > 0)
+                            <div class="alert alert-warning mb-3">
+                                The folio balance of <strong>₦{{ number_format($folioOutstanding, 2) }}</strong> will be
+                                billed to the selected account. The guest's folio is then settled and the account owes
+                                the amount.
+                            </div>
+                        @endif
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">City Ledger Account <span class="text-danger">*</span></label>
+                            <select name="city_ledger_account_id" class="form-select" required>
+                                <option value="" selected disabled>Select account…</option>
+                                @foreach ($cityLedgerAccounts as $account)
+                                    <option value="{{ $account->id }}">
+                                        {{ $account->name }} (Outstanding ₦{{ number_format($account->balance, 2) }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-secondary fw-bold">Move to City Ledger</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
 
 <div class="modal fade" id="chargeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">

@@ -9,6 +9,7 @@ use Modules\Frontdeskcrm\Models\CityLedgerAccount;
 use Modules\Frontdeskcrm\Models\CityLedgerTransaction;
 use Modules\Frontdeskcrm\Models\Invoice;
 use Modules\Frontdeskcrm\Models\Registration;
+use Modules\Frontdeskcrm\Models\RegistrationPayment;
 
 /**
  * Corporate accounts that owe the hotel money.
@@ -25,7 +26,8 @@ use Modules\Frontdeskcrm\Models\Registration;
 class CityLedgerService
 {
     public function __construct(
-        protected PostingService $posting
+        protected PostingService $posting,
+        protected FolioService $folioService,
     ) {}
 
     public function createAccount(array $data, ?int $userId = null): CityLedgerAccount
@@ -109,6 +111,64 @@ class CityLedgerService
             userId: $userId,
             date: $date,
         );
+    }
+
+    /**
+     * Move a guest's unpaid folio balance onto a city ledger account.
+     *
+     * The stay does not settle for cash now. The hotel books an accounts
+     * receivable charge on the account for exactly the folio's outstanding, and
+     * offsets the guest's folio with a matching zero-cash payment, so the room
+     * charges stay itemised on the folio (which now reads a zero balance) while
+     * the named account owes the transferred amount. Repeating the call is
+     * refused so the balance can never be posted twice.
+     */
+    public function postOutstandingToLedger(
+        CityLedgerAccount $account,
+        Registration $registration,
+        ?int $userId = null,
+        ?string $date = null
+    ): CityLedgerTransaction {
+        $outstanding = $this->folioService->getOutstandingBalance($registration);
+
+        if ($registration->city_ledger_transferred_at !== null) {
+            throw new InvalidArgumentException('This stay has already been transferred to a city ledger account.');
+        }
+
+        if ($outstanding <= 0) {
+            throw new InvalidArgumentException('There is no outstanding balance to transfer.');
+        }
+
+        $date = $date ?? now()->toDateString();
+
+        return DB::transaction(function () use ($account, $registration, $outstanding, $userId, $date) {
+            $transaction = $this->postCharge(
+                account: $account,
+                amount: $outstanding,
+                description: 'Guest folio transfer: '.$this->registrationLabel($registration),
+                reference: 'REG-'.$registration->id,
+                registrationId: $registration->id,
+                userId: $userId,
+                date: $date,
+            );
+
+            RegistrationPayment::create([
+                'registration_id' => $registration->id,
+                'amount' => $outstanding,
+                'payment_method' => 'city_ledger',
+                'reference' => 'CL-'.$account->code.'-'.$transaction->id,
+                'notes' => 'Folio balance moved to city ledger account '.$account->name,
+                'received_by' => $userId,
+                'payment_date' => $date,
+            ]);
+
+            $registration->update([
+                'city_ledger_account_id' => $account->id,
+                'city_ledger_transferred_at' => now(),
+            ]);
+
+            return $transaction;
+        });
     }
 
     /**

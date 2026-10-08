@@ -114,6 +114,7 @@ Route::prefix('frontdesk')
             // --- REOPEN ROUTE (From No-Show or Checked-Out) ---
             Route::post('/{registration}/reopen', [RegistrationController::class, 'reopen'])->name('reopen');
             Route::post('/{registration}/post-charge', [RegistrationController::class, 'postCharge'])->name('post-charge');
+            Route::post('/{registration}/post-to-city-ledger', [RegistrationController::class, 'postToCityLedger'])->name('post-to-city-ledger');
 
             // --- NEW "DELETE DRAFT" ROUTE (Feature) ---
             Route::delete('/{registration}', [RegistrationController::class, 'destroy'])->name('destroy');

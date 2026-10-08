@@ -73,6 +73,7 @@ class Registration extends Model implements AuditableContract
         'nights_posted',
         'last_audit_date',
         'city_ledger_account_id',
+        'city_ledger_transferred_at',
     ];
 
     protected $casts = [
@@ -89,6 +90,7 @@ class Registration extends Model implements AuditableContract
         'is_group_lead' => 'boolean',
         'nights_posted' => 'integer',
         'last_audit_date' => 'date',
+        'city_ledger_transferred_at' => 'datetime',
     ];
 
     protected static function boot()
