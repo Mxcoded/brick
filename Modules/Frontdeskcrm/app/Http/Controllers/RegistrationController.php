@@ -13,17 +13,21 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Modules\Finance\Services\PostingService;
 use Modules\Frontdeskcrm\Emails\RegistrationStatusMail;
 use Modules\Frontdeskcrm\Http\Requests\FinalizeRegistrationRequest;
 use Modules\Frontdeskcrm\Http\Requests\StoreRegistrationRequest;
 use Modules\Frontdeskcrm\Models\BookingSource;
+use Modules\Frontdeskcrm\Models\CityLedgerAccount;
 use Modules\Frontdeskcrm\Models\Guest;
 use Modules\Frontdeskcrm\Models\GuestType;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Models\RegistrationCharge;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Frontdeskcrm\Services\CityLedgerService;
 use Modules\Frontdeskcrm\Services\FolioService;
+use Modules\Frontdeskcrm\Services\StayService;
 use Modules\Frontdeskcrm\Support\GuestGender;
 use Modules\Frontdeskcrm\Support\GuestIdentificationType;
 use Modules\Frontdeskcrm\Support\GuestNationality;
@@ -1558,7 +1562,16 @@ class RegistrationController extends Controller
 
         $groupFinancialSummary = $this->buildGroupFinancialSummary($registration, $groupMembers);
 
-        return view('frontdeskcrm::registrations.show', compact('registration', 'groupMembers', 'groupFinancialSummary'));
+        $cityLedgerAccounts = CityLedgerAccount::where('status', 'active')->orderBy('name')->get();
+        $folioOutstanding = app(FolioService::class)->getOutstandingBalance($registration);
+
+        return view('frontdeskcrm::registrations.show', compact(
+            'registration',
+            'groupMembers',
+            'groupFinancialSummary',
+            'cityLedgerAccounts',
+            'folioOutstanding',
+        ));
     }
 
     /**
@@ -1734,6 +1747,26 @@ class RegistrationController extends Controller
             ->with('success', $message);
     }
 
+    /**
+     * Move the guest's unpaid folio balance onto a city ledger account.
+     */
+    public function postToCityLedger(Request $request, Registration $registration)
+    {
+        $validated = $request->validate([
+            'city_ledger_account_id' => 'required|integer|exists:city_ledger_accounts,id',
+        ]);
+
+        $account = CityLedgerAccount::findOrFail($validated['city_ledger_account_id']);
+
+        try {
+            app(CityLedgerService::class)->postOutstandingToLedger($account, $registration, auth()->id());
+        } catch (InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Folio balance moved to the city ledger account.');
+    }
+
     public function getActiveMembers(Registration $registration)
     {
         if (! $registration->is_group_lead) {
@@ -1760,7 +1793,6 @@ class RegistrationController extends Controller
      */
     public function adjustStay(Request $request, Registration $registration)
     {
-        // 1. VALIDATE THE INCOMING REQUEST
         $validated = $request->validate([
             'new_check_out' => 'required|date|after_or_equal:'.$registration->check_in->format('Y-m-d'),
             'members_to_extend' => 'nullable|array',
@@ -1769,112 +1801,20 @@ class RegistrationController extends Controller
 
         $newCheckOut = Carbon::parse($validated['new_check_out']);
 
-        // Prevent unnecessary database writes
         if ($newCheckOut->isSameDay($registration->check_out)) {
             return back()->with('info', 'The new check-out date is the same as the current one. No changes were made.');
         }
 
-        // =========================================================
-        // 2. AVAILABILITY CHECK (Prevent Conflicts on Extension)
-        // =========================================================
-
-        // Helper: Check if a room is occupied between the *current* checkout and *new* checkout
-        // We only care if we are extending (New Date > Old Date)
-        $checkConflict = function ($roomId, $currentCheckOut, $newCheckOut, $ignoreRegId) {
-            if (! $roomId || $newCheckOut->lte($currentCheckOut)) {
-                return false;
-            }
-
-            return Registration::where('room_id', $roomId)
-                ->where('stay_status', 'checked_in')
-                ->where('id', '!=', $ignoreRegId)
-                ->where(function ($query) use ($currentCheckOut, $newCheckOut) {
-                    // Check if any booking starts or stays during the extension period
-                    // Interval: [Old Checkout, New Checkout]
-                    $query->whereBetween('check_in', [$currentCheckOut, $newCheckOut])
-                        ->orWhereBetween('check_out', [$currentCheckOut, $newCheckOut])
-                        ->orWhere(function ($q) use ($currentCheckOut, $newCheckOut) {
-                            $q->where('check_in', '<=', $currentCheckOut)
-                                ->where('check_out', '>=', $newCheckOut);
-                        });
-                })->exists();
-        };
-
-        // A) Check Lead Guest Conflict
-        if ($checkConflict($registration->room_id, $registration->check_out, $newCheckOut, $registration->id)) {
-            $roomName = $registration->room?->name ?? 'the room';
-
-            return back()->with('error', "Cannot extend stay. $roomName is booked by another guest during this period.");
+        try {
+            app(StayService::class)->adjustStay(
+                $registration,
+                $newCheckOut,
+                $validated['members_to_extend'] ?? [],
+            );
+        } catch (InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        // B) Check Selected Group Members Conflict
-        if ($registration->is_group_lead && isset($validated['members_to_extend'])) {
-            $membersToUpdate = Registration::whereIn('id', $validated['members_to_extend'])
-                ->where('parent_registration_id', $registration->id)
-                ->get();
-
-            foreach ($membersToUpdate as $member) {
-                if ($checkConflict($member->room_id, $member->check_out, $newCheckOut, $member->id)) {
-                    $memberRoom = $member->room?->name ?? 'their room';
-
-                    return back()->with('error', "Cannot extend stay for {$member->full_name}. $memberRoom is booked by another guest.");
-                }
-            }
-        } else {
-            // Empty collection for loop below if no members selected
-            $membersToUpdate = collect([]);
-        }
-
-        // =========================================================
-        // 3. APPLY UPDATES (Only if no conflicts found)
-        // =========================================================
-
-        // Update Lead
-        $nights = $registration->check_in->diffInDays($newCheckOut);
-        // Minimum 1 night charge even if same-day checkout
-        if ($nights < 1) {
-            $nights = 1;
-        }
-
-        $registration->update([
-            'check_out' => $newCheckOut,
-            'no_of_nights' => $nights,
-            'total_amount' => $registration->room_rate * $nights,
-        ]);
-
-        // Update Members
-        foreach ($membersToUpdate as $member) {
-            $memberNights = $member->check_in->diffInDays($newCheckOut);
-            if ($memberNights < 1) {
-                $memberNights = 1;
-            }
-
-            $member->update([
-                'check_out' => $newCheckOut,
-                'no_of_nights' => $memberNights,
-                'total_amount' => $member->room_rate * $memberNights,
-            ]);
-        }
-
-        // 4. FIND THE GROUP LEAD AND RECALCULATE THE ENTIRE GROUP'S BILL
-        $leadRegistration = null;
-        if ($registration->is_group_lead) {
-            $leadRegistration = $registration;
-        } elseif ($registration->parent_registration_id) {
-            $leadRegistration = $registration->parent;
-        }
-
-        if ($leadRegistration) {
-            // Recalculate lead's personal bill
-            $leadPersonalBill = $leadRegistration->room_rate * $leadRegistration->no_of_nights;
-
-            // Sum all active children
-            $membersTotalBill = $leadRegistration->children()->where('stay_status', 'checked_in')->sum('total_amount');
-
-            $leadRegistration->update([
-                'total_amount' => $leadPersonalBill + $membersTotalBill,
-            ]);
-        }
         $this->sendNotification($registration);
 
         return back()->with('success', 'Stay details have been successfully updated.');
