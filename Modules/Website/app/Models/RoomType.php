@@ -24,6 +24,7 @@ class RoomType extends Model implements AuditableContract
         'price',
         'rate_code_id',
         'capacity',
+        'sell_limit',
         'base_occupancy',
         'extra_adult_fee',
         'extra_child_fee',
@@ -41,6 +42,7 @@ class RoomType extends Model implements AuditableContract
         'is_featured' => 'boolean',
         'is_active' => 'boolean',
         'price' => 'decimal:2',
+        'sell_limit' => 'integer',
         'base_occupancy' => 'integer',
         'extra_adult_fee' => 'decimal:2',
         'extra_child_fee' => 'decimal:2',
@@ -165,6 +167,24 @@ class RoomType extends Model implements AuditableContract
     public function getTotalUnitsAttribute()
     {
         return $this->units()->count();
+    }
+
+    /**
+     * The number of how many of this type may be sold on a date.
+     *
+     * Falls back to the physical unit count when no explicit sell limit is set.
+     * A limit above the unit count permits overbooking; one below sells the room
+     * type out before the physical rooms are gone.
+     */
+    public function getEffectiveSellLimitAttribute(): int
+    {
+        if ($this->sell_limit !== null) {
+            return max(0, (int) $this->sell_limit);
+        }
+
+        return $this->relationLoaded('units')
+            ? $this->units->count()
+            : $this->units()->count();
     }
 
     /**

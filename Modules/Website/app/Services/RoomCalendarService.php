@@ -40,6 +40,60 @@ class RoomCalendarService
     ];
 
     /**
+     * Canonical booking-source labels used by the inventory source filter.
+     *
+     * These mirror `BookingSource` names seeded by the Frontdeskcrm module, so
+     * a breakdown keyed by these labels lines up with the source dropdown that
+     * the inventory calendar builds from the `booking_sources` table.
+     */
+    const SOURCE_KEYS = ['Website', 'Direct Walk-in', 'OTA', 'Travel Agent', 'Referral'];
+
+    /**
+     * Normalize a website Booking's free-text `source` column to a canonical label.
+     */
+    public function bookingSourceKey($booking): string
+    {
+        $raw = trim((string) $booking->source);
+
+        if ($raw === '') {
+            return 'Direct Walk-in';
+        }
+
+        $lower = strtolower($raw);
+
+        return match (true) {
+            str_contains($lower, 'ota') => 'OTA',
+            str_contains($lower, 'website') => 'Website',
+            str_contains($lower, 'walk') => 'Direct Walk-in',
+            str_contains($lower, 'agent') => 'Travel Agent',
+            str_contains($lower, 'referral') => 'Referral',
+            default => $raw,
+        };
+    }
+
+    /**
+     * Resolve the source label for a frontdesk registration.
+     *
+     * Registrations carry a structured `booking_source_id`; a walk-up without one
+     * falls back to the linked web booking's source before assuming walk-in.
+     */
+    public function registrationSourceKey($registration): string
+    {
+        if ($registration->booking_source_id) {
+            $name = $registration->bookingSource?->name;
+            if ($name) {
+                return $name;
+            }
+        }
+
+        if ($registration->booking) {
+            return $this->bookingSourceKey($registration->booking);
+        }
+
+        return 'Direct Walk-in';
+    }
+
+    /**
      * Get all room units (with fallback to legacy rooms).
      */
     public function getRoomUnits(): Collection
@@ -92,7 +146,8 @@ class RoomCalendarService
             return collect();
         }
 
-        return Registration::whereNotIn('stay_status', ['cancelled', 'no_show'])
+        return Registration::with(['bookingSource', 'booking'])
+            ->whereNotIn('stay_status', ['cancelled', 'no_show'])
             ->where(function ($q) use ($start, $end) {
                 $q->whereBetween('check_in', [$start, $end])
                     ->orWhereBetween('check_out', [$start, $end])
@@ -545,6 +600,7 @@ class RoomCalendarService
         Collection $inventoryBlocks
     ): array {
         $totalUnits = $roomType->units->count();
+        $sellLimit = $roomType->effective_sell_limit;
         $dateStr = $date->format('Y-m-d');
 
         // Count booked units from registrations
@@ -573,6 +629,9 @@ class RoomCalendarService
             return $date->gte($checkIn) && $date->lt($checkOut);
         })->count();
 
+        // Per-source breakdown so the grid can re-tally without a round trip
+        $bySource = $this->buildSourceBreakdown($roomType, $date, $bookings, $registrations);
+
         // Get inventory blocks for this date and room type
         $blocks = $inventoryBlocks->filter(function ($block) use ($roomType, $date) {
             return $block->room_type_id == $roomType->id && $block->coversDate($date);
@@ -586,20 +645,27 @@ class RoomCalendarService
         $maxStay = $blocks->whereNotNull('max_stay')->min('max_stay');
 
         $totalBooked = $bookedFromRegistrations + $bookedFromBookings;
-        $totalBlocked = min($blockedCount, $totalUnits - $totalBooked); // Can't block more than available
-        $available = max(0, $totalUnits - $totalBooked - $totalBlocked);
+        // Blocked rooms are carved out of the sell limit (not the unit count), so
+        // an overbooked type can still hold rooms back without going negative.
+        $totalBlocked = min($blockedCount, max(0, $sellLimit - $totalBooked));
+        $available = max(0, $sellLimit - $totalBooked - $totalBlocked);
 
-        // Calculate availability percentage and status
-        $availabilityPercent = $totalUnits > 0 ? round(($available / $totalUnits) * 100) : 0;
+        // Calculate availability percentage and status against the sell limit
+        $availabilityPercent = $sellLimit > 0 ? round(($available / $sellLimit) * 100) : 0;
         $status = $this->getAvailabilityStatus($availabilityPercent, $stopSell);
 
         return [
             'date' => $dateStr,
             'total' => $totalUnits,
+            'units' => $totalUnits,
+            'sell_limit' => $sellLimit,
             'booked' => $totalBooked,
+            'by_source' => $bySource,
             'blocked' => $totalBlocked,
             'available' => $available,
             'percent' => $availabilityPercent,
+            'overbooked' => $totalBooked > $totalUnits,
+            'oversold' => ($totalBooked + $totalBlocked) >= $sellLimit && $sellLimit > 0,
             'status' => $status,
             'color' => $this->getAvailabilityColor($status),
             'stop_sell' => $stopSell,
@@ -609,6 +675,59 @@ class RoomCalendarService
             'max_stay' => $maxStay,
             'restrictions' => $this->formatRestrictions($minStay, $maxStay, $closedToArrival, $closedToDeparture),
         ];
+    }
+
+    /**
+     * Count a room type's bookings on a date grouped by booking source.
+     *
+     * Registrations (physical stays) take priority over the website booking they
+     * came from, mirroring how the booked count itself is derived, so the source
+     * split always sums to `booked`.
+     *
+     * @return array<string, int>
+     */
+    protected function buildSourceBreakdown(
+        RoomType $roomType,
+        Carbon $date,
+        Collection $bookings,
+        Collection $registrations
+    ): array {
+        $bySource = [];
+
+        $tally = function (string $key) use (&$bySource): void {
+            $bySource[$key] = ($bySource[$key] ?? 0) + 1;
+        };
+
+        foreach ($registrations as $reg) {
+            if ($reg->room_type_id != $roomType->id) {
+                continue;
+            }
+            $checkIn = Carbon::parse($reg->check_in);
+            $checkOut = Carbon::parse($reg->check_out);
+
+            if ($date->gte($checkIn) && $date->lt($checkOut)) {
+                $tally($this->registrationSourceKey($reg));
+            }
+        }
+
+        foreach ($bookings as $booking) {
+            if ($booking->room_type_id != $roomType->id) {
+                continue;
+            }
+            if ($registrations->where('booking_id', $booking->id)->isNotEmpty()) {
+                continue;
+            }
+            $checkIn = Carbon::parse($booking->check_in_date);
+            $checkOut = Carbon::parse($booking->check_out_date);
+
+            if ($date->gte($checkIn) && $date->lt($checkOut)) {
+                $tally($this->bookingSourceKey($booking));
+            }
+        }
+
+        ksort($bySource);
+
+        return $bySource;
     }
 
     /**
@@ -708,6 +827,243 @@ class RoomCalendarService
     }
 
     /**
+     * Build the unified (shared) room calendar matrix.
+     *
+     * One pass yields everything the combined grid needs: per room type an
+     * availability aggregate per date (with source split, sell limit and
+     * overbooking flags) plus each physical unit's per-date status events. The
+     * page can then re-tally by source client-side without another request.
+     *
+     * @return array{room_types: array, days: array, daily_totals: array, summary: array, sources: array}
+     */
+    public function getUnifiedMatrix(Carbon $start, Carbon $end): array
+    {
+        $days = $this->generateDateHeaders($start, $end);
+        $roomTypes = RoomType::with(['units' => fn ($q) => $q->orderBy('room_number')])
+            ->active()
+            ->ordered()
+            ->get();
+        $bookings = $this->getBookings($start, $end)->loadMissing('roomUnit');
+        $registrations = $this->getRegistrations($start, $end)->loadMissing('roomUnit');
+        $inventoryBlocks = RoomInventoryBlock::overlapping($start, $end)->get();
+
+        $groups = [];
+        $sourceKeys = [];
+
+        foreach ($roomTypes as $roomType) {
+            // Per-date availability aggregate
+            $aggregate = [];
+            foreach ($days as $day) {
+                $dateData = $this->calculateDateInventory(
+                    $roomType,
+                    Carbon::parse($day['date']),
+                    $bookings,
+                    $registrations,
+                    $inventoryBlocks
+                );
+                $aggregate[$day['date']] = $dateData;
+                foreach (array_keys($dateData['by_source']) as $source) {
+                    $sourceKeys[$source] = true;
+                }
+            }
+
+            // Per-unit rows with occupancy events
+            $unitRows = [];
+            foreach ($roomType->units as $unit) {
+                $unitRows[] = [
+                    'id' => $unit->id,
+                    'room_number' => $unit->room_number,
+                    'floor' => $unit->floor,
+                    'status' => $unit->status,
+                    'events' => $this->buildUnitEvents($unit, $bookings, $registrations, $start, $end),
+                ];
+            }
+
+            $groups[] = [
+                'id' => $roomType->id,
+                'name' => $roomType->name,
+                'price' => (float) $roomType->display_price,
+                'total_units' => $roomType->units->count(),
+                'sell_limit' => $roomType->effective_sell_limit,
+                'unit_rows' => $unitRows,
+                'dates' => $aggregate,
+            ];
+        }
+
+        return [
+            'room_types' => $groups,
+            'days' => $days,
+            'dates' => $days,
+            'daily_totals' => $this->buildDailyTotals($groups, $days),
+            'summary' => $this->calculateInventorySummary(
+                collect($groups)->keyBy('id')->all(),
+                $start,
+                $end
+            ),
+            'sources' => array_values(array_unique(array_merge(self::SOURCE_KEYS, array_keys($sourceKeys)))),
+        ];
+    }
+
+    /**
+     * Build occupancy events for a single physical unit across a date range.
+     *
+     * Mirrors {@see buildRoomCalendarData()} but adds the booking source and a
+     * stable guest/checkout payload for the unified grid's tooltips and the
+     * client-side source filter.
+     */
+    protected function buildUnitEvents($unit, Collection $bookings, Collection $registrations, Carbon $start, Carbon $end): array
+    {
+        $events = [];
+        $isLegacy = $unit->is_legacy ?? false;
+        $unitId = $unit->id;
+        $roomNumber = $unit->room_number;
+
+        if (in_array($unit->status, ['maintenance', 'blocked'])) {
+            $events[] = [
+                'id' => 'unit-'.$unitId,
+                'title' => ucfirst($unit->status),
+                'start' => $start->toDateString(),
+                'end' => $end->toDateString(),
+                'status' => $unit->status,
+                'color' => $unit->status === 'maintenance' ? self::STATUS_COLORS['maintenance'] : '#94a3b8',
+                'source' => null,
+                'guest' => ucfirst($unit->status),
+                'checkout' => null,
+            ];
+        }
+
+        foreach ($registrations as $reg) {
+            if ($this->registrationMatchesRoom($reg, $unitId, $roomNumber, $isLegacy)) {
+                $events[] = [
+                    'id' => 'reg-'.$reg->id,
+                    'title' => "{$reg->full_name} ({$this->getStatusLabel($reg->stay_status)})",
+                    'start' => $this->formatDate($reg->check_in),
+                    'end' => $this->formatDate($reg->check_out),
+                    'status' => $reg->stay_status,
+                    'color' => $this->getStatusColor($reg->stay_status),
+                    'source' => $this->registrationSourceKey($reg),
+                    'guest' => $reg->full_name,
+                    'checkout' => $this->formatDate($reg->check_out),
+                ];
+            }
+        }
+
+        foreach ($bookings as $booking) {
+            if ($this->bookingMatchesRoom($booking, $unitId, $isLegacy)) {
+                $hasRegistration = $registrations->where('booking_id', $booking->id)->isNotEmpty();
+
+                if (! $hasRegistration) {
+                    $events[] = [
+                        'id' => 'bk-'.$booking->id,
+                        'title' => "{$booking->guest_name} (Online)",
+                        'start' => $this->formatDate($booking->check_in_date),
+                        'end' => $this->formatDate($booking->check_out_date),
+                        'status' => 'online_booking',
+                        'color' => self::STATUS_COLORS['online_booking'],
+                        'source' => $this->bookingSourceKey($booking),
+                        'guest' => $booking->guest_name,
+                        'checkout' => $this->formatDate($booking->check_out_date),
+                    ];
+                }
+            }
+        }
+
+        return $events;
+    }
+
+    /**
+     * Sum availability across room types for each date.
+     */
+    protected function buildDailyTotals(array $groups, array $days): array
+    {
+        $totals = [];
+
+        foreach ($days as $day) {
+            $dateStr = $day['date'];
+            $totalAvailable = 0;
+            $totalUnits = 0;
+            $totalSellLimit = 0;
+            $totalBooked = 0;
+            $totalBlocked = 0;
+
+            foreach ($groups as $group) {
+                $dateData = $group['dates'][$dateStr] ?? null;
+                if (! $dateData) {
+                    continue;
+                }
+                $totalAvailable += $dateData['available'];
+                $totalUnits += $dateData['total'];
+                $totalSellLimit += $dateData['sell_limit'];
+                $totalBooked += $dateData['booked'];
+                $totalBlocked += $dateData['blocked'];
+            }
+
+            $totals[$dateStr] = [
+                'total' => $totalUnits,
+                'sell_limit' => $totalSellLimit,
+                'available' => $totalAvailable,
+                'booked' => $totalBooked,
+                'blocked' => $totalBlocked,
+                'overbooked' => $totalBooked > $totalUnits,
+                'percent' => $totalSellLimit > 0 ? round(($totalAvailable / $totalSellLimit) * 100) : 0,
+            ];
+        }
+
+        return $totals;
+    }
+
+    /**
+     * Re-tally a unified matrix for a single booking source.
+     *
+     * Availability is recomputed against the sell limit using only the bookings
+     * attributed to `$source`; unit-level occupancy events are filtered to that
+     * source (status events such as maintenance are always kept). Passing null
+     * or an empty source returns the original matrix untouched.
+     */
+    public function filterMatrixBySource(array $matrix, ?string $source): array
+    {
+        if ($source === null || $source === '') {
+            return $matrix;
+        }
+
+        foreach ($matrix['room_types'] as &$group) {
+            foreach ($group['dates'] as &$dateData) {
+                $sourceBooked = $dateData['by_source'][$source] ?? 0;
+                $available = max(0, $dateData['sell_limit'] - $sourceBooked - $dateData['blocked']);
+                $percent = $dateData['sell_limit'] > 0
+                    ? round(($available / $dateData['sell_limit']) * 100)
+                    : 0;
+
+                $dateData['booked'] = $sourceBooked;
+                $dateData['available'] = $available;
+                $dateData['percent'] = $percent;
+                $dateData['status'] = $this->getAvailabilityStatus($percent, $dateData['stop_sell']);
+                $dateData['color'] = $this->getAvailabilityColor($dateData['status']);
+            }
+            unset($dateData);
+
+            foreach ($group['unit_rows'] as &$unit) {
+                $unit['events'] = array_values(array_filter(
+                    $unit['events'],
+                    fn ($event) => $event['source'] === null || $event['source'] === $source
+                ));
+            }
+            unset($unit);
+        }
+        unset($group);
+
+        $matrix['daily_totals'] = $this->buildDailyTotals($matrix['room_types'], $matrix['days']);
+        $matrix['summary'] = $this->calculateInventorySummary(
+            collect($matrix['room_types'])->keyBy('id')->all(),
+            Carbon::parse($matrix['days'][0]['date'] ?? 'now'),
+            Carbon::parse($matrix['days'][count($matrix['days']) - 1]['date'] ?? 'now')
+        );
+        $matrix['source'] = $source;
+
+        return $matrix;
+    }
+
+    /**
      * Calculate summary statistics for the inventory period.
      */
     protected function calculateInventorySummary(array $inventory, Carbon $start, Carbon $end): array
@@ -716,6 +1072,8 @@ class RoomCalendarService
         $bookedRoomNights = 0;
         $blockedRoomNights = 0;
         $availableRoomNights = 0;
+        $sellLimitRoomNights = 0;
+        $overbookedNights = 0;
 
         foreach ($inventory as $roomType) {
             foreach ($roomType['dates'] as $dateData) {
@@ -723,15 +1081,22 @@ class RoomCalendarService
                 $bookedRoomNights += $dateData['booked'];
                 $blockedRoomNights += $dateData['blocked'];
                 $availableRoomNights += $dateData['available'];
+                $sellLimitRoomNights += $dateData['sell_limit'] ?? $dateData['total'];
+
+                if ($dateData['overbooked'] ?? false) {
+                    $overbookedNights++;
+                }
             }
         }
 
         return [
             'period' => $start->format('M d').' - '.$end->format('M d, Y'),
             'total_room_nights' => $totalRoomNights,
+            'sell_limit_room_nights' => $sellLimitRoomNights,
             'booked_room_nights' => $bookedRoomNights,
             'blocked_room_nights' => $blockedRoomNights,
             'available_room_nights' => $availableRoomNights,
+            'overbooked_nights' => $overbookedNights,
             'occupancy_rate' => $totalRoomNights > 0
                 ? round(($bookedRoomNights / $totalRoomNights) * 100, 1)
                 : 0,

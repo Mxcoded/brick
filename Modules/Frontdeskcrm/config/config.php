@@ -76,6 +76,8 @@ return [
             'invoices.issue',
             'invoices.void',
             'invoices.credit_note',
+            'rate_codes.read',
+            'seasons.read',
         ],
 
         'senior_accountant' => [
@@ -97,6 +99,7 @@ return [
             'invoices.read',
             'rate_codes.read',
             'guest_types.read',
+            'seasons.read',
             'pms.settings.read',
         ],
     ],

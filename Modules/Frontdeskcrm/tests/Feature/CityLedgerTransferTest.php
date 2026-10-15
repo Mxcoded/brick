@@ -208,4 +208,101 @@ class CityLedgerTransferTest extends TestCase
         $this->assertEqualsWithDelta(0.0, $account->fresh()->balance, 0.01);
         $this->assertSame(0, DB::table('registration_payments')->where('payment_method', 'city_ledger')->count());
     }
+
+    public function test_controller_creates_and_links_an_account_from_the_stay(): void
+    {
+        $registration = $this->makeRegistration();
+        $registration->update([
+            'company_name' => 'Acme Oil Ltd',
+            'email' => 'ap@acme.test',
+            'home_address' => '12 Marina, Lagos',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->from(route('frontdesk.registrations.show', $registration))
+            ->post(route('frontdesk.registrations.create-city-ledger-account', $registration), [
+                'name' => 'Acme Oil Ltd',
+                'contact_person' => 'Emeka Nwosu',
+                'email' => 'ap@acme.test',
+                'address' => '12 Marina, Lagos',
+                'credit_limit' => 0,
+                'payment_terms' => 'net30',
+                'status' => 'active',
+            ]);
+
+        $response->assertRedirect(route('frontdesk.registrations.show', $registration));
+        $response->assertSessionHas('success');
+
+        $registration->refresh();
+
+        $this->assertNotNull($registration->city_ledger_account_id);
+
+        $account = CityLedgerAccount::find($registration->city_ledger_account_id);
+
+        $this->assertSame('Acme Oil Ltd', $account->name);
+        $this->assertSame('12 Marina, Lagos', $account->address);
+        $this->assertSame('ap@acme.test', $account->email);
+    }
+
+    public function test_controller_reuses_an_existing_account_with_the_same_name_and_email(): void
+    {
+        $existing = $this->service->createAccount([
+            'name' => 'Acme Oil Ltd',
+            'email' => 'ap@acme.test',
+        ], $this->user->id);
+
+        $registration = $this->makeRegistration();
+
+        $this->actingAs($this->user)
+            ->from(route('frontdesk.registrations.show', $registration))
+            ->post(route('frontdesk.registrations.create-city-ledger-account', $registration), [
+                'name' => 'Acme Oil Ltd',
+                'email' => 'ap@acme.test',
+            ])
+            ->assertSessionHas('success');
+
+        $registration->refresh();
+
+        $this->assertSame($existing->id, $registration->city_ledger_account_id);
+        $this->assertSame(1, CityLedgerAccount::where('name', 'Acme Oil Ltd')->count());
+    }
+
+    public function test_controller_refuses_to_link_an_account_once_the_stay_is_transferred(): void
+    {
+        $account = $this->makeAccount();
+        $registration = $this->makeStayWithBalance(charges: 50_000);
+        $this->service->postOutstandingToLedger($account, $registration, $this->user->id);
+
+        $response = $this->actingAs($this->user)
+            ->from(route('frontdesk.registrations.show', $registration))
+            ->post(route('frontdesk.registrations.create-city-ledger-account', $registration), [
+                'name' => 'Another Co',
+            ]);
+
+        $response->assertSessionHas('error');
+        $this->assertNull(CityLedgerAccount::where('name', 'Another Co')->first());
+    }
+
+    public function test_show_page_offers_the_create_city_ledger_account_button(): void
+    {
+        $registration = $this->makeRegistration();
+
+        $this->actingAs($this->user)
+            ->get(route('frontdesk.registrations.show', $registration))
+            ->assertOk()
+            ->assertSee('Create City Ledger Account')
+            ->assertSee('createCityLedgerModal');
+    }
+
+    public function test_show_page_hides_the_button_once_the_stay_is_transferred(): void
+    {
+        $account = $this->makeAccount();
+        $registration = $this->makeStayWithBalance(charges: 10_000);
+        $this->service->postOutstandingToLedger($account, $registration, $this->user->id);
+
+        $this->actingAs($this->user)
+            ->get(route('frontdesk.registrations.show', $registration->fresh()))
+            ->assertOk()
+            ->assertDontSee('createCityLedgerModal');
+    }
 }

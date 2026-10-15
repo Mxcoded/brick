@@ -25,6 +25,10 @@ return [
         'tax_payable' => '2200',
         'service_charge_revenue' => '4400',
 
+        // Fallback revenue for anything that is not a module's own sales, e.g.
+        // hotel incidentals (laundry, minibar, breakfast) billed on a folio.
+        'other_income' => '4900',
+
         // Revenue account per module (credited on a sale / cash receipt)
         'revenue' => [
             'restaurant' => '4100',

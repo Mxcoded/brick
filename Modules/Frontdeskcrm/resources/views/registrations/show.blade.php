@@ -443,6 +443,12 @@ $checkoutConfirmMsg = $isGroupLead
                                         <i class="fas fa-landmark me-1"></i> Post to City Ledger
                                     </button>
                                 @endif
+                                @if (is_null($registration->city_ledger_transferred_at))
+                                    <button type="button" class="btn btn-outline-dark" data-bs-toggle="modal"
+                                        data-bs-target="#createCityLedgerModal">
+                                        <i class="fas fa-plus-circle me-1"></i> Create City Ledger Account
+                                    </button>
+                                @endif
                                 <form action="{{ route('frontdesk.registrations.checkout', $registration) }}"
                                     method="POST" class="d-inline"
                                     onsubmit="return confirm('{{ $checkoutConfirmMsg }}');">
@@ -932,6 +938,85 @@ $checkoutConfirmMsg = $isGroupLead
             </div>
         </div>
     </div>
+@endif
+
+@if (is_null($registration->city_ledger_transferred_at))
+@php
+    $ledgerDefaultName = trim((string) $registration->company_name)
+        ?: trim(($registration->title ?? '').' '.($registration->full_name ?? ''));
+@endphp
+<div class="modal fade" id="createCityLedgerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>Create City Ledger Account</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('frontdesk.registrations.create-city-ledger-account', $registration) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p class="text-muted small">
+                        Details are lifted from this stay and its guest. Saving creates the account and bills this stay
+                        to it. An account with the same name and email is reused instead of duplicated.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Account Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control"
+                                value="{{ old('name', $ledgerDefaultName) }}" maxlength="255" required>
+                            <small class="text-muted">Company when the stay has one, otherwise the guest.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Contact Person</label>
+                            <input type="text" name="contact_person" class="form-control"
+                                value="{{ old('contact_person', $registration->full_name) }}" maxlength="255">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Email</label>
+                            <input type="email" name="email" class="form-control"
+                                value="{{ old('email', $registration->email) }}" maxlength="255">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Phone</label>
+                            <input type="text" name="phone" class="form-control"
+                                value="{{ old('phone', $registration->contact_number) }}" maxlength="255">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Address</label>
+                            <textarea name="address" class="form-control" rows="2"
+                                maxlength="1000">{{ old('address', $registration->home_address) }}</textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Tax ID</label>
+                            <input type="text" name="tax_id" class="form-control" value="{{ old('tax_id') }}" maxlength="255">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Credit Limit</label>
+                            <input type="number" name="credit_limit" class="form-control" step="0.01" min="0"
+                                value="{{ old('credit_limit', 0) }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Payment Terms</label>
+                            <input type="text" name="payment_terms" class="form-control"
+                                value="{{ old('payment_terms', 'net30') }}" maxlength="255">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="active" {{ old('status', 'active') === 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark fw-bold">Create &amp; Link Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endif
 
 <div class="modal fade" id="chargeModal" tabindex="-1" aria-hidden="true">

@@ -55,6 +55,9 @@
                     <button class="btn btn-refresh" onclick="loadInventoryData()" title="Refresh Data">
                         <i class="fas fa-sync-alt"></i>
                     </button>
+                    <a class="btn btn-export" id="export-btn" href="{{ route('website.admin.inventory.export') }}" title="Export to CSV / Excel">
+                        <i class="fas fa-file-csv me-1"></i>Export
+                    </a>
                 </div>
             </div>
         </div>
@@ -80,22 +83,55 @@
                         <span class="legend-dot blocked"></span>
                         <span>Blocked</span>
                     </span>
+                    <span class="legend-sep"></span>
+                    <span class="legend-item">
+                        <span class="legend-dot event-inhouse"></span>
+                        <span>In-House</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot event-reserved"></span>
+                        <span>Reserved</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot event-online"></span>
+                        <span>Online</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot event-overbook"></span>
+                        <span>Overbooked</span>
+                    </span>
+                    <span class="legend-item" id="source-legend" style="display:none;">
+                        <span class="badge bg-dark" id="source-legend-label"></span>
+                    </span>
                 </div>
-                
-                {{-- Quick Actions (shown when cells selected) --}}
-                <div class="quick-actions-group" id="quick-actions" style="display: none !important;">
-                    <button class="btn btn-action btn-action-success" onclick="showBlockModal('open')">
-                        <i class="fas fa-lock-open"></i> Open
-                    </button>
-                    <button class="btn btn-action btn-action-danger" onclick="quickAction('stop-sell')">
-                        <i class="fas fa-ban"></i> Stop Sell
-                    </button>
-                    <button class="btn btn-action btn-action-warning" onclick="showBlockModal()">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button class="btn btn-action btn-action-secondary" onclick="clearSelection()">
-                        <i class="fas fa-times"></i>
-                    </button>
+
+                <div class="d-flex align-items-center gap-2">
+                    {{-- Booking Source Filter --}}
+                    <div class="d-flex align-items-center gap-2 source-filter-group">
+                        <label class="small text-muted mb-0 text-nowrap"><i class="fas fa-filter me-1"></i>Source</label>
+                        <select class="form-select form-select-sm" id="source-filter" onchange="onSourceFilterChange()">
+                            <option value="">All sources</option>
+                            @foreach($bookingSources as $source)
+                                <option value="{{ $source }}">{{ $source }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Quick Actions (shown when cells selected) --}}
+                    <div class="quick-actions-group" id="quick-actions" style="display: none !important;">
+                        <button class="btn btn-action btn-action-success" onclick="showBlockModal('open')">
+                            <i class="fas fa-lock-open"></i> Open
+                        </button>
+                        <button class="btn btn-action btn-action-danger" onclick="quickAction('stop-sell')">
+                            <i class="fas fa-ban"></i> Stop Sell
+                        </button>
+                        <button class="btn btn-action btn-action-warning" onclick="showBlockModal()">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn btn-action btn-action-secondary" onclick="clearSelection()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -746,6 +782,166 @@
         font-weight: 500;
     }
     
+    /* Export Button */
+    .btn-export {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border: none;
+        padding: 0.5rem 0.9rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .btn-export:hover {
+        background: var(--inv-accent);
+        color: var(--inv-primary);
+        transform: translateY(-1px);
+    }
+    
+    /* Legend extras */
+    .legend-sep {
+        width: 1px;
+        height: 18px;
+        background: var(--inv-border);
+        align-self: center;
+    }
+    
+    .legend-dot.event-inhouse { background: #0ea5e9; }
+    .legend-dot.event-reserved { background: #8b5cf6; }
+    .legend-dot.event-online { background: #f97316; }
+    .legend-dot.event-overbook { background: repeating-linear-gradient(45deg, #ef4444, #ef4444 3px, #b91c1c 3px, #b91c1c 6px); }
+    
+    .source-filter-group .form-select-sm {
+        border-radius: 8px;
+        border-color: var(--inv-border);
+        font-size: 0.8rem;
+        padding-top: 0.3rem;
+        padding-bottom: 0.3rem;
+    }
+    
+    /* Room type (aggregate) row */
+    .type-row .room-type-cell {
+        background: linear-gradient(135deg, var(--inv-primary) 0%, var(--inv-secondary) 100%);
+    }
+    
+    .type-row .room-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .expand-btn {
+        background: rgba(255,255,255,0.15);
+        border: none;
+        color: white;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: transform 0.2s;
+        flex: 0 0 auto;
+    }
+    
+    .expand-btn:hover { background: rgba(255,255,255,0.3); }
+    .expand-btn.collapsed i { transform: rotate(-90deg); }
+    
+    .sell-limit-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.65rem;
+        background: rgba(197,165,114,0.25);
+        color: var(--inv-accent-light);
+        padding: 1px 6px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    
+    /* Unit rows */
+    .unit-row .unit-cell {
+        position: sticky;
+        left: 0;
+        z-index: 15;
+        background: #f8fafc;
+        text-align: left !important;
+        padding: 4px 10px 4px 28px !important;
+        border: 1px solid var(--inv-border) !important;
+        min-width: 220px;
+        width: 220px;
+        max-width: 220px;
+    }
+    
+    .unit-row .unit-number {
+        font-weight: 700;
+        font-size: 0.8rem;
+        color: var(--inv-primary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .unit-row .unit-floor {
+        font-size: 0.65rem;
+        color: var(--inv-muted);
+    }
+    
+    .unit-row td.unit-bar,
+    .unit-row td.unit-empty {
+        height: 28px;
+        border: 1px solid var(--inv-border);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .unit-row td.unit-bar {
+        color: white;
+        font-size: 0.62rem;
+        font-weight: 600;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        padding: 0 6px !important;
+        text-align: left !important;
+        cursor: default;
+    }
+    
+    .unit-row td.unit-bar .bar-checkout {
+        opacity: 0.75;
+        font-weight: 500;
+    }
+    
+    .unit-row td.unit-empty {
+        background: #ffffff;
+    }
+    
+    .unit-row td.unit-empty.today-col {
+        background-color: rgba(197, 165, 114, 0.1) !important;
+    }
+    
+    /* Overbooked availability cell */
+    .inventory-cell.overbooked {
+        background: repeating-linear-gradient(45deg, #ef4444, #ef4444 6px, #b91c1c 6px, #b91c1c 12px) !important;
+        color: white;
+    }
+    
+    .overbook-badge {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        font-size: 0.55rem;
+        background: #7f1d1d;
+        color: white;
+        border-radius: 4px;
+        padding: 0 3px;
+        font-weight: 700;
+    }
+    
     /* Tooltip */
     .inventory-tooltip {
         position: fixed;
@@ -1058,8 +1254,11 @@ let viewMode = 'monthly';
 let selectedCells = new Set();
 let isDragging = false;
 let dragStartCell = null;
+let inventoryData = null;   // raw unified matrix as returned by the API
+let activeSource = '';      // booking source filter ('' = all)
 
 const API_URL = '{{ route("website.admin.inventory.api.data") }}';
+const EXPORT_URL = '{{ route("website.admin.inventory.export") }}';
 const BLOCK_URL = '{{ route("website.admin.inventory.block") }}';
 const RESTRICT_URL = '{{ route("website.admin.inventory.restrict") }}';
 const OPEN_URL = '{{ route("website.admin.inventory.open") }}';
@@ -1097,17 +1296,20 @@ async function apiRequest(url, options = {}) {
 function loadInventoryData() {
     const { start, end } = getDateRange();
     updateMonthLabel();
-    
+    updateExportLink();
+
     apiRequest(`${API_URL}?start=${start}&end=${end}`)
         .then(data => {
             if (data.error) {
                 throw new Error(data.message + (data.file ? ' (File: ' + data.file + ':' + data.line + ')' : ''));
             }
-            if (!data.room_types || !data.dates) {
-                throw new Error('Invalid data format - missing room_types or dates');
+            if (!data.room_types || !data.days) {
+                throw new Error('Invalid data format - missing room_types or days');
             }
-            renderInventoryGrid(data);
-            updateSummaryStats(data.summary);
+            inventoryData = data;
+            const view = filterBySource(data, activeSource);
+            renderInventoryGrid(view);
+            updateSummaryStats(view.summary);
         })
         .catch(err => {
             console.error('Failed to load inventory:', err);
@@ -1122,6 +1324,92 @@ function loadInventoryData() {
                     </button>
                 </td></tr>`;
         });
+}
+
+// Re-tally the raw matrix for the selected booking source (mirrors the
+// server-side filterMatrixBySource used by the CSV export).
+function filterBySource(data, source) {
+    if (!source) return data;
+
+    const copy = JSON.parse(JSON.stringify(data));
+
+    copy.room_types.forEach(type => {
+        Object.keys(type.dates).forEach(dateKey => {
+            const d = type.dates[dateKey];
+            const sourceBooked = (d.by_source && d.by_source[source]) || 0;
+            const available = Math.max(0, d.sell_limit - sourceBooked - d.blocked);
+            const percent = d.sell_limit > 0 ? Math.round((available / d.sell_limit) * 100) : 0;
+            d.booked = sourceBooked;
+            d.available = available;
+            d.percent = percent;
+            d.status = (percent <= 0) ? 'full' : (percent <= 30 ? 'limited' : 'available');
+            d.overbooked = sourceBooked > d.total;
+        });
+
+        type.unit_rows.forEach(unit => {
+            unit.events = unit.events.filter(e => e.source === null || e.source === source);
+        });
+    });
+
+    // Recompute daily totals + summary from the filtered room types
+    copy.daily_totals = {};
+    let totalNights = 0, bookedNights = 0, blockedNights = 0, availNights = 0;
+    copy.days.forEach(day => {
+        let available = 0, total = 0, sellLimit = 0, booked = 0, blocked = 0;
+        copy.room_types.forEach(type => {
+            const d = type.dates[day.date];
+            if (!d) return;
+            available += d.available;
+            total += d.total;
+            sellLimit += d.sell_limit;
+            booked += d.booked;
+            blocked += d.blocked;
+        });
+        copy.daily_totals[day.date] = {
+            total, sell_limit: sellLimit, available, booked, blocked,
+            overbooked: booked > total,
+            percent: sellLimit > 0 ? Math.round((available / sellLimit) * 100) : 0
+        };
+        totalNights += total; bookedNights += booked; blockedNights += blocked; availNights += available;
+    });
+
+    copy.summary = {
+        ...data.summary,
+        total_room_nights: totalNights,
+        booked_room_nights: bookedNights,
+        blocked_room_nights: blockedNights,
+        available_room_nights: availNights,
+        occupancy_rate: totalNights > 0 ? Math.round((bookedNights / totalNights) * 1000) / 10 : 0
+    };
+
+    return copy;
+}
+
+function onSourceFilterChange() {
+    activeSource = document.getElementById('source-filter').value;
+    const legend = document.getElementById('source-legend');
+    const legendLabel = document.getElementById('source-legend-label');
+    if (activeSource) {
+        legendLabel.textContent = 'Filtered: ' + activeSource;
+        legend.style.display = 'inline-flex';
+    } else {
+        legend.style.display = 'none';
+    }
+    if (inventoryData) {
+        const view = filterBySource(inventoryData, activeSource);
+        renderInventoryGrid(view);
+        updateSummaryStats(view.summary);
+    }
+    updateExportLink();
+}
+
+function updateExportLink() {
+    const { start, end } = getDateRange();
+    const link = document.getElementById('export-btn');
+    if (!link) return;
+    let url = `${EXPORT_URL}?start=${start}&end=${end}`;
+    if (activeSource) url += `&source=${encodeURIComponent(activeSource)}`;
+    link.href = url;
 }
 
 function getDateRange() {
@@ -1180,10 +1468,10 @@ function renderInventoryGrid(data) {
     const body = document.getElementById('inventory-body');
     const footer = document.getElementById('inventory-footer');
     const today = formatDate(new Date());
-    
-    // Build header row with new styling
-    let headerHtml = '<th class="room-type-cell">Room Type</th>';
-    data.dates.forEach(day => {
+
+    // Build header row
+    let headerHtml = '<th class="room-type-cell">Room</th>';
+    data.days.forEach(day => {
         const classes = ['date-cell'];
         if (day.date === today) classes.push('today');
         if (day.is_weekend) classes.push('weekend');
@@ -1193,20 +1481,25 @@ function renderInventoryGrid(data) {
         </th>`;
     });
     headerRow.innerHTML = headerHtml;
-    
-    // Build room type rows with enhanced styling
+
+    // Aggregate row + per-unit occupancy rows for each room type
     let bodyHtml = '';
     data.room_types.forEach(roomType => {
-        bodyHtml += `<tr data-room-type="${roomType.id}">`;
+        const price = roomType.price ? '₦' + Number(roomType.price).toLocaleString() : '';
+        bodyHtml += `<tr class="type-row" data-room-type="${roomType.id}">`;
         bodyHtml += `<td class="room-type-cell">
-            <div class="room-name">${roomType.name}</div>
+            <div class="room-name">
+                <button class="expand-btn" onclick="toggleUnits(${roomType.id})" title="Show / hide rooms"><i class="fas fa-chevron-down"></i></button>
+                <span>${roomType.name}</span>
+            </div>
             <div class="room-info">
                 <span><i class="fas fa-door-open"></i> ${roomType.total_units} rooms</span>
-                <span><i class="fas fa-users"></i> ${roomType.capacity || '-'} guests</span>
+                <span class="sell-limit-tag"><i class="fas fa-sliders-h"></i> Sell ${roomType.sell_limit}</span>
+                ${price ? `<span><i class="fas fa-tag"></i> ${price}</span>` : ''}
             </div>
         </td>`;
-        
-        data.dates.forEach(day => {
+
+        data.days.forEach(day => {
             const dateData = roomType.dates[day.date];
             if (dateData) {
                 bodyHtml += renderInventoryCell(roomType.id, day.date, dateData, day.date === today);
@@ -1215,17 +1508,27 @@ function renderInventoryGrid(data) {
             }
         });
         bodyHtml += '</tr>';
+
+        (roomType.unit_rows || []).forEach(unit => {
+            bodyHtml += `<tr class="unit-row" data-unit-parent="${roomType.id}">`;
+            bodyHtml += `<td class="unit-cell">
+                <div class="unit-number"><i class="fas fa-door-closed text-muted"></i> ${unit.room_number}</div>
+                <div class="unit-floor">${unit.floor ? 'Floor ' + unit.floor : ''}${unit.status && unit.status !== 'active' ? ' · ' + unit.status : ''}</div>
+            </td>`;
+            bodyHtml += renderUnitCells(unit, data.days, today);
+            bodyHtml += '</tr>';
+        });
     });
     body.innerHTML = bodyHtml;
-    
-    // Build totals row with enhanced styling
+
+    // Totals row
     let footerHtml = '<tr class="totals-row"><td class="room-type-cell"><div class="room-name">TOTAL</div></td>';
-    data.dates.forEach(day => {
+    data.days.forEach(day => {
         const totals = data.daily_totals[day.date];
         if (totals) {
-            footerHtml += `<td class="inventory-cell">
+            footerHtml += `<td class="inventory-cell${totals.overbooked ? ' overbooked' : ''}">
                 <div class="cell-avail">${totals.available}</div>
-                <div class="cell-total">of ${totals.total}</div>
+                <div class="cell-total">of ${totals.sell_limit}</div>
             </td>`;
         } else {
             footerHtml += '<td class="inventory-cell"><div class="cell-avail">-</div></td>';
@@ -1233,24 +1536,76 @@ function renderInventoryGrid(data) {
     });
     footerHtml += '</tr>';
     footer.innerHTML = footerHtml;
-    
+
     attachCellListeners();
+}
+
+function toggleUnits(roomTypeId) {
+    document.querySelectorAll(`tr[data-unit-parent="${roomTypeId}"]`).forEach(tr => {
+        tr.style.display = (tr.style.display === 'none') ? '' : 'none';
+    });
+    const btn = document.querySelector(`.type-row[data-room-type="${roomTypeId}"] .expand-btn`);
+    if (btn) btn.classList.toggle('collapsed');
+}
+
+function unitEventForDate(events, date) {
+    for (const event of events) {
+        const from = event.start.slice(0, 10);
+        const to = event.end.slice(0, 10);
+        if (date >= from && date < to) return event;
+    }
+    return null;
+}
+
+function renderUnitCells(unit, days, today) {
+    let html = '';
+    let i = 0;
+    while (i < days.length) {
+        const event = unitEventForDate(unit.events, days[i].date);
+        if (event) {
+            let span = 1;
+            while (i + span < days.length) {
+                const next = unitEventForDate(unit.events, days[i + span].date);
+                if (!next || next.id !== event.id) break;
+                span++;
+            }
+            const label = event.source ? `${event.guest} · ${event.source}` : event.guest;
+            const title = `${event.guest}${event.checkout ? ' → ' + event.checkout : ''}${event.source ? ' (' + event.source + ')' : ''}`;
+            html += `<td class="unit-bar" colspan="${span}" style="background:${event.color}" title="${escapeHtml(title)}">${escapeHtml(label)}</td>`;
+            i += span;
+        } else {
+            let span = 1;
+            while (i + span < days.length && !unitEventForDate(unit.events, days[i + span].date)) span++;
+            const isToday = days[i].date === today;
+            html += `<td class="unit-empty${isToday ? ' today-col' : ''}" colspan="${span}"></td>`;
+            i += span;
+        }
+    }
+    return html;
+}
+
+function escapeHtml(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
 }
 
 function renderInventoryCell(roomTypeId, date, data, isToday) {
     const statusClass = `status-${data.status}`;
+    const overbookClass = data.overbooked ? ' overbooked' : '';
     const cellId = `${roomTypeId}-${date}`;
     let icons = '';
     if (data.stop_sell) icons += '<i class="fas fa-ban" title="Stop Sell"></i>';
     if (data.closed_to_arrival) icons += '<i class="fas fa-sign-in-alt" title="CTA"></i>';
     if (data.min_stay) icons += `<i class="fas fa-moon" title="Min ${data.min_stay} nights"></i>`;
     
-    return `<td class="inventory-cell ${statusClass} ${isToday ? 'today-col' : ''}" 
+    return `<td class="inventory-cell ${statusClass}${overbookClass} ${isToday ? 'today-col' : ''}" 
         data-cell-id="${cellId}" data-room-type="${roomTypeId}" data-date="${date}"
         data-info='${JSON.stringify(data)}'>
+        ${data.overbooked ? '<span class="overbook-badge">OVER</span>' : ''}
         ${icons ? `<div class="cell-icons">${icons}</div>` : ''}
         <div class="cell-avail">${data.available}</div>
-        <div class="cell-total">of ${data.total}</div>
+        <div class="cell-total">of ${data.sell_limit != null ? data.sell_limit : data.total}</div>
     </td>`;
 }
 
@@ -1468,15 +1823,30 @@ function showCellTooltip(e) {
     };
     const status = statusConfig[info.status] || { label: info.status || 'Unknown', icon: 'fa-question-circle', class: 'stop_sell' };
     
-    let html = `<div class="tooltip-header">${formattedDate}</div>`;
+    let html = `<div class="tooltip-header">${formattedDate}${activeSource ? ' · ' + escapeHtml(activeSource) : ''}</div>`;
     html += `<div class="tooltip-status ${status.class}"><i class="fas ${status.icon}"></i> ${status.label}</div>`;
-    
-    html += `<div class="tooltip-row"><span>Available</span><span>${info.available} rooms</span></div>`;
-    html += `<div class="tooltip-row"><span>Total</span><span>${info.total} rooms</span></div>`;
+
+    html += `<div class="tooltip-row"><span>Available</span><span>${info.available} of ${info.sell_limit != null ? info.sell_limit : info.total}</span></div>`;
     html += `<div class="tooltip-row"><span>Booked</span><span>${info.booked} rooms</span></div>`;
-    
+    html += `<div class="tooltip-row"><span>Physical rooms</span><span>${info.total}</span></div>`;
+
     if (info.blocked > 0) {
         html += `<div class="tooltip-row"><span>Blocked</span><span>${info.blocked} rooms</span></div>`;
+    }
+
+    if (info.overbooked) {
+        html += `<div class="tooltip-restriction" style="color:#fca5a5;"><i class="fas fa-exclamation-triangle"></i> Overbooked (${info.booked} booked vs ${info.total} rooms)</div>`;
+    }
+
+    // Booking source breakdown
+    const sources = info.by_source || {};
+    const sourceKeys = Object.keys(sources).filter(k => sources[k] > 0);
+    if (sourceKeys.length > 0) {
+        html += '<div class="tooltip-restriction">';
+        sourceKeys.forEach(k => {
+            html += `<div class="tooltip-row"><span>${escapeHtml(k)}</span><span>${sources[k]}</span></div>`;
+        });
+        html += '</div>';
     }
     
     // Restrictions section
@@ -1515,11 +1885,12 @@ function hideCellTooltip() {
 }
 
 function updateSummaryStats(summary) {
-    document.getElementById('stat-total-nights').textContent = summary.total_room_nights.toLocaleString();
-    document.getElementById('stat-available').textContent = summary.available_room_nights.toLocaleString();
-    document.getElementById('stat-booked').textContent = summary.booked_room_nights.toLocaleString();
-    document.getElementById('stat-blocked').textContent = summary.blocked_room_nights.toLocaleString();
-    document.getElementById('stat-occupancy').textContent = summary.occupancy_rate + '%';
+    const n = v => (v == null ? 0 : v).toLocaleString();
+    document.getElementById('stat-total-nights').textContent = n(summary.total_room_nights);
+    document.getElementById('stat-available').textContent = n(summary.available_room_nights);
+    document.getElementById('stat-booked').textContent = n(summary.booked_room_nights);
+    document.getElementById('stat-blocked').textContent = n(summary.blocked_room_nights);
+    document.getElementById('stat-occupancy').textContent = (summary.occupancy_rate || 0) + '%';
 }
 
 // Initialize on DOM ready

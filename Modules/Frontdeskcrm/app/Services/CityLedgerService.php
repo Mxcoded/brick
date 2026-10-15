@@ -46,6 +46,54 @@ class CityLedgerService
     }
 
     /**
+     * Find or create the city ledger account a stay should be billed to.
+     *
+     * The desk already holds the guest's or company's details on the stay, so
+     * the panel offers to lift them straight onto a new account instead of
+     * making someone retype them. A name (and email, when we have one) that
+     * already exists on an account is reused rather than duplicated, so a
+     * returning corporate guest keeps a single running balance.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{account: CityLedgerAccount, created: bool}
+     */
+    public function findOrCreateFromRegistration(Registration $registration, array $data, ?int $userId = null): array
+    {
+        $name = trim((string) ($data['name'] ?? '')) ?: $this->defaultAccountNameFor($registration);
+        $email = filled($data['email'] ?? null) ? trim((string) $data['email']) : null;
+
+        $existing = CityLedgerAccount::query()
+            ->where('name', $name)
+            ->when($email, fn ($query) => $query->where('email', $email))
+            ->first();
+
+        if ($existing) {
+            return ['account' => $existing, 'created' => false];
+        }
+
+        $data['name'] = $name;
+        $data['email'] = $email;
+
+        return ['account' => $this->createAccount($data, $userId), 'created' => true];
+    }
+
+    /**
+     * The company trading under the stay's name, falling back to the guest.
+     */
+    protected function defaultAccountNameFor(Registration $registration): string
+    {
+        $company = trim((string) $registration->company_name);
+
+        if ($company !== '') {
+            return $company;
+        }
+
+        $name = trim(($registration->title ?? '').' '.($registration->full_name ?? ''));
+
+        return $name !== '' ? $name : 'Guest #'.$registration->id;
+    }
+
+    /**
      * Post a charge to a city ledger account.
      * Dr Accounts Receivable, Cr Revenue.
      */
@@ -85,6 +133,7 @@ class CityLedgerService
                 date: $date,
                 description: $description,
                 idempotencyKey: 'CLCHARGE-'.$transaction->id,
+                party: $account,
             );
 
             return $transaction;
@@ -255,6 +304,7 @@ class CityLedgerService
                 date: $date,
                 description: $description,
                 idempotencyKey: 'CLPAY-'.$transaction->id,
+                party: $account,
             );
 
             return $transaction;
@@ -297,6 +347,7 @@ class CityLedgerService
                 date: $date,
                 description: $description,
                 idempotencyKey: 'CLCN-'.$transaction->id,
+                party: $account,
             );
 
             return $transaction;

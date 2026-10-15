@@ -28,6 +28,7 @@ class EditJournalEntry extends EditRecord
         $data['lines'] = $this->record->lines()->get()
             ->map(fn ($line): array => [
                 'account_id' => $line->account_id,
+                'party' => JournalEntryForm::partyValue($line->party_type, $line->party_id),
                 'debit' => (float) $line->debit,
                 'credit' => (float) $line->credit,
                 'description' => $line->description,
@@ -75,12 +76,7 @@ class EditJournalEntry extends EditRecord
         ]);
 
         $lines = collect($data['lines'] ?? [])
-            ->map(fn (array $line): array => [
-                'account_id' => $line['account_id'],
-                'debit' => round((float) ($line['debit'] ?? 0), 2),
-                'credit' => round((float) ($line['credit'] ?? 0), 2),
-                'description' => $line['description'] ?? null,
-            ])
+            ->map(fn (array $line): array => JournalEntryForm::normaliseLine($line))
             ->values();
 
         $record->lines()->delete();

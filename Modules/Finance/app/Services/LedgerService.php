@@ -52,6 +52,8 @@ class LedgerService implements LedgerServiceInterface
 
             $entry->lines()->create([
                 'account_id' => $account->id,
+                'party_type' => $line['party_type'] ?? null,
+                'party_id' => $line['party_id'] ?? null,
                 'debit' => $line['debit'] ?? 0,
                 'credit' => $line['credit'] ?? 0,
                 'cost_center' => $line['cost_center'] ?? null,

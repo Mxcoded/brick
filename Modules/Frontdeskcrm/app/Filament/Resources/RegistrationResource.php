@@ -11,6 +11,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\Frontdeskcrm\Filament\Resources\RegistrationResource\Pages;
+use Modules\Frontdeskcrm\Filament\Resources\RegistrationResource\RelationManagers\FoliosRelationManager;
+use Modules\Frontdeskcrm\Filament\Resources\RegistrationResource\RelationManagers\PaymentsRelationManager;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Support\FrontdeskPermission;
 use UnitEnum;
@@ -102,11 +104,11 @@ class RegistrationResource extends Resource
                             ->required(),
                         Forms\Components\Select::make('billing_type')
                             ->options([
-                                'standard' => 'Standard',
-                                'city_ledger' => 'City Ledger',
-                                'company' => 'Company',
+                                'consolidate' => 'Consolidate on Group Lead',
+                                'individual' => 'Individual (Each Pays Own)',
                             ])
-                            ->nullable(),
+                            ->default('consolidate')
+                            ->required(),
                         Forms\Components\TextInput::make('no_of_nights')
                             ->numeric()
                             ->disabled()
@@ -120,6 +122,17 @@ class RegistrationResource extends Resource
                             ->nullable(),
                     ])
                     ->columns(2),
+                Section::make('City Ledger')
+                    ->description('Assign an account to bill this stay to a company on checkout. Leave blank for a normal guest stay.')
+                    ->schema([
+                        Forms\Components\Select::make('city_ledger_account_id')
+                            ->label('City Ledger Account')
+                            ->relationship('cityLedgerAccount', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->helperText('When set, any outstanding balance is posted to this account automatically at checkout.'),
+                    ]),
             ]);
     }
 
@@ -184,7 +197,10 @@ class RegistrationResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            FoliosRelationManager::class,
+            PaymentsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

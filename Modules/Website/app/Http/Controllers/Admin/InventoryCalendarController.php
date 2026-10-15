@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Frontdeskcrm\Models\BookingSource;
 use Modules\Website\Models\RoomInventoryBlock;
 use Modules\Website\Models\RoomType;
 use Modules\Website\Services\RoomCalendarService;
@@ -20,14 +21,23 @@ class InventoryCalendarController extends Controller
     }
 
     /**
-     * Display the inventory calendar view.
+     * Display the unified inventory calendar view.
      */
     public function index()
     {
         $roomTypes = RoomType::with('units')->active()->ordered()->get();
 
+        try {
+            $bookingSources = class_exists(BookingSource::class)
+                ? BookingSource::orderBy('name')->pluck('name')
+                : collect(RoomCalendarService::SOURCE_KEYS);
+        } catch (\Throwable $e) {
+            $bookingSources = collect(RoomCalendarService::SOURCE_KEYS);
+        }
+
         return view('website::admin.inventory.calendar', [
             'roomTypes' => $roomTypes,
+            'bookingSources' => $bookingSources,
         ]);
     }
 
@@ -37,20 +47,9 @@ class InventoryCalendarController extends Controller
     public function getInventoryData(Request $request): JsonResponse
     {
         try {
-            $start = $request->input('start')
-                ? Carbon::parse($request->input('start'))
-                : now()->startOfMonth();
+            [$start, $end] = $this->resolveRange($request);
 
-            $end = $request->input('end')
-                ? Carbon::parse($request->input('end'))
-                : now()->endOfMonth();
-
-            // Limit to max 90 days to prevent performance issues
-            if ($start->diffInDays($end) > 90) {
-                $end = $start->copy()->addDays(90);
-            }
-
-            $data = $this->calendarService->getInventoryMatrix($start, $end);
+            $data = $this->calendarService->getUnifiedMatrix($start, $end);
 
             return response()->json($data);
         } catch (\Exception $e) {
@@ -67,6 +66,119 @@ class InventoryCalendarController extends Controller
                 'line' => $e->getLine(),
             ], 500);
         }
+    }
+
+    /**
+     * Export the visible availability grid as a CSV file (opens in Excel).
+     */
+    public function export(Request $request)
+    {
+        [$start, $end] = $this->resolveRange($request);
+
+        $matrix = $this->calendarService->getUnifiedMatrix($start, $end);
+        $matrix = $this->calendarService->filterMatrixBySource($matrix, $request->input('source'));
+        $days = $matrix['days'];
+        $filename = 'room-calendar-'.$start->format('Y-m-d').'_'.$end->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($matrix, $days) {
+            $out = fopen('php://output', 'w');
+
+            // UTF-8 BOM so Excel reads the currency/accents correctly.
+            fwrite($out, "\xEF\xBB\xBF");
+
+            $row = fn (array $cells) => fputcsv($out, $cells);
+
+            $row(['Brickspoint Room Calendar', $matrix['summary']['period'] ?? '']);
+
+            // ── Availability by room type ─────────────────────────────
+            $row([]);
+            $row(['AVAILABILITY  (available / booked / blocked / sell limit)']);
+            $header = ['Room Type', 'Rooms', 'Sell Limit', 'Price'];
+            foreach ($days as $day) {
+                $header[] = $day['date'];
+            }
+            $row($header);
+
+            foreach ($matrix['room_types'] as $type) {
+                $line = [$type['name'], $type['total_units'], $type['sell_limit'], number_format($type['price'], 2, '.', '')];
+                foreach ($days as $day) {
+                    $cell = $type['dates'][$day['date']] ?? null;
+                    $line[] = $cell
+                        ? "{$cell['available']} / {$cell['booked']} / {$cell['blocked']} / {$cell['sell_limit']}"
+                        : '';
+                }
+                $row($line);
+            }
+
+            // ── Unit status ────────────────────────────────────────────
+            $row([]);
+            $row(['UNIT STATUS  (I=In-house, R=Reserved, O=Online, P=Pending, M=Maintenance, B=Blocked, =Available)']);
+            $unitHeader = ['Room Type', 'Room'];
+            foreach ($days as $day) {
+                $unitHeader[] = $day['date'];
+            }
+            $row($unitHeader);
+
+            $legend = [
+                'checked_in' => 'I',
+                'checked_out' => 'I',
+                'reserved' => 'R',
+                'online_booking' => 'O',
+                'draft_by_guest' => 'P',
+                'maintenance' => 'M',
+                'blocked' => 'B',
+            ];
+
+            foreach ($matrix['room_types'] as $type) {
+                foreach ($type['unit_rows'] as $unit) {
+                    $line = [$type['name'], $unit['room_number']];
+                    foreach ($days as $day) {
+                        $marker = '';
+                        foreach ($unit['events'] as $event) {
+                            $from = substr($event['start'], 0, 10);
+                            $to = substr($event['end'], 0, 10);
+                            if ($day['date'] >= $from && $day['date'] < $to) {
+                                $marker = $legend[$event['status']] ?? 'X';
+                                break;
+                            }
+                        }
+                        $line[] = $marker;
+                    }
+                    $row($line);
+                }
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Resolve and clamp the requested date range.
+     *
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    protected function resolveRange(Request $request): array
+    {
+        $start = $request->input('start')
+            ? Carbon::parse($request->input('start'))->startOfDay()
+            : now()->startOfMonth();
+
+        $end = $request->input('end')
+            ? Carbon::parse($request->input('end'))->startOfDay()
+            : now()->endOfMonth();
+
+        if ($start->gt($end)) {
+            [$start, $end] = [$end, $start];
+        }
+
+        // Limit to max 90 days to prevent performance issues
+        if ($start->diffInDays($end) > 90) {
+            $end = $start->copy()->addDays(90);
+        }
+
+        return [$start, $end];
     }
 
     /**

@@ -82,15 +82,8 @@
 
     @canany(['access_website_dashboard', 'website.inventory'])
     <a href="{{ route('website.admin.inventory.index') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.inventory.*') ? 'active' : '' }}">
-        <i class="fas fa-calendar-alt fa-fw me-2"></i> Inventory Calendar
-    </a>
-    @endcanany
-
-    @canany(['access_website_dashboard', 'website.room-types'])
-    <a href="{{ route('website.admin.rooms.calendar') }}"
-       class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.rooms.calendar') ? 'active' : '' }}">
-        <i class="fas fa-th fa-fw me-2"></i> Room Schedule
+       class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.inventory.*', 'website.admin.rooms.calendar') ? 'active' : '' }}">
+        <i class="fas fa-calendar-alt fa-fw me-2"></i> Room Calendar
     </a>
     @endcanany
 

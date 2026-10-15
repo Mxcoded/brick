@@ -369,7 +369,7 @@ class LedgerReport
             $debit = (float) $line->debit;
             $credit = (float) $line->credit;
             $date = $entry->date;
-            $customer = static::receivableCustomer($entry);
+            $customer = static::lineParty($line) ?? static::receivableCustomer($entry);
 
             if ($debit > 0) {
                 $documents[] = [
@@ -492,6 +492,36 @@ class LedgerReport
             $daysOverdue <= 90 => 'days_61_90',
             default => 'days_90_plus',
         };
+    }
+
+    /**
+     * The customer a line's own sub-ledger points at, when the line carries one.
+     *
+     * This is the reliable answer: it is written on the line at posting time, so
+     * it needs no second lookup and survives the referenced charge being edited.
+     * A city ledger party is re-keyed to the "city_ledger:" scheme so it groups
+     * together with any reference-derived rows and keeps the account's payment
+     * terms in receivableDueDate().
+     *
+     * @return array{key: string, label: string}|null
+     */
+    protected static function lineParty(JournalLine $line): ?array
+    {
+        if (! $line->party_type || ! $line->party_id) {
+            return null;
+        }
+
+        $label = SubLedger::label($line->party_type, $line->party_id);
+
+        if (! $label) {
+            return null;
+        }
+
+        $key = $line->party_type === CityLedgerAccount::class
+            ? 'city_ledger:'.$line->party_id
+            : $line->party_type.':'.$line->party_id;
+
+        return ['key' => $key, 'label' => $label];
     }
 
     /**

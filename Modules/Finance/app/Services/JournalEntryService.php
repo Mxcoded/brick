@@ -48,6 +48,8 @@ class JournalEntryService
             $original->load('lines')->lines->each(
                 fn ($line) => $reversal->lines()->create([
                     'account_id' => $line->account_id,
+                    'party_type' => $line->party_type,
+                    'party_id' => $line->party_id,
                     'debit' => $line->credit,
                     'credit' => $line->debit,
                     'cost_center' => $line->cost_center,

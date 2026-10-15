@@ -25,7 +25,7 @@ class ViewRoomType extends ViewRecord
                 ->label('Room calendar')
                 ->icon('heroicon-o-calendar')
                 ->color('gray')
-                ->url(fn (): string => route('website.admin.rooms.calendar')),
+                ->url(fn (): string => route('website.admin.inventory.index')),
             Actions\EditAction::make(),
         ];
     }

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Modules\Website\Models\RoomInventoryBlock;
 use Modules\Website\Models\RoomType;
+use Modules\Website\Models\RoomUnit;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -379,5 +380,68 @@ class InventoryCalendarTest extends TestCase
         ]);
 
         $response->assertStatus(403);
+    }
+
+    public function test_unified_inventory_api_returns_days_units_and_sell_limit()
+    {
+        RoomUnit::create([
+            'room_type_id' => $this->roomType->id,
+            'room_number' => '101',
+            'floor' => 1,
+            'status' => 'available',
+        ]);
+        RoomUnit::create([
+            'room_type_id' => $this->roomType->id,
+            'room_number' => '102',
+            'floor' => 1,
+            'status' => 'available',
+        ]);
+
+        $response = $this->getJson(route('website.admin.inventory.api.data', [
+            'start' => now()->format('Y-m-d'),
+            'end' => now()->addDays(3)->format('Y-m-d'),
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'days',
+            'room_types' => [
+                ['id', 'name', 'total_units', 'sell_limit', 'unit_rows', 'dates'],
+            ],
+            'daily_totals',
+            'summary' => ['total_room_nights', 'available_room_nights', 'overbooked_nights'],
+            'sources',
+        ]);
+
+        $type = collect($response->json('room_types'))->firstWhere('id', $this->roomType->id);
+        $this->assertCount(2, $type['unit_rows']);
+        $this->assertSame(2, $type['sell_limit']);
+    }
+
+    public function test_sell_limit_accessor_falls_back_to_unit_count_and_can_be_overridden()
+    {
+        RoomUnit::create([
+            'room_type_id' => $this->roomType->id,
+            'room_number' => '201',
+            'floor' => 2,
+            'status' => 'available',
+        ]);
+
+        $this->assertSame(1, $this->roomType->fresh()->effective_sell_limit);
+
+        $this->roomType->update(['sell_limit' => 4]);
+        $this->assertSame(4, $this->roomType->fresh()->effective_sell_limit);
+    }
+
+    public function test_inventory_export_streams_a_csv()
+    {
+        $response = $this->get(route('website.admin.inventory.export', [
+            'start' => now()->format('Y-m-d'),
+            'end' => now()->addDays(3)->format('Y-m-d'),
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('AVAILABILITY', $response->streamedContent());
     }
 }

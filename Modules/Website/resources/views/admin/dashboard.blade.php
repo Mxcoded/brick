@@ -437,7 +437,7 @@
                             </span>
                             Manage Room Types
                         </a>
-                        <a href="{{ route('website.admin.rooms.calendar') }}" class="action-btn">
+                        <a href="{{ route('website.admin.inventory.index') }}" class="action-btn">
                             <span class="icon-wrap text-white" style="background: linear-gradient(135deg, #1a1a2e, #2c3e50);">
                                 <i class="fas fa-calendar-alt"></i>
                             </span>

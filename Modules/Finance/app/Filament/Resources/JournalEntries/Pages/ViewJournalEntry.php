@@ -174,6 +174,10 @@ class ViewJournalEntry extends ViewRecord
                                 TextEntry::make('account.name')
                                     ->label('Account'),
 
+                                TextEntry::make('party_label')
+                                    ->label('Sub-ledger')
+                                    ->placeholder('—'),
+
                                 TextEntry::make('debit')
                                     ->numeric()
                                     ->placeholder('—')
@@ -184,7 +188,7 @@ class ViewJournalEntry extends ViewRecord
                                     ->placeholder('—')
                                     ->formatStateUsing(fn ($state): ?string => (float) $state > 0 ? number_format((float) $state, 2) : null),
                             ])
-                            ->columns(4),
+                            ->columns(5),
                     ]),
 
                 Section::make('Totals')

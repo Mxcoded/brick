@@ -3,6 +3,7 @@
 namespace Modules\Frontdeskcrm\Support;
 
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
@@ -117,6 +118,15 @@ class FrontdeskPermission
 
     public const GUEST_TYPES_DELETE = 'guest_types.delete';
 
+    // ── Seasons (pricing periods) ──────────────────────────────────────
+    public const SEASONS_READ = 'seasons.read';
+
+    public const SEASONS_CREATE = 'seasons.create';
+
+    public const SEASONS_UPDATE = 'seasons.update';
+
+    public const SEASONS_DELETE = 'seasons.delete';
+
     // ── PMS settings (the back-office switches) ─────────────────────────
     public const PMS_SETTINGS_READ = 'pms.settings.read';
 
@@ -175,6 +185,12 @@ class FrontdeskPermission
             'create' => self::GUEST_TYPES_CREATE,
             'update' => self::GUEST_TYPES_UPDATE,
             'delete' => self::GUEST_TYPES_DELETE,
+        ],
+        'seasons' => [
+            'read' => self::SEASONS_READ,
+            'create' => self::SEASONS_CREATE,
+            'update' => self::SEASONS_UPDATE,
+            'delete' => self::SEASONS_DELETE,
         ],
         'pms_settings' => [
             'read' => self::PMS_SETTINGS_READ,
@@ -271,7 +287,7 @@ class FrontdeskPermission
             return false;
         }
 
-        $prefix = Str($permission)->beforeLast('.')->append('.*')->toString();
+        $prefix = Str::of($permission)->beforeLast('.')->append('.*')->toString();
 
         return $user->can($permission) || $user->can($prefix);
     }
@@ -309,6 +325,7 @@ class FrontdeskPermission
             'invoices' => 'Invoices',
             'rate_codes' => 'Rate Codes',
             'guest_types' => 'Guest Types',
+            'seasons' => 'Seasons',
             'pms_settings' => 'PMS Settings',
         ];
 

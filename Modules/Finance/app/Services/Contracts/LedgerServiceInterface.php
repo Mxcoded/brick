@@ -16,6 +16,7 @@ interface LedgerServiceInterface
      *
      * @param  array[]  $lines  Each line: ['account_id' => int, 'debit' => float, 'credit' => float, 'cost_center' => ?string, 'description' => ?string]
      *                          or ['account_code' => string, ...] to resolve the account by GL code.
+     *                          A line may carry a sub-ledger via 'party_type' (model class) and 'party_id'.
      * @param  array  $meta  Optional: ['entry_number', 'date', 'reference_type', 'reference_id', 'description']
      */
     public function post(array $lines, array $meta = []): JournalEntry;

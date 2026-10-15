@@ -1,7 +1,6 @@
 import './bootstrap';
 import 'bootstrap';
 import Alpine from 'alpinejs';
-import './restaurant';
 
 // Livewire v4 ships its own Alpine and auto-injects it on pages that render a
 // Livewire component. Booting a second copy here triggers the "Detected

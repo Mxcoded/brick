@@ -10,6 +10,11 @@
 // Sidebar (custom ERP theme)
 @import 'sidebar';
 
+// Note: the public ordering styles (menu, basket, checkout) are intentionally
+// NOT compiled here. Those pages are served straight from
+// public/css/restaurant-ordering.css over CDN Bootstrap, so they need no npm
+// build. See Modules/Restaurant/resources/views/layouts/master.blade.php.
+
 // Font Awesome
 @import '@fortawesome/fontawesome-free/scss/fontawesome';
 @import '@fortawesome/fontawesome-free/scss/regular';

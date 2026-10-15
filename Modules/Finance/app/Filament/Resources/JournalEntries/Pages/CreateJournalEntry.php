@@ -100,12 +100,7 @@ class CreateJournalEntry extends CreateRecord
     protected function normaliseLines(array $lines): array
     {
         return collect($lines)
-            ->map(fn (array $line): array => [
-                'account_id' => $line['account_id'],
-                'debit' => round((float) ($line['debit'] ?? 0), 2),
-                'credit' => round((float) ($line['credit'] ?? 0), 2),
-                'description' => $line['description'] ?? null,
-            ])
+            ->map(fn (array $line): array => JournalEntryForm::normaliseLine($line))
             ->all();
     }
 

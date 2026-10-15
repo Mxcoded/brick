@@ -10,12 +10,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Modules\Finance\Services\PostingService;
-use Modules\Frontdeskcrm\Emails\RegistrationStatusMail;
 use Modules\Frontdeskcrm\Http\Requests\FinalizeRegistrationRequest;
 use Modules\Frontdeskcrm\Http\Requests\StoreRegistrationRequest;
 use Modules\Frontdeskcrm\Models\BookingSource;
@@ -25,6 +23,8 @@ use Modules\Frontdeskcrm\Models\GuestType;
 use Modules\Frontdeskcrm\Models\Registration;
 use Modules\Frontdeskcrm\Models\RegistrationCharge;
 use Modules\Frontdeskcrm\Rules\ValidPhoneNumber;
+use Modules\Frontdeskcrm\Services\BookingStatusService;
+use Modules\Frontdeskcrm\Services\CheckoutService;
 use Modules\Frontdeskcrm\Services\CityLedgerService;
 use Modules\Frontdeskcrm\Services\FolioService;
 use Modules\Frontdeskcrm\Services\StayService;
@@ -1642,109 +1642,36 @@ class RegistrationController extends Controller
 
     /**
      * Manually check a guest out (works for both lead and members).
-     * Now handles Early Departure (Truncating dates) and Audit Trail.
+     *
+     * The work itself lives in CheckoutService so the Filament registration
+     * screen and this Blade screen close a stay - and auto-post any flagged
+     * balance to the city ledger - the same way.
      */
     public function checkout(Registration $registration)
     {
-        if ($registration->stay_status !== 'checked_in') {
-            return back()->with('error', 'This guest is not currently checked-in.');
+        try {
+            $result = app(CheckoutService::class)->checkout($registration, Auth::id());
+        } catch (InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        // 1. Capture Current Time & Agent
-        $now = now();
-        $updates = [
-            'stay_status' => 'checked_out',
-            'actual_checkout_at' => $now,
-            'checked_out_by_agent_id' => Auth::id(),
-        ];
-
-        // 2. HANDLE EARLY CHECKOUT (Truncate stay)
-        // Use startOfDay() to compare dates without the interference of current time
-        if ($now->startOfDay()->lt($registration->check_out->startOfDay())) {
-            $newCheckOutDate = $now;
-            $nights = $registration->check_in->diffInDays($newCheckOutDate);
-            if ($nights < 1) {
-                $nights = 1;
-            }
-
-            $updates['check_out'] = $newCheckOutDate;
-            $updates['no_of_nights'] = $nights;
-            $updates['total_amount'] = $registration->room_rate * $nights;
-        }
-
-        // 3. HANDLE LATE CHECKOUT / OVERSTAY (Extend stay)
-        // If today is AFTER the planned check_out date, extend to today
-        elseif ($now->startOfDay()->gt($registration->check_out->startOfDay())) {
-            $newCheckOutDate = $now;
-
-            // Calculate total nights from original check-in to today
-            $totalNights = $registration->check_in->diffInDays($newCheckOutDate);
-
-            $updates['check_out'] = $newCheckOutDate;
-            $updates['no_of_nights'] = $totalNights;
-
-            // Recalculate bill to include the extra nights overstayed
-            $updates['total_amount'] = $registration->room_rate * $totalNights;
-        }
-
-        // 4. Apply Updates
-        $registration->update($updates);
-
-        // 5. Release Room Unit
-        if ($registration->room_unit_id) {
-            RoomUnit::where('id', $registration->room_unit_id)->update(['status' => 'available']);
-        }
-
-        // 6. Update Guest History
-        $guest = $registration->guest;
-        if ($guest) {
-            $guest->increment('visit_count');
-            $guest->last_visit_at = $now;
-            $guest->save();
-        }
-
-        // 6. Handle Group Children (Sync dates)
-        if ($registration->is_group_lead) {
-            foreach ($registration->children as $child) {
-                if ($child->stay_status === 'checked_in') {
-                    $child->update([
-                        'stay_status' => 'checked_out',
-                        'actual_checkout_at' => $now,
-                        'checked_out_by_agent_id' => Auth::id(),
-                        // Sync the check_out date for children to match the lead's final date
-                        'check_out' => $updates['check_out'] ?? $child->check_out,
-                        'no_of_nights' => $updates['no_of_nights'] ?? $child->no_of_nights,
-                        'total_amount' => isset($updates['no_of_nights']) ? ($child->room_rate * $updates['no_of_nights']) : $child->total_amount,
-                    ]);
-
-                    if ($child->room_unit_id) {
-                        RoomUnit::where('id', $child->room_unit_id)->update(['status' => 'available']);
-                    }
-                }
-            }
-        }
-
-        // 7. Success Message Customization
-        $message = "Guest {$registration->full_name} checked out successfully.";
-        if ($now->startOfDay()->lt($registration->check_out->startOfDay())) {
-            $message .= ' Bill adjusted for early departure.';
-        } elseif ($now->startOfDay()->gt($registration->check_out->startOfDay())) {
-            $message .= ' Stay extended and bill updated for overstay.';
-        }
-
-        // Sync booking status back to Website module
-        $this->syncBookingStatus($registration);
+        $message = $result['message'];
+        $warning = filled($result['warnings']) ? implode(' ', $result['warnings']) : null;
 
         // Redirect logic
         if ($registration->parent_registration_id) {
-            return redirect()->route('frontdesk.registrations.show', $registration->parent_registration_id)
-                ->with('success', $message);
+            $redirect = redirect()->route('frontdesk.registrations.show', $registration->parent_registration_id);
+        } else {
+            $redirect = redirect()->route('frontdesk.registrations.index');
         }
 
-        $this->sendNotification($registration);
+        $redirect->with('success', $message);
 
-        return redirect()->route('frontdesk.registrations.index')
-            ->with('success', $message);
+        if ($warning) {
+            $redirect->with('warning', $warning);
+        }
+
+        return $redirect;
     }
 
     /**
@@ -1765,6 +1692,42 @@ class RegistrationController extends Controller
         }
 
         return back()->with('success', 'Folio balance moved to the city ledger account.');
+    }
+
+    /**
+     * Create (or reuse) a city ledger account from the stay's guest/company
+     * details and bill the stay to it.
+     */
+    public function createCityLedgerAccount(Request $request, Registration $registration)
+    {
+        if ($registration->city_ledger_transferred_at !== null) {
+            return back()->with('error', 'This stay has already been transferred to a city ledger account.');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'contact_person' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'phone' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:1000',
+            'tax_id' => 'nullable|string|max:255',
+            'credit_limit' => 'nullable|numeric|min:0',
+            'payment_terms' => 'nullable|string|max:255',
+            'status' => 'nullable|in:active,inactive',
+        ]);
+
+        $result = app(CityLedgerService::class)
+            ->findOrCreateFromRegistration($registration, $validated, auth()->id());
+
+        $account = $result['account'];
+
+        $registration->update(['city_ledger_account_id' => $account->id]);
+
+        $message = $result['created']
+            ? "City ledger account {$account->code} created and linked to this stay."
+            : "This stay is now linked to existing city ledger account {$account->code}.";
+
+        return back()->with('success', $message);
     }
 
     public function getActiveMembers(Registration $registration)
@@ -2010,26 +1973,15 @@ class RegistrationController extends Controller
     }
 
     /**
-     * DRY Helper to send email notifications safely
+     * DRY Helper to send email notifications safely.
      */
     private function sendNotification(Registration $registration)
     {
-        // Ensure we have an email to send to
-        $email = $registration->email ?? $registration->guest?->email;
-
-        if ($email) {
-            try {
-                Mail::to($email)->send(new RegistrationStatusMail($registration));
-            } catch (\Exception $e) {
-                // Log error but don't crash the app if mail fails
-                Log::error('Failed to send registration email: '.$e->getMessage());
-            }
-        }
+        app(BookingStatusService::class)->notify($registration);
     }
 
     /**
      * Sync Registration status back to Website Booking.
-     * This ensures real-time data integrity between CRM and Website modules.
      *
      * Status mapping:
      * - 'checked_in' -> Booking status: 'checked_in'
@@ -2038,69 +1990,7 @@ class RegistrationController extends Controller
      */
     private function syncBookingStatus(Registration $registration): void
     {
-        if (! $registration->booking_id) {
-            return; // No web booking linked, nothing to sync
-        }
-
-        $booking = $registration->booking;
-        if (! $booking) {
-            return;
-        }
-
-        $statusMap = [
-            'checked_in' => 'checked_in',
-            'checked_out' => 'completed',
-            'no_show' => 'no_show',
-            'reserved' => 'confirmed',
-        ];
-
-        $newBookingStatus = $statusMap[$registration->stay_status] ?? null;
-
-        if ($newBookingStatus && $booking->status !== $newBookingStatus) {
-            $booking->update(['status' => $newBookingStatus]);
-
-            Log::info('Booking status synced', [
-                'booking_id' => $booking->id,
-                'booking_reference' => $booking->booking_reference,
-                'registration_id' => $registration->id,
-                'new_status' => $newBookingStatus,
-            ]);
-        }
-
-        // If this is a group booking, sync all related bookings
-        if ($registration->booking_group_id) {
-            $this->syncGroupBookingStatus($registration);
-        }
-    }
-
-    /**
-     * Sync status for all bookings in a group when the group lead changes.
-     */
-    private function syncGroupBookingStatus(Registration $registration): void
-    {
-        if (! $registration->booking_group_id || ! $registration->is_group_lead) {
-            return;
-        }
-
-        $statusMap = [
-            'checked_in' => 'checked_in',
-            'checked_out' => 'completed',
-            'no_show' => 'no_show',
-        ];
-
-        $newStatus = $statusMap[$registration->stay_status] ?? null;
-        if (! $newStatus) {
-            return;
-        }
-
-        // Update all bookings in the group
-        Booking::where('booking_group_id', $registration->booking_group_id)
-            ->update(['status' => $newStatus]);
-
-        Log::info('Group booking status synced', [
-            'booking_group_id' => $registration->booking_group_id,
-            'new_status' => $newStatus,
-        ]);
+        app(BookingStatusService::class)->sync($registration);
     }
 
     /**

@@ -115,6 +115,7 @@ Route::prefix('frontdesk')
             Route::post('/{registration}/reopen', [RegistrationController::class, 'reopen'])->name('reopen');
             Route::post('/{registration}/post-charge', [RegistrationController::class, 'postCharge'])->name('post-charge');
             Route::post('/{registration}/post-to-city-ledger', [RegistrationController::class, 'postToCityLedger'])->name('post-to-city-ledger');
+            Route::post('/{registration}/create-city-ledger-account', [RegistrationController::class, 'createCityLedgerAccount'])->name('create-city-ledger-account');
 
             // --- NEW "DELETE DRAFT" ROUTE (Feature) ---
             Route::delete('/{registration}', [RegistrationController::class, 'destroy'])->name('destroy');

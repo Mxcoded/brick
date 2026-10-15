@@ -104,6 +104,19 @@
                             </div>
 
                             <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">Sell Limit (overbooking)</label>
+                                    <div class="input-group">
+                                        <input type="number" name="sell_limit" class="form-control"
+                                               value="{{ old('sell_limit', $roomType->sell_limit) }}" min="1"
+                                               placeholder="Same as room count">
+                                        <span class="input-group-text">rooms/night</span>
+                                    </div>
+                                    <small class="text-muted">Leave empty to sell only the physical rooms. Set higher to allow overbooking, or lower to sell out earlier.</small>
+                                </div>
+                            </div>
+
+                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label fw-bold">Extra Adult Fee <small class="text-muted">/night</small></label>
                                     <div class="input-group">

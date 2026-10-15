@@ -12,6 +12,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Modules\Finance\Models\ChartOfAccount;
 use Modules\Finance\Services\FiscalPeriodService;
+use Modules\Finance\Support\SubLedger;
 
 class JournalEntryForm
 {
@@ -51,7 +52,7 @@ class JournalEntryForm
                     ->addActionLabel('Add line')
                     ->live(onBlur: true)
                     ->columnSpanFull()
-                    ->columns(4)
+                    ->columns(5)
                     ->schema([
                         Select::make('account_id')
                             ->label('Account')
@@ -63,6 +64,15 @@ class JournalEntryForm
                                 ->get()
                                 ->mapWithKeys(fn (ChartOfAccount $a) => [$a->id => "{$a->code} — {$a->name}"])
                                 ->all()),
+
+                        Select::make('party')
+                            ->label('Sub-ledger')
+                            ->searchable()
+                            ->nullable()
+                            ->placeholder('None')
+                            ->getSearchResultsUsing(fn (string $search): array => SubLedger::options($search))
+                            ->getOptionLabelUsing(fn ($value): ?string => SubLedger::labelFor($value))
+                            ->helperText('Guest or company for the AR/AP line.'),
 
                         TextInput::make('debit')
                             ->numeric()
@@ -121,6 +131,38 @@ class JournalEntryForm
             ),
             'balanced' => false,
         ];
+    }
+
+    /**
+     * Turns a form line into the attributes a JournalLine is stored with.
+     *
+     * The sub-ledger select carries one "Class:id" value; here it is split back
+     * into the two nullable columns so a line without a party stores nulls
+     * rather than an empty string.
+     *
+     * @param  array<string, mixed>  $line
+     * @return array<string, mixed>
+     */
+    public static function normaliseLine(array $line): array
+    {
+        $party = SubLedger::parse($line['party'] ?? null);
+
+        return [
+            'account_id' => $line['account_id'],
+            'party_type' => $party['type'] ?? null,
+            'party_id' => $party['id'] ?? null,
+            'debit' => round((float) ($line['debit'] ?? 0), 2),
+            'credit' => round((float) ($line['credit'] ?? 0), 2),
+            'description' => $line['description'] ?? null,
+        ];
+    }
+
+    /**
+     * The "Class:id" a line's stored party should be shown as in the form.
+     */
+    public static function partyValue(?string $type, mixed $id): ?string
+    {
+        return $type && $id ? $type.':'.$id : null;
     }
 
     protected static function lockedPeriodRule(): \Closure

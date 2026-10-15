@@ -278,6 +278,7 @@ Route::middleware(['web'])->group(function () {
             // =========================================================================
             Route::prefix('inventory')->name('inventory.')->group(function () use ($p) {
                 Route::get('/', [InventoryCalendarController::class, 'index'])->name('index')->middleware($p('inventory', 'read'));
+                Route::get('/export', [InventoryCalendarController::class, 'export'])->name('export')->middleware($p('inventory', 'read'));
                 Route::get('/api/data', [InventoryCalendarController::class, 'getInventoryData'])->name('api.data')->middleware($p('inventory', 'read'));
                 Route::get('/api/blocks', [InventoryCalendarController::class, 'getBlocks'])->name('api.blocks')->middleware($p('inventory', 'read'));
                 Route::post('/block', [InventoryCalendarController::class, 'applyBlock'])->name('block')->middleware($p('inventory', 'create'));

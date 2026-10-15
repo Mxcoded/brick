@@ -204,31 +204,9 @@ class RoomController extends Controller
      */
     public function calendar(Request $request)
     {
-        // 1. Determine Month/Year (Default to current)
-        $date = $request->filled('date')
-            ? Carbon::parse($request->date)
-            : Carbon::now();
-
-        $startOfMonth = $date->copy()->startOfMonth();
-        $endOfMonth = $date->copy()->endOfMonth();
-        $daysInMonth = $date->daysInMonth;
-
-        // 2. Fetch Rooms with Bookings overlapping this month
-        // We eagerly load bookings to avoid "N+1" query performance issues
-        $rooms = Room::with(['bookings' => function ($query) use ($startOfMonth, $endOfMonth) {
-            $query->where('status', '!=', 'cancelled')
-                ->where(function ($q) use ($startOfMonth, $endOfMonth) {
-                    $q->whereBetween('check_in_date', [$startOfMonth, $endOfMonth])
-                        ->orWhereBetween('check_out_date', [$startOfMonth, $endOfMonth])
-                        ->orWhere(function ($sub) use ($startOfMonth, $endOfMonth) {
-                            $sub->where('check_in_date', '<', $startOfMonth)
-                                ->where('check_out_date', '>', $endOfMonth);
-                        });
-                });
-        }])->get();
-
-        // 3. Prepare View Data
-        return view('website::admin.rooms.calendar', compact('rooms', 'date', 'daysInMonth', 'startOfMonth'));
+        // The per-room density calendar has been merged into the unified
+        // inventory calendar; keep the route for old bookmarks/links.
+        return redirect()->route('website.admin.inventory.index');
     }
 
     /**

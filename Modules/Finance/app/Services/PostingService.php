@@ -2,6 +2,7 @@
 
 namespace Modules\Finance\Services;
 
+use Illuminate\Database\Eloquent\Model;
 use Modules\Finance\Models\JournalEntry;
 use Modules\Finance\Services\Contracts\LedgerServiceInterface;
 
@@ -247,7 +248,8 @@ class PostingService
         int $referenceId,
         ?string $date = null,
         ?string $description = null,
-        ?string $idempotencyKey = null
+        ?string $idempotencyKey = null,
+        ?Model $party = null
     ): ?JournalEntry {
         if ($amount <= 0) {
             return null;
@@ -259,7 +261,7 @@ class PostingService
             $idempotencyKey ?? "AP-$referenceType-$referenceId",
             [
                 ['account_code' => $expenseCode, 'debit' => $amount],
-                ['account_code' => $apCode, 'credit' => $amount],
+                $this->withParty(['account_code' => $apCode, 'credit' => $amount], $party),
             ],
             [
                 'reference_type' => $referenceType,
@@ -279,7 +281,8 @@ class PostingService
         string $referenceType,
         int $referenceId,
         ?string $date = null,
-        ?string $description = null
+        ?string $description = null,
+        ?Model $party = null
     ): ?JournalEntry {
         if ($amount <= 0) {
             return null;
@@ -291,7 +294,7 @@ class PostingService
         return $this->postIdempotent(
             "APP-$referenceType-$referenceId",
             [
-                ['account_code' => $apCode, 'debit' => $amount],
+                $this->withParty(['account_code' => $apCode, 'debit' => $amount], $party),
                 ['account_code' => $assetCode, 'credit' => $amount],
             ],
             [
@@ -333,7 +336,8 @@ class PostingService
         int $referenceId,
         ?string $date = null,
         ?string $description = null,
-        ?string $idempotencyKey = null
+        ?string $idempotencyKey = null,
+        ?Model $party = null
     ): ?JournalEntry {
         if ($amount <= 0) {
             return null;
@@ -342,7 +346,7 @@ class PostingService
         return $this->postIdempotent(
             $idempotencyKey ?? "ARC-$referenceType-$referenceId",
             [
-                ['account_code' => $this->receivableCode(), 'debit' => $amount],
+                $this->withParty(['account_code' => $this->receivableCode(), 'debit' => $amount], $party),
                 ['account_code' => $revenueCode, 'credit' => $amount],
             ],
             [
@@ -365,7 +369,8 @@ class PostingService
         int $referenceId,
         ?string $date = null,
         ?string $description = null,
-        ?string $idempotencyKey = null
+        ?string $idempotencyKey = null,
+        ?Model $party = null
     ): ?JournalEntry {
         if ($amount <= 0) {
             return null;
@@ -375,7 +380,7 @@ class PostingService
             $idempotencyKey ?? "ARP-$referenceType-$referenceId",
             [
                 ['account_code' => $this->assetForMethod($paymentMethod), 'debit' => $amount],
-                ['account_code' => $this->receivableCode(), 'credit' => $amount],
+                $this->withParty(['account_code' => $this->receivableCode(), 'credit' => $amount], $party),
             ],
             [
                 'reference_type' => $referenceType,
@@ -396,7 +401,8 @@ class PostingService
         int $referenceId,
         ?string $date = null,
         ?string $description = null,
-        ?string $idempotencyKey = null
+        ?string $idempotencyKey = null,
+        ?Model $party = null
     ): ?JournalEntry {
         if ($amount <= 0) {
             return null;
@@ -406,7 +412,7 @@ class PostingService
             $idempotencyKey ?? "ACN-$referenceType-$referenceId",
             [
                 ['account_code' => $revenueCode, 'debit' => $amount],
-                ['account_code' => $this->receivableCode(), 'credit' => $amount],
+                $this->withParty(['account_code' => $this->receivableCode(), 'credit' => $amount], $party),
             ],
             [
                 'reference_type' => $referenceType,
@@ -427,5 +433,25 @@ class PostingService
         }
 
         return $this->ledger->post($lines, array_merge($meta, ['entry_number' => $key]));
+    }
+
+    /**
+     * Tags a line with the sub-ledger it belongs to. Only the line that touches
+     * a control account (AR or AP) should carry a party, so callers apply this
+     * to that one line rather than the whole entry.
+     *
+     * @param  array{account_code: string, debit?: float, credit?: float}  $line
+     * @return array{account_code: string, debit?: float, credit?: float, party_type?: string, party_id?: int}
+     */
+    protected function withParty(array $line, ?Model $party): array
+    {
+        if (! $party || ! $party->exists) {
+            return $line;
+        }
+
+        return $line + [
+            'party_type' => $party->getMorphClass(),
+            'party_id' => $party->getKey(),
+        ];
     }
 }

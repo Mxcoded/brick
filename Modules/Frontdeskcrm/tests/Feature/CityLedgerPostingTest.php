@@ -256,6 +256,39 @@ class CityLedgerPostingTest extends TestCase
         $this->assertEqualsWithDelta((float) $account->fresh()->balance, $ledgerAr, 0.01);
     }
 
+    public function test_city_ledger_posts_tag_the_receivable_line_with_the_company(): void
+    {
+        // The sub-ledger is the whole reason a company's AR can be split back out
+        // of the control account, so every on-account movement must carry it.
+        $account = $this->makeAccount();
+        $registration = $this->makeRegistration();
+
+        $charge = $this->service->chargeRegistration($account, $registration, 90_000, null, $this->user->id);
+        $payment = $this->service->recordPayment($account, 30_000, 'cash', 'Part payment', null, $this->user->id);
+        $creditNote = $this->service->createCreditNote($account, 5_000, 'Adjustment', 'CN-001', $this->user->id);
+
+        $entries = [
+            'CLCHARGE-'.$charge->id,
+            'CLPAY-'.$payment->id,
+            'CLCN-'.$creditNote->id,
+        ];
+
+        $arLines = JournalLine::whereHas('journalEntry', fn ($e) => $e->whereIn('entry_number', $entries))
+            ->whereHas('account', fn ($a) => $a->where('code', '1200'))
+            ->get();
+
+        $this->assertCount(3, $arLines);
+
+        foreach ($arLines as $line) {
+            $this->assertSame(CityLedgerAccount::class, $line->party_type);
+            $this->assertSame($account->id, (int) $line->party_id);
+            $this->assertSame('Acme Corp', $line->party_label);
+        }
+
+        // Only the control-account line is tagged; revenue is not a sub-ledger.
+        $this->assertNull($this->lineOnSide('CLCHARGE-'.$charge->id, 'credit')->party_type);
+    }
+
     public function test_charges_are_not_double_posted_on_retry(): void
     {
         $account = $this->makeAccount();

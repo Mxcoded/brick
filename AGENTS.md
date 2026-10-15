@@ -44,6 +44,32 @@ php artisan test --filter=TestName         # Single test
 php artisan test Modules/ModuleName/tests  # Module tests
 ```
 
+### Test database (IMPORTANT)
+
+Tests use the separate `brickspoint_staff_test` schema, configured in `.env.testing`.
+**Never point `DB_DATABASE` in `.env.testing` at the development database.** A few
+suites use `RefreshDatabase`, which runs `migrate:fresh` and wipes whatever schema is
+configured, including all roles, permissions, users and ledger data.
+
+If the test schema is missing or empty, rebuild it once:
+
+```powershell
+# Create the schema (needs a MySQL account allowed to CREATE DATABASE)
+mysql -h 127.0.0.1 -P 3306 -u root -p -e "CREATE DATABASE IF NOT EXISTS brickspoint_staff_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# Schema only: clone the dev schema, then copy the migrations bookkeeping table
+mysqldump --no-data --routines --triggers -h 127.0.0.1 -u root -p brickspoint_staff | mysql -h 127.0.0.1 -u root -p brickspoint_staff_test
+mysqldump --no-create-info --complete-insert -h 127.0.0.1 -u root -p brickspoint_staff migrations | mysql -h 127.0.0.1 -u root -p brickspoint_staff_test
+
+# Baseline data that most suites assume already exists
+$env:DB_DATABASE="brickspoint_staff_test"; php artisan db:seed --class=DatabaseSeeder --force
+$env:DB_DATABASE="brickspoint_staff_test"; php artisan module:seed Finance --force
+```
+
+Do not run `php artisan config:cache` while testing: a cached `bootstrap/cache/config.php`
+pins `app.env` to `local`, which makes `app()->runningUnitTests()` false and silently turns
+Filament's `fillForm()` test helper into a no-op. Clear it with `php artisan optimize:clear`.
+
 ## Architecture
 
 ### Modular Monolith Structure
@@ -95,6 +121,22 @@ Module status controlled via `modules_statuses.json`.
 **Routes**: Each module defines routes in `Modules/{ModuleName}/routes/web.php`. Check middleware like `can:access_frontdesk_dashboard` for permission requirements.
 
 **RBAC**: Uses `spatie/laravel-permission`. Reference `App\Enums\RoleEnum` for role constants. Permissions are capability-based (e.g., `access_frontdesk_dashboard`).
+
+**NEVER hardcode role names in application logic.** A module may only ever know
+*what* the capabilities are; *who* holds them is a deployment concern. Concretely:
+
+- Permission names live in a taxonomy class, e.g. `Modules\Restaurant\Support\RestaurantPermission`.
+- Role → permission grants live in module config, e.g. `config/restaurant.php` under `roles`.
+- PHP code checks `RestaurantPermission::allows(...)` or a resource's `can*()` method. It
+  must never branch on `admin`, `gm`, `waiter`, `restaurant_manager` or any other role
+  string, and must never call `hasRole()` to decide what a person may do.
+- A seeder applies the config map; it must not grant a role that the map does not list.
+  Because it revokes from every role *absent* from the map, any role meant to keep access
+  must appear in the map (e.g. `admin` is listed in `config/restaurant.php`).
+- `Modules\Restaurant\Tests\Feature\RestaurantRoleMatrixTest` includes a guard that fails if
+  a role name appears in module PHP. Extend that guard when adding modules.
+
+The only place a role name may be written is configuration.
 
 **DataTables**: Server-side rendering with `yajra/laravel-datatables`.
 
