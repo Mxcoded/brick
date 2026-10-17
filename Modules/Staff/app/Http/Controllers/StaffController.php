@@ -707,7 +707,12 @@ class StaffController extends Controller
 
         $isActive = is_null($employee->end_date) || $employee->end_date > now();
 
-        $employedSince = $employee->start_date ? $employee->start_date->format('F Y') : ($employee->created_at ? $employee->created_at->format('F Y') : 'N/A');
+        try {
+            $employedSince = $employee->start_date ? Carbon::parse($employee->start_date)->format('F Y') : ($employee->created_at ? $employee->created_at->format('F Y') : 'N/A');
+        } catch (\Throwable) {
+            $employedSince = $employee->created_at?->format('F Y') ?? 'N/A';
+        }
+
         return back()->with('verified', [
             'name' => $employee->name,
             'staff_code' => $employee->staff_code,
