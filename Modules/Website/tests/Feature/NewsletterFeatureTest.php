@@ -262,6 +262,22 @@ class NewsletterFeatureTest extends TestCase
         $response = $this->get(route('website.admin.newsletter.campaigns.preview', $newsletter));
 
         $response->assertStatus(200);
+        $response->assertSee('Side by Side');
+        $response->assertSee(route('website.admin.newsletter.campaigns.preview.email', $newsletter), false);
+    }
+
+    public function test_admin_can_preview_raw_email_markup()
+    {
+        $newsletter = Newsletter::create([
+            'subject' => 'Preview Test',
+            'content' => '<p>Preview content</p>',
+            'status' => Newsletter::STATUS_DRAFT,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $response = $this->get(route('website.admin.newsletter.campaigns.preview.email', $newsletter));
+
+        $response->assertStatus(200);
         $response->assertSee('<p>Preview content</p>', false);
     }
 

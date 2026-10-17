@@ -150,7 +150,7 @@ Route::middleware(['web'])->group(function () {
     // 3. ADMIN MANAGEMENT ROUTES
     // =========================================================================
     // Access: http://your-site.com/website/admin
-    Route::middleware(['auth', 'can:access_website_dashboard'])
+    Route::middleware(['auth'])
         ->prefix('website/admin')
         ->name('website.admin.')
         ->group(function () {
@@ -315,6 +315,7 @@ Route::middleware(['web'])->group(function () {
                 Route::match(['put', 'patch'], '/{campaign}', [NewsletterController::class, 'update'])->name('update')->middleware($p('newsletter', 'update'));
                 Route::delete('/{campaign}', [NewsletterController::class, 'destroy'])->name('destroy')->middleware($p('newsletter', 'delete'));
                 Route::get('/{campaign}/preview', [NewsletterController::class, 'preview'])->name('preview')->middleware($p('newsletter', 'read'));
+                Route::get('/{campaign}/preview/email', [NewsletterController::class, 'previewEmail'])->name('preview.email')->middleware($p('newsletter', 'read'));
                 Route::post('/{campaign}/send', [NewsletterController::class, 'send'])->name('send')->middleware($p('newsletter', 'update'));
                 Route::post('/{campaign}/duplicate', [NewsletterController::class, 'duplicate'])->name('duplicate')->middleware($p('newsletter', 'create'));
                 Route::post('/{campaign}/test', [NewsletterController::class, 'sendTest'])->name('test')->middleware($p('newsletter', 'update'));

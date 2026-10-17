@@ -116,18 +116,12 @@
                                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                     <tr>
                                         <td style="padding:20px 0; border-top:1px solid #333333; border-bottom:1px solid #333333; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
-                                            @if(config('app.facebook'))
-                                                <a href="{{ config('app.facebook') }}" style="display:inline-block; margin:0 6px; padding:8px 16px; color:#C9A962; font-size:13px; font-weight:500; letter-spacing:1px; text-decoration:none; text-transform:uppercase; border:1px solid #444444;">Facebook</a>
-                                            @endif
-                                            @if(config('app.instagram'))
-                                                <a href="{{ config('app.instagram') }}" style="display:inline-block; margin:0 6px; padding:8px 16px; color:#C9A962; font-size:13px; font-weight:500; letter-spacing:1px; text-decoration:none; text-transform:uppercase; border:1px solid #444444;">Instagram</a>
-                                            @endif
-                                            @if(config('app.twitter'))
-                                                <a href="{{ config('app.twitter') }}" style="display:inline-block; margin:0 6px; padding:8px 16px; color:#C9A962; font-size:13px; font-weight:500; letter-spacing:1px; text-decoration:none; text-transform:uppercase; border:1px solid #444444;">Twitter</a>
-                                            @endif
-                                            @if(config('app.website'))
-                                                <a href="{{ config('app.website') }}" style="display:inline-block; margin:0 6px; padding:8px 16px; color:#C9A962; font-size:13px; font-weight:500; letter-spacing:1px; text-decoration:none; text-transform:uppercase; border:1px solid #444444;">Website</a>
-                                            @endif
+                                            <p style="color:#888888; font-size:11px; letter-spacing:2px; text-transform:uppercase; margin:0 0 14px 0;">Follow Us</p>
+                                            @foreach(config('app.social', []) as $social)
+                                                @if(!empty($social['url']))
+                                                    <a href="{{ $social['url'] }}" target="_blank" rel="noopener" style="display:inline-block; margin:4px 5px; padding:8px 16px; color:#C9A962; font-size:12px; font-weight:600; letter-spacing:0.5px; text-decoration:none; border:1px solid #444444; border-radius:4px;">{{ $social['label'] }}@if(!empty($social['handle']))&nbsp;&middot;&nbsp;{{ $social['handle'] }}@endif</a>
+                                                @endif
+                                            @endforeach
                                         </td>
                                     </tr>
                                 </table>

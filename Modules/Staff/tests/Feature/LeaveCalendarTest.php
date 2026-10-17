@@ -217,4 +217,67 @@ class LeaveCalendarTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('January 2026');
     }
+
+    #[Test]
+    public function staff_type_user_without_approve_can_view_my_leave_balance()
+    {
+        // A plain staff account (type=staff) has leaves.read via the Gate::before
+        // grant but NOT leaves.approve. The "My Leave Balance" page must still load.
+        $staff = User::factory()->create([
+            'type' => 'staff',
+            'status' => 'active',
+            'password' => Hash::make('password'),
+        ]);
+
+        $employee = $this->makeEmployee($staff, 'Dana Staff');
+
+        LeaveBalance::create([
+            'employee_id' => $employee->id,
+            'leave_type' => 'Annual',
+            'total_days' => 21,
+            'used_days' => 2,
+            'year' => now()->year,
+        ]);
+
+        $this->actingAs($staff);
+
+        $response = $this->get('/staff/leaves/admin/balance');
+
+        $response->assertStatus(200);
+        $response->assertSee('My Leave Balance');
+        $response->assertSee('Annual');
+        // Read-only page: no admin management controls.
+        $response->assertDontSee('Manage Balances');
+        $response->assertDontSee('Save Balance');
+    }
+
+    private function makeEmployee(User $user, string $name): Employee
+    {
+        return Employee::create([
+            'name' => $name,
+            'email' => strtolower(str_replace(' ', '.', $name)).'_'.uniqid().'@brickspoint.com',
+            'phone_number' => '080'.random_int(10000000, 99999999),
+            'position' => 'Staff',
+            'department' => 'Front Office',
+            'branch_name' => 'Asokoro',
+            'status' => 'approved',
+            'place_of_birth' => 'Abuja',
+            'state_of_origin' => 'FCT',
+            'lga' => 'Abuja Municipal',
+            'nationality' => 'Nigerian',
+            'gender' => 'Male',
+            'date_of_birth' => '1990-01-15',
+            'marital_status' => 'Single',
+            'blood_group' => 'O+',
+            'genotype' => 'AA',
+            'residential_address' => '123 Test St',
+            'next_of_kin_name' => 'Kin',
+            'next_of_kin_phone' => '080'.random_int(10000000, 99999999),
+            'ice_contact_name' => 'Ice',
+            'ice_contact_phone' => '080'.random_int(10000000, 99999999),
+            'start_date' => now()->subYear(),
+            'staff_code' => 'EMP'.str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT),
+            'user_id' => $user->id,
+        ]);
+    }
 }

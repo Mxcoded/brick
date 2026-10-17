@@ -21,5 +21,9 @@ class WebsiteDatabaseSeeder extends Seeder
 
         // NEW: Room Types & Units Architecture
         $this->call(RoomTypeSeeder::class);
+
+        // Demo newsletter campaign + subscribers for email preview.
+        // Run on demand: php artisan db:seed --class="Modules\Website\Database\Seeders\NewsletterCampaignSeeder"
+        // $this->call(NewsletterCampaignSeeder::class);
     }
 }

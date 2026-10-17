@@ -347,9 +347,20 @@ class NewsletterController extends Controller
     }
 
     /**
-     * Preview a newsletter.
+     * Preview a newsletter inside desktop and mobile device frames.
      */
     public function preview(Newsletter $campaign)
+    {
+        return view('website::admin.newsletter.campaigns.preview', compact('campaign'));
+    }
+
+    /**
+     * Render the raw newsletter email HTML.
+     *
+     * Used as the source document for the desktop/mobile frames on the preview
+     * page, so the email renders in isolation at its true responsive width.
+     */
+    public function previewEmail(Newsletter $campaign)
     {
         // Create a dummy subscriber for preview
         $subscriber = new NewsletterSubscriber([

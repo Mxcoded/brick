@@ -281,24 +281,22 @@ class LeaveController extends Controller
         ));
     }
 
-    // Leave Balance Form
+    // Leave Balance Form (self, read-only)
     public function leaveBalance()
     {
         $user = Auth::user();
         $employee = $user->employee;
 
-        $currentYear = date('Y');
+        $year = date('Y');
 
         if (! $employee) {
             return redirect()->route('staff.dashboard')
                 ->with('error', 'No employee record linked to your account.');
         }
 
-        $employees = Employee::with(['leaveBalances' => fn ($q) => $q->where('year', $currentYear)])
-            ->where('id', $employee->id)
-            ->paginate(15);
+        $leaveBalances = $employee->leaveBalances()->where('year', $year)->get();
 
-        return view('staff::leaves.admin.balances', compact('employees', 'currentYear'));
+        return view('staff::leaves.balance', compact('employee', 'leaveBalances', 'year'));
     }
 
     // Submit Leave Balance

@@ -434,6 +434,32 @@ class PermissionGateTest extends TestCase
     }
 
     #[Test]
+    public function website_newsletter_allows_granular_permission_without_dashboard_access()
+    {
+        foreach (['website.newsletter.read', 'website.subscribers.read'] as $perm) {
+            Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
+        }
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // A marketing user with ONLY granular newsletter/subscriber perms can reach those pages...
+        $this->assertPasses('/website/admin/newsletter/campaigns', ['website.newsletter.read']);
+        $this->assertPasses('/website/admin/newsletter/subscribers', ['website.subscribers.read']);
+
+        // ...but granular newsletter access must NOT open other website admin areas.
+        $this->assertBlocked('/website/admin/bookings', ['website.newsletter.read', 'website.subscribers.read']);
+        $this->assertBlocked('/website/admin/room-types', ['website.newsletter.read', 'website.subscribers.read']);
+
+        // The sidebar must surface the Newsletter menu (and not the unrelated website items).
+        $user = $this->createUser();
+        $user->givePermissionTo(['website.newsletter.read', 'website.subscribers.read']);
+        $this->actingAs($user);
+        $sidebar = view('layouts.sidebar')->render();
+        $this->assertStringContainsString('Newsletter', $sidebar);
+        $this->assertStringContainsString('Subscribers', $sidebar);
+        $this->assertStringNotContainsString('Room Types', $sidebar);
+    }
+
+    #[Test]
     public function website_settings_requires_dashboard_not_manage_settings()
     {
         // manage_settings is blade-only — route is gated by access_website_dashboard

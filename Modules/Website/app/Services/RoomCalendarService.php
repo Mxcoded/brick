@@ -779,9 +779,13 @@ class RoomCalendarService
      * original block(s) around the opened range. This lets you open a sub-range
      * of a previously blocked range while keeping the rest blocked.
      *
+     * Opening a range makes it sellable again, so any restrictions on the
+     * opened portion (stop sell, CTA, CTD, min/max stay) are cleared. The
+     * segments kept outside the opened range retain the original restrictions.
+     *
      * If $openCount is provided, only that many rooms are freed per overlapping
      * block (the block's blocked_count is reduced by $openCount); otherwise the
-     * whole range is opened. Stop-sell / restrictions on a block are preserved.
+     * whole range is opened.
      */
     public function openRooms(int $roomTypeId, Carbon $startDate, Carbon $endDate, ?int $openCount = null): int
     {
@@ -808,43 +812,42 @@ class RoomCalendarService
                 ? 0
                 : max(0, $block->blocked_count - $openCount);
 
-            // Keep a (reduced) segment if rooms remain blocked, or if the block
-            // carries other restrictions we must preserve.
-            $hasRestrictions = $block->stop_sell
-                || $block->closed_to_arrival
-                || $block->closed_to_departure
-                || $block->min_stay
-                || $block->max_stay;
+            // Keep a (reduced) segment only while rooms remain blocked. When the
+            // range is fully opened there is nothing to keep, so the block (and
+            // its restrictions) is dropped entirely.
+            $keepOpenedSegment = $remainingBlocked > 0;
 
-            $keepOpenedSegment = $remainingBlocked > 0 || $hasRestrictions;
-
-            // Portion before the opened range (keeps full blocked count).
+            // Portion before the opened range (keeps full blocked count and restrictions).
             $before = null;
             if ($blockStart->lt($startDate)) {
                 $before = [
                     'start_date' => $blockStart->copy(),
                     'end_date' => $startDate->copy()->subDay(),
                     'blocked_count' => $block->blocked_count,
+                    'preserve_restrictions' => true,
                 ];
             }
 
-            // Portion after the opened range (keeps full blocked count).
+            // Portion after the opened range (keeps full blocked count and restrictions).
             $after = null;
             if ($blockEnd->gt($endDate)) {
                 $after = [
                     'start_date' => $endDate->copy()->addDay(),
                     'end_date' => $blockEnd->copy(),
                     'blocked_count' => $block->blocked_count,
+                    'preserve_restrictions' => true,
                 ];
             }
 
-            // The opened range itself (reduced count, restrictions preserved).
+            // The opened range itself (reduced count, restrictions cleared so the
+            // range becomes sellable again).
             $opened = null;
             if ($keepOpenedSegment) {
                 $opened = [
                     'start_date' => $startDate->copy(),
                     'end_date' => $endDate->copy(),
                     'blocked_count' => $remainingBlocked,
+                    'preserve_restrictions' => false,
                 ];
             }
 
@@ -860,17 +863,19 @@ class RoomCalendarService
                     continue;
                 }
 
+                $keepRestrictions = $segment['preserve_restrictions'];
+
                 RoomInventoryBlock::create([
                     'room_type_id' => $block->room_type_id,
                     'start_date' => $segment['start_date'],
                     'end_date' => $segment['end_date'],
                     'blocked_count' => $segment['blocked_count'],
                     'block_type' => $block->block_type,
-                    'min_stay' => $block->min_stay,
-                    'max_stay' => $block->max_stay,
-                    'stop_sell' => $block->stop_sell,
-                    'closed_to_arrival' => $block->closed_to_arrival,
-                    'closed_to_departure' => $block->closed_to_departure,
+                    'min_stay' => $keepRestrictions ? $block->min_stay : null,
+                    'max_stay' => $keepRestrictions ? $block->max_stay : null,
+                    'stop_sell' => $keepRestrictions ? $block->stop_sell : false,
+                    'closed_to_arrival' => $keepRestrictions ? $block->closed_to_arrival : false,
+                    'closed_to_departure' => $keepRestrictions ? $block->closed_to_departure : false,
                     'notes' => $block->notes,
                     'created_by' => $block->created_by,
                 ]);

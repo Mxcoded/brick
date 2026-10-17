@@ -39,7 +39,7 @@
         <i class="fas fa-users fa-fw me-2"></i> Event Leads
     </a>
 
-    @canany(['access_website_dashboard', 'website.meeting'])
+    @canany(['access_website_dashboard', 'website.meeting', 'website.meeting.read'])
     <a href="{{ route('website.admin.meeting.edit') }}"
        class="list-group-item list-group-item-action {{ request()->routeIs('website.admin.meeting.*') ? 'active' : '' }}">
         <i class="fas fa-building fa-fw me-2"></i> Meetings Page

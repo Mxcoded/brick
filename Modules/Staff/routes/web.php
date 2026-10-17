@@ -41,9 +41,9 @@ Route::prefix('staff')
                 ->name('leaves.submit');
             Route::post('/{id}/cancel', [LeaveController::class, 'cancelLeaveRequest'])
                 ->name('leaves.cancel');
-            // Leave Balance Route
+            // Leave Balance Route (self, read-only — staff have leaves.read)
             Route::get('admin/balance', [LeaveController::class, 'leaveBalance'])
-                ->name('leaves.balance')->middleware('can:leaves.approve');
+                ->name('leaves.balance')->middleware('can:leaves.read');
             Route::post('admin/balance', [LeaveController::class, 'leaveBalanceSubmit'])
                 ->name('leaves.balance-submit')->middleware('can:leaves.approve');
             Route::get('/admin/balances', [LeaveController::class, 'showBalancesAdmin'])

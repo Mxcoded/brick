@@ -325,6 +325,125 @@ class InventoryCalendarTest extends TestCase
         ]);
     }
 
+    public function test_opening_a_stop_sell_range_clears_the_stop_sell()
+    {
+        $start = now()->addDays(1)->format('Y-m-d');
+        $end = now()->addDays(3)->format('Y-m-d');
+
+        $block = RoomInventoryBlock::create([
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $start,
+            'end_date' => $end,
+            'blocked_count' => 0,
+            'block_type' => 'stop_sell',
+            'stop_sell' => true,
+            'created_by' => $this->admin->id,
+        ]);
+
+        $response = $this->postJson(route('website.admin.inventory.open'), [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $start,
+            'end_date' => $end,
+        ]);
+
+        $response->assertJson(['success' => true]);
+        $this->assertSoftDeleted($block);
+
+        // No active stop-sell block should remain for that range.
+        $this->assertEquals(0, RoomInventoryBlock::forRoomType($this->roomType->id)
+            ->where('stop_sell', true)
+            ->count());
+    }
+
+    public function test_opening_a_sub_range_of_a_stop_sell_block_clears_only_the_opened_range()
+    {
+        $base = now()->addDays(20);
+        $blockStart = $base->copy()->format('Y-m-d');
+        $blockEnd = $base->copy()->addDays(5)->format('Y-m-d'); // 6-day block
+
+        $block = RoomInventoryBlock::create([
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $blockEnd,
+            'blocked_count' => 0,
+            'block_type' => 'stop_sell',
+            'stop_sell' => true,
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Open only the middle 2 days of the 6-day stop-sell block.
+        $openStart = $base->copy()->addDays(2)->format('Y-m-d');
+        $openEnd = $base->copy()->addDays(3)->format('Y-m-d');
+
+        $response = $this->postJson(route('website.admin.inventory.open'), [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $openStart,
+            'end_date' => $openEnd,
+        ]);
+
+        $response->assertJson(['success' => true]);
+        $this->assertSoftDeleted($block);
+
+        // Ends keep the stop sell...
+        $this->assertDatabaseHas('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $base->copy()->addDays(1)->format('Y-m-d'),
+            'stop_sell' => true,
+        ]);
+        $this->assertDatabaseHas('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $base->copy()->addDays(4)->format('Y-m-d'),
+            'end_date' => $blockEnd,
+            'stop_sell' => true,
+        ]);
+
+        // ...but the opened middle days are cleared.
+        $this->assertDatabaseMissing('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $openStart,
+            'end_date' => $openEnd,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_opening_a_count_from_a_stop_sell_block_clears_the_restriction()
+    {
+        $base = now()->addDays(20);
+        $blockStart = $base->copy()->format('Y-m-d');
+        $blockEnd = $base->copy()->addDays(5)->format('Y-m-d');
+
+        $block = RoomInventoryBlock::create([
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $blockEnd,
+            'blocked_count' => 4,
+            'block_type' => 'stop_sell',
+            'stop_sell' => true,
+            'created_by' => $this->admin->id,
+        ]);
+
+        // Open 1 of the 4 blocked rooms for the whole range.
+        $response = $this->postJson(route('website.admin.inventory.open'), [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $blockEnd,
+            'open_count' => 1,
+        ]);
+
+        $response->assertJson(['success' => true]);
+        $this->assertSoftDeleted($block);
+
+        // The range stays blocked but is no longer stop-sell.
+        $this->assertDatabaseHas('room_inventory_blocks', [
+            'room_type_id' => $this->roomType->id,
+            'start_date' => $blockStart,
+            'end_date' => $blockEnd,
+            'blocked_count' => 3,
+            'stop_sell' => false,
+        ]);
+    }
+
     public function test_website_admin_can_remove_block()
     {
         $block = RoomInventoryBlock::create([

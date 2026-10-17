@@ -37,7 +37,7 @@
       <div class="sidebar col-md-2">
     <h4 class="text-center mb-4">Website Admin</h4>
     <ul class="nav flex-column">
-        @canany(['access_website_dashboard', 'website.dashboard'])
+        @canany(['access_website_dashboard', 'website.dashboard', 'website.dashboard.read'])
         <li class="nav-item">
             <a class="nav-link {{ Route::is('website.admin.dashboard') ? 'active' : '' }}"
                 href="{{ route('website.admin.dashboard') }}">
@@ -45,28 +45,28 @@
             </a>
         </li>
         @endcanany
-        @canany(['access_website_dashboard', 'website.amenities'])
+        @canany(['access_website_dashboard', 'website.amenities', 'website.amenities.read'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.amenities.index') }}">
                 <i class="fas fa-concierge-bell me-2"></i> Amenities
             </a>
         </li>
         @endcanany
-        @canany(['access_website_dashboard', 'website.bookings'])
+        @canany(['access_website_dashboard', 'website.bookings', 'website.bookings.read'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.bookings.index') }}">
                 <i class="fas fa-book me-2"></i> Bookings
             </a>
         </li>
         @endcanany
-        @canany(['access_website_dashboard', 'website.contact-messages'])
+        @canany(['access_website_dashboard', 'website.contact-messages', 'website.contact-messages.read'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.contact-messages.index') }}">
                 <i class="fas fa-envelope me-2"></i> Contact Messages
             </a>
         </li>
         @endcanany
-        @canany(['access_website_dashboard', 'website.settings'])
+        @canany(['access_website_dashboard', 'website.settings', 'website.settings.read'])
         <li class="nav-item">
             <a class="nav-link" href="{{ route('website.admin.settings.index') }}">
                 <i class="fas fa-cog me-2"></i> Settings

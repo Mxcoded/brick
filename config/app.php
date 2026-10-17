@@ -107,6 +107,39 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Social Media
+    |--------------------------------------------------------------------------
+    |
+    | Links and handles used in marketing emails and campaign footers. Networks
+    | with an empty "url" (e.g. LinkedIn until configured) are not rendered.
+    |
+    */
+
+    'social' => [
+        'x' => [
+            'label' => 'X',
+            'url' => env('SOCIAL_X_URL', 'https://x.com/bpaparthotel'),
+            'handle' => env('SOCIAL_X_HANDLE', '@bpaparthotel'),
+        ],
+        'instagram' => [
+            'label' => 'Instagram',
+            'url' => env('SOCIAL_INSTAGRAM_URL', 'https://instagram.com/brickspoint_asokoro'),
+            'handle' => env('SOCIAL_INSTAGRAM_HANDLE', '@brickspoint_asokoro'),
+        ],
+        'facebook' => [
+            'label' => 'Facebook',
+            'url' => env('SOCIAL_FACEBOOK_URL', 'https://fb.com/bpaparthotel'),
+            'handle' => env('SOCIAL_FACEBOOK_HANDLE', '@bpaparthotel'),
+        ],
+        'linkedin' => [
+            'label' => 'LinkedIn',
+            'url' => env('SOCIAL_LINKEDIN_URL', ''),
+            'handle' => env('SOCIAL_LINKEDIN_HANDLE', ''),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Maintenance Mode Driver
     |--------------------------------------------------------------------------
     |
