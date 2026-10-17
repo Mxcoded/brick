@@ -36,19 +36,20 @@
                             <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;">
                             <v:fill type="gradient" color="#1A1A1A" color2="#2D2D2D" angle="135"/>
                             <v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:true;">
-                            <![endif]-->
-                            <div style="background: linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%); background-color:#1A1A1A; padding:45px 40px 35px; text-align:center;">
-                                @if(config('app.logo'))
-                                    <img src="{{ config('app.logo') }}" alt="Brickspoint Boutique Aparthotel" style="max-width:200px; height:auto; display:block; margin:0 auto; border:0; outline:none;" border="0">
-                                @else
-                                    <h1 style="color:#C9A962; font-size:32px; font-weight:300; letter-spacing:6px; margin:0 0 8px 0; text-transform:uppercase; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Brickspoint</h1>
-                                    <p style="color:#B8B8B8; font-size:12px; letter-spacing:3px; text-transform:uppercase; margin:0; font-weight:400; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Boutique Aparthotel</p>
-                                @endif
-                            </div>
-                            <!--[if mso]>
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                    <tr>
+                                        <td style="padding:45px 40px 35px; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                            @if(config('app.logo'))
+                                                <img src="{{ config('app.logo') }}" alt="Brickspoint Boutique Aparthotel" style="max-width:200px; height:auto; display:block; margin:0 auto; border:0; outline:none;" border="0">
+                                            @else
+                                                <h1 style="color:#C9A962; font-size:32px; font-weight:300; letter-spacing:6px; margin:0 0 8px 0; text-transform:uppercase; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Brickspoint</h1>
+                                                <p style="color:#B8B8B8; font-size:12px; letter-spacing:3px; text-transform:uppercase; margin:0; font-weight:400; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Boutique Aparthotel</p>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                </table>
                             </v:textbox>
                             </v:rect>
-                            <![endif]-->
 
                             <!-- GOLD ACCENT LINE -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -95,56 +96,58 @@
                             <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:640px;">
                             <v:fill type="gradient" color="#0D0D0D" color2="#1A1A1A" angle="180"/>
                             <v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:true;">
-                            <![endif]-->
-                            <div style="background: linear-gradient(180deg, #1A1A1A 0%, #0D0D0D 100%); background-color:#1A1A1A; padding:45px 40px 35px; text-align:center;">
-                                <p style="color:#C9A962; font-size:22px; font-weight:300; letter-spacing:4px; margin:0 0 5px 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Brickspoint</p>
-                                <p style="color:#888888; font-size:11px; letter-spacing:2px; text-transform:uppercase; margin:0 0 25px 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Boutique Aparthotel</p>
-
-                                <p style="color:#AAAAAA; font-size:13px; line-height:1.8; margin-bottom:25px; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
-                                    @if(config('app.address'))
-                                        {{ config('app.address') }}<br>
-                                    @endif
-                                    @if(config('app.phone'))
-                                        <a href="tel:{{ config('app.phone') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.phone') }}</a><br>
-                                    @endif
-                                    @if(config('app.email'))
-                                        <a href="mailto:{{ config('app.email') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.email') }}</a>
-                                    @endif
-                                </p>
-
-                                <!-- SOCIAL LINKS -->
                                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                     <tr>
-                                        <td style="padding:20px 0; border-top:1px solid #333333; border-bottom:1px solid #333333; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
-                                            <p style="color:#888888; font-size:11px; letter-spacing:2px; text-transform:uppercase; margin:0 0 14px 0;">Follow Us</p>
-                                            @foreach(config('app.social', []) as $social)
-                                                @if(!empty($social['url']))
-                                                    <a href="{{ $social['url'] }}" target="_blank" rel="noopener" style="display:inline-block; margin:4px 5px; padding:8px 16px; color:#C9A962; font-size:12px; font-weight:600; letter-spacing:0.5px; text-decoration:none; border:1px solid #444444; border-radius:4px;">{{ $social['label'] }}@if(!empty($social['handle']))&nbsp;&middot;&nbsp;{{ $social['handle'] }}@endif</a>
+                                        <td style="background-color:#0D0D0D; background: linear-gradient(180deg, #1A1A1A 0%, #0D0D0D 100%); padding:45px 40px 35px; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                            <p style="color:#C9A962; font-size:22px; font-weight:300; letter-spacing:4px; margin:0 0 5px 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Brickspoint</p>
+                                            <p style="color:#888888; font-size:11px; letter-spacing:2px; text-transform:uppercase; margin:0 0 25px 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">Boutique Aparthotel</p>
+
+                                            <p style="color:#AAAAAA; font-size:13px; line-height:1.8; margin-bottom:25px; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                                @if(config('app.address'))
+                                                    {{ config('app.address') }}<br>
                                                 @endif
-                                            @endforeach
+                                                @if(config('app.phone'))
+                                                    <a href="tel:{{ config('app.phone') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.phone') }}</a><br>
+                                                @endif
+                                                @if(config('app.email'))
+                                                    <a href="mailto:{{ config('app.email') }}" style="color:#C9A962; text-decoration:none;">{{ config('app.email') }}</a>
+                                                @endif
+                                            </p>
+
+                                            <!-- SOCIAL LINKS -->
+                                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                                <tr>
+                                                    <td style="padding:20px 0; border-top:1px solid #333333; border-bottom:1px solid #333333; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                                        <p style="color:#888888; font-size:11px; letter-spacing:2px; text-transform:uppercase; margin:0 0 14px 0;">Follow Us</p>
+                                                        @foreach(config('app.social', []) as $social)
+                                                            @if(!empty($social['url']))
+                                                                <a href="{{ $social['url'] }}" target="_blank" rel="noopener" style="display:inline-block; margin:4px 5px; padding:8px 16px; color:#C9A962; font-size:12px; font-weight:600; letter-spacing:0.5px; text-decoration:none; border:1px solid #444444; border-radius:4px;">{{ $social['label'] }}@if(!empty($social['handle']))&nbsp;&middot;&nbsp;{{ $social['handle'] }}@endif</a>
+                                                            @endif
+                                                        @endforeach
+                                                    </td>
+                                                </tr>
+                                            </table>
+
+                                            <p style="color:#777777; font-size:12px; line-height:1.7; margin:20px 0 0 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                                You're receiving this email because you subscribed to our newsletter<br>
+                                                for exclusive offers and updates from Brickspoint Boutique Aparthotel.
+                                            </p>
+
+                                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                                <tr>
+                                                    <td style="padding:20px 0 0; border-top:1px solid #333333; margin-top:25px; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                                        <p style="color:#666666; font-size:11px; margin:0 0 8px 0;">No longer wish to receive these emails?</p>
+                                                        <a href="{{ $unsubscribeUrl }}" style="color:#888888; font-size:11px; text-decoration:underline;">Unsubscribe from our mailing list</a>
+                                                    </td>
+                                                </tr>
+                                            </table>
+
+                                            <p style="color:#555555; font-size:11px; margin-top:20px; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
+                                                &copy; {{ date('Y') }} Brickspoint Boutique Aparthotel. All rights reserved.
+                                            </p>
                                         </td>
                                     </tr>
                                 </table>
-
-                                <p style="color:#777777; font-size:12px; line-height:1.7; margin:20px 0 0 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
-                                    You're receiving this email because you subscribed to our newsletter<br>
-                                    for exclusive offers and updates from Brickspoint Boutique Aparthotel.
-                                </p>
-
-                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                                    <tr>
-                                        <td style="padding:20px 0 0; border-top:1px solid #333333; margin-top:25px; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
-                                            <p style="color:#666666; font-size:11px; margin:0 0 8px 0;">No longer wish to receive these emails?</p>
-                                            <a href="{{ $unsubscribeUrl }}" style="color:#888888; font-size:11px; text-decoration:underline;">Unsubscribe from our mailing list</a>
-                                        </td>
-                                    </tr>
-                                </table>
-
-                                <p style="color:#555555; font-size:11px; margin-top:20px; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
-                                    &copy; {{ date('Y') }} Brickspoint Boutique Aparthotel. All rights reserved.
-                                </p>
-                            </div>
-                            <!--[if mso]>
                             </v:textbox>
                             </v:rect>
                             <![endif]-->
