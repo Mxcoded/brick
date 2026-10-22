@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 
 class ProfileController extends Controller
 {
@@ -38,10 +39,20 @@ class ProfileController extends Controller
                 'current_password' => 'required|current_password',
                 'new_password' => ['required', 'confirmed', Password::min(8)],
             ]);
-            $user->password = Hash::make($request->new_password);
 
-            // Invalidate all other sessions (logs out other devices)
-            auth()->logoutOtherDevices($request->current_password);
+            // Logout other devices FIRST, while the user still carries the
+            // current hash. logoutOtherDevices() verifies the given password
+            // against the in-memory hash, so assigning the new password
+            // before this call throws an InvalidArgumentException (500).
+            try {
+                auth()->logoutOtherDevices($request->current_password);
+            } catch (\InvalidArgumentException $e) {
+                throw ValidationException::withMessages([
+                    'current_password' => 'The current password does not match.',
+                ]);
+            }
+
+            $user->password = Hash::make($request->new_password);
         }
 
         // Update name and email
