@@ -83,6 +83,11 @@
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="navbarDropdown">
                                     <li>
+                                        <a class="dropdown-item" href="{{ route('profile.show') }}">
+                                            <i class="fas fa-user-alt me-2"></i> My Profile
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item" href="{{ route('staff.leaves.index') }}">
                                             <i class="fas fa-calendar-alt me-2"></i> My Leaves
                                         </a>

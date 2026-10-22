@@ -69,6 +69,19 @@ class ProfilePasswordChangeTest extends TestCase
     }
 
     #[Test]
+    public function profile_page_renders_the_password_form_and_is_linked_from_the_layout(): void
+    {
+        $user = $this->makeUser();
+
+        $response = $this->actingAs($user)->get(route('profile.show'));
+
+        $response->assertOk();
+        $response->assertSee('current_password');
+        $response->assertSee('new_password_confirmation');
+        $response->assertSee(route('profile.show'));
+    }
+
+    #[Test]
     public function mismatched_confirmation_returns_an_inline_validation_error(): void
     {
         $user = $this->makeUser();
@@ -81,6 +94,26 @@ class ProfilePasswordChangeTest extends TestCase
                 'current_password' => 'password',
                 'new_password' => 'newsecret123',
                 'new_password_confirmation' => 'different123',
+            ]);
+
+        $response->assertRedirect(route('profile.show'));
+        $response->assertSessionHasErrors('new_password');
+        $this->assertTrue(Hash::check('password', $user->fresh()->password));
+    }
+
+    #[Test]
+    public function password_shorter_than_eight_characters_is_rejected(): void
+    {
+        $user = $this->makeUser();
+
+        $response = $this->from(route('profile.show'))
+            ->actingAs($user)
+            ->put(route('profile.update'), [
+                'name' => $user->name,
+                'email' => $user->email,
+                'current_password' => 'password',
+                'new_password' => 'short1',
+                'new_password_confirmation' => 'short1',
             ]);
 
         $response->assertRedirect(route('profile.show'));

@@ -290,6 +290,12 @@
                                 <span class="text-charcoal font-medium hidden sm:inline">Welcome,
                                     {{ Auth::user()->name }}</span>
 
+                                <a href="{{ route('profile.show') }}"
+                                    class="text-charcoal hover:text-gold transition-colors duration-200 font-medium flex items-center space-x-1">
+                                    <i class="fas fa-user-alt"></i>
+                                    <span class="hidden sm:inline">My Profile</span>
+                                </a>
+
                                 <a href="{{ route('logout') }}"
                                     class="text-red-600 hover:text-red-800 transition-colors duration-200 font-medium flex items-center space-x-1"
                                     onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
