@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Modules\Website\Console\Commands\CleanupOrphanedBookings;
 use Modules\Website\Console\Commands\FixConfirmedBookingBalances;
+use Modules\Website\Console\Commands\SendDueNewsletters;
 use Modules\Website\Console\Commands\SendPostStayFollowUp;
 use Modules\Website\Console\MigrateRoomsToTypes;
 use Modules\Website\Livewire\BookingSummary;
@@ -66,6 +67,7 @@ class WebsiteServiceProvider extends ServiceProvider
             CleanupOrphanedBookings::class,
             FixConfirmedBookingBalances::class,
             SendPostStayFollowUp::class,
+            SendDueNewsletters::class,
         ]);
     }
 
@@ -77,6 +79,13 @@ class WebsiteServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             $schedule = $this->app->make(Schedule::class);
             $schedule->command('website:send-post-stay-followup')->dailyAt('10:00');
+
+            // Fire scheduled newsletter campaigns on time. The mutex expires
+            // after 60 minutes so a crashed run can never block the queue
+            // forever, and a healthy run releases it as soon as it finishes.
+            $schedule->command('website:send-due-newsletters')
+                ->everyMinute()
+                ->withoutOverlapping(60);
         });
     }
 

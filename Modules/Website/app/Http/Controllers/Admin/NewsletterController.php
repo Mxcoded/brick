@@ -11,6 +11,7 @@ use Modules\Website\Imports\NewsletterSubscriberImport;
 use Modules\Website\Models\Newsletter;
 use Modules\Website\Models\NewsletterDeliveryLog;
 use Modules\Website\Models\NewsletterSubscriber;
+use Modules\Website\Services\NewsletterSendingService;
 
 class NewsletterController extends Controller
 {
@@ -440,73 +441,16 @@ class NewsletterController extends Controller
      */
     protected function dispatchNewsletter(Newsletter $newsletter)
     {
-        $subscribers = NewsletterSubscriber::active()->get();
-        $count = $subscribers->count();
+        $result = app(NewsletterSendingService::class)->send($newsletter);
 
-        if ($count === 0) {
+        if ($result['recipients'] === 0) {
             return redirect()->route('website.admin.newsletter.campaigns.index')
                 ->with('error', 'No active subscribers to send to.');
         }
 
-        // Mark newsletter as sending
-        $newsletter->markAsSending($count);
-
-        $sentCount = 0;
-        $failedCount = 0;
-
-        // Send emails synchronously for immediate delivery
-        foreach ($subscribers as $subscriber) {
-            // Create delivery log first
-            $deliveryLog = NewsletterDeliveryLog::create([
-                'newsletter_id' => $newsletter->id,
-                'subscriber_id' => $subscriber->id,
-                'email' => $subscriber->email,
-                'status' => NewsletterDeliveryLog::STATUS_PENDING,
-            ]);
-
-            try {
-                // Send email directly for immediate delivery
-                $subscriber->ensureUnsubscribeToken();
-
-                \Mail::to($subscriber->email)->send(
-                    new NewsletterMail($newsletter, $subscriber)
-                );
-
-                // Mark as sent
-                $deliveryLog->markAsSent();
-                $sentCount++;
-
-            } catch (\Exception $e) {
-                // Mark as failed
-                $deliveryLog->markAsFailed($e->getMessage());
-                $failedCount++;
-
-                Log::error('Newsletter delivery failed', [
-                    'newsletter_id' => $newsletter->id,
-                    'subscriber_email' => $subscriber->email,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        // Update newsletter counts and mark as sent
-        $newsletter->update([
-            'sent_count' => $sentCount,
-            'failed_count' => $failedCount,
-            'status' => Newsletter::STATUS_SENT,
-            'sent_at' => now(),
-        ]);
-
-        Log::info('Newsletter sent', [
-            'newsletter_id' => $newsletter->id,
-            'recipients' => $count,
-            'sent' => $sentCount,
-            'failed' => $failedCount,
-        ]);
-
         // Redirect to delivery status page showing results
         return redirect()->route('website.admin.newsletter.campaigns.delivery-status', $newsletter)
-            ->with('success', "Newsletter sent! {$sentCount} delivered".($failedCount > 0 ? ", {$failedCount} failed" : '').'.');
+            ->with('success', "Newsletter sent! {$result['sent']} delivered".($result['failed'] > 0 ? ", {$result['failed']} failed" : '').'.');
     }
 
     /**
