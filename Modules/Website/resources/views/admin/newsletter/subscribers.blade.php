@@ -203,7 +203,19 @@
 @if(session('import_failures'))
     <div class="alert alert-warning alert-dismissible fade show mt-3" role="alert">
         <i class="fas fa-exclamation-triangle me-2"></i>
-        {{ session('import_failures') }} row(s) had validation errors. Check the logs for details.
+        {{ session('import_failures') }} row(s) had validation errors.
+        @if($importFailureDetails = session('import_failure_details'))
+            <ul class="mb-1 mt-2 small">
+                @foreach($importFailureDetails as $failure)
+                    <li>Row {{ $failure['row'] }} &mdash; <code>{{ $failure['email'] }}</code>: {{ $failure['error'] }}</li>
+                @endforeach
+            </ul>
+            @if(session('import_failures') > count($importFailureDetails))
+                <div class="small">…and {{ session('import_failures') - count($importFailureDetails) }} more. Full details are in the logs.</div>
+            @endif
+        @else
+            Check the logs for details.
+        @endif
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 @endif

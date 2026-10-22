@@ -21,7 +21,7 @@ class NewsletterSubscriberImport implements SkipsOnFailure, ToModel, WithHeading
 
     protected int $reactivated = 0;
 
-    public function model(array $row)
+    public function model(array $row): ?NewsletterSubscriber
     {
         $email = strtolower(trim($row['email']));
         $name = isset($row['name']) ? trim($row['name']) : null;
@@ -70,7 +70,7 @@ class NewsletterSubscriberImport implements SkipsOnFailure, ToModel, WithHeading
     {
         return [
             'email.required' => 'Email is required for each row.',
-            'email.email' => 'The email ":input" is not a valid email address.',
+            'email.email' => 'The email ":input" is not a valid email address, or its domain does not accept email (checked via DNS).',
         ];
     }
 

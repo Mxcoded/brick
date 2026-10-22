@@ -5,6 +5,7 @@ namespace Modules\Website\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Website\Emails\NewsletterMail;
 use Modules\Website\Imports\NewsletterSubscriberImport;
@@ -89,11 +90,22 @@ class NewsletterController extends Controller
     public function importSubscribers(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+            'file' => 'required|file|extensions:csv,xls,xlsx|max:5120',
         ]);
 
         $import = new NewsletterSubscriberImport;
-        Excel::import($import, $request->file('file'));
+        try {
+            Excel::import($import, $request->file('file'));
+        } catch (\Throwable $e) {
+            Log::error('Newsletter import failed to read the uploaded file', [
+                'message' => $e->getMessage(),
+                'original_name' => $request->file('file')->getClientOriginalName(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'file' => 'The uploaded file could not be read. Make sure it is a valid CSV or Excel file with a "name" and "email" column in the first row.',
+            ]);
+        }
 
         $imported = $import->getImportedCount();
         $reactivated = $import->getReactivatedCount();
@@ -129,7 +141,12 @@ class NewsletterController extends Controller
 
         return redirect()->route('website.admin.newsletter.subscribers')
             ->with('success', $message)
-            ->with('import_failures', $failureCount);
+            ->with('import_failures', $failureCount)
+            ->with('import_failure_details', $failures->take(20)->map(fn ($f) => [
+                'row' => $f->row(),
+                'email' => (string) data_get($f->values(), 'email', '—'),
+                'error' => $f->errors()[0] ?? 'This row could not be read.',
+            ])->values()->all());
     }
 
     /**
@@ -145,8 +162,8 @@ class NewsletterController extends Controller
         $callback = function () {
             $file = fopen('php://output', 'w');
             fputcsv($file, ['name', 'email']);
-            fputcsv($file, ['John Doe', 'john@example.com']);
-            fputcsv($file, ['Jane Smith', 'jane@example.com']);
+            fputcsv($file, ['John Doe', 'john.doe@gmail.com']);
+            fputcsv($file, ['Jane Smith', 'jane.smith@gmail.com']);
             fclose($file);
         };
 
