@@ -240,7 +240,7 @@
                 </h1>
             </div>
             @if(isset($newsletter))
-                <a href="{{ route('website.admin.newsletter.campaigns.preview', $newsletter) }}" target="_blank" class="btn btn-outline-dark">
+                <a href="{{ route('website.admin.newsletter.campaigns.preview', $newsletter) }}" target="_blank" id="previewBtn" class="btn btn-outline-dark">
                     <i class="fas fa-eye me-1"></i> Preview
                 </a>
             @endif
@@ -452,6 +452,9 @@
                             Cancel
                         </a>
                     </div>
+                    @if(isset($newsletter))
+                        <div class="text-center small text-muted mt-2" id="autosaveStatus"></div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -545,6 +548,63 @@ document.addEventListener('DOMContentLoaded', function() {
     updateContentLength();
 
     // ==========================================
+    // Autosave (edit page only)
+    // ==========================================
+    @if(isset($newsletter))
+    const autosaveUrl = '{{ route('website.admin.newsletter.campaigns.autosave', $newsletter) }}';
+    const autosaveStatus = document.getElementById('autosaveStatus');
+    let autosaveTimer = null;
+
+    function saveDraft() {
+        clearTimeout(autosaveTimer);
+        autosaveStatus.textContent = 'Saving…';
+
+        return fetch(autosaveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                subject: subjectInput.value,
+                preview_text: previewInput.value,
+                content: quill.root.innerHTML
+            })
+        }).then(function(response) {
+            if (!response.ok) throw new Error('save failed');
+            return response.json();
+        }).then(function(data) {
+            autosaveStatus.textContent = 'All changes saved' + (data.saved_at ? ' at ' + data.saved_at : '');
+        }).catch(function() {
+            autosaveStatus.textContent = 'Could not save changes — use Save Draft';
+        });
+    }
+
+    function queueAutosave() {
+        clearTimeout(autosaveTimer);
+        autosaveStatus.textContent = 'Unsaved changes…';
+        autosaveTimer = setTimeout(saveDraft, 1200);
+    }
+
+    quill.on('text-change', queueAutosave);
+    subjectInput.addEventListener('input', queueAutosave);
+    previewInput.addEventListener('input', queueAutosave);
+
+    const previewBtn = document.getElementById('previewBtn');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            const previewUrl = this.href;
+            // Save the current edit first so the preview shows what was just typed.
+            Promise.resolve(saveDraft()).finally(function() {
+                window.open(previewUrl, '_blank');
+            });
+        });
+    }
+    @endif
+
+    // ==========================================
     // Schedule Options
     // ==========================================
     const actionRadios = document.querySelectorAll('input[name="action"]');
@@ -595,6 +655,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form Submit
     // ==========================================
     document.getElementById('campaignForm').addEventListener('submit', function(e) {
+        if (typeof autosaveTimer !== 'undefined') {
+            clearTimeout(autosaveTimer);
+        }
+
         const selected = document.querySelector('input[name="action"]:checked').value;
 
         if (selected === 'send') {
@@ -639,7 +703,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
-            body: JSON.stringify({ email: email })
+            body: JSON.stringify({
+                email: email,
+                subject: document.getElementById('subject').value,
+                preview_text: document.getElementById('preview_text').value,
+                content: quill.root.innerHTML
+            })
         })
         .then(response => response.json())
         .then(data => {

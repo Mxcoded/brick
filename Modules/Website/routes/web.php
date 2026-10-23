@@ -313,6 +313,7 @@ Route::middleware(['web'])->group(function () {
                 Route::get('/{campaign}', [NewsletterController::class, 'show'])->name('show')->middleware($p('newsletter', 'read'));
                 Route::get('/{campaign}/edit', [NewsletterController::class, 'edit'])->name('edit')->middleware($p('newsletter', 'update'));
                 Route::match(['put', 'patch'], '/{campaign}', [NewsletterController::class, 'update'])->name('update')->middleware($p('newsletter', 'update'));
+                Route::post('/{campaign}/autosave', [NewsletterController::class, 'autosave'])->name('autosave')->middleware($p('newsletter', 'update'));
                 Route::delete('/{campaign}', [NewsletterController::class, 'destroy'])->name('destroy')->middleware($p('newsletter', 'delete'));
                 Route::get('/{campaign}/preview', [NewsletterController::class, 'preview'])->name('preview')->middleware($p('newsletter', 'read'));
                 Route::get('/{campaign}/preview/email', [NewsletterController::class, 'previewEmail'])->name('preview.email')->middleware($p('newsletter', 'read'));

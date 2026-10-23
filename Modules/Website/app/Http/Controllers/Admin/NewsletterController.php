@@ -282,6 +282,26 @@ class NewsletterController extends Controller
     }
 
     /**
+     * Autosave an in-progress campaign without touching its status.
+     */
+    public function autosave(Request $request, Newsletter $campaign)
+    {
+        if (! $campaign->canEdit()) {
+            return response()->json(['message' => 'This newsletter can no longer be edited.'], 409);
+        }
+
+        $validated = $request->validate([
+            'subject' => 'nullable|string|max:255',
+            'preview_text' => 'nullable|string|max:500',
+            'content' => 'nullable|string',
+        ]);
+
+        $campaign->fill(array_intersect_key($validated, array_flip(['subject', 'preview_text', 'content'])))->save();
+
+        return response()->json(['saved_at' => now()->toDateTimeString()]);
+    }
+
+    /**
      * Show the newsletter campaign details.
      */
     public function show(Newsletter $campaign)
@@ -420,8 +440,11 @@ class NewsletterController extends Controller
      */
     public function sendTest(Request $request, Newsletter $campaign)
     {
-        $request->validate([
+        $validated = $request->validate([
             'email' => 'required|email',
+            'subject' => 'nullable|string|max:255',
+            'preview_text' => 'nullable|string|max:500',
+            'content' => 'nullable|string',
         ]);
 
         try {
@@ -431,8 +454,21 @@ class NewsletterController extends Controller
                 'unsubscribe_token' => 'test-'.bin2hex(random_bytes(16)),
             ]);
 
+            // Send the campaign as it currently looks in the editor, even if the
+            // draft has not been saved since the last edit.
+            $previewCampaign = $campaign->replicate();
+            if ($request->filled('subject')) {
+                $previewCampaign->subject = $validated['subject'];
+            }
+            if ($request->has('preview_text')) {
+                $previewCampaign->preview_text = $validated['preview_text'];
+            }
+            if ($request->filled('content')) {
+                $previewCampaign->content = $validated['content'];
+            }
+
             \Mail::to($request->email)->send(
-                new NewsletterMail($campaign, $subscriber)
+                new NewsletterMail($previewCampaign, $subscriber)
             );
 
             return response()->json(['success' => true, 'message' => 'Test email sent to '.$request->email]);
