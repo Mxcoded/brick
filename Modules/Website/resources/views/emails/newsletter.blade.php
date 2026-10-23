@@ -74,8 +74,8 @@
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td style="padding:24px 40px 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif; font-size:16px; line-height:1.7; color:#2D2D2D;">
-                                        @if($subscriber->name)
-                                            <p style="margin:0 0 8px;">Dear <strong>{{ $subscriber->name }}</strong>,</p>
+                                        @if(trim((string) $subscriber->name) !== '')
+                                            <p style="margin:0 0 8px;">Dear <strong>{{ trim($subscriber->name) }}</strong>,</p>
                                         @else
                                             <p style="margin:0 0 8px;">Dear Valued Subscriber,</p>
                                         @endif

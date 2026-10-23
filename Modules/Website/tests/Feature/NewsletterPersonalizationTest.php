@@ -6,9 +6,11 @@ use App\Enums\RoleEnum;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Mail;
 use Modules\Website\Emails\NewsletterMail;
 use Modules\Website\Models\Newsletter;
 use Modules\Website\Models\NewsletterSubscriber;
+use Modules\Website\Services\NewsletterSendingService;
 use Modules\Website\Support\NewsletterPersonalizer;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -131,6 +133,66 @@ class NewsletterPersonalizationTest extends TestCase
         $html = (new NewsletterMail($newsletter, $this->subscriber()))->render();
 
         $this->assertStringContainsString('Dear <strong>Jane Mary Doe</strong>', $html);
+    }
+
+    public function test_nameless_subscriber_falls_back_in_greeting_tags_and_subject()
+    {
+        $subscriber = $this->subscriber(['name' => null]);
+
+        $plain = $this->newsletter(['subject' => 'Hello {{first_name}}']);
+        $html = (new NewsletterMail($plain, $subscriber))->render();
+
+        $this->assertStringContainsString('Dear Valued Subscriber', $html);
+        $this->assertSame('Hello there', (new NewsletterMail($plain, $subscriber))->envelope()->subject);
+
+        $tagged = $this->newsletter([
+            'content' => '<p>Hi {{first_name}}, thanks for reading {{name}}.</p>',
+        ]);
+        $html = (new NewsletterMail($tagged, $subscriber))->render();
+
+        $this->assertStringContainsString('Hi there, thanks for reading Valued Subscriber.', $html);
+        $this->assertStringNotContainsString('Dear', $html);
+    }
+
+    public function test_whitespace_only_name_falls_back_to_valued_subscriber()
+    {
+        $html = (new NewsletterMail($this->newsletter(), $this->subscriber(['name' => '   '])))->render();
+
+        $this->assertStringContainsString('Dear Valued Subscriber', $html);
+        $this->assertStringNotContainsString('Dear <strong>', $html);
+    }
+
+    public function test_bulk_send_delivers_to_nameless_subscribers()
+    {
+        Mail::fake();
+
+        NewsletterSubscriber::create([
+            'email' => 'no.name.one@gmail.com',
+            'is_active' => true,
+            'subscribed_at' => now(),
+        ]);
+        NewsletterSubscriber::create([
+            'email' => 'no.name.two@gmail.com',
+            'is_active' => true,
+            'subscribed_at' => now(),
+        ]);
+
+        $newsletter = $this->newsletter([
+            'subject' => 'Hello {{first_name}}',
+            'content' => '<p>Hi {{first_name}}, our winter offer is live.</p>',
+        ]);
+
+        $result = app(NewsletterSendingService::class)->send($newsletter);
+
+        $this->assertSame(['recipients' => 2, 'sent' => 2, 'failed' => 0], $result);
+        $this->assertSame(Newsletter::STATUS_SENT, $newsletter->fresh()->status);
+
+        Mail::assertSent(NewsletterMail::class, 2);
+        Mail::assertSent(NewsletterMail::class, function (NewsletterMail $mail) {
+            return $mail->hasTo('no.name.one@gmail.com')
+                && $mail->envelope()->subject === 'Hello there'
+                && str_contains($mail->render(), 'Hi there, our winter offer is live.');
+        });
     }
 
     public function test_preview_email_shows_personalized_content_using_the_admin_name()
