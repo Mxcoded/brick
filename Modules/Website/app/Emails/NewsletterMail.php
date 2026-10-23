@@ -10,6 +10,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Modules\Website\Models\Newsletter;
 use Modules\Website\Models\NewsletterSubscriber;
+use Modules\Website\Support\NewsletterPersonalizer;
 
 class NewsletterMail extends Mailable
 {
@@ -34,7 +35,7 @@ class NewsletterMail extends Mailable
 
         return new Envelope(
             from: new Address($fromAddress, $fromName),
-            subject: $this->newsletter->subject,
+            subject: NewsletterPersonalizer::apply($this->newsletter->subject, $this->subscriber, escape: false),
         );
     }
 
@@ -48,6 +49,10 @@ class NewsletterMail extends Mailable
             with: [
                 'newsletter' => $this->newsletter,
                 'subscriber' => $this->subscriber,
+                'subject' => NewsletterPersonalizer::apply($this->newsletter->subject, $this->subscriber, escape: false),
+                'content' => NewsletterPersonalizer::apply($this->newsletter->content, $this->subscriber),
+                'previewText' => NewsletterPersonalizer::apply($this->newsletter->preview_text, $this->subscriber),
+                'showGreeting' => ! NewsletterPersonalizer::containsNameTag($this->newsletter->content),
                 'unsubscribeUrl' => $this->getUnsubscribeUrl(),
             ],
         );

@@ -277,7 +277,7 @@
                                    maxlength="255"
                                    required>
                             <div class="d-flex justify-content-between">
-                                <div class="form-text">Make it compelling — this is the first thing recipients see.</div>
+                                <div class="form-text">Make it compelling — this is the first thing recipients see. Personalize with <code>@{{first_name}}</code>.</div>
                                 <div class="char-counter" id="subjectCounter">0 / 255</div>
                             </div>
                             @error('subject')
@@ -296,10 +296,9 @@
                                    value="{{ old('preview_text', $newsletter->preview_text ?? '') }}"
                                    maxlength="500">
                             <div class="d-flex justify-content-between">
-                                <div class="form-text">Shows below the subject in most email clients. Helps increase open rates.</div>
+                                <div class="form-text">Shows below the subject in most email clients. Helps increase open rates. Tags like <code>@{{first_name}}</code> also work here.</div>
                                 <div class="char-counter" id="previewCounter">0 / 500</div>
-                            </div>
-                            @error('preview_text')
+                            </div>                            @error('preview_text')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -310,6 +309,13 @@
                                 Email Content <span class="text-danger">*</span>
                                 <span class="fw-normal text-muted" style="font-weight: 400;" id="contentLength">0 chars</span>
                             </label>
+                            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                                <span class="text-muted small">Insert:</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary merge-tag-btn" data-tag="first_name">First name</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary merge-tag-btn" data-tag="name">Full name</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary merge-tag-btn" data-tag="email">Email</button>
+                                <span class="text-muted small">— filled in per subscriber. Using a name tag in the body replaces the automatic “Dear …” line.</span>
+                            </div>
                             <div id="quill-editor">{!! old('content', $newsletter->content ?? '') !!}</div>
                             <input type="hidden" name="content" id="content">
                             @error('content')
@@ -481,6 +487,17 @@ document.addEventListener('DOMContentLoaded', function() {
     quill.on('text-change', function() {
         document.getElementById('content').value = quill.root.innerHTML;
         updateContentLength();
+    });
+
+    // Insert personalization tags at the cursor
+    document.querySelectorAll('.merge-tag-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const tag = '@{{' + this.dataset.tag + '}}';
+            const range = quill.getSelection(true);
+            const index = range ? range.index : quill.getLength();
+            quill.insertText(index, tag, 'user');
+            quill.setSelection(index + tag.length, 0);
+        });
     });
 
     // Initialize hidden input with existing content

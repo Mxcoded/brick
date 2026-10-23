@@ -380,19 +380,15 @@ class NewsletterController extends Controller
      */
     public function previewEmail(Newsletter $campaign)
     {
-        // Create a dummy subscriber for preview
+        // Render the real mailable with a sample subscriber so the preview shows
+        // exactly what recipients see, including merge tags and the greeting.
         $subscriber = new NewsletterSubscriber([
+            'name' => auth()->user()->name,
             'email' => auth()->user()->email ?? 'preview@example.com',
             'unsubscribe_token' => 'preview-token',
         ]);
 
-        $unsubscribeUrl = route('website.newsletter.unsubscribe', ['token' => 'preview-token']);
-
-        return view('website::emails.newsletter', [
-            'newsletter' => $campaign,
-            'subscriber' => $subscriber,
-            'unsubscribeUrl' => $unsubscribeUrl,
-        ]);
+        return response((new NewsletterMail($campaign, $subscriber))->render());
     }
 
     /**
@@ -430,6 +426,7 @@ class NewsletterController extends Controller
 
         try {
             $subscriber = new NewsletterSubscriber([
+                'name' => auth()->user()->name,
                 'email' => $request->email,
                 'unsubscribe_token' => 'test-'.bin2hex(random_bytes(16)),
             ]);

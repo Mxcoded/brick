@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="color-scheme" content="light">
     <meta name="supported-color-schemes" content="light">
-    <title>{{ $newsletter->subject }}</title>
+    <title>{{ $subject ?? $newsletter->subject }}</title>
     <!--[if mso]>
     <xml>
         <o:OfficeDocumentSettings>
@@ -59,17 +59,18 @@
                             </table>
 
                             <!-- PREVIEW BANNER -->
-                            @if($newsletter->preview_text)
+                            @if($previewText ?? $newsletter->preview_text)
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td style="background-color:#C9A962; padding:16px 40px; text-align:center; font-family:'Segoe UI', Tahoma, Arial, sans-serif;">
-                                        <p style="color:#1A1A1A; font-size:14px; font-weight:600; letter-spacing:0.5px; margin:0;">{{ $newsletter->preview_text }}</p>
+                                        <p style="color:#1A1A1A; font-size:14px; font-weight:600; letter-spacing:0.5px; margin:0;">{{ $previewText ?? $newsletter->preview_text }}</p>
                                     </td>
                                 </tr>
                             </table>
                             @endif
 
                             <!-- GREETING -->
+                            @if($showGreeting ?? true)
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td style="padding:24px 40px 0; font-family:'Segoe UI', Tahoma, Arial, sans-serif; font-size:16px; line-height:1.7; color:#2D2D2D;">
@@ -81,12 +82,13 @@
                                     </td>
                                 </tr>
                             </table>
+                            @endif
 
                             <!-- MAIN CONTENT -->
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                                 <tr>
                                     <td style="padding:0 40px 45px; font-family:'Segoe UI', Tahoma, Arial, sans-serif; color:#4A4A4A; font-size:16px; line-height:1.75;">
-                                        {!! $newsletter->content !!}
+                                        {!! $content ?? $newsletter->content !!}
                                     </td>
                                 </tr>
                             </table>
