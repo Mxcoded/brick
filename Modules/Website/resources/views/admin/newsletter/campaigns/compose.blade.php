@@ -311,9 +311,9 @@
                             </label>
                             <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
                                 <span class="text-muted small">Insert:</span>
-                                <button type="button" class="btn btn-sm btn-outline-secondary merge-tag-btn" data-tag="first_name">First name</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary merge-tag-btn" data-tag="name">Full name</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary merge-tag-btn" data-tag="email">Email</button>
+                                <button type="button" class="btn btn-sm btn-outline-success merge-tag-btn" data-tag="first_name">First name</button>
+                                <button type="button" class="btn btn-sm btn-outline-warning merge-tag-btn" data-tag="name">Full name</button>
+                                <button type="button" class="btn btn-sm btn-outline-info merge-tag-btn" data-tag="email">Email</button>
                                 <span class="text-muted small">— filled in per subscriber. Using a name tag in the body replaces the automatic “Dear …” line.</span>
                             </div>
                             <div id="quill-editor">{!! old('content', $newsletter->content ?? '') !!}</div>
